@@ -1,0 +1,59 @@
+<app-generic
+  pageTitle="QR List"
+  [breadcrumbs]="[{title: 'QR List', url: 'qrlist', icon:''}]" />
+
+<div class="row">
+  <div class="col-md-9 col-12">
+    <div class="card">
+      <div class="card-header"
+        style="display: flex; justify-content: space-between; align-items: center;">
+        <h4>QR List</h4>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <select class="form-select" style="width:100px;"
+            [(ngModel)]="selectedCount"
+            (change)="updateDocuments(selectedCount)">
+            <option *ngFor="let count of counts" [value]="count">{{ count
+              }}</option>
+          </select>
+          <button class="btn btn-primary" (click)="printQrList()"
+            style="padding: 0.25rem 0.5rem; font-size: 1.2rem;width:60px">
+            <span class="material-symbols-outlined">print</span>
+          </button>
+        </div>
+      </div>
+
+      <print-preview
+        *ngIf="previewOpen"
+        [data]="previewData"
+        [isQrList]="true"
+        (closed)="previewOpen = false">
+      </print-preview>
+
+      <div id="qr-container" style="display: flex; flex-wrap: wrap; gap: 22px;">
+        @for (doc of documents;track doc) {
+        <div style="text-align:center;">
+          <qrcode #qrElem [qrdata]="doc" [width]="100"
+            [errorCorrectionLevel]="'H'"></qrcode>
+
+          <div style="font-size: 10px;">{{ doc }}</div>
+        </div>
+        }
+      </div>
+      <hr
+        style="margin-top:20px; margin-bottom:10px;margin-left:8px;margin-right:8px;">
+
+      <div style="
+    margin-bottom:12px; 
+    display:flex; 
+    justify-content:flex-end;
+    padding-right:15px; 
+    font-size: 12px;
+    color:#333;
+">
+        <span>Toplam: {{ selectedCount }}</span>
+      </div>
+
+    </div>
+  </div>
+</div>
+

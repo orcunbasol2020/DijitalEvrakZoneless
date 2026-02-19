@@ -1,0 +1,64 @@
+<div class="a4-page" id="print-area">
+
+  <!-- ===== KURUM ÜST BANDI ===== -->
+  <div class="header-band">
+    <div class="logo-area">
+      <!-- Buraya logo gelecek -->
+      <img src="assets/images/mfa_logo.png" />
+    </div>
+    <div class="header-title">
+      T.C. DIŞİŞLERİ BAKANLIĞI
+      <div class="sub">DİLEKÇE ALINDI BELGESİ</div>
+    </div>
+  </div>
+
+  <!-- ===== BAŞVURU BİLGİLERİ ===== -->
+  <h3 class="section-title">Başvuru Bilgileri</h3>
+
+  <table class="info-table">
+    <tr>
+      <td class="label">Adı Soyadı:</td>
+      <td>{{ fullName }}</td>
+    </tr>
+    <tr>
+      <td class="label">T.C. Kimlik No:</td>
+      <td>{{ tckn }}</td>
+    </tr>
+    <tr>
+      <td class="label">Başvuru No:</td>
+      <td> {{ applicationNo }}</td>
+    </tr>
+    <tr>
+      <td class="label">Başvuru Tarihi:</td>
+      <td>{{ today }}</td>
+    </tr>
+  </table>
+
+  <!-- ===== AÇIKLAMA ALANI ===== -->
+  <div class="explanation">
+    Başvurunuz alınmıştır.
+    Başvuru durumunuzu e-Devlet Kapısı üzerinden
+    <strong>“Dışişleri Bakanlığı → Dilekçe Sorgulama”</strong>
+    bölümünden takip edebilirsiniz.
+  </div>
+  <!-- ===== BARKOD ALANI ===== -->
+  <div class="barcode-container">
+    <div class="qr-wrapper">
+      <qrcode
+        [qrdata]="applicationNo!"
+        [width]="100"
+        [errorCorrectionLevel]="'H'">
+      </qrcode>
+
+      <div class="qr-text">
+        {{ applicationNo }}
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== FOOTER ===== -->
+  <div class="footer">
+    Bu belge evrak takip sistemi tarafından otomatik olarak oluşturulmuştur.
+  </div>
+
+</div>

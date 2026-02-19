@@ -1,0 +1,75 @@
+<app-generic pageTitle="Roller"
+  [breadcrumbs]="[{title: 'Roller', url: 'role', icon: ''}]">
+</app-generic>
+<div [class.show-filters]="showFilters">
+  <flexi-grid
+    [data]="data()"
+    [loading]="loading()"
+    language="tr"
+    [showCaption]="true"
+    captionTitle="Roller"
+    [showExportExcelBtn]="true"
+    exportExcelFileName="roller"
+    (onRefresh)="result.reload()">
+    <ng-template flexiGridCaptionCommandTemplate>
+
+      <!-- 🔥 Filtre Aç/Kapa butonu -->
+      <flexi-button
+        btnIcon="filter_alt"
+        btnColor="light"
+        title="Filtre Aç/Kapat"
+        flexiTooltip
+        (click)="showFilters = !showFilters">
+      </flexi-button>
+            <flexi-button
+        routerLink="/role/create"
+        btnIcon="add"
+        btnColor="primary"
+        title="Rol Ekle"
+        flexiTooltip />
+    </ng-template>
+    <flexi-grid-column field="name" title="Ad" />
+    <flexi-grid-column field="isActive" title="Aktif" textAlign="center"
+      filterType="boolean" [booleanData]="['Aktif', 'Pasif']"
+      width="30px">
+      <ng-template flexiGridCellTemplate let-item>
+        <div class="d-flex justify-content-center">
+          <div class="form-check form-switch">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              role="switch"
+              [id]="item.id"
+              name="item.id"
+              [(ngModel)]="item.isActive">
+          </div>
+        </div>
+      </ng-template>
+    </flexi-grid-column>
+    <flexi-grid-column field="isDeleted" title="Silindi" textAlign="center"
+      filterType="boolean" [booleanData]="['Silindi', 'Silinmedi']"
+      width="30px">
+      <ng-template flexiGridCellTemplate let-item>
+        <div class="d-flex justify-content-center">
+          <div class="form-check form-switch">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              role="switch"
+              [id]="item.id"
+              name="item.id"
+              [(ngModel)]="item.isDeleted">
+          </div>
+        </div>
+      </ng-template>
+    </flexi-grid-column>
+
+    <flexi-grid-column textAlign="center" width="25px">
+      <ng-template flexiGridCellTemplate let-item>
+        <flexi-button btnIcon="edit" title="Güncelle" btnColor="info"
+          (click)="goToDetail(item.id)">
+        </flexi-button>
+      </ng-template>
+    </flexi-grid-column>
+  </flexi-grid>
+</div>

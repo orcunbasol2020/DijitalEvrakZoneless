@@ -1,0 +1,663 @@
+<div class="page-header d-flex justify-content-between align-items-center">
+    <h1 class="page-title d-flex align-items-center">
+        Yönetici
+    </h1>
+    <div class="d-flex header-actions">
+        <button class="btn btn-sm btn-outline-secondary me-2">
+            <span class="material-symbols-outlined">file_download</span> Rapor
+        </button>
+        <button class="btn btn-sm btn-outline-secondary">
+            <span class="material-symbols-outlined"
+                title="Güncel Verileri Getir"
+                title="Verileri Yenile">refresh</span>
+        </button>
+    </div>
+</div>
+<!-- Stats Cards Row -->
+<div class="row g-3 mb-4">
+    <div class="col-md-6 col-lg-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="card-subtitle text-muted">Bugün
+                            (Gelen/Giden)</h6>
+                        <h4 class="card-title mt-2">237 / 168</h4>
+                        <div class="stat-change positive">
+                            <span
+                                class="material-symbols-outlined">trending_up</span>
+                            <span>+8.3%</span>
+                        </div>
+                    </div>
+                    <div class="stat-icon bg-success-light">
+                        <span
+                            class="material-symbols-outlined text-success"
+                            style="font-size:21px">document_scanner</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="card-subtitle text-muted"
+                            title="Son 30 Gün">Gelen Evrak</h6>
+                        <h4 class="card-title mt-2"
+                            title="Son 30 Gün">24.580</h4>
+                        <div class="stat-change positive mt-1">
+                            <span
+                                class="material-symbols-outlined">trending_up</span>
+                            <span>+12.5%</span>
+                        </div>
+                    </div>
+                    <div class="stat-icon bg-primary-light">
+                        <span class="material-symbols-outlined text-primary"
+                            style="font-size:21px">folder_open</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="card-subtitle text-muted"
+                            title="Son 30 Gün">Giden Evrak</h6>
+                        <h4 class="card-title mt-2"
+                            title="Son 30 Gün">15.320</h4>
+                        <div class="stat-change negative">
+                            <span
+                                class="material-symbols-outlined">trending_down</span>
+                            <span>-2.1%</span>
+                        </div>
+                    </div>
+                    <div class="stat-icon bg-warning-light">
+                        <span
+                            class="material-symbols-outlined text-warning"
+                            style="font-size:21px">article_shortcut</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="card-subtitle text-muted" title="Bugün">Nota
+                            (Gelen/Giden)</h6>
+                        <h4 class="card-title mt-2" title="Bugün">96 / 23</h4>
+                        <div class="stat-change positive">
+                            <span
+                                class="material-symbols-outlined">trending_up</span>
+                            <span>+15.7%</span>
+                        </div>
+                    </div>
+                    <div class="stat-icon bg-info-light">
+                        <span class="material-symbols-outlined text-info"
+                            style="font-size:24px">history_edu</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Recent Orders & Activity Row -->
+<div class="row g-3 mb-4">
+    <!-- Recent Orders -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div
+                class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Son Gelen Evraklar</h5>
+                <span class="material-symbols-outlined search-icon-panel"
+                    title="Ara">
+                    search
+                </span>
+                <!-- <a href="#" class="btn btn-sm btn-link">Tümü</a>-->
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover orders-table">
+                        <thead>
+                            <tr>
+                                <td scope="col" class="grid-header">Kurum</td>
+                                <td scope="col" class="grid-header">Evrak
+                                    No</td>
+                                <td scope="col" class="grid-header">Durum</td>
+                                <td scope="col" class="grid-header"
+                                    style="width: 150px;">Tarih</td>
+                                <td scope="col" class="grid-header">Detay</td>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Emniyet Genel Müdürlüğü</td>
+                                <td><div
+                                        class="list-document-no">2025/41851325/4047236</div></td>
+                                <td>
+                                    <span
+                                        class="badge bg-warning"
+                                        style="width: 80px; padding: 7px;"
+                                        title="Zimmetleme Yapıldı">Zimmet</span></td>
+                                <td><div class="list-document-no">18.11.2025
+                                        14:25</div></td>
+                                <td>
+                                    <button class="btn btn-sm btn-icon"><span
+                                            class="material-symbols-outlined"
+                                            title="Evrak Detayı">visibility</span></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Türkiye Noterler Birliği</td>
+                                <td><div
+                                        class="list-document-no">2025/31851350/204730</div></td>
+                                <td><span
+                                        class="badge bg-info text-dark"
+                                        style="width: 80px; padding: 7px;"
+                                        title="Ön Kayıt Yapıldı">Ön
+                                        Kayıt</span></td>
+                                <td><div class="list-document-no">17.11.2025
+                                        17:26</div></td>
+                                <td>
+                                    <button class="btn btn-sm btn-icon"><span
+                                            class="material-symbols-outlined"
+                                            title="Evrak Detayı">visibility</span></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Rusya Federasyonu, Moskova BE</td>
+                                <td><div
+                                        class="list-document-no">2025/91851329/404727</div></td>
+                                <td><span
+                                        class="badge bg-warning"
+                                        style="width: 80px; padding: 7px;"
+                                        title="Zimmetleme Yapıldı">Zimmet</span></td>
+                                <td><div class="list-document-no">17.11.2025
+                                        12:26</div></td>
+                                <td>
+                                    <button class="btn btn-sm btn-icon"><span
+                                            class="material-symbols-outlined"
+                                            title="Evrak Detayı">visibility</span></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>İçişleri Bakanlığı</td>
+                                <td><div
+                                        class="list-document-no">2025/48851328/404724</div></td>
+                                <td><span
+                                        class="badge bg-primary"
+                                        style="width: 80px; padding: 7px;"
+                                        title="OCR Tamamlandı">OCR</span></td>
+                                <td><div class="list-document-no">16.11.2025
+                                        17:18</div></td>
+                                <td>
+                                    <button class="btn btn-sm btn-icon"><span
+                                            class="material-symbols-outlined"
+                                            title="Evrak Detayı">visibility</span></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Adalet Bakanlığı</td>
+                                <td><div
+                                        class="list-document-no">2025/71851325/704721</div></td>
+                                <td><span
+                                        class="badge bg-success"
+                                        style="width: 80px; padding: 7px;"
+                                        title="Kayıt Tamamlandı">Kayıt</span></td>
+                                <td><div class="list-document-no">16.11.2025
+                                        17:16</div></td>
+                                <td>
+                                    <button class="btn btn-sm btn-icon"><span
+                                            class="material-symbols-outlined"
+                                            title="Evrak Detayı">visibility</span></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3">
+        <div class="card h-100">
+            <div
+                class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Anlık Durum</h5>
+                <div class="header-tabs d-flex align-items-center">
+                    <div
+                        class="header-tab-icon"
+                        [class.active]="selectedTab === 'incoming'"
+                        (click)="setTab('incoming')"> Gelen
+                    </div>
+                    <div
+                        class="header-tab-icon ms-2"
+                        [class.active]="selectedTab === 'outgoing'"
+                        (click)="setTab('outgoing')"> Giden
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body">
+                <!-- TAB CONTENT -->
+                <div *ngIf="selectedTab === 'incoming'">
+                    <div class="activity-item">
+                        <div class="activity-icon bg-info" >
+                            <span
+                                class="material-symbols-outlined">hourglass</span>
+                        </div>
+                        <div>
+                            <div class="activity-title">OCR</div>
+                            <div class="activity-subtitle">Toplam/Bekleyen : 237 / 26</div>
+                        </div>
+                    </div>
+
+                    <div class="activity-item mt-2">
+                        <div class="activity-icon bg-warning">
+                            <span
+                                class="material-symbols-outlined">airplane_ticket</span>
+                        </div>
+                        <div>
+                            <div class="activity-title">Kurye</div>
+                            <div class="activity-subtitle">Gelen/Bekleyen : 112
+                                / 14</div>
+                        </div>
+                    </div>
+                    <div class="activity-item mt-2">
+                        <div class="activity-icon bg-danger">
+                            <span
+                                class="material-symbols-outlined">done_all</span>
+                        </div>
+                        <div>
+                            <div class="activity-title">Kaydı Tamamlanan</div>
+                            <div class="activity-subtitle">Evrak Sayısı :
+                                221</div>
+                        </div>
+                    </div>
+
+                    <div class="activity-item mt-2">
+                        <div class="activity-icon bg-primary mt-1">
+                            <span
+                                class="material-symbols-outlined">approval_delegation</span>
+                        </div>
+                        <div>
+                            <div class="activity-title">Teslim Edilen</div>
+                            <div class="activity-subtitle">Evrak Sayısı :
+                                56</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div *ngIf="selectedTab === 'outgoing'">
+                    <div class="activity-item">
+                        <div class="activity-icon bg-primary">
+                            <span
+                                class="material-symbols-outlined">article</span>
+                        </div>
+                        <div>
+                            <div class="activity-title">Toplam</div>
+                            <div class="activity-subtitle">Evrak Sayısı :
+                                521</div>
+                        </div>
+                    </div>
+
+                    <div class="activity-item mt-2">
+                        <div class="activity-icon bg-secondary mt-1 mb-2">
+                            <span
+                                class="material-symbols-outlined">approval_delegation</span>
+                        </div>
+                        <div>
+                            <div class="activity-title">Teslim Edilen</div>
+                            <div class="activity-subtitle">Evrak Sayısı :
+                                367</div>
+                        </div>
+                    </div>
+
+                    <div class="activity-item mt-2">
+                        <div class="activity-icon bg-info mt-1">
+                            <span
+                                class="material-symbols-outlined">approval_delegation</span>
+                        </div>
+                        <div>
+                            <div class="activity-title">Posta </div>
+                            <div class="activity-subtitle">Evrak Sayısı :
+                                156</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="col-lg-3">
+        <div class="right-image-panel"
+            title="Yapay Zeka Destekli Havale Sistemi">
+            <h2 class="img-panel-title-top">
+                <span class="blink-dot"></span>
+                Yapay Zeka Destekli <br>Havale Sistemi</h2>
+            <h3 class="img-panel-title-bottom">v1.0 • Cosine Similarity
+                Engine</h3>
+        </div>
+
+    </div>
+
+</div>
+
+<div class="row g-3 mb-4">
+    <!-- bekleyenler-->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-body p-0">
+                <div class="card h-100">
+                    <div
+                        class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Misyon Evrak Yoğunluk Haritası</h5>
+                        <span class="text-muted small">Son 10 Gün</span>
+                    </div>
+                    <div class="card-body">
+                        <app-map-world></app-map-world>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Bekleyenler</h5>
+            </div>
+
+            <div class="card-body">
+                <pending-chart></pending-chart>
+            </div>
+        </div>
+    </div>
+
+</div>
+<div class="row g-3 mb-4">
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div
+                class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Diplomatik Nota Sayıları (Son 7
+                    Gün)</h5>
+                <a href="#" class="btn btn-sm btn-link">Tümü</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table customers-table mb-3">
+                        <thead>
+                            <tr>
+                                <td scope="col" class="grid-header"></td>
+                                <td scope="col"
+                                    class="grid-header">Temsilcilik</td>
+                                <td scope="col" class="grid-header"
+                                    style="width: 100px;">Gelen</td>
+                                <td scope="col" class="grid-header"
+                                    style="width: 100px;">Gönderilen</td>
+                                <td scope="col" class="grid-header"
+                                    title="AI Destekli Gündem Notları Özeti">Notlar</td>
+                            </tr>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <div class="avatar" title="Almanya">
+                                            <img
+                                                src="assets/images/bayraklar/almanya.png" />
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="country-cell">
+                                            <div
+                                                class="country-name">Almanya</div>
+                                            <div class="mission-name"
+                                                title="Almanya Federal Cumhuriyeti Ankara Büyükelçiliği">
+                                                Botschaft der Bundesrepublik
+                                                Deutschland Ankara
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>28</td>
+                                    <td>35</td>
+                                    <td>
+                                        <div class="nota-detail"
+                                            title="AI Destekli Gündem Notları Özeti">Konsolosluk
+                                            & diaspora yoğunluğu</div></td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="avatar" title="Rusya">
+                                            <img
+                                                src="assets/images/bayraklar/rusya.png" />
+                                        </div>
+                                    </td>
+                                    <td> <div class="country-cell">
+                                            <div
+                                                class="country-name">Rusya</div>
+                                            <div class="mission-name"
+                                                title="Rusya Federasyonu Ankara Büyükelçiliği">
+                                                Embassy of the Russian
+                                                Federation in Ankara
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>15</td>
+                                    <td>22</td>
+                                    <td>
+                                        <div class="nota-detail"
+                                            title="AI Destekli Gündem Notları Özeti">Enerji
+                                            ve bölgesel gündem</div></td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="avatar"
+                                            title="Amerika Birleşik Devletleri">
+                                            <img
+                                                src="assets/images/bayraklar/abd.png" />
+                                        </div></td>
+                                    <td>
+                                        <div class="country-cell">
+                                            <div class="country-name">ABD</div>
+                                            <div class="mission-name"
+                                                title="Amerika Birleşik Devletleri Ankara Büyükelçiliği">
+                                                U.S. Embassy Ankara
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>14</td>
+                                    <td>10</td>
+                                    <td>
+                                        <div class="nota-detail"
+                                            title="AI Destekli Gündem Notları Özeti">Güvenlik,
+                                            siyaset, savunma,
+                                            konsolosluk</div></td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="avatar"
+                                            title="Birleşik Krallık">
+                                            <img
+                                                src="assets/images/bayraklar/eng.png" />
+                                        </div></td>
+                                    <td>
+                                        <div class="country-cell">
+                                            <div class="country-name">Birleşik
+                                                Krallık</div>
+                                            <div class="mission-name"
+                                                title="Birleşik Krallık Ankara Büyükelçiliği">
+                                                British Embassy Ankara
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>12</td>
+                                    <td>18</td>
+                                    <td>
+                                        <div class="nota-detail"
+                                            title="AI Destekli Gündem Notları Özeti">Vize
+                                            ve NATO ilişkileri</div></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div
+                    class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">En Çok Bekleyen Evrakı Olan
+                        Birimler</h5>
+                    <a href="#" class="btn btn-sm btn-link">Tümü</a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table customers-table">
+                            <thead>
+                                <tr>
+                                    <td scope="col"
+                                        class="grid-header">Birim</td>
+                                    <td scope="col" class="grid-header">Evrak
+                                        Sorumluları</td>
+                                    <td scope="col" class="grid-header">Bekleyen
+                                        Evrak Sayısı</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <div
+                                            title="Enerji, Çevre ve Sınıraşan Sular Genel Müdürlüğü">EÇGM</div>
+                                    </td>
+                                    <td><span class="nota-detail"
+                                            title="Dahili: 3420">Banu
+                                            Gültekin</span></td>
+                                    <td>18</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div
+                                            title="Destek Hizmetleri Genel Müdürlüğü">DSGM</div>
+                                    </td>
+                                    <td><span class="nota-detail"
+                                            title="Dahili: 1323">Aytül
+                                            Özcan</span>,
+                                        <span class="nota-detail"
+                                            title="Dahili: 1323">Zeynep
+                                            Büşra Tatar</span></td>
+                                    <td>15</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div
+                                            title="Konsolosluk Hizmetleri ve Yurtdışında Yaşayan Vatandaşlar Genel Müdürlüğü">KOGM</div>
+                                    </td>
+                                    <td><span class="nota-detail"
+                                            title="Dahili: 2025">Didem
+                                            Pekzorlu</span></td>
+                                    <td>12</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div
+                                            title="Bilim ve Teknoloji Politikaları Genel Müdürlüğü">TPGM</div>
+                                    </td>
+                                    <td><span class="nota-detail"
+                                            title="Dahili: 1116">Cevşen
+                                            Büşra Bahçecik</span></td>
+                                    <td>11</td>
+                                </tr> <tr>
+                                    <td>
+                                        <div
+                                            title="BYMB Bakan Yardımcılığı">BYMB</div>
+                                    </td>
+                                    <td><span class="nota-detail"
+                                            title="Dahili: 2219">Eda Tokan
+                                            Akkuş</span></td>
+                                    <td>9</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div
+                                            title="BYMB Bakan Yardımcılığı">BYMB</div>
+                                    </td>
+                                    <td><span class="nota-detail"
+                                            title="Dahili: 2219">Eda Tokan
+                                            Akkuş</span></td>
+                                    <td>5</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row g-3 mb-4">
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-body p-0">
+                    <div class="card h-100">
+                        <div
+                            class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">En Çok Evrak Gelen Birimler</h5>
+
+                            <div class="header-tabs d-flex align-items-center">
+                                <div
+                                    class="header-tab-icon"
+                                    [class.active]="selectedTab === 'incoming'"
+                                    (click)="setTab('incoming')"> Gelen
+                                </div>
+                                <div
+                                    class="header-tab-icon ms-2"
+                                    [class.active]="selectedTab === 'outgoing'"
+                                    (click)="setTab('outgoing')"> Giden
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <center-chart></center-chart>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <div class="col-lg-6">
+            <div class="card h-100">
+
+                <div
+                    class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">En Çok Evrak Gelen Misyonlar</h5>
+                             <div class="header-tabs d-flex align-items-center">
+                                <div
+                                    class="header-tab-icon"
+                                    [class.active]="selectedTab === 'incoming'"
+                                    (click)="setTab('incoming')"> Gelen
+                                </div>
+                                <div
+                                    class="header-tab-icon ms-2"
+                                    [class.active]="selectedTab === 'outgoing'"
+                                    (click)="setTab('outgoing')"> Giden
+                                </div>
+                            </div>
+                </div>
+                <div class="card-body p-2">
+                    <mission-chart></mission-chart>
+                </div>
+            </div>
+
+        </div>
+    </div>

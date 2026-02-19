@@ -1,0 +1,11 @@
+<div id="print-area" class="a4-page">
+  <!-- QR Grid -->
+  <div class="qr-grid">
+    <div class="qr-item" *ngFor="let doc of data">
+      <qrcode [qrdata]="doc" [width]="70" [errorCorrectionLevel]="'H'"></qrcode>
+      <div class="qr-text">{{ doc }}</div>
+    </div>
+  </div>
+
+
+</div>

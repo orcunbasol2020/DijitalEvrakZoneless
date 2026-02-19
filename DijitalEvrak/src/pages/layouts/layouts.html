@@ -1,0 +1,182 @@
+<!-- Header/Navbar -->
+<nav class="navbar navbar-expand-lg navbar-light bg-white fixed-top shadow-sm">
+    <div class="container-fluid">
+        <button class="btn d-md-none" id="sidebarToggle">
+            <span class="material-symbols-outlined">menu</span>
+        </button>
+        <!-- Bread Crumb -->
+        <div class="breadcrumb-container position-relative d-none d-md-block" style="width: 250px;">
+            <nav aria-label="breadcrumb" class="modern-breadcrumb">
+                <app-breadcrumb></app-breadcrumb>
+            </nav>
+        </div>
+        <!-- Search Bar -->
+        <!--             <div class="search-container d-none d-md-block mx-auto">
+                <div class="position-relative">
+                    <input type="text" class="form-control search-input" placeholder="Search...">
+                    <span class="material-symbols-outlined search-icon">search</span>
+                </div>
+            </div> -->
+        <div class="ms-auto d-flex align-items-center">
+            <!-- Notification -->
+            <div class="dropdown me-3 notification-container">
+                <button class="btn btn-link p-0 notification-btn position-relative" type="button"
+                    id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Atanmış 3 Belge Beklemede ...">
+                    <span class="material-symbols-outlined" style="color:rgb(89, 175, 189)">notifications</span>
+                    <span class="notification-badge">3</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow notification-dropdown"
+                    aria-labelledby="notificationDropdown">
+                    <li class="dropdown-header">Bekleyen İşlemleriniz</li>
+                    <li>
+                        <hr class="dropdown-divider">
+                    </li>
+                    <li>
+                        <a class="dropdown-item notification-item" href="#">
+                            <div class="notification-icon bg-warning">
+                                <span class="material-symbols-outlined" style="font-size: 18px;">hourglass_bottom</span>
+                            </div>
+                            <div class="notification-content">
+                                <p class="notification-text">Atanmış Belgeler</p>
+                                <p class="notification-time"><b style="color:brown">3</b>  Belge Beklemede</p>
+                            </div>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item notification-item" href="#">
+                            <div class="notification-icon bg-success">
+                                <span class="material-symbols-outlined" style="font-size: 20px;">hand_package</span>
+                            </div>
+                            <div class="notification-content">
+                                <p class="notification-text">Teslim Edilmeyi Bekleyenler</p>
+                                <p class="notification-time"><b style="color:brown">21</b> Belge Beklemede</p>
+                            </div>
+                        </a>
+                    </li>
+                    <li style="height: 10px;"></li>
+<!--
+                    <li>
+                        <hr class="dropdown-divider">
+                    </li>
+                    <li><a class="dropdown-item text-center view-all" href="#">View All</a></li>-->
+                </ul>
+            </div>
+
+            <!-- User Dropdown -->
+            <div class="dropdown">
+                <a class="d-flex align-items-center text-decoration-none dropdown-toggle"
+                    style="color: var(--text-color);" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown"
+                    aria-expanded="false">
+                    <div class="avatar">
+                        <img [src]="userAvatar()" alt="User Avatar" />
+                    </div>
+                    <div class="d-flex flex-direction-column pl-2">
+                        <span class="d-none d-md-inline small-text">{{user()?.name}} {{user()?.surname}}</span>
+                        <span class="d-none d-md-inline user-department" title="{{user()?.departmentName}}">{{user()?.departmentShortName}}</span>
+                    </div>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="userDropdown">
+                    <li><a class="dropdown-item small-text" routerLink="/users/profile" routerLinkActive="active"><span
+                                class="material-symbols-outlined me-2">account_circle</span>Yetkiler</a></li>
+                    <li><a class="dropdown-item small-text" href="#"><span
+                                class="material-symbols-outlined me-2">settings</span>Ayarlar</a></li>
+                    <li>
+                        <hr class="dropdown-divider">
+                    </li>
+                    <li><a class="dropdown-item small-text" routerLink="/login"><span
+                                class="material-symbols-outlined me-2">logout</span>Çıkış</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="d-flex" id="wrapper">
+    <!-- Sidebar -->
+    <div id="sidebar-wrapper">
+        <!-- Brand -->
+        <div class="sidebar-brand d-flex align-items-center justify-content-between">
+            <a href="#" class="d-flex gap-3 logo mt-1">
+                <img src="assets/images/logo.png" width="190" height="60" alt="Logo"
+                    style="margin-left: 10px;margin-top: 2px;" />
+            </a>
+            <button class="btn-close-sidebar d-md-none">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+
+        <!-- Sidebar Search -->
+        <div class="sidebar-search">
+            <div class="position-relative">
+                <input type="text" class="form-control sidebar-search-input" [(ngModel)]="search"
+                    placeholder="arama ...">
+                <span class="material-symbols-outlined sidebar-search-icon">search</span>
+            </div>
+        </div>
+
+        <!-- Navigation Menu -->
+        <ul class="nav-menu">
+            @for (item of navigations() | searchMenu:search(); track item.title ?? item.category) {
+            @if (item.category) {
+            <li class="nav-category">{{ item.category }}</li>
+            <li class="nav-item">
+                <a [routerLink]="item.url" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}"
+                    class="nav-link">
+                    <div class="nav-icon-text">
+                        <span class="nav-icon material-symbols-outlined">{{ item.icon }}</span>
+                        <span>{{ item.title }}</span>
+                    </div>
+                </a>
+            </li>
+            } @else {
+            <li class="nav-item">
+                <a [routerLink]="item.url" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}"
+                    class="nav-link">
+                    <div class="nav-icon-text">
+                        <span class="nav-icon material-symbols-outlined">{{ item.icon }}</span>
+                        <span>{{ item.title }}</span>
+                    </div>
+                </a>
+            </li>
+            }}
+
+        </ul>
+
+        <div class="sidebar-sticky-menu">
+            <a href="#" class="sticky-menu-item" title="ayarlar">
+                <span class="material-symbols-outlined">settings</span>
+            </a>
+            <a href="#" class="sticky-menu-item" title="yardım">
+                <span class="material-symbols-outlined">help</span>
+            </a>
+            <a routerLink="/login" class="sticky-menu-item" title="çıkış">
+                <span class="material-symbols-outlined">logout</span>
+            </a>
+        </div>
+    </div>
+    <!-- Main Content Area -->
+    <div id="page-content-wrapper">
+        <!-- Main Content Container -->
+        <div class="content-container">
+            <router-outlet></router-outlet>
+        </div>
+
+        <div class="content-scroll-top" id="contentScrollTop">
+            <button class="btn-content-scroll-top">
+                <span class="material-symbols-outlined">arrow_upward</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<footer class="fixed-footer">
+    <div class="footer-left">
+    </div>
+    <div class="footer-center">
+        <span>&copy; 2025 Dışişleri Bakanlığı - Dijital Evrak Takip Sistemi v1.0</span>
+    </div>
+    <div class="footer-right">
+        <a href="#" class="footer-link">Destek</a>
+        <a href="#" class="footer-link">Dokümanlar</a>
+    </div>
+</footer>

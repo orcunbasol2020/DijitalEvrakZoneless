@@ -1,0 +1,201 @@
+<app-generic [pageTitle]="title" [breadcrumbs]="breadcrumbs()">
+</app-generic>
+
+<div class="row">
+  <!-- Sol taraf: Form ve Tablar -->
+  <div class="col-md-5 col-12">
+    <div class="card">
+      <div class="card-body">
+  <div class="card-header p-2 bg-white">
+    <ul class="nav nav-pills nav-fill" id="evrakTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active shadow-sm rounded-pill" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab">
+          Evrak Kayıt
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link shadow-sm rounded-pill" id="technical-tab" data-bs-toggle="tab" data-bs-target="#technical" type="button" role="tab">
+          Diğer Bilgiler
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+<button 
+  class="nav-link shadow-sm rounded-pill"
+  id="transaction-tab"
+  data-bs-toggle="tab"
+  data-bs-target="#transaction"
+  type="button"
+  role="tab"
+  (click)="loadTransactions()">
+
+  İşlem Takip
+</button>
+
+      </li>
+    </ul>
+  </div>
+
+        <!-- Tab Panes -->
+        <div class="tab-content" id="evrakTabsContent">
+          <!-- Genel Bilgiler Tab -->
+          <div class="tab-pane fade show active" id="general" role="tabpanel">
+            <form [formGroup]="form" autocomplete="off" (ngSubmit)="save()">
+              
+              <!-- Evrak Türü -->
+              <div class="mb-3">
+              <select 
+                id="belgeTuru"
+                formControlName="documentTypeId"
+                class="form-select custom-select-blue"
+              >
+                <option [value]="1">Nota</option>
+                <option [value]="2">Evrak</option>
+              </select>
+
+              </div>
+
+              <!-- Sistem No -->
+              <div class="form-group mb-3" style="padding:16px; border-radius:5px; border: 1px solid #c3d7db;">
+                <label for="documentNo">Sistem No</label>
+                <div class="input-group">
+                  <input type="text" id="documentNo" class="form-control" placeholder="2025/" formControlName="qrCode">
+                  <button class="btn btn-secondary btn-sm" type="button" (click)="getir('')">Getir</button>
+                </div>
+              </div>
+
+              <!-- Orjinal Belge No -->
+              <div class="form-group mb-3">
+                <label for="orjBelge">Orjinal Belge No</label>
+                <input type="text" id="orjBelge" class="form-control" formControlName="orginalNo">
+              </div>
+
+              <!-- Konusu -->
+              <div class="form-group mb-3">
+                <label for="konusu">Konusu</label>
+                <input type="text" id="konusu" class="form-control" formControlName="subject">
+              </div>
+
+              <!-- Kurum / Birim -->
+              <div class="form-group mb-3">
+                <label for="nereden">Nereden</label>
+                <app-simple-autocomplete [control]="externalInstitutionControl" [options]="externalInstitutions" placeholder="Kurum seçiniz"></app-simple-autocomplete>
+              </div>
+              <div class="form-group mb-3">
+                <label for="nereye">Nereye</label>
+                <app-simple-autocomplete [control]="departmentControl" [options]="departments" placeholder="Birim seçiniz"></app-simple-autocomplete>
+              </div>
+
+              <!-- Belge Tarihi -->
+              <div class="form-group mb-3">
+                <label for="belgeTarihi">Belge Tarihi</label>
+                <input type="date" id="belgeTarihi" class="form-control" formControlName="documentDate">
+              </div>
+
+              <!-- Notlar -->
+              <div class="form-group mb-3">
+                <label for="notlar">Notlar</label>
+                <textarea id="notlar" class="form-control" formControlName="notes" rows="3"></textarea>
+              </div>
+
+              <div class="d-flex justify-content-end">
+                <button type="submit" class="btn btn-primary px-4">Kaydet</button>
+              </div>
+
+            </form>
+          </div>
+
+          <!-- Teknik Bilgiler Tab -->
+          <div class="tab-pane fade" id="technical" role="tabpanel">
+                        <form *ngIf="formDetail"  [formGroup]="formDetail" autocomplete="off" (ngSubmit)="saveDetail()">
+
+
+
+            <div class="mb-3">
+              <label>Gizlilik Derecesi</label>
+                            <select class="form-select" formControlName="securityDegree">
+<option [ngValue]="1">Hizmete Özel</option>
+<option [ngValue]="2">Gizli</option>
+<option [ngValue]="3">Çok Gizli</option>
+<option [ngValue]="4">Kripto</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label>Elektronik Kopya</label>
+              <select class="form-select" formControlName="electronicCopy">
+                <option [ngValue]="true">Evet</option>
+                <option [ngValue]="false">Hayır</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label>Dil</label>
+            <select class="form-select" formControlName="languageId">
+              <option [ngValue]="1">Türkçe</option>
+              <option [ngValue]="2">İngilizce</option>
+            </select>
+            </div>
+            <div class="mb-3">
+              <label>Sayfa Sayısı</label>
+              <input type="number" class="form-control" formControlName="pageCount">
+            </div>
+               <div class="d-flex justify-content-end">
+                <button type="submit" class="btn btn-primary px-4">Kaydet</button>
+              </div>
+              </form>
+          </div>
+
+          <!-- Transaction / Takip Tab -->
+          <div class="tab-pane fade" id="transaction" role="tabpanel">
+<div class="border rounded p-3 mb-3 bg-light">
+  <div class="row text-center">
+
+    <div class="col-md-4 border-end">
+      <div class="fw-semibold fs-8 text-secondary">Durum</div>
+      <small class="fs-8 text-muted">
+        {{ getStatusText() }}
+      </small>
+    </div>
+
+    <div class="col-md-4 border-end">
+      <div class="fw-semibold fs-8 text-secondary">OCR Durumu</div>
+      <small class="fs-8 text-muted">
+        {{ getOcrStatusText() }}
+      </small>
+    </div>
+
+    <div class="col-md-4">
+      <div class="fw-semibold fs-8 text-secondary">Yayınlanma Durumu</div>
+      <small class="fs-8 text-muted">
+        {{ getReleaseText() }}
+      </small>
+    </div>
+
+  </div>
+</div>
+  <!-- <flexi-grid
+    [data]="data()"
+    language="tr"
+    [showCaption]="true"
+    captionTitle="Birimler"
+    [showExportExcelBtn]="true"
+    exportExcelFileName="birimler">
+    <flexi-grid-column  title="Kısa Ad" width="40px" />
+    <flexi-grid-column title="Ad" />
+
+  </flexi-grid> -->
+
+<!--grid end-->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sağ taraf: PDF Önizleme -->
+  <div class="col-md-7 col-12">
+    <div class="card">
+      <div class="card-body p-0">
+        <iframe [src]="pdfUrl()" width="100%" height="920px" style="border:none;"></iframe>
+      </div>
+    </div>
+  </div>
+</div>

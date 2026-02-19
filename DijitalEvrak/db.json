@@ -1,0 +1,422 @@
+{
+  "scanList": [
+    {
+      "id": "1",
+      "name": "DOC_20251007134855",
+      "qr": "2025/12647651/8647693",
+      "ocr": 1,
+      "assign": "Oral Akçakoyun",
+      "documentUrl": "https://amzirlodp-prd-s3.s3.amazonaws.com/documents/images/big_4cda85d892a5c0b5dd63b510a9c83e9c9d06e739.jpg",
+      "date": "07.09.2025"
+    },
+    {
+      "id": "2",
+      "name": "DOC_20251007135623",
+      "qr": "2025/10756/7135623",
+      "ocr": 1,
+      "assign": "Bahadır Uzun",
+      "documentUrl": "https://amzirlodp-prd-s3.s3.amazonaws.com/documents/images/big_4cda85d892a5c0b5dd63b510a9c83e9c9d06e739.jpg",
+      "date": "03.10.2025"
+    },
+    {
+      "id": "3",
+      "name": "DOC_20251007135722",
+      "qr": "2025/142651/135722",
+      "ocr": 1,
+      "assign": "",
+      "documentUrl": "https://amzirlodp-prd-s3.s3.amazonaws.com/documents/images/big_4cda85d892a5c0b5dd63b510a9c83e9c9d06e739.jpg",
+      "date": "06.10.2025"
+    },
+    {
+      "id": "4",
+      "name": "DOC_20251007134858",
+      "qr": "2025/47872423/685745",
+      "ocr": 0,
+      "assign": "",
+      "documentUrl": "https://amzirlodp-prd-s3.s3.amazonaws.com/documents/images/big_4cda85d892a5c0b5dd63b510a9c83e9c9d06e739.jpg",
+      "date": "05.09.2025"
+    },
+    {
+      "id": "5",
+      "name": "DOC_20251007134859",
+      "qr": "2025/646235/20065",
+      "ocr": 0,
+      "assign": "",
+      "documentUrl": "https://amzirlodp-prd-s3.s3.amazonaws.com/documents/images/big_4cda85d892a5c0b5dd63b510a9c83e9c9d06e739.jpg",
+      "date": "10.09.2025"
+    },
+    {
+      "id": "6",
+      "name": "DOC_20251007134860",
+      "qr": "2025/424242/24244",
+      "ocr": 0,
+      "assign": "",
+      "documentUrl": "https://amzirlodp-prd-s3.s3.amazonaws.com/documents/images/big_4cda85d892a5c0b5dd63b510a9c83e9c9d06e739.jpg",
+      "date": "18.09.2025"
+    },
+    {
+      "id": "7",
+      "name": "DOC_20251007134867",
+      "qr": "2025/424242/24247",
+      "ocr": 0,
+      "assign": "",
+      "documentUrl": "https://amzirlodp-prd-s3.s3.amazonaws.com/documents/images/big_4cda85d892a5c0b5dd63b510a9c83e9c9d06e739.jpg",
+      "date": "27.09.2025"
+    },
+    {
+      "id": "8",
+      "name": "DOC_20251007134858",
+      "qr": "2025/12647651/8647698",
+      "ocr": 1,
+      "assign": "Gökçe Gürkaş",
+      "documentUrl": "https://amzirlodp-prd-s3.s3.amazonaws.com/documents/images/big_4cda85d892a5c0b5dd63b510a9c83e9c9d06e739.jpg",
+      "date": "07.09.2025"
+    },
+    {
+      "id": "9",
+      "name": "DOC_20251007135623",
+      "qr": "2025/10756/7135623",
+      "ocr": 1,
+      "assign": "Bahadır Uzun",
+      "documentUrl": "https://amzirlodp-prd-s3.s3.amazonaws.com/documents/images/big_4cda85d892a5c0b5dd63b510a9c83e9c9d06e739.jpg",
+      "date": "03.10.2025"
+    },
+    {
+      "id": "10",
+      "name": "DOC_20251007135722",
+      "qr": "2025/142651/135722",
+      "ocr": 1,
+      "assign": "",
+      "documentUrl": "https://amzirlodp-prd-s3.s3.amazonaws.com/documents/images/big_4cda85d892a5c0b5dd63b510a9c83e9c9d06e739.jpg",
+      "date": "06.10.2025"
+    },
+    {
+      "id": "11",
+      "name": "DOC_20251007134858",
+      "qr": "2025/47872423/685745",
+      "ocr": 0,
+      "assign": "Gökçe Gürkaş",
+      "documentUrl": "https://amzirlodp-prd-s3.s3.amazonaws.com/documents/images/big_4cda85d892a5c0b5dd63b510a9c83e9c9d06e739.jpg",
+      "date": "05.09.2025"
+    },
+    {
+      "id": "12",
+      "name": "DOC_20251007134859",
+      "qr": "2025/646235/20065",
+      "ocr": 0,
+      "assign": "Oral Akçakoyun",
+      "documentUrl": "https://amzirlodp-prd-s3.s3.amazonaws.com/documents/images/big_4cda85d892a5c0b5dd63b510a9c83e9c9d06e739.jpg",
+      "date": "10.09.2025"
+    },
+    {
+      "id": "6",
+      "name": "DOC_20251007134860",
+      "qr": "2025/424242/24244",
+      "ocr": 0,
+      "assign": "",
+      "documentUrl": "https://amzirlodp-prd-s3.s3.amazonaws.com/documents/images/big_4cda85d892a5c0b5dd63b510a9c83e9c9d06e739.jpg",
+      "date": "18.09.2025"
+    },
+    {
+      "id": "7",
+      "name": "DOC_20251007134867",
+      "qr": "2025/424242/24247",
+      "ocr": 0,
+      "assign": "",
+      "documentUrl": "https://amzirlodp-prd-s3.s3.amazonaws.com/documents/images/big_4cda85d892a5c0b5dd63b510a9c83e9c9d06e739.jpg",
+      "date": "27.09.2025"
+    }
+  ],
+  "scanList2": [
+    {
+      "id": "55d6"
+    }
+  ],
+  "getDocumentNumber": [
+    {
+      "id": "1",
+      "documentNo": "989136/481232"
+    },
+    {
+      "id": "2",
+      "documentNo": "989136/481233"
+    },
+    {
+      "id": "3",
+      "documentNo": "989136/481234"
+    },
+    {
+      "id": "4",
+      "documentNo": "989136/481235"
+    }
+  ],
+  "getDocumentList": [
+    {
+      "id": "1",
+      "documentNo": "2025/12647651/8647693",
+      "orjinalBelgeNo": "4440-25",
+      "konusu": "Davet Mektubu",
+      "nereden": "Rusya Federasyonu Büyükelçiliği",
+      "nereye": "PRTY",
+      "belgeTarihi": "07.09.2025",
+      "notlar": "not1",
+      "path": "DOC_20251007134855.pdf"
+    },
+    {
+      "id": "2",
+      "documentNo": "2025/10756/7135623",
+      "orjinalBelgeNo": "E-523732-529-1220909",
+      "konusu": "Aile Birleşimi Talebi Hk.",
+      "nereden": "Türkiye Kızılay Derneği Uluslararası İşler ve Göç Hizmetleri Genel Müdürlüğü",
+      "nereye": "Dışişleri Bakanlığı",
+      "belgeTarihi": "03.10.2025",
+      "notlar": "test not",
+      "path": "DOC_20251007135623.pdf"
+    },
+    {
+      "id": "3",
+      "documentNo": "2025/142651/135722",
+      "konusu": "34. Olağan Genel Kurul",
+      "belgeTarihi": "06.10.2025",
+      "nereden": "Türk Ağır Sanayii ve Hizmet Sektörü Kamu İşverenleri Sendikası",
+      "nereye": "Dışişleri Bakanlığı",
+      "orjinalBelgeNo": "2025/4870",
+      "notlar": "",
+      "dil": "",
+      "durum": "",
+      "path": "DOC_20251007135722.pdf"
+    },
+    {
+      "id": "4",
+      "documentNo": "2025/142651/135722",
+      "konusu": "34. Olağan Genel Kurul",
+      "belgeTarihi": "06.10.2025",
+      "nereden": "Türk Ağır Sanayii ve Hizmet Sektörü Kamu İşverenleri Sendikası",
+      "nereye": "Dışişleri Bakanlığı",
+      "orjinalBelgeNo": "2025/4870",
+      "notlar": "",
+      "dil": "",
+      "durum": "",
+      "path": "DOC_20251007135722.pdf"
+    },
+    {
+      "id": "5",
+      "documentNo": "2025/142651/135722",
+      "konusu": "34. Olağan Genel Kurul",
+      "belgeTarihi": "06.10.2025",
+      "nereden": "Türk Ağır Sanayii ve Hizmet Sektörü Kamu İşverenleri Sendikası",
+      "nereye": "Dışişleri Bakanlığı",
+      "orjinalBelgeNo": "2025/4870",
+      "notlar": "",
+      "dil": "",
+      "durum": "",
+      "path": "DOC_20251007135722.pdf"
+    },
+    {
+      "id": "6",
+      "documentNo": "2025/142651/135722",
+      "konusu": "34. Olağan Genel Kurul",
+      "belgeTarihi": "06.10.2025",
+      "nereden": "Türk Ağır Sanayii ve Hizmet Sektörü Kamu İşverenleri Sendikası",
+      "nereye": "Dışişleri Bakanlığı",
+      "orjinalBelgeNo": "2025/4870",
+      "notlar": "",
+      "dil": "",
+      "durum": "",
+      "path": "DOC_20251007135722.pdf"
+    },
+    {
+      "id": "7",
+      "documentNo": "2025/142651/135722",
+      "konusu": "34. Olağan Genel Kurul",
+      "belgeTarihi": "06.10.2025",
+      "nereden": "Türk Ağır Sanayii ve Hizmet Sektörü Kamu İşverenleri Sendikası",
+      "nereye": "Dışişleri Bakanlığı",
+      "orjinalBelgeNo": "2025/4870",
+      "notlar": "",
+      "dil": "",
+      "durum": "",
+      "path": "DOC_20251007135722.pdf"
+    },
+    {
+      "id": "8",
+      "documentNo": "2025/142651/135722",
+      "konusu": "34. Olağan Genel Kurul",
+      "belgeTarihi": "06.10.2025",
+      "nereden": "Türk Ağır Sanayii ve Hizmet Sektörü Kamu İşverenleri Sendikası",
+      "nereye": "Dışişleri Bakanlığı",
+      "orjinalBelgeNo": "2025/4870",
+      "notlar": "",
+      "dil": "",
+      "durum": "",
+      "path": "DOC_20251007135722.pdf"
+    }
+  ],
+  "departments": [
+    {
+      "id": "1",
+      "name": "BÖZK Bakan Özel Kalem Müdürlüğü"
+    },
+    {
+      "id": "2",
+      "name": "BSÖZ Bakanlık Sözcülüğü"
+    },
+    {
+      "id": "3",
+      "name": "BÖZM Bakan Özel Müşavirliği"
+    },
+    {
+      "id": "4",
+      "name": "BHİM Basın ve Halkla İlişkiler Müşavirliği"
+    },
+    {
+      "id": "5",
+      "name": "DPDK Dış Politika Danışma Kurulu"
+    },
+    {
+      "id": "6",
+      "name": "BYBE Bakan Yardımcılığı"
+    },
+    {
+      "id": "7",
+      "name": "EÇGM Enerji, Çevre ve Sınıraşan Sular Genel Müdürlüğü"
+    },
+    {
+      "id": "8",
+      "name": "APGM İkili İlişkiler Genel Müdürlüğü"
+    },
+    {
+      "id": "9",
+      "name": "ASGM İkili İlişkiler Genel Müdürlüğü"
+    },
+    {
+      "id": "10",
+      "name": "ASYA Çok Taraflı İlişkiler Genel Müdürlüğü"
+    },
+    {
+      "id": "11",
+      "name": "GAGM İkili İlişkiler Genel Müdürlüğü"
+    },
+    {
+      "id": "12",
+      "name": "BYLG Bakan Yardımcılığı"
+    },
+    {
+      "id": "13",
+      "name": "TPGM Bilim ve Teknoloji Politikaları Genel Müdürlüğü"
+    },
+    {
+      "id": "14",
+      "name": "BYMB Bakan Yardımcılığı"
+    },
+    {
+      "id": "15",
+      "name": "BYMK Bakan Yardımcılığı"
+    },
+    {
+      "id": "16",
+      "name": "BTGM Bilgi Teknolojileri Genel Müdürlüğü"
+    },
+    {
+      "id": "17",
+      "name": "DSGM Destek Hizmetleri Genel Müdürlüğü"
+    },
+    {
+      "id": "18",
+      "name": "DAGM Diplomatik Arşiv Genel Müdürlüğü"
+    },
+    {
+      "id": "19",
+      "name": "DİAB Diplomasi Akademisi Başkanlığı"
+    },
+    {
+      "id": "20",
+      "name": "KOGM Konsolosluk Hizmetleri ve Yurtdışında Yaşayan Vatandaşlar Genel Müdürlüğü"
+    },
+    {
+      "id": "21",
+      "name": "STGB Strateji Geliştirme Başkanlığı"
+    },
+    {
+      "id": "22",
+      "name": "DPGM Dış Politika Plan ve Eşgüdüm Genel Müdürlüğü"
+    },
+    {
+      "id": "23",
+      "name": "PEGM Personel Genel Müdürlüğü"
+    },
+    {
+      "id": "24",
+      "name": "KSGM Kamu Diplomasisi ve Stratejik İletişim Genel Müdürlüğü"
+    },
+    {
+      "id": "25",
+      "name": "BYNY Bakan Yardımcılığı"
+    }
+  ],
+  "users": [
+    {
+      "id": "2",
+      "firstName": "Orçun",
+      "lastName": "Başol",
+      "fullName": "Orçun Başol",
+      "userName": "orcun.basol",
+      "email": "orcunbasol@mfa.gov.tr",
+      "password": "123",
+      "isDeleted": false,
+      "isAdmin": false
+    },
+    {
+      "id": "3",
+      "firstName": "Ömür",
+      "lastName": "Koçyiğit",
+      "fullName": "Ömür Koçyiğit",
+      "userName": "omur.kocyigit",
+      "email": "omur.kocyigit@mfa.gov.tr",
+      "password": "123",
+      "isDeleted": false,
+      "isAdmin": false
+    },
+    {
+      "id": "56eb",
+      "firstName": "test",
+      "lastName": "test",
+      "userName": "test",
+      "email": "test@test.com",
+      "password": "123",
+      "isDeleted": true,
+      "isAdmin": true
+    },
+    {
+      "id": "d7cd",
+      "firstName": "Gökçe",
+      "lastName": "Gürkaş",
+      "userName": "gokce.gurkas",
+      "email": "gokce.gurkas@mfa.gov.tr",
+      "password": "123",
+      "isDeleted": false,
+      "isAdmin": false
+    },
+    {
+      "id": "b1d2",
+      "firstName": "Bülent",
+      "lastName": "Arslan",
+      "userName": "bulent.arslan",
+      "email": "bulent.arslan",
+      "password": "123",
+      "isDeleted": true,
+      "isAdmin": true
+    },
+    {
+      "id": "226a",
+      "firstName": "Oral",
+      "lastName": "Akçakoyun",
+      "fullName": "Oral Akçakoyun",
+      "userName": "oral.akcakoyun",
+      "email": "oral.akcakoyun@mfa.gov.tr",
+      "password": "123",
+      "isDeleted": false,
+      "isAdmin": false
+    }
+  ]
+}

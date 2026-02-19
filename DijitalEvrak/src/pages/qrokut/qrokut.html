@@ -1,0 +1,43 @@
+<app-generic
+    pageTitle="QR List"
+    [breadcrumbs]="[{title: 'Evrak Kayıt', url: 'qrlist', icon:''}]" />
+
+<div class="row">
+    <div class="col-md-9 col-12">
+        <div class="card" style="height: 700px;">
+            <div
+                class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="m-0">Evrak Kayıt</h4>
+            </div>
+            <!-- ALERT BÖLÜMÜ -->
+            <div
+                class="alert alert-info d-flex align-items-center justify-content-between mx-4 mt-4"
+                role="alert"
+                *ngIf="alertVisible()">
+                <!-- Sol büyük QR icon -->
+                <div
+                    class="qr-icon-wrapper d-flex align-items-center justify-content-center me-3">
+                    <span class="material-symbols-outlined qr-icon"
+                        style="cursor: pointer;" (click)="onQrScanned('')"
+                        title="Aktif Olarak QR Kod Beklenmektedir. (Manuel Olarakta Belge Numarası Girilerek, Enter Tuşu İle Devam Edilebilir.)">
+                        qr_code_scanner
+                    </span>
+                </div>
+                <!-- Sağ içerik + arrow -->
+                <div
+                    class="qr-panel-content position-relative flex-grow-1 pt-3 mb-3">
+                    <h5 class="mb-1 qr-title">QR Okutunuz</h5>
+                    <p class="mb-0 qr-description">
+                        Belgenin detay ekranına geçmek için QR kodu okutup
+                        devam edebilirsiniz.
+                    </p>
+                    <span class="material-symbols-outlined qr-panel-next pb-1"
+                        title="Manuel okut"
+                        (click)="onQrScanned('')">
+                        arrow_forward
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

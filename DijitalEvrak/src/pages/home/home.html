@@ -1,0 +1,15 @@
+<app-generic pageTitle="Ana Sayfa" [breadcrumbs]="[]" />
+
+<div *ngIf="roleService.has('Yönetici')">
+    <app-admin-dashboard></app-admin-dashboard>
+</div>
+
+<div *ngIf="roleService.has('Gelen Evrak')">
+    <app-gelen-evrak-dashboard></app-gelen-evrak-dashboard>
+</div>
+
+<div *ngIf="roleService.has('Misyon')">
+    <app-on-kayit-dashboard></app-on-kayit-dashboard>
+</div>
+
+

@@ -1,0 +1,175 @@
+<app-generic pageTitle="Taranmış Evraklar"
+  [breadcrumbs]="[{title: 'Taranmış Evraklar', url: 'scanlist', icon: ''}]">
+</app-generic>
+
+<div [class.show-filters]="showFilters">
+  <flexi-grid
+    [data]="scanListData()"
+    [loading]="loading()"
+    [showCaption]="true"
+    captionTitle="Taranmış Evraklar"
+    [showExportExcelBtn]="true"
+    exportExcelFileName="TaranmisEvrakListesi"
+    [filterable]="true"
+    language="tr"
+    (onRefresh)="onOcrFilterChange()">
+
+    <!-- GRID ÜST ARAÇLARI -->
+    <ng-template flexiGridCaptionCommandTemplate>
+      <!-- OCR DURUM FİLTRESİ -->
+        <!-- OCR DURUM FİLTRESİ -->
+        <select class="form-select me-2" style="width: 180px;"
+                [(ngModel)]="selectedOcrFilter"
+                (change)="onOcrFilterChange()">
+
+          <option value="completed">✔ OCR Tamamlananlar</option>
+          <option value="pending">⏳ OCR Bekleyenler</option>
+          <option value="error">❌ OCR Hatalı</option>
+          <option value="all">📄 Tümü</option>
+
+        </select>
+
+      <flexi-button
+        btnIcon="filter_alt"
+        btnColor="light"
+        title="Filtre Aç/Kapat"
+        flexiTooltip
+        (click)="showFilters = !showFilters">
+      </flexi-button>
+
+      <flexi-button
+        routerLink="/scanlist/create"
+        btnIcon="upload_file"
+        btnColor="secondary"
+        title="Taranmış Evrak Yükle"
+        flexiTooltip>
+      </flexi-button>
+    </ng-template>
+
+    <!-- SÜTUNLAR -->
+    <flexi-grid-column field="qrCode" title="Belge No" />
+    <flexi-grid-column field="documentName" title="Dosya Adı" />
+
+    <flexi-grid-column title="Belge Tarihi" width="100px">
+      <ng-template flexiGridCellTemplate let-item>
+        {{ item.documentDate | date:'dd.MM.yyyy' }}
+      </ng-template>
+    </flexi-grid-column>
+
+     <flexi-grid-column
+      field="atananPersonel"
+      width="120px"
+      title="Atanan Personel"
+      filterType="select"
+      [filterData]="personFilter()">
+    </flexi-grid-column> 
+
+    <!-- OCR DURUM İKONU -->
+    <flexi-grid-column
+      field="durum"
+      title="OCR"
+      width="80px"
+      textAlign="center">
+
+      <ng-template flexiGridCellTemplate let-item>
+        <span
+          class="material-symbols-outlined"
+          style="font-size: 1.35rem; vertical-align: middle;"
+          [ngStyle]="{
+            'color': item.durum === 1 ? '#4CAF50' :
+                     (item.durum === 2 ? 'red' : '#b2d2d2')
+          }">
+
+          {{
+            item.ocrStatus === 1
+              ? 'check_circle'
+              : item.ocrStatus === 2
+                ? 'error'
+                : 'hourglass_bottom'
+          }}
+
+        </span>
+      </ng-template>
+    </flexi-grid-column>
+
+    <!-- İŞLEME AL -->
+    <flexi-grid-column title="İşleme Al" textAlign="center" width="65px">
+      <ng-template flexiGridCellTemplate let-item>
+        <flexi-button
+          [btnIcon]="item.atananPersonel ? 'key' : 'expand_circle_right'"
+          [title]="item.atananPersonel ? 'Atama Yapılmış' : 'İşleme Al'"
+          [btnColor]="item.atananPersonel ? 'light' : 'primary'"
+          (click)="item.atananPersonel ? openPersonModal(item.id) : goToDetail(item.id)">
+        </flexi-button>
+      </ng-template>
+    </flexi-grid-column>
+
+    <!-- SÜREÇLER -->
+    <flexi-grid-column textAlign="center" width="40px">
+      <ng-template flexiGridCellTemplate let-item>
+        <flexi-button
+          btnIcon="conversion_path"
+          title="Süreçler"
+          btnColor="info"
+          (click)="goToProcess(item.id)">
+        </flexi-button>
+      </ng-template>
+    </flexi-grid-column>
+
+    <!-- ZİMMETLEME -->
+    <flexi-grid-column width="40px">
+      <ng-template flexiGridCellTemplate let-item>
+        <button
+          type="button"
+          class="btn btn-outline-secondary btn-sm d-flex align-items-center justify-content-center"
+          title="Zimmetleme"
+          style="width: 36px; height: 36px;"
+          (click)="goToZimmet(item.id)">
+          <span class="material-symbols-outlined" style="font-size: 19px;">
+            qr_code_scanner
+          </span>
+        </button>
+      </ng-template>
+    </flexi-grid-column>
+
+    <!-- SİL -->
+    <flexi-grid-column textAlign="center" width="40px">
+      <ng-template flexiGridCellTemplate let-item>
+        <button
+          type="button"
+          class="btn btn-outline-warning btn-sm d-flex align-items-center justify-content-center"
+          title="Taranmış Evrakı Sil"
+          style="width: 36px; height: 36px;"
+          (click)="delete(item.id)">
+          <span class="material-symbols-outlined" style="font-size: 19px;">
+            delete
+          </span>
+        </button>
+      </ng-template>
+    </flexi-grid-column>
+
+  </flexi-grid>
+</div>
+
+<!-- PERSONEL MODAL -->
+<div *ngIf="modalVisible" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h5>Atanacak Personel</h5>
+      <span class="material-symbols-outlined close-btn"
+            (click)="closePersonModal()">close</span>
+    </div>
+
+    <div class="modal-body">
+      <select id="personSelect" class="form-select"
+              [(ngModel)]="selectedPerson">
+        <option *ngFor="let p of personList" [ngValue]="p">{{ p.name }}</option>
+      </select>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="closePersonModal()">İptal</button>
+      <button class="btn btn-primary" (click)="savePerson()">Kaydet</button>
+    </div>
+  </div>
+</div>

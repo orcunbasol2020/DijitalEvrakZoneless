@@ -1,0 +1,72 @@
+<app-generic pageTitle="Kullanıcı Profili" [breadcrumbs]="[
+  {title: 'Kullanıcı Profili', url: 'users/profile', icon: ''}
+  ]">
+</app-generic>
+
+<div class="row">
+  <div class="col-md-12 col-12">
+    <div class="card">
+      <div class="card-header">
+        <h4>{{ user()?.name }} {{ user()?.surname }} ({{user()?.departmentShortName}})</h4>
+      </div>
+
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="activity-list">
+            <div class="activity-item mb-3">
+              <div class="activity-content">
+
+                <div [class.show-filters]="showFilters">
+                  <flexi-grid
+                    [data]="data()"
+                    [loading]="loading()"
+                    language="tr"
+                    [showCaption]="true"
+                    captionTitle="Roller / Yetkiler"
+                    [showExportExcelBtn]="true"
+                    exportExcelFileName="roller"
+                    [filterable]="true"
+                    (onRefresh)="result.reload()">
+
+                    <ng-template flexiGridCaptionCommandTemplate>
+                      <flexi-button
+                        btnIcon="filter_alt"
+                        btnColor="light"
+                        title="Filtre Aç/Kapat"
+                        flexiTooltip
+                        (click)="showFilters = !showFilters">
+                      </flexi-button>
+                    </ng-template>
+
+                    <!-- ✅ Rol Adı -->
+                    <flexi-grid-column field="name" title="Rol Adı" />
+
+                    <!-- ✅ Kullanıcıda var mı? -->
+                    <flexi-grid-column
+                      title="Var"
+                      width="70px"
+                      textAlign="center"
+                      filterType="boolean"
+                      [booleanData]="['Yok', 'Var']">
+                      <ng-template flexiGridCellTemplate let-item>
+                        <span
+                          class="material-symbols-outlined"
+                          style="font-size: 1.35rem; vertical-align: middle;"
+                          [ngStyle]="{ color: item.hasRole ? '#4CAF50' : '#cfd8dc' }">
+                          {{ item.hasRole ? 'check_circle' : 'remove_circle_outline' }}
+                        </span>
+                      </ng-template>
+                    </flexi-grid-column>
+
+                  </flexi-grid>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
