@@ -3,7 +3,7 @@
 
 <div class="row">
     <div class="col-md-9 col-12">
-        <div class="card" style="height: 700px;">
+        <div class="card">
             <div
                 class="card-header d-flex justify-content-between align-items-center">
                 <h4 class="m-0">Gelen Evrak Zimmet</h4>
@@ -11,259 +11,236 @@
                     class="btn btn-outline-secondary btn-sm d-flex align-items-center"
                     (click)="backToQrScan()" *ngIf="backButtonVisible()">
                     <span class="material-symbols-outlined me-1"
-                        style="font-size: 18px;">qr_code_scanner</span>
+                        style="font-size: 18px;">
+                        qr_code_scanner
+                    </span>
                     QR Okuma Ekranına Dön
                 </button>
             </div>
-            <!-- ALERT BÖLÜMÜ -->
+
+            <!-- ALERT -->
             <div
                 class="alert alert-info d-flex align-items-center justify-content-between mx-4 mt-4"
                 role="alert"
                 *ngIf="alertVisible()">
-
-                <!-- Sol büyük QR icon -->
                 <div
                     class="qr-icon-wrapper d-flex align-items-center justify-content-center me-3">
                     <span class="material-symbols-outlined qr-icon"
-                        style="cursor: pointer;" (click)="onQrScanned('')"
-                        title="Aktif Olarak QR Kod Beklenmektedir. (Manuel Olarakta Belge Numarası Girilerek, Enter Tuşu İle Devam Edilebilir.)">
+                        style="cursor: pointer;"
+                        title="QR bekleniyor">
                         qr_code_scanner
                     </span>
                 </div>
 
-                <!-- Sağ içerik + arrow -->
                 <div
                     class="qr-panel-content position-relative flex-grow-1 pt-3 mb-3">
-                    <h5 class="mb-1 qr-title">QR Okutunuz</h5>
+                    <h5 class="mb-1 qr-title">QR Kodu Okutunuz</h5>
                     <p class="mb-0 qr-description">
-                        Belgenin zimmetleme ekranına geçmek için QR kodu okutup
-                        devam edebilirsiniz.
+                        Zimmetleme ekranına geçmek için belge üzerindeki QR kodu
+                        okutunuz.
                     </p>
 
-                    <span class="material-symbols-outlined qr-panel-next pb-1"
-                        title="Manuel okut"
-                        (click)="onQrScanned('')">
+                    <span class="material-symbols-outlined qr-panel-next pb-1">
                         arrow_forward
                     </span>
                 </div>
-
             </div>
 
-            <!-- ALTTA GÖRÜNÜR OLACAK DIV -->
-
+            <!-- DETAY -->
             @if (detailsVisible()) {
-            <div class="mx-3 p-3 mt-3">
+            <div class="mx-3 p-2 mt-1">
                 <div class="row g-3 align-items-start">
-                    <!-- SOL: QR Kod -->
-                    <div class="col-md-3 text-center mt-4">
-                        @if (scannedDocumentNo()) {
-                        <div>
-                            <qrcode [qrdata]="scannedDocumentNo()!"
-                                [width]="165"
-                                [errorCorrectionLevel]="'H'"></qrcode>
-                            <div class="mt-2"
-                                style="font-size: 16px; font-weight: 500;">
-                                {{ scannedDocumentNo() }}
-                            </div>
-                        </div>
-                        }
-                    </div>
 
-                    <!-- SAĞ: Zimmet İşlemleri -->
-                    <div class="col-md-9">
+                    <!-- ZİMMET -->
+                    <div class="col-md-7">
                         <div class="card h-100">
                             <div class="card-body">
                                 <h5 class="card-title mb-3">Zimmet İşlemi</h5>
 
-                                <!-- Seçim Alanı -->
-                                <div class="form-check form-check-row">
-                                    <input class="form-check-input" type="radio"
-                                        id="selfZimmet" name="zimmetType"
-                                        value="self" [(ngModel)]="zimmetType" />
-                                    <label class="form-check-label"
-                                        for="selfZimmet">
+                                <div class="form-check">
+                                    <input class="form-check-input"
+                                        type="radio"
+                                        value="self"
+                                        name="zimmetType"
+                                        [(ngModel)]="zimmetType">
+                                    <label class="form-check-label">
                                         Zimmeti Devir Al ({{ currentUserName }})
                                     </label>
                                 </div>
 
-                                <div class="form-check form-check-row mt-2">
-                                    <input class="form-check-input" type="radio"
-                                        id="otherZimmet" name="zimmetType"
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input"
+                                        type="radio"
                                         value="other"
-                                        [(ngModel)]="zimmetType" />
-                                    <label class="form-check-label"
-                                        for="otherZimmet">
+                                        name="zimmetType"
+                                        [(ngModel)]="zimmetType">
+                                    <label class="form-check-label">
                                         Zimmeti Devret
                                     </label>
                                 </div>
 
-                                <!-- Eğer başka personele zimmet seçilirse -->
                                 <div *ngIf="zimmetType === 'other'"
                                     class="mt-3">
-                                    <label for="personSelect"
-                                        class="form-label fw-semibold">Personel
-                                        Seçiniz:</label>
-                                    <select id="personSelect"
-                                        class="form-select"
+                                    <select class="form-select"
                                         [(ngModel)]="selectedPersonId">
-                                        <option [value]="0">Seçiniz...</option>
-                                        <option *ngFor="let p of personList"
-                                            [value]="p.id">{{ p.name }}</option>
+                                        <option
+                                            [ngValue]="null">Seçiniz...</option>
+                                        <option *ngFor="let p of personList()"
+                                            [ngValue]="p.id">
+                                            {{ p.name }} {{ p.surname }} ({{
+                                            p.departmentShortName }})
+                                        </option>
                                     </select>
                                 </div>
 
-                                <!-- Zimmet Butonu -->
-                                <div class="text-end mt-4">
-                                    <button type="button"
-                                        class="btn btn-primary px-5 py-2"
-                                        (click)="saveZimmet()">
-                                        Zimmetle
+                                <div
+                                    class="text-end mt-4 d-flex justify-content-end gap-3">
+
+                                    <button class="btn btn-outline-success px-5"
+                                        (click)="saveZimmet('3')"
+                                        [disabled]="zimmetType === 'self' || !selectedPersonId">
+                                        <span
+                                            class="material-symbols-outlined me-1 mb-1 mt-1">
+                                            hand_package
+                                        </span>
+                                        Teslim Et
                                     </button>
+
+                                    <button class="btn btn-primary px-5"
+                                        (click)="saveZimmet('2')"
+                                        [disabled]="zimmetType === 'other' && !selectedPersonId">
+
+                                        {{ zimmetType === 'self'
+                                        ? 'Zimmeti Üzerime Al'
+                                        : 'Zimmetle' }}
+                                    </button>
+
                                 </div>
                             </div>
                         </div>
                     </div>
+
                 </div>
             </div>
 
-            <div
-                style="height: 1px; background-color: #dee2e6; border-radius: 4px; margin: 20px 0;"></div>
-
-            }
-            @if (!saveModalDetailVisible() && detailsVisible()) {
-            <div class="row align-items-center gx-4">
-                <!-- SOL KART -->
-                <div class="col-md-3 ms-4 mt-3">
-                    <div class="card mb-4" style="min-width: 220px;">
-                        <div
-                            class="card-header d-flex justify-content-between align-items-center"
-                            style="background-color: #b2f3fb;">
-                            <h5 class="card-title mt-1">Mevcut Zimmet</h5>
-                        </div>
-
-                        <div class="card-body d-flex flex-column">
-                            <div class="activity-list mb-2">
-                                <div class="activity-content mt-1">
-                                    <div class="activity-title ms-1">Murat
-                                        Kale</div>
-                                    <div
-                                        class="activity-subtitle ms-1">30.10.2025
-                                        14:35</div>
-                                </div>
-                            </div>
-
-                            <div class="activity-list mb-2 mt-auto"
-                                style="border-top: 1px solid #dee2e6; display: flex; flex-direction: row; align-items: center;">
-                                <span
-                                    class="material-symbols-outlined fs-4 mt-3 me-2"
-                                    title="Ön Kayıt Yapıldı"
-                                    style="cursor: pointer;">save</span>
-                                <span
-                                    class="material-symbols-outlined fs-4 mt-3"
-                                    title="Zimmetleme Yapıldı"
-                                    style="cursor: pointer;">contract_edit</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- OK BUTONU -->
-                <div
-                    class="col-md-1 d-flex align-items-center justify-content-center">
-                    <button type="button"
-                        class="btn btn-outline-info rounded-circle"
-                        style="width: 40px; height: 40px; padding: 0;">
-                        <span
-                            class="material-symbols-outlined">arrow_forward</span>
-                    </button>
-                </div>
-
-            </div>
-
+            <div style="height:1px;background:#dee2e6;margin:20px 0;"></div>
             }
 
-            @if (saveModalDetailVisible()) {
-            <div class="row align-items-center gx-4">
-                <!-- SOL KART -->
-                <div class="col-md-3 ms-4 mt-3">
-                    <div class="card mb-4" style="min-width: 220px;">
-                        <div
-                            class="card-header d-flex justify-content-between align-items-center"
-                            style="background-color: #ddecee;">
-                            <h5 class="card-title mt-1"> Zimmet</h5>
-                        </div>
-
-                        <div class="card-body d-flex flex-column">
-                            <div class="activity-list mb-2">
-                                <div class="activity-content mt-1">
-                                    <div class="activity-title ms-1">Murat
-                                        Kale</div>
-                                    <div
-                                        class="activity-subtitle ms-1">30.10.2025
-                                        14:35</div>
-                                </div>
-                            </div>
-
-                            <div class="activity-list mb-2 mt-auto"
-                                style="border-top: 1px solid #dee2e6; display: flex; flex-direction: row; align-items: center;">
-                                <span
-                                    class="material-symbols-outlined fs-4 mt-3 me-2"
-                                    title="Ön Kayıt Yapıldı"
-                                    style="cursor: pointer;">save</span>
-                                <span
-                                    class="material-symbols-outlined fs-4 mt-3"
-                                    title="Zimmetleme Yapıldı"
-                                    style="cursor: pointer;">contract_edit</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- OK BUTONU -->
-                <div
-                    class="col-md-1 d-flex align-items-center justify-content-center">
-                    <button type="button"
-                        class="btn btn-outline-info rounded-circle"
-                        style="width: 40px; height: 40px; padding: 0;">
-                        <span
-                            class="material-symbols-outlined">arrow_forward</span>
-                    </button>
-                </div>
-
-                <div class="col-md-3 ms-4 mt-3">
-                    <div class="card mb-4" style="min-width: 220px;">
-                        <div
-                            class="card-header d-flex justify-content-between align-items-center"
-                            style="background-color: #b2f3fb;">
-                            <h5 class="card-title mt-1">Mevcut Zimmet</h5>
-                        </div>
-
-                        <div class="card-body d-flex flex-column">
-                            <div class="activity-list mb-2">
-                                <div class="activity-content mt-1">
-                                    <div class="activity-title ms-1">Bülent
-                                        Arslan</div>
-                                    <div
-                                        class="activity-subtitle ms-1">10.11.2025
-                                        16:24</div>
-                                </div>
-                            </div>
-
-                            <div class="activity-list mb-2 mt-auto"
-                                style="border-top: 1px solid #dee2e6; display: flex; flex-direction: row; align-items: center;">
-
-                                <span
-                                    class="material-symbols-outlined fs-4 mt-3"
-                                    title="Zimmetleme Yapıldı"
-                                    style="cursor: pointer;">contract_edit</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            }
+            <app-allocation-flow
+                *ngIf="detailsVisible() && allocations().length"
+                [items]="allocations()">
+            </app-allocation-flow>
         </div>
     </div>
+    <div class="col-md-3 col-12"
+        *ngIf="detailsVisible() && documentDetail() as doc">
+        <div class="card">
+            <!-- QR -->
+            <div class="d-flex justify-content-center mt-5">
+                @if (scannedDocumentNo()) {
+                <div>
+                    <qrcode [qrdata]="scannedDocumentNo()!"
+                        [width]="120"
+                        [errorCorrectionLevel]="'H'"></qrcode>
+                    <div class="fw-semibold text-center"
+                        style="font-size: 16px; font-weight: 500;">
+                        {{ scannedDocumentNo() }}
+                    </div>
+                </div>
+                }
+            </div>
+            <!-- BELGE ÖZETİ -->
+            <div class="card shadow-sm border-0 bg-white">
+                <div class="card-body">
+
+                    <div class="d-flex align-items-center mb-1 mt-1">
+                        <h5 class="fw-bold m-1">
+                            Evrak Bilgileri
+                        </h5>
+                    </div>
+
+                    <hr class="mt-2 mb-4" style="opacity: .15;">
+                    <div class="row gy-3">
+
+                        <div class="col-12">
+                            <div class="text-muted small">Konu</div>
+                            <div class="fw-semibold">
+                                {{ doc.subject }}
+                            </div>
+                        </div>
+
+                        <div class="col-6">
+                            <div class="text-muted small">Belge Orjinal No</div>
+                            <div class="fw-semibold">
+                                {{ doc.orginalNo }}
+                            </div>
+                        </div>
+
+                        <div class="col-6">
+                            <div class="text-muted small">Tarih</div>
+                            <div class="fw-semibold">
+                                {{ doc.documentDate | date:'dd.MM.yyyy' }}
+                            </div>
+                        </div>
+
+                        <div class="col-12 mb-5">
+                            <div class="text-muted small">Gizlilik
+                                Derecesi</div>
+
+                            <span class="badge rounded-pill px-3 py-2 mt-1"
+                                [ngClass]="securityDegreeStyle[doc.securityDegree]">
+                                {{ securityDegreeMap[doc.securityDegree] || '-'
+                                }}
+                            </span>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+          <!-- SAĞ INFO PANEL -->
+  <div class="col-md-3 col-12"  *ngIf="!detailsVisible()">
+    <div class="card info-panel h-100">
+
+      <div class="card-header">
+        <h6 class="m-0">Bilgilendirme</h6>
+      </div>
+
+      <div class="card-body">
+
+        <div class="info-item">
+          <span class="material-symbols-outlined info-icon">
+            info
+          </span>
+          <div>
+            <strong>QR Okuma</strong>
+            <p class="mb-0">
+              Sistem QR kodu okutmanızı beklemektedir.
+            </p>
+          </div>
+        </div>
+
+        <hr />
+
+        <div class="info-item">
+          <span class="material-symbols-outlined info-icon">
+            keyboard
+          </span>
+          <div>
+            <strong>Manuel Giriş</strong>
+            <p class="mb-0">
+               Evrak numarası girip, enter tuşu ile kayıt ekranına geçiş yapabilirsiniz.
+            </p>
+          </div>
+        </div>
+
+     
+     
+
+      </div>
+
+    </div>
+  </div>
 </div>

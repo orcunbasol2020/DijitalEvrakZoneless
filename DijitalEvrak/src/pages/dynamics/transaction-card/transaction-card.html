@@ -1,0 +1,91 @@
+<div class="card mb-4" style="min-width: 220px; position: relative;">
+
+    <div *ngIf="loading"
+        class="d-flex justify-content-center align-items-center position-absolute top-0 start-0 w-100 h-100"
+        style="background: rgba(255,255,255,0.7); z-index: 10;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <div class="card-header d-flex align-items-center"
+        [ngStyle]="{
+       'background': 
+         item.transactionType == 1 ? 'linear-gradient(135deg, #b2f3fb, #8eddea)' :
+         item.transactionType == 7 ? 'linear-gradient(135deg, #b2fbbd, #95e9a8)' : 
+         item.transactionType == 8 ? 'linear-gradient(135deg, #ffe0b2, #ffcc80)' : 
+         item.transactionType == 9 ? 'linear-gradient(135deg, #e5e7eb, #9ca3af)' : 
+         'linear-gradient(135deg, #ddecee, #c9dde1)'
+     }">
+     <span class="material-symbols-outlined me-2" *ngIf="item.transactionType === 7">task_alt</span>
+         <h6 class="mb-0 fw-semibold">
+            {{ item.transactionTypeName}}
+        </h6>
+    </div>
+
+    <div class="card-body d-flex flex-column">
+
+        <div class="activity-list mb-2">
+            <div class="activity-content mt-1">
+                       <div class="text-muted small mb-1" *ngIf="item.transactionType === 7">Teslim Alan</div>
+                <div class="fw-semibold mb-3 ps-1"
+                    *ngIf="item.transactionType != 8">
+                    {{ item.userFullName }}
+                </div>
+                <div class="fw-semibold mb-3 ps-1"
+                    *ngIf="item.transactionType === 8">
+                    Tamamlandı
+                </div>
+                <div class="activity-subtitle ms-1"
+                    *ngIf="item.transactionType != 7">
+                    {{ item.createdDate | date:'dd.MM.yyyy HH:mm' }}
+                </div>
+                  <hr class="my-2" *ngIf="item.transactionType === 7">
+       <div class="text-muted small mb-1" *ngIf="item.transactionType === 7">Teslim Eden</div>
+                <div class="fw-semibold mb-3 ps-1" *ngIf="item.transactionType === 7">
+                    {{ item.createdUserFullName }}
+                </div>
+                <div style="border-top: 1px solid #dee2e6;" *ngIf="item.transactionType === 7">
+                    <div class="activity-subtitle ms-1 mt-2"> {{ item.createdDate | date:'dd.MM.yyyy HH:mm' }}</div>
+                </div>
+            </div>
+        </div>
+
+  <div class="mt-auto pt-2 d-flex justify-content-end gap-2 border-top">
+            <!-- Ön Kayıt ve Zimmetleme -->
+            <span *ngIf="item.transactionType === 1"
+                class="material-symbols-outlined fs-5 mt-2 ms-1 text-dark"
+                title="Ön Kayıt Yapıldı"
+                style="cursor: pointer;">
+                save
+            </span>
+
+            <span
+                *ngIf="item.transactionType === 1 || item.transactionType === 3 || item.transactionType === 6 || item.transactionType === 7"
+                class="material-symbols-outlined fs-5 mt-2 ms-1 text-secondary"
+                title="Zimmetleme Yapıldı"
+                style="cursor: pointer;">
+                contract_edit
+            </span>
+            <span *ngIf="item.transactionType === 7"
+                class="material-symbols-outlined fs-5 mt-2 ms-1 text-success"
+                title="Evrak Teslim Edildi"
+                style="cursor: pointer;">
+                task_alt
+            </span>
+            <span *ngIf="item.transactionType === 8"
+                class="material-symbols-outlined fs-5 mt-2 ms-1 text-warning"
+                title="OCR Tamamlandı"
+                style="cursor: pointer;">
+                document_scanner
+            </span>
+            <span *ngIf="item.transactionType === 9"
+                class="material-symbols-outlined fs-5 mt-2 ms-1 text-secondary"
+                title="Birim Arşivine Kaldırıldı"
+                style="cursor: pointer;">
+                assured_workload
+            </span>
+        </div>
+
+    </div>
+</div>

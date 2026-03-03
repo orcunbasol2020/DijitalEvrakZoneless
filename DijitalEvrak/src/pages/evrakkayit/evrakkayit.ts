@@ -16,6 +16,8 @@ import { SimpleAutocompleteComponent } from '../simpleautocomplete/simpleautocom
 import { IncomingDocumentModel } from '../../models/incoming-document/incoming-document.model';
 import { Common } from '../../services/common';
 import { FlexiGridModule } from 'flexi-grid';
+import { DocumentTransaction } from '../../services/documenttransaction';
+import { DocumentTransactionModel } from '../../models/documenttransaction.model';
 
 @Component({
   standalone: true,
@@ -35,8 +37,6 @@ export default class Evrakkayit implements OnInit {
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
-  private documentDetail = inject(DocumentDetail);
-  private documentService = inject(DocumentService);
   private incomingDocumentService = inject(IncomingDocumentService);
   private departmentService = inject(Department);
   private externalInstitutionService = inject(ExternalInstitution);
@@ -45,8 +45,8 @@ export default class Evrakkayit implements OnInit {
   private pendingDepartmentId: string | null = null;
   private pendingExternalInstitutionId: string | null = null;
 
+  readonly #common = inject(Common);
   readonly user = computed(() => this.#common.user());
-    readonly #common = inject(Common);
 
   form!: FormGroup;
   formDetail!: FormGroup;
@@ -78,6 +78,11 @@ export default class Evrakkayit implements OnInit {
 
   readonly title = "Gelen Evrak Kayıt";
 
+  private documentTransactionService = inject(DocumentTransaction);
+  transactionData = signal<DocumentTransactionModel[]>([]);
+  transactionLoading = signal(false);
+  
+
   ngOnInit(): void {
     this.form = this.fb.group({
       id: ['', Validators.required],
@@ -94,7 +99,8 @@ export default class Evrakkayit implements OnInit {
       documentTypeId: [''],
     });
 
-        this.formDetail = this.fb.group({
+      this.formDetail = this.fb.group({
+      id: ['', Validators.required],
       status: [''],
       securityDegree: [''],
       electronicCopy: [''],
@@ -107,17 +113,17 @@ export default class Evrakkayit implements OnInit {
     this.loadDepartments();
     this.loadExternalInstitutions();
 
-    const id = this.documentService.currentDocumentId;
+    const id = this.incomingDocumentService.currentIncomingDocumentId;
     if (!id) {
       this.router.navigate(['/scanlist']);
       return;
     }
 
-    if (this.documentService.currentDocumentUpdateType == "1") {
+    if (this.incomingDocumentService.currentIncomingDocumentUpdateType == "1") {
       this.getir(id);
     } else {
      this.incomingDocumentService.GetByQrCode(id).subscribe(doc => {
-      console.log("API RESPONSE:", doc);
+      //console.log("API RESPONSE:", doc);
   if (!doc) return;
 
   if (!doc.documentName) {
@@ -141,6 +147,7 @@ export default class Evrakkayit implements OnInit {
   this.applyExternalInstitution(doc.externalInstitutionId); 
 
   this.formDetail.patchValue({
+  id: doc.id,
   securityDegree: doc.securityDegree,
   languageId: doc.languageId,
   electronicCopy: doc.electronicCopy,
@@ -234,7 +241,35 @@ private loadDepartments() {
   }
 
 saveDetail() {
+  if (!this.formDetail.valid) {
+    this.toast.showToast("Eksik bilgi var", "Lütfen gerekli alanları doldurun");
+    return;
+  }
 
+  const userId = this.user()?.id;
+  if (!userId) {
+    this.toast.showToast("Hata", "Kullanıcı bilgisi alınamadı", "error");
+    return;
+  }
+  const raw = this.formDetail.value;
+
+  const formData: IncomingDocumentModel = {
+    ...raw,
+    userId: userId
+  };
+
+  const saveObs = this.incomingDocumentService.updateIncomingDocument(formData);
+
+  saveObs.subscribe({
+    next: () => {
+      const msg = formData.id ? "Belge detay bilgileri başarıyla güncellendi." : "Güncellendi";
+      this.toast.showToast("Başarılı", msg);
+    },
+    error: (err) => {
+      console.error(err);
+      this.toast.showToast("Kayıt Başarısız", "Belge kaydedilirken bir hata oluştu.");
+    }
+  });
 }
 
 save() {
@@ -277,7 +312,7 @@ save() {
 
 
   getir(id: string) {
-    this.documentService.getDocumentById(id).subscribe(doc => {
+    this.incomingDocumentService.getIncomingDocumentByDocumentId(id).subscribe(doc => {
       if (!doc) return;
 
       this.form.patchValue({
@@ -292,15 +327,16 @@ save() {
       this.applyDepartment(doc.departmentId);
       this.applyExternalInstitution(doc.externalInstitutionId);
 
-  this.formDetail.patchValue({
-  securityDegree: doc.securityDegree,
-  languageId: doc.languageId,
-  electronicCopy: doc.electronicCopy,
-  pageCount: doc.pageCount,
-  ocrStatus: doc.ocrStatus,
-  release: doc.release,
-  status: doc.status,
-});
+      this.formDetail.patchValue({
+      id: doc.id,
+      securityDegree: doc.securityDegree,
+      languageId: doc.languageId,
+      electronicCopy: doc.electronicCopy,
+      pageCount: doc.pageCount,
+      ocrStatus: doc.ocrStatus,
+      release: doc.release,
+      status: doc.status,
+    });
 
 
     });
@@ -350,7 +386,7 @@ private applyExternalInstitution(id?: string | null) {
     case 0: return 'Bekliyor';
     case 1: return 'Tamamlandı';
     case 2: return 'Hatalı';
-    default: return '-';
+    default: return 'Bekliyor';
   }
 }
 
@@ -372,10 +408,20 @@ getReleaseText(): string {
   return 'Yayınlanmadı'; // false veya null dahil
 }
 
-loadTransactions() {
-  //transactionData = 
-}
+ loadTransactions() {
+    const docId = this.form.value.id; // formdaki documentId
+    if (!docId) return;
 
+    this.transactionLoading.set(true);
+    this.documentTransactionService.getTransactionsByDocumentId(docId).subscribe({
+      next: (res) => this.transactionData.set(res),
+      error: (err) => console.error(err),
+      complete: () => this.transactionLoading.set(false)
+    });
+  }
 
+ // flexi-grid getter
+  get data() { return computed(() => this.transactionData() ?? []); }
+  get loading() { return computed(() => this.transactionLoading()); }
 
 }

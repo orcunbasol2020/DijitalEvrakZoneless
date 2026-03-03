@@ -27,7 +27,7 @@ export class IncomingDocumentService {
   get currentZimmetDocumentId(): string | null { return this.zimmetDocumentId(); }
   clearZimmetIncomingDocument() { this.zimmetDocumentId.set(null); }
 
-  // 📌 QR ekranından geçiş için update tipi (id mi documentId mi)
+  // QR ekranından geçiş için update tipi (id mi documentId mi)
   private incomingDocumentUpdateType = signal<string | null>(null);
   setIncomingDocumentUpdateType(type: string) {
     this.incomingDocumentUpdateType.set(type);
@@ -36,28 +36,28 @@ export class IncomingDocumentService {
     return this.incomingDocumentUpdateType();
   }
 
-  // ✅ GET ALL (resource)
+  // GET ALL (resource)
   getIncomingDocumentsResource() {
     return this.httpService.createResource<IncomingDocumentModel[]>(
       this.baseUrl + "GetAll"
     );
   }
 
-  // ✅ GET BY QR CODE
+  // GET BY QR CODE
   GetByQrCode(qrCode: string) {
     return this.httpService.get<IncomingDocumentModel>(
       `${this.baseUrl}GetByQrCode?qrCode=${encodeURIComponent(qrCode)}`
     );
   }
 
-  // ✅ GET BY DOCUMENT ID
+  // GET BY DOCUMENT ID
   getIncomingDocumentByDocumentId(documentId: string) {
     return this.httpService.get<IncomingDocumentModel>(
-      `${this.baseUrl}GetByDocumentId?documentId=${encodeURIComponent(documentId)}`
+      `${this.baseUrl}GetById?id=${encodeURIComponent(documentId)}`
     );
   }
 
-  // ✅ CREATE
+  // CREATE
   createIncomingDocument(model: IncomingDocumentModel) {
     return this.httpService.post<any>(
       `${this.baseUrl}Create`,
@@ -72,7 +72,7 @@ export class IncomingDocumentService {
     );
   }
 
-  // ✅ UPDATE
+  // UPDATE
   updateIncomingDocument(model: IncomingDocumentModel) {
     return this.httpService.put<any>(
       `${this.baseUrl}Update`,
@@ -80,14 +80,13 @@ export class IncomingDocumentService {
     );
   }
 
-  // ✅ OCR Filtreli liste
+  // OCR Filtreli liste
   getIncomingDocumentsByStatus(status: string) {
     return this.httpService.createResource<IncomingDocumentModel[]>(
       `${this.baseUrl}GetAll?Status=${encodeURIComponent(status)}`
     );
   }
 
-  // ✅ DELETE (Soft Delete varsa backend handle edecek)
   deleteIncomingDocument(id: string) {
     return this.httpService.delete(
       `${this.baseUrl}${encodeURIComponent(id)}`

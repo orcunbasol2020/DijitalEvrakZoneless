@@ -11,8 +11,8 @@
         <div class="card" style="height: 700px;">
             <div
                 class="card-header d-flex justify-content-between align-items-center">
-                <h4 class="m-0"> <span
-                        class="nav-icon material-symbols-outlined" style="font-size: 22px;">app_registration</span>Ön
+                <h4 class="m-0"> 
+                    <span class="nav-icon material-symbols-outlined" style="font-size: 22px;">app_registration</span>Ön
                     Kayıt</h4>
                 <button type="button"
                     class="btn btn-outline-secondary btn-sm d-flex align-items-center"
@@ -33,7 +33,7 @@
                     class="qr-icon-wrapper d-flex align-items-center justify-content-center me-3">
                     <span class="material-symbols-outlined qr-icon"
                         style="cursor: pointer;" (click)="onQrScanned('')"
-                        title="Aktif Olarak QR Kod Beklenmektedir. (Manuel Olarakta Belge Numarası Girilerek, Enter Tuşu İle Devam Edilebilir.)">
+                        title="QR Kod Beklenmektedir.">
                         qr_code_scanner
                     </span>
                 </div>
@@ -41,7 +41,7 @@
                 <!-- Sağ içerik + arrow -->
                 <div
                     class="qr-panel-content position-relative flex-grow-1 pt-3 mb-3">
-                    <h5 class="mb-1 qr-title">QR Okutunuz</h5>
+                    <h5 class="mb-1 qr-title">QR Kodu Okutunuz</h5>
                     <p class="mb-0 qr-description">
                         Ön kayıt işlemini tamamlamak için belge üzerindeki QR
                         kodu okutunuz.
@@ -206,4 +206,46 @@
 
         </div>
     </div>
+         <!-- SAĞ INFO PANEL -->
+  <div class="col-md-3 col-12">
+    <div class="card info-panel h-100">
+
+      <div class="card-header">
+        <h6 class="m-0">Bilgilendirme</h6>
+      </div>
+
+      <div class="card-body">
+
+        <div class="info-item">
+          <span class="material-symbols-outlined info-icon">
+            info
+          </span>
+          <div>
+            <strong>QR Okuma</strong>
+            <p class="mb-0">
+              Sistem QR kodu okutmanızı beklemektedir.
+            </p>
+          </div>
+        </div>
+
+        <hr />
+
+        <div class="info-item">
+          <span class="material-symbols-outlined info-icon">
+            keyboard
+          </span>
+          <div>
+            <strong>Manuel Giriş</strong>
+            <p class="mb-0">
+            Evrak numarası girip, enter tuşu ile kayıt ekranına geçiş yapabilirsiniz.
+            </p>
+          </div>
+        </div>
+
+
+
+      </div>
+
+    </div>
+  </div>
 </div>

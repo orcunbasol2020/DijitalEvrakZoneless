@@ -1,0 +1,125 @@
+<app-generic pageTitle="Evrak Eşleştirme Ekranı"
+  [breadcrumbs]="[{title: 'Evrak Eşleştirme', url: 'scanneddocument', icon: ''}]">
+</app-generic>
+
+<div class="container-fluid">
+  <div class="row">
+
+    <!-- ================= PDF ALANI ================= -->
+    <div class="col-md-8">
+
+      <div
+        class="doc-nav-bar d-flex justify-content-between align-items-center mb-3 px-3 py-2">
+
+        <div class="d-flex align-items-center">
+          <div class="doc-counter">
+            {{ currentIndex() + 1 }} / {{ scannedDocuments().length }}
+          </div>
+
+          <span *ngIf="currentDocument() as doc"
+            class="ms-3 doc-filename">
+            {{ doc.fileName }}
+          </span>
+        </div>
+
+        <div>
+          <button class="btn btn-premium-outline me-2"
+            (click)="prev()"
+            [disabled]="currentIndex() === 0">
+            ← Geri
+          </button>
+
+          <button class="btn btn-premium"
+            (click)="next()"
+            [disabled]="currentIndex() === scannedDocuments().length - 1">
+            İleri →
+          </button>
+        </div>
+
+      </div>
+
+      <div>
+        <iframe
+          *ngIf="pdfUrl()"
+          [src]="pdfUrl()"
+          width="100%"
+          height="640px"
+          style="border:none;">
+        </iframe>
+      </div>
+
+    </div>
+
+    <!-- ================= QR PANEL ================= -->
+    <div class="col-md-4">
+
+      <div class="qr-panel">
+
+        <!-- ÜST BAŞLIK -->
+        <div class="qr-panel-header">
+          <div>
+            <div class="qr-title">Evrak - Belge No Eşleştirme</div>
+
+          </div>
+        </div>
+
+        <!-- ORTA ALAN -->
+        <div class="qr-panel-body">
+
+          <!-- BEKLEME DURUMU -->
+          <div class="qr-center" *ngIf="alertVisible()">
+
+            <div class="qr-wait-card">
+
+              <div class="qr-icon-wrapper2">
+                <span class="material-symbols-outlined qr-icon2">
+                  qr_code_scanner
+                </span>
+              </div>
+
+              <div class="qr-title">
+                QR Kod Bekleniyor
+              </div>
+
+              <div class="qr-subtitle">
+                QR kod okuyucu ile okutunuz veya manuel giriş ekranına geçiniz.
+              </div>
+
+              <button class="qr-manual-btn"
+                (click)="goToManual()">
+                Manuel Giriş Ekranına Geç
+              </button>
+
+            </div>
+
+          </div>
+
+          <!-- OKUNAN QR -->
+          <div class="btn-outline-dark mt-2"
+            *ngIf="qrContent() || !alertVisible()">
+            <div class="qr-result-card">
+
+              <div class="qr-result-header">
+                <span class="qr-result-title">
+                  Belge Numarası
+                </span>
+              </div>
+              <div class="qr-result-box mt-3">
+                <input type="text"
+                  class="form-control qr-result-input mt-2"
+                  [value]="qrEditable()"
+                  (input)="qrEditable.set($any($event.target).value)" />
+
+                <button class="btn btn-outline-dark btn-sm mt-4"
+                  (click)="resetQr()">
+                  QR Kodu Tekrar Okut
+                </button> <button class="btn btn-outline-dark btn-sm mt-4"
+                  (click)="matchQr()">
+                  Belge Numarasını Eşleştir
+                </button></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

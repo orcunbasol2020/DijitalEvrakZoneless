@@ -23,7 +23,7 @@ export const navigations: NavigationModel[] = [
         icon: "qr_code"
     },
     {
-        title: "Taranmış Evraklar",
+        title: "Gelen Evraklar",
         url: "/scanlist",
         icon: "add_notes"
     },
@@ -31,6 +31,11 @@ export const navigations: NavigationModel[] = [
         title: "Zimmet",
         url: "/zimmet",
         icon: "contract_edit"
+    },
+    {
+        title: "Evrak Eşleştirme",
+        url: "/scanneddocument",
+        icon: "adf_scanner"
     },
     {
         title: "Havale (AI)",

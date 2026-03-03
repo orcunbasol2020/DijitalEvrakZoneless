@@ -36,6 +36,10 @@ export const routes: Routes = [
                 loadChildren: () => import('./pages/scanlist/route')
             },
             {
+                path: 'scanneddocument',
+                loadComponent: () => import('./pages/scanneddocument/scanneddocument')
+            },
+            {
                 path: "ocrtakip",
                 loadComponent: () => import("./pages/ocrtakip/ocrtakip")
             },
