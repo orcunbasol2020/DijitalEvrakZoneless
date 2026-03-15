@@ -1,46 +1,46 @@
 <app-generic
-    pageTitle="QR List"
-    [breadcrumbs]="[{title: 'Evrak Kayıt', url: 'qrlist', icon:''}]" />
+  pageTitle="QR List"
+  [breadcrumbs]="[{title: 'Evrak Kayıt', url: 'qrlist', icon:''}]" />
 
 <div class="row">
-    <div class="col-md-9 col-12">
-        <div class="card" style="height: 700px;">
-            <div
-                class="card-header d-flex justify-content-between align-items-center">
-                <h4 class="m-0">Evrak Kayıt</h4>
-            </div>
-            <!-- ALERT BÖLÜMÜ -->
-            <div
-                class="alert alert-info d-flex align-items-center justify-content-between mx-4 mt-4"
-                role="alert"
-                *ngIf="alertVisible()">
-                <!-- Sol büyük QR icon -->
-                <div
-                    class="qr-icon-wrapper d-flex align-items-center justify-content-center me-3">
-                    <span class="material-symbols-outlined qr-icon"
-                        style="cursor: pointer;" (click)="onQrScanned('')"
-                        title="QR Kod Beklenmektedir.">
-                        qr_code_scanner
-                    </span>
-                </div>
-                <!-- Sağ içerik + arrow -->
-                <div
-                    class="qr-panel-content position-relative flex-grow-1 pt-3 mb-3">
-                    <h5 class="mb-1 qr-title">QR Kodu Okutunuz</h5>
-                    <p class="mb-0 qr-description">
-                        Belgenin detay ekranına geçmek için QR kodu okutup
-                        devam edebilirsiniz.
-                    </p>
-                    <span class="material-symbols-outlined qr-panel-next pb-1"
-                        title="Manuel okut"
-                        (click)="onQrScanned('')">
-                        arrow_forward
-                    </span>
-                </div>
-            </div>
+  <div class="col-md-9 col-12">
+    <div class="card" style="height: 700px;">
+      <div
+        class="card-header d-flex justify-content-between align-items-center">
+        <h4 class="m-0">Evrak Kayıt</h4>
+      </div>
+      <!-- ALERT BÖLÜMÜ -->
+      <div
+        class="alert alert-info d-flex align-items-center justify-content-between mx-5 mt-5"
+        role="alert"
+        *ngIf="alertVisible()">
+        <!-- Sol büyük QR icon -->
+        <div
+          class="qr-icon-wrapper d-flex align-items-center justify-content-center me-3">
+          <span class="material-symbols-outlined qr-icon"
+            style="cursor: pointer;" (click)="onQrScanned('')"
+            title="QR Kod Beklenmektedir.">
+            qr_code_scanner
+          </span>
         </div>
+        <!-- Sağ içerik + arrow -->
+        <div
+          class="qr-panel-content position-relative flex-grow-1 pt-3 mb-3">
+          <h5 class="mb-1 qr-title">QR Kodu Okutunuz</h5>
+          <p class="mb-0 qr-description">
+            Belgenin detay ekranına geçmek için QR kodu okutup
+            devam edebilirsiniz.
+          </p>
+          <span class="material-symbols-outlined qr-panel-next pb-1"
+            title="Manuel okut"
+            (click)="onQrScanned('')">
+            arrow_forward
+          </span>
+        </div>
+      </div>
     </div>
-      <!-- SAĞ INFO PANEL -->
+  </div>
+  <!-- SAĞ INFO PANEL -->
   <div class="col-md-3 col-12">
     <div class="card info-panel h-100">
 
@@ -50,8 +50,8 @@
 
       <div class="card-body">
 
-        <div class="info-item">
-          <span class="material-symbols-outlined info-icon">
+        <div class="info-item mt-2">
+          <span class="material-symbols-outlined sec-icon">
             info
           </span>
           <div>
@@ -62,22 +62,28 @@
           </div>
         </div>
 
-        <hr />
+        <div class="detail-card-hr"></div>
 
-        <div class="info-item">
-          <span class="material-symbols-outlined info-icon">
+        <div class="info-item mt-4">
+          <span class="material-symbols-outlined sec-icon">
             keyboard
           </span>
           <div>
             <strong>Manuel Giriş</strong>
             <p class="mb-0">
-               Evrak numarası girip, enter tuşu ile kayıt ekranına geçiş yapabilirsiniz.
+              QR kod okuma sırasında sorun yaşıyorsanız, evrak numarası manuel
+              olarak girerek evrak kayıt ekranına geçiş yapabilirsiniz.
             </p>
+            <div class="qr-wait-cardOther  mt-2">
+              <input #qrInput type="text" 
+                class="form-control qr-result-input2 mt-2" />
+              <button class="qr-manual-btn2" (click)="redirectEvrakKayit(qrInput.value)">
+                Evrak Kayıt Ekranına Geç
+              </button>
+            </div>
+
           </div>
         </div>
-
-     
-     
 
       </div>
 

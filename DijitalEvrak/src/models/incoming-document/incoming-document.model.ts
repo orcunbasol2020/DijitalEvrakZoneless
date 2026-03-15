@@ -34,4 +34,6 @@ export interface IncomingDocumentModel {
   isDeleted?: boolean;
   createdDate?: Date;
   updateDate?: Date | null;
+
+  currentAssignmentUserId : string;
 }

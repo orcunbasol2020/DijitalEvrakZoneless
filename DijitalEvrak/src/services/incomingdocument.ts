@@ -2,6 +2,9 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpService } from './http';
 import { IncomingDocumentModel } from '../models/incoming-document/incoming-document.model';
 import { IncomingDocumentPreRegisterModel } from '../models/incoming-document/incomingdocument-pregister.model';
+import { IncomingDocumentTodayStats } from '../models/dashboard/IncomingDocumentTodayStats.model';
+import { firstValueFrom } from 'rxjs';
+import { IncomingDocumentLast30DaysStats } from '../models/dashboard/IncomingDocument30DaysStats.model';
 
 @Injectable({ providedIn: 'root' })
 export class IncomingDocumentService {
@@ -29,19 +32,28 @@ export class IncomingDocumentService {
 
   // QR ekranından geçiş için update tipi (id mi documentId mi)
   private incomingDocumentUpdateType = signal<string | null>(null);
+  private incomingDocumentSearchType = signal<string | null>(null);
+
+
   setIncomingDocumentUpdateType(type: string) {
     this.incomingDocumentUpdateType.set(type);
   }
   get currentIncomingDocumentUpdateType(): string | null {
     return this.incomingDocumentUpdateType();
   }
+    setIncomingDocumentSearchType(type: string) {
+    this.incomingDocumentSearchType.set(type);
+  }
+  get currentIncomingDocumentSearchType(): string | null {
+    return this.incomingDocumentSearchType();
+  }
 
   // GET ALL (resource)
-  getIncomingDocumentsResource() {
-    return this.httpService.createResource<IncomingDocumentModel[]>(
-      this.baseUrl + "GetAll"
-    );
-  }
+  getAllIncomingDocuments() {
+  return this.httpService.get<IncomingDocumentModel[]>(
+    this.baseUrl + "GetAll"
+  );
+}
 
   // GET BY QR CODE
   GetByQrCode(qrCode: string) {
@@ -92,8 +104,63 @@ export class IncomingDocumentService {
       `${this.baseUrl}${encodeURIComponent(id)}`
     );
   }
+  
+    // PDF URL ÜRETİCİ
+  getPdfUrl(fileName: string): string {
+    if (!fileName) return '';
+    return `https://localhost:7056/api/ScannedDocuments/GetPdf?fileName=${encodeURIComponent(fileName)}`;
+  }
+
+  getPendingCount(userId: string) {
+  return this.httpService.get<number>(
+    `${this.baseUrl}GetPendingCount?userId=${encodeURIComponent(userId)}`
+  );
 }
 
+    // Bugün gelen evraklar
+  private todayStatsSignal = signal<IncomingDocumentTodayStats | null>(null);
+
+  get todayStats() {
+    return this.todayStatsSignal();
+  }
+
+  async loadTodayStats(): Promise<IncomingDocumentTodayStats | null> {
+    try {
+      const stats$ = this.httpService.get<IncomingDocumentTodayStats>(
+        this.baseUrl + 'GetTodayStats'
+      );
+      const stats = await firstValueFrom(stats$);
+      this.todayStatsSignal.set(stats);
+      return stats;
+    } catch (error) {
+      console.error('Incoming document stats load error:', error);
+      return null;
+    }
+  }
+
+  private last30DaysStatsSignal = signal<IncomingDocumentLast30DaysStats | null>(null);
+
+get last30DaysStats() {
+  return this.last30DaysStatsSignal();
+}
+
+async loadLast30DaysStats(): Promise<IncomingDocumentLast30DaysStats | null> {
+  try {
+    const stats$ = this.httpService.get<IncomingDocumentLast30DaysStats>(
+      this.baseUrl + 'GetLast30DaysStats'
+    );
+    const stats = await firstValueFrom(stats$);
+    this.last30DaysStatsSignal.set(stats);
+    return stats;
+  } catch (error) {
+    console.error('Incoming document last 30 days stats load error:', error);
+    return null;
+  }
+}
+}
+
+
+
 export interface PreRegisterResponse {
-  created: boolean;
+  id: string;
 }

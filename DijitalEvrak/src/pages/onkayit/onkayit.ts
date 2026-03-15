@@ -4,12 +4,13 @@ import { QRCodeComponent } from 'angularx-qrcode';
 import { CommonModule } from '@angular/common';
 import { FlexiToastService } from 'flexi-toast';
 import { FormsModule } from '@angular/forms';
-import { DocumentService } from '../../services/document';
 import { PrintPreview } from '../printpreview/printpreview';
 import { Router } from '@angular/router';
 import { IncomingDocumentService } from '../../services/incomingdocument';
 import { IncomingDocumentPreRegisterModel } from '../../models/incoming-document/incomingdocument-pregister.model';
 import { Common } from '../../services/common';
+import { DocumentAllocationModel } from '../../models/documentallocation.model';
+import { DocumentAllocation } from '../../services/documentallocation';
 
 
 @Component({
@@ -36,25 +37,22 @@ export default class Onkayit implements OnInit, OnDestroy {
   readonly user = computed(() => this.#common.user());
   readonly #common = inject(Common);
 
-  documents = Array.from({ length: 1 }, (_, i) => `2025/2525567/${i + 1}`);
   readonly #toast = inject(FlexiToastService);
   detailsVisible = signal(false);
   alertVisible = signal(true);
   backButtonVisible = signal(false);
   scannedDocumentNo = signal<string | null>(null);
+  docStatus = signal<number | null>(null);
   id!: string | null;
   doc = signal<string>('');
-  private documentService = inject(DocumentService);
   private incomingDocumentService = inject(IncomingDocumentService);
-
+  allocations = signal<DocumentAllocationModel | null>(null);
+  private allocationService = inject(DocumentAllocation);
 
   ngOnInit() {
-
-    // === QR READER SETUP ===
     this.keydownHandler = (e: KeyboardEvent) => {
       this.handleKeydown(e);
     };
-
     window.addEventListener('keydown', this.keydownHandler);
   }
 
@@ -62,6 +60,26 @@ export default class Onkayit implements OnInit, OnDestroy {
     // === QR CLEANUP ===
     window.removeEventListener('keydown', this.keydownHandler);
   }
+
+  loadAllocation(documentId: string) {
+    console.log(documentId);
+    this.allocationService
+      .getActiveByDocumentId(documentId)
+      .subscribe({
+        next: (res: DocumentAllocationModel | null) => {
+          if (res) {
+            //console.log(res);
+            this.allocations.set(res); // Eğer veri varsa, allocations'a ata
+          } else {
+            console.warn('Aktif Zimmet bulunamadı.');
+            this.allocations.set(null);
+          }
+        },
+        error: (err) => {
+          console.error('Allocation API hatası:', err);
+        }
+      });
+  };
 
   private handleKeydown(e: KeyboardEvent) {
     if (!this.detailsVisible()) {
@@ -87,52 +105,74 @@ export default class Onkayit implements OnInit, OnDestroy {
   }
 
   onQrScanned(result: string) {
-  if (!result) {
-    this.#toast.showToast(
-      'Bilgi',
-      'Lütfen QR Kodu Okutunuz veya Belge Numarasını Girerek Enter Tuşuna Basınız.',
-      'warning'
-    );
-    return;
-  }
-
-  this.scannedDocumentNo.set(result);
-  this.detailsVisible.set(true);
-  this.backButtonVisible.set(true);
-  this.alertVisible.set(false);
-
-  // 🔹 Kullanıcı Id (localStorage / token içinden alınmalı)
-  //const userId = localStorage.getItem('userId'); // login sırasında kaydetmiş olman lazım
-  const userId = this.user()?.id;
-  if (!userId) {
-    this.#toast.showToast('Hata', 'Kullanıcı bilgisi bulunamadı.', 'error');
-    return;
-  }
-
-const model: IncomingDocumentPreRegisterModel = {
-  qrCode: result,
-  userId: userId!,
-  isDeleted: false,
-  createdDate: new Date()
-};
-
-//on kayit islemi ....
-  this.incomingDocumentService.createIncomingDocumentPreRegister(model).subscribe({    
-    next: (res) => {
-        console.log("PreRegister response:", res);
-       if (!res.created) {
-      return; // zaten vardı → sessiz geç
+    if (!result) {
+      this.#toast.showToast(
+        'Bilgi',
+        'Lütfen QR Kodu Okutunuz veya Belge Numarasını Girerek Enter Tuşuna Basınız.',
+        'warning'
+      );
+      return;
     }
-      this.#toast.showToast('Başarılı', 'Ön kayıt tamamlandı.', 'success');
-    },
-    error: () => {
-      this.#toast.showToast('Hata', 'Ön kayıt oluşturulamadı.', 'error');
-    }
-  });
-}
+
+    this.incomingDocumentService.GetByQrCode(result).subscribe(doc => {
+      if (doc) {
+        this.docStatus.set(1);
+        if (doc.status === 1)
+          this.#toast.showToast('Bilgi', 'Evrak ön kayıt işlemi daha önce yapılmış.', 'info');
+        else
+          this.#toast.showToast('Bilgi', 'Evrak kaydı daha önce yapılmış.', 'info');
+
+        if (doc.id && doc.status === 1) {
+          this.loadAllocation(doc.id);
+        }
+        else
+          this.allocations.set(null);
+
+      }
+      else {
+        // on kayit yoksa olustur
+        this.docStatus.set(2);
+        const userId = this.user()?.id;
+        if (!userId) {
+          this.#toast.showToast('Hata', 'Kullanıcı bilgisi bulunamadı.', 'error');
+          return;
+        }
+
+        const model: IncomingDocumentPreRegisterModel = {
+          id: result,
+          qrCode: result,
+          userId: userId!,
+          isDeleted: false,
+          createdDate: new Date()
+        };
+
+        //on kayit islemi ....
+        this.incomingDocumentService.createIncomingDocumentPreRegister(model).subscribe({
+          next: (res) => {
+            console.log("PreRegister:", res);
+            if (!res) {
+              return; // Id yoksa, yani kayit zaten varsa → sessiz geç
+            }
+            // Başarılı ise, allocation yüklemesini yapalım
+            this.loadAllocation(res.id);
+            this.#toast.showToast('Başarılı', 'Ön kayıt tamamlandı.', 'success');
+          },
+          error: () => {
+            this.#toast.showToast('Hata', 'Ön kayıt oluşturulamadı.', 'error');
+          }
+        });
+      }
+
+    });
+
+    this.scannedDocumentNo.set(result);
+    this.detailsVisible.set(true);
+    this.backButtonVisible.set(true);
+    this.alertVisible.set(false);
+  }
 
   getir(id: string) {
-    this.documentService.getDocumentById(id).subscribe(docs => {
+    this.incomingDocumentService.getIncomingDocumentByDocumentId(id).subscribe(docs => {
       if (!docs) return;
       //this.doc.set(docs.belgeId);
       this.scannedDocumentNo.set(this.doc());
@@ -179,8 +219,8 @@ const model: IncomingDocumentPreRegisterModel = {
   }
 
   goToDetail() {
-    this.documentService.setSelectedDocument(this.scannedDocumentNo()!);
-    this.documentService.setDocumentUpdateType('2'); // document number gonderiliyorsa 
+    this.incomingDocumentService.setSelectedIncomingDocument(this.scannedDocumentNo()!);// qr kod
+    this.incomingDocumentService.setIncomingDocumentUpdateType("2");
     this.router.navigate(['/evrakkayit']);
   }
 

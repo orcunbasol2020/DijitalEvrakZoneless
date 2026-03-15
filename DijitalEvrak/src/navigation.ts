@@ -35,7 +35,7 @@ export const navigations: NavigationModel[] = [
     {
         title: "Evrak Eşleştirme",
         url: "/scanneddocument",
-        icon: "adf_scanner"
+        icon: "folder_match"
     },
     {
         title: "Havale (AI)",
