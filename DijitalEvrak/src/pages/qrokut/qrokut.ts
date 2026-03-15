@@ -20,7 +20,6 @@ export default class Qrokut implements OnInit, OnDestroy {
   backButtonVisible = signal(false);
   alertVisible = signal(true);
   private incomingDocumentService = inject(IncomingDocumentService);
-  private readonly documentService = inject(DocumentService);
   readonly #toast = inject(FlexiToastService);
   private readonly router = inject(Router);
 
@@ -90,14 +89,13 @@ redirectEvrakKayit(result: string) {
     if (!doc.documentName) {
       this.#toast.showToast(
         "Belge henüz taranmamış",
-        "Belge ön kaydı yapılmış fakat belge henüz taranmamış. Tarama işlemi tamamlandıktan sonra belge kaydını yapabilirsiz."
+        "Tarama işlemi tamamlandıktan sonra belge kayıt ekranına geçiş yapabilirsiniz."
       );
       return;
     }
 
-    // ✅ SADECE documentDate doluysa redirect
-    this.documentService.setSelectedDocument(result);
-    this.documentService.setDocumentUpdateType("2");
+    this.incomingDocumentService.setSelectedIncomingDocument(result);
+    this.incomingDocumentService.setIncomingDocumentUpdateType("2");
     this.router.navigate(['/evrakkayit']);
 
   });

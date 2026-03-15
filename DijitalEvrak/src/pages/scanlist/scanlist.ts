@@ -34,22 +34,15 @@ import { identity } from 'rxjs';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export default class Scanlist {
-  // ✅ Combobox bununla oynuyor olacak
   selectedOcrFilter = 'completed';
   private assignmentService = inject(DocumentAssignmentService);
   readonly #common = inject(Common);
   readonly user = computed(() => this.#common.user());
-  // ✅ Grid datası
   readonly scanListData = signal<IncomingDocumentModel[]>([]);
-
-  // ✅ Resource signal (kritik fix)
   readonly documentsResourceSig = signal<any>(null);
-
   readonly #toast = inject(FlexiToastService);
   private readonly router = inject(Router);
   private readonly incomingDocumentService = inject(IncomingDocumentService);
-
-  // ✅ Loading computed: signal üzerinden
   readonly loading = computed(() => this.documentsResourceSig()?.isLoading?.() ?? false);
 
   showFilters = false;
@@ -59,6 +52,8 @@ export default class Scanlist {
 
   setOcrFilter(value: string) {
     this.selectedOcrFilter = value;
+    this.showPublished = false;
+    this.showPending = false;
     this.onOcrFilterChange();
   }
 
@@ -93,12 +88,20 @@ export default class Scanlist {
   constructor() {
     this.setupDocumentsEffect();
     this.loadDocuments();
+
+    effect(() => {
+      const type = this.incomingDocumentService.currentIncomingDocumentSearchType;
+
+      if (type === 'pending') {
+        this.showPending = false;
+        this.togglePending();
+      }
+    });
   }
 
   get currentUserId(): string | undefined {
     return this.user()?.id;
   }
-
 
   private setupDocumentsEffect(): void {
     effect(() => {
@@ -118,12 +121,21 @@ export default class Scanlist {
 
       this.emptyToastShown = false;
 
-      this.scanListData.set(
-        docs.map((item: IncomingDocumentModel) => ({
-          ...item,
-          ocrStr: (item.status ?? 0).toString()
-        }))
-      );
+      let mapped = docs.map((item: IncomingDocumentModel) => ({
+        ...item,
+        assignmentStatus: item.currentAssignmentUserId
+          ? (item.currentAssignmentUserId === this.currentUserId ? 'assignedToMe' : 'assignedToOther')
+          : 'unassigned',
+        ocrStr: (item.status ?? 0).toString()
+      }));
+
+      // yayınlanan filtre
+      if (this.showPublished) {
+        mapped = mapped.filter((x: IncomingDocumentModel) => x.status === 10);
+      }
+
+      this.scanListData.set(mapped);
+
     });
   }
   private loadDocuments(): void {
@@ -242,5 +254,73 @@ export default class Scanlist {
         });
       }
     );
+  }
+
+  showPublished = false;
+  showPending = false;
+
+  togglePublished() {
+    this.showPublished = !this.showPublished;
+    if (this.showPublished) this.showPending = false; // Pending devre dışı
+    if (this.showPublished)
+      this.selectedOcrFilter = "all";
+    else {
+      this.selectedOcrFilter = "completed";
+      this.onOcrFilterChange();
+    }
+
+    this.incomingDocumentService.getAllIncomingDocuments().subscribe({
+      next: (docs) => {
+        if (!docs || !docs.length) {
+          this.scanListData.set([]);
+          return;
+        }
+
+        let mapped = docs;
+
+        if (this.showPublished) {
+          mapped = docs.filter(x => x.status === 10 || x.status === 6); // 10 = yayınlandı
+        }
+
+        this.scanListData.set(mapped);
+      },
+      error: () => {
+        this.scanListData.set([]);
+      }
+    });
+  }
+
+  togglePending() {
+    this.showPending = !this.showPending;
+    if (this.showPending) this.showPublished = false; // Yayınlanan devre dışı
+    if (this.showPending)
+      this.selectedOcrFilter = "all";
+    else {
+      this.selectedOcrFilter = "completed";
+      this.onOcrFilterChange();
+    }
+
+    this.incomingDocumentService.getAllIncomingDocuments().subscribe({
+      next: (docs) => {
+        if (!docs || !docs.length) {
+          this.scanListData.set([]);
+          return;
+        }
+
+        let mapped = docs;
+
+        if (this.showPending) {
+          const currentUserId = this.user()?.id;
+          mapped = docs.filter(
+            x => x.currentAssignmentUserId === currentUserId && (x.status != 6 && x.status != 10)
+          );
+        }
+
+        this.scanListData.set(mapped);
+      },
+      error: () => {
+        this.scanListData.set([]);
+      }
+    });
   }
 }

@@ -14,50 +14,58 @@
 </div>
 <!-- Stats Cards Row -->
 <div class="row g-3 mb-4">
-    <div class="col-md-6 col-lg-3">
-        <div class="card stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="card-subtitle text-muted">Bugün Gelen</h6>
-                        <h4 class="card-title mt-2">327</h4>
-                        <div class="stat-change negative">
-                            <span
-                                class="material-symbols-outlined">trending_down</span>
-                            <span>-2.1%</span>
-                        </div>
-                    </div>
-                    <div class="stat-icon bg-warning-light">
-                        <span
-                            class="material-symbols-outlined text-warning" style="font-size: 22px;">article_shortcut</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <div class="col-md-6 col-lg-3">
-        <div class="card stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="card-subtitle text-muted"> Son
-                            30 Gün</h6>
-                        <h4 class="card-title mt-2">12.586</h4>
-                        <div class="stat-change positive mt-1">
-                            <span
-                                class="material-symbols-outlined">trending_up</span>
-                            <span>+12.5%</span>
-                        </div>
-                    </div>
-                    <div class="stat-icon bg-primary-light">
-                        <span
-                            class="material-symbols-outlined text-primary" style="font-size: 21px;">folder_open</span>
-                    </div>
-                </div>
-            </div>
+    
+    <!-- Bugün Gelen Evrak Kartı -->
+<div class="col-md-6 col-lg-3">
+  <div class="card stat-card h-100">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-start">
+<div>
+  <h6 class="card-subtitle text-muted">Bugün Gelen</h6>
+  <h4 class="card-title mt-2">
+    {{ statsSignal().todayCount }}
+  </h4>
+  <div class="stat-change positive mt-1">
+    {{ statsSignal().changePercent | number:'1.1-1' }}%
+  </div>
+</div>
+        <div class="stat-icon bg-warning-light">
+          <span class="material-symbols-outlined text-warning" style="font-size: 22px;">article_shortcut</span>
         </div>
+      </div>
     </div>
+  </div>
+</div>
+<div class="col-md-6 col-lg-3">
+  <div class="card stat-card h-100">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <h6 class="card-subtitle text-muted">Son 30 Gün</h6>
+
+          <h4 class="card-title mt-2">
+            {{ last30DaysStatsSignal().last30DaysCount }}
+          </h4>
+
+          <div class="stat-change positive mt-1">
+            <span class="material-symbols-outlined">trending_up</span>
+            <span>
+              {{ last30DaysStatsSignal().changePercent | number:'1.1-1' }}%
+            </span>
+          </div>
+        </div>
+
+        <div class="stat-icon bg-primary-light">
+          <span
+            class="material-symbols-outlined text-primary"
+            style="font-size: 21px;">folder_open</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
       <div class="col-md-6 col-lg-3">
         <div class="card stat-card h-100">
             <div class="card-body">
@@ -103,7 +111,7 @@
 
 </div>
 
-<!-- Recent Orders & Activity Row -->
+
 <div class="row g-3 mb-4">
     <!-- Recent Orders -->
     <div class="col-lg-9">

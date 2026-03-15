@@ -8,9 +8,12 @@
     </div>
   </div>
 
-<div class="card-header d-flex justify-content-between align-items-center"
-     [ngStyle]="{
-       'background-color': item.isActive ? '#a8f5c2' : '#ddecee'
+
+         <div class="card-header d-flex align-items-center"
+        [ngStyle]="{
+       'background': 
+         item.isActive ? 'linear-gradient(135deg, #b2f3fb, #8eddea)' :
+         'linear-gradient(135deg, #ddecee, #c9dde1)'
      }">
     <h5 class="card-title mt-1">
   {{ item.isActive ? 'Aktif Zimmet' : 'Zimmet' }}
@@ -30,28 +33,26 @@
       </div>
     </div>
 
-<div class="activity-list mb-2 mt-auto"
-     style="border-top: 1px solid #e6e3de; display: flex; flex-direction: row; align-items: center;">
-
+  <div class="mt-auto pt-2 d-flex justify-content-end gap-2 border-top">
   <!-- Ön Kayıt ve Zimmetleme -->
   <ng-container *ngIf="item.isPreRegistered; else onlyAllocated">
-    <span class="material-symbols-outlined fs-4 mt-3 me-2"
+    <span class="material-symbols-outlined fs-5 mt-2 ms-1 text-dark"
           title="Ön Kayıt Yapıldı"
           style="cursor: pointer;">save</span>
 
-    <span class="material-symbols-outlined fs-4 mt-3"
+    <span class="material-symbols-outlined fs-5 mt-2 ms-1 text-dark"
           title="Zimmetleme Yapıldı"
           style="cursor: pointer;">contract_edit</span>
   </ng-container>
 
   <!-- Sadece Zimmetleme -->
   <ng-template #onlyAllocated>
-    <span class="material-symbols-outlined fs-4 mt-3"
+    <span class="material-symbols-outlined fs-5 mt-2 ms-1 text-dark"
           title="Zimmet Devri Yapıldı"
           style="cursor: pointer;">contract_edit</span>
   </ng-template>
 <span *ngIf="item.status === 3"
-      class="material-symbols-outlined fs-4 mt-3 ms-2"
+      class="material-symbols-outlined fs-5 mt-2 ms-1 text-success"
       title="Teslim Edildi"
       style="cursor: pointer;">
     hand_package

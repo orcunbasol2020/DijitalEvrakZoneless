@@ -2,7 +2,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  effect,
   inject,
   signal,
   ViewEncapsulation,
@@ -15,6 +14,7 @@ import { ScannedDocumentService } from '../../services/scanneddocument';
 import { ScannedDocumentModel } from '../../models/scanneddocument.model';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { FlexiToastService } from 'flexi-toast';
+import { Common } from '../../services/common';
 
 @Component({
   imports: [CommonModule, GenericModel],
@@ -27,63 +27,42 @@ export default class Scanneddocument implements OnInit, OnDestroy {
   private service = inject(ScannedDocumentService);
   private sanitizer = inject(DomSanitizer);
   private toast = inject(FlexiToastService);
+  readonly #common = inject(Common);
 
-  // ===============================
-  // DOCUMENT STATE
-  // ===============================
-  readonly documentsResource = signal<any>(null);
+  readonly user = computed(() => this.#common.user());
 
-  readonly scannedDocuments = computed<ScannedDocumentModel[]>(() =>
-    this.documentsResource()?.value?.() ?? []
-  );
-
+  readonly scannedDocuments = signal<ScannedDocumentModel[]>([]);
   readonly currentIndex = signal(0);
-
-  readonly currentDocument = computed(() =>
-    this.scannedDocuments()[this.currentIndex()] ?? null
-  );
-
-  readonly currentDocumentId = computed(() => {
-    const doc = this.currentDocument();
-    return doc ? doc.id : null;
-  });
+  readonly currentDocument = computed(() => this.scannedDocuments()[this.currentIndex()] ?? null);
+  readonly currentDocumentId = computed(() => this.currentDocument()?.id ?? null);
 
   readonly pdfUrl = computed<SafeResourceUrl>(() => {
     const doc = this.currentDocument();
     if (!doc?.fileName) return '';
-
-    const url =
-      this.service.getPdfUrl(doc.fileName) + '#zoom=70';
-
-    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
+    return this.sanitizer.bypassSecurityTrustResourceUrl(
+      this.service.getPdfUrl(doc.fileName) + '#zoom=100'
+    );
   });
 
-  // ===============================
-  // QR STATE
-  // ===============================
+  // Loading / veri var mı kontrol
+  readonly isLoading = signal(false);
+  readonly isPdfData = signal(false);
+
+  // QR state
+  readonly qrContent = signal<string | null>(null);
+  readonly qrEditable = signal<string>('');
+  qrContentEditable = '';
+  readonly alertVisible = signal(true);
+
   private buffer = '';
   private keydownHandler!: (e: KeyboardEvent) => void;
 
-  readonly qrContent = signal<string | null>(null);
-  readonly alertVisible = signal(true);
-
-  qrContentEditable = '';
-  readonly qrEditable = signal<string>('');
-
-  // 🔹 QR effect constructor içinde
-  constructor() {
-    effect(() => {
-      const content = this.qrContent();
-      if (content) {
-        this.qrContentEditable = content;
-      }
-    });
-  }
+  constructor() {}
 
   ngOnInit() {
     this.loadDocuments();
 
-    // USB QR reader
+    // QR reader
     this.keydownHandler = (e: KeyboardEvent) => {
       if (e.key === 'Enter') {
         this.onQrScanned(this.buffer.trim());
@@ -100,16 +79,25 @@ export default class Scanneddocument implements OnInit, OnDestroy {
     window.removeEventListener('keydown', this.keydownHandler);
   }
 
-  loadDocuments() {
+  // ========== DOCUMENTS ==========
+  async loadDocuments() {
+    this.isLoading.set(true);
+    this.isPdfData.set(false);
     this.currentIndex.set(0);
-    this.documentsResource.set(
-      this.service.getScannedDocuments()
-    );
+
+    try {
+      const docs = await this.service.getScannedDocuments();
+      this.scannedDocuments.set(docs);
+      this.isPdfData.set(docs.length > 0);
+    } catch (err) {
+      console.error(err);
+      this.scannedDocuments.set([]);
+      this.isPdfData.set(false);
+    } finally {
+      this.isLoading.set(false);
+    }
   }
 
-  // ===============================
-  // NAVIGATION
-  // ===============================
   prev() {
     if (this.currentIndex() > 0) {
       this.currentIndex.update(i => i - 1);
@@ -124,79 +112,45 @@ export default class Scanneddocument implements OnInit, OnDestroy {
     }
   }
 
-  // ===============================
-  // QR LOGIC
-  // ===============================
+  // ========== QR ==========
   onQrScanned(result: string) {
     if (!result) {
-      this.toast.showToast(
-        'Bilgi',
-        'Lütfen QR kod okutunuz veya manuel giriş yapınız.',
-        'warning'
-      );
+      this.toast.showToast('Bilgi', 'Lütfen QR kod okutunuz veya manuel giriş yapınız.', 'warning');
       return;
     }
 
     this.qrContent.set(result);
+    this.qrEditable.set(result);
+    this.qrContentEditable = result;
     this.alertVisible.set(false);
 
-    const content = this.qrContent();
-    if (content) {
-      this.qrEditable.set(content);
+    this.toast.showToast('QR Okundu', `Okunan içerik: ${result}`, 'success');
+  }
+
+  async matchQr() {
+    const documentId = this.currentDocumentId();
+    const documentNumber = this.qrEditable()?.trim();
+    const userId = this.user()?.id;
+
+    if (!userId) return this.toast.showToast("Hata", "Kullanıcı bilgisi alınamadı", "error");
+    if (!documentId) return this.toast.showToast('Hata', 'Eşleştirilecek belge bulunamadı.', 'error');
+    if (!documentNumber) return this.toast.showToast('Uyarı', 'Belge numarası boş olamaz.', 'warning');
+
+    this.isLoading.set(true);
+
+    try {
+      await this.service.updateScannedDocumentNumber(documentId, documentNumber, userId).toPromise();
+      this.toast.showToast('Başarılı', 'Belge eşleştirildi.', 'success');
+
+      this.resetQr();
+      await this.loadDocuments(); // listeyi yeniden yükle
+    } catch (err) {
+      console.error(err);
+      this.toast.showToast('Hata', 'Belge eşleştirilirken bir hata oluştu.', 'error');
+    } finally {
+      this.isLoading.set(false);
     }
-
-    this.toast.showToast(
-      'QR Okundu',
-      `Okunan içerik: ${result}`,
-      'success'
-    );
   }
-
-matchQr() {
-  const documentId = this.currentDocumentId();
-  const documentNumber = this.qrEditable()?.trim();
-
-  if (!documentId) {
-    this.toast.showToast(
-      'Hata',
-      'Eşleştirilecek belge bulunamadı.',
-      'error'
-    );
-    return;
-  }
-
-  if (!documentNumber) {
-    this.toast.showToast(
-      'Uyarı',
-      'Belge numarası boş olamaz.',
-      'warning'
-    );
-    return;
-  }
-
-  this.service
-    .updateScannedDocumentNumber(documentId, documentNumber)
-    .subscribe({
-      next: () => {
-        this.toast.showToast(
-          'Başarılı',
-          'Belge numarası başarıyla eşleştirildi.',
-          'success'
-        );
-
-        // İstersen otomatik sonraki belgeye geç
-        //this.next();
-      },
-      error: (err) => {
-        console.error(err);
-        this.toast.showToast(
-          'Hata',
-          'Belge eşleştirilirken bir hata oluştu.',
-          'error'
-        );
-      }
-    });
-}
 
   goToManual() {
     this.alertVisible.set(false);
@@ -204,7 +158,8 @@ matchQr() {
 
   resetQr() {
     this.qrContent.set(null);
-    this.qrEditable.set(''); // inputu da resetle
+    this.qrEditable.set('');
+    this.qrContentEditable = '';
     this.alertVisible.set(true);
   }
 }

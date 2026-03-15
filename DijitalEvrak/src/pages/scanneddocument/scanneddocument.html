@@ -8,16 +8,17 @@
     <!-- ================= PDF ALANI ================= -->
     <div class="col-md-8">
 
+      <!-- NAV BAR -->
       <div
-        class="doc-nav-bar d-flex justify-content-between align-items-center mb-3 px-3 py-2">
+        class="doc-nav-bar d-flex justify-content-between align-items-center mb-3 px-3 py-2"
+        *ngIf="scannedDocuments().length != 0 && !isLoading()">
 
         <div class="d-flex align-items-center">
           <div class="doc-counter">
             {{ currentIndex() + 1 }} / {{ scannedDocuments().length }}
           </div>
 
-          <span *ngIf="currentDocument() as doc"
-            class="ms-3 doc-filename">
+          <span *ngIf="currentDocument() as doc" class="ms-3 doc-filename">
             {{ doc.fileName }}
           </span>
         </div>
@@ -38,88 +39,93 @@
 
       </div>
 
-      <div>
+      <div class="pdf-container">
+
+  <div *ngIf="isLoading()" class="pdf-loading-overlay">
+    <div class="spinner"></div>
+    <div class="loading-text">Evrak yükleniyor...</div>
+  </div>
+        <!-- PDF -->
         <iframe
-          *ngIf="pdfUrl()"
+          *ngIf="!isLoading() && isPdfData() && pdfUrl()"
           [src]="pdfUrl()"
           width="100%"
           height="640px"
           style="border:none;">
         </iframe>
-      </div>
 
+
+
+      <!-- Evrak Yok Mesajı -->
+      <div class="card" style="height: 700px;" *ngIf="!isLoading() && !isPdfData()">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h4 class="m-0">Evrak - Belge No Eşleştirme</h4>
+        </div>
+        <div class="alert alert-warning d-flex align-items-center justify-content-between mx-4 mt-4">
+          <div class="qr-icon-wrapper d-flex align-items-center justify-content-center me-3">
+            <span class="material-symbols-outlined qr-iconNonPulse" title="Bilgi">info</span>
+          </div>
+          <div class="qr-panel-content position-relative flex-grow-1 pt-3 mb-3">
+            <strong class="mb-1 qr-title">Eşleştirilecek Evrak Bulunamadı</strong>
+            <p class="mb-0 qr-description">
+              Bu alanda taranmış evrak ile QR kodu eşleştirilememiş belgeleri görebilirsiniz.
+            </p>
+          </div>
+        </div>
+      </div>
+      </div>
     </div>
 
     <!-- ================= QR PANEL ================= -->
     <div class="col-md-4">
-
       <div class="qr-panel">
 
         <!-- ÜST BAŞLIK -->
-        <div class="qr-panel-header">
+        <div class="qr-panel-header" *ngIf="scannedDocuments().length != 0 && !isLoading()">
           <div>
             <div class="qr-title">Evrak - Belge No Eşleştirme</div>
-
           </div>
         </div>
 
         <!-- ORTA ALAN -->
-        <div class="qr-panel-body">
+        <div class="qr-panel-body" *ngIf="scannedDocuments().length != 0 && !isLoading()">
 
           <!-- BEKLEME DURUMU -->
           <div class="qr-center" *ngIf="alertVisible()">
-
             <div class="qr-wait-card">
-
               <div class="qr-icon-wrapper2">
-                <span class="material-symbols-outlined qr-icon2">
-                  qr_code_scanner
-                </span>
+                <span class="material-symbols-outlined qr-icon2">qr_code_scanner</span>
               </div>
-
-              <div class="qr-title">
-                QR Kod Bekleniyor
-              </div>
-
+              <div class="qr-title">QR Kod Bekleniyor</div>
               <div class="qr-subtitle">
                 QR kod okuyucu ile okutunuz veya manuel giriş ekranına geçiniz.
               </div>
-
-              <button class="qr-manual-btn"
-                (click)="goToManual()">
+              <button class="qr-manual-btn" (click)="goToManual()">
                 Manuel Giriş Ekranına Geç
               </button>
-
             </div>
-
           </div>
 
           <!-- OKUNAN QR -->
-          <div class="btn-outline-dark mt-2"
-            *ngIf="qrContent() || !alertVisible()">
+          <div class="btn-outline-dark mt-2" *ngIf="qrContent() || !alertVisible()">
             <div class="qr-result-card">
-
               <div class="qr-result-header">
-                <span class="qr-result-title">
-                  Belge Numarası
-                </span>
+                <span class="qr-result-title">Belge Numarası</span>
               </div>
               <div class="qr-result-box mt-3">
                 <input type="text"
                   class="form-control qr-result-input mt-2"
                   [value]="qrEditable()"
                   (input)="qrEditable.set($any($event.target).value)" />
-
-                <button class="btn btn-outline-dark btn-sm mt-4"
-                  (click)="resetQr()">
-                  QR Kodu Tekrar Okut
-                </button> <button class="btn btn-outline-dark btn-sm mt-4"
-                  (click)="matchQr()">
-                  Belge Numarasını Eşleştir
-                </button></div></div>
+                <button class="btn reset-btn mt-4" (click)="resetQr()">Tekrar Okut</button>
+                <button class="btn btn-outline-dark btn-sm mt-4" (click)="matchQr()">Belge Numarasını Eşleştir</button>
+              </div>
+            </div>
           </div>
+
         </div>
       </div>
     </div>
+
   </div>
 </div>

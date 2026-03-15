@@ -11,8 +11,9 @@
         <div class="card" style="height: 700px;">
             <div
                 class="card-header d-flex justify-content-between align-items-center">
-                <h4 class="m-0"> 
-                    <span class="nav-icon material-symbols-outlined" style="font-size: 22px;">app_registration</span>Ön
+                <h4 class="m-0">
+                    <span class="nav-icon material-symbols-outlined"
+                        style="font-size: 22px;">app_registration</span>Ön
                     Kayıt</h4>
                 <button type="button"
                     class="btn btn-outline-secondary btn-sm d-flex align-items-center"
@@ -22,9 +23,8 @@
                     Ön Kayıt Ekranına Dön
                 </button>
             </div>
-            <!-- ALERT BÖLÜMÜ -->
             <div
-                class="alert alert-info d-flex align-items-center justify-content-between mx-4 mt-4"
+                class="alert alert-info d-flex align-items-center justify-content-between mx-5 mt-5"
                 role="alert"
                 *ngIf="alertVisible()">
 
@@ -44,7 +44,7 @@
                     <h5 class="mb-1 qr-title">QR Kodu Okutunuz</h5>
                     <p class="mb-0 qr-description">
                         Ön kayıt işlemini tamamlamak için belge üzerindeki QR
-                        kodu okutunuz.
+                        kodu, QR kod okuyucunuz ile okutunuz.
                     </p>
 
                     <span class="material-symbols-outlined qr-panel-next pb-1"
@@ -55,197 +55,186 @@
                 </div>
 
             </div>
-            <!-- ALTTA GÖRÜNÜR OLACAK DIV -->
-            @if (detailsVisible()) {
-            <div class="card h-100ß">
-                <div class="card-body">
-                    <div class="activity-list">
-                        <div class="row">
-                            <div
-                                class="col-md-4 d-flex justify-content-center align-items-stretch">
-                                <div class="card mb-4"
-                                    style="min-width: 250px;">
-                                    <div
-                                        class="card-header d-flex justify-content-between align-items-center"
-                                        style="background-color: #b1fbff;">
-                                        <h5 class="card-title mt-1">Ön Kayıt
-                                            Tamamlandı</h5>
+            <div class="container-fluid" *ngIf="detailsVisible()">
+<ng-container *ngIf="docStatus() === 1; else completedMsg">
+  <div class="process-title mt-4 mb-4 text-muted">
+    Evrak Daha Önce Kaydedilmiş
+  </div>
+</ng-container>
+
+<ng-template #completedMsg>
+  <div class="process-title mt-4 mb-4 text-success">
+    Ön Kayıt ve Zimmetleme Tamamlandı
+  </div>
+</ng-template>
+
+                <div class="row process-wrapper">
+                    <!-- ÖN KAYIT -->
+                    <div
+                        class="col-md-4 d-flex justify-content-center align-items-stretch" >
+                        <div class="card process-card">
+                            <div class="card-header process-header pre-header">
+                                <span
+                                    class="material-symbols-outlined me-2">inventory</span>
+                                Ön Kayıt
+                            </div>
+                            <div class="card-body process-body">
+                                <div  class="text-center">
+
+                                    <div class="user-name" *ngIf="allocations()">
+                                        {{ allocations()?.fullName }}
                                     </div>
-                                    <div class="card-body d-flex flex-column">
 
-                                        <div class="activity-list mb-9">
-                                            <div class="activity-content">
-                                                <div
-                                                    class="activity-title ms-1">Murat
-                                                    Kale</div>
-                                                <div
-                                                    class="activity-subtitle ms-1">30.10.2025
-                                                    14:35</div>
-                                            </div>
-                                        </div>
-                                        <div class="activity-list mb-4">
-                                            @if (scannedDocumentNo()) {
-                                            <div
-                                                class="activity-item d-flex justify-content-center">
-                                                <qrcode
-                                                    [qrdata]="scannedDocumentNo()!"
-                                                    [width]="100"
-                                                    [errorCorrectionLevel]="'H'"></qrcode>
+                                    <div class="user-date" *ngIf="allocations()">
+                                        {{
+                                        allocations()?.createdDate
+                                        ? (allocations()?.createdDate |
+                                        date:'dd.MM.yyyy HH:mm')
+                                        : 'Tarih yok'
+                                        }}
+                                    </div>
 
-                                            </div><div class="text-center mt-2"
-                                                style="font-size: 16px; font-weight: 500;">
-                                                {{ scannedDocumentNo() }}
-                                            </div>
-                                            }
-                                        </div>
-                                        <div class="activity-list mb-4 mt-auto"
-                                            style="border-top: 1px solid #dee2e6; display: flex; flex-direction: row; align-items: center;">
-                                            <span
-                                                class="material-symbols-outlined fs-4 mt-3 me-2"
-                                                title="Ön Kayıt Tamamlandı"
-                                                style="cursor: pointer;">save</span>
-                                            <span
-                                                class="material-symbols-outlined fs-4 mt-3"
-                                                title="Zimmetleme Tamamlandı"
-                                                style="cursor: pointer;">contract_edit</span>
+                                    <div class="qr-area"
+                                        *ngIf="scannedDocumentNo()">
+                                        <qrcode
+                                            [qrdata]="scannedDocumentNo()!"
+                                            [width]="110"
+                                            [errorCorrectionLevel]="'H'">
+                                        </qrcode>
+                                        <div class="qr-number">
+                                            {{ scannedDocumentNo() }}
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            <!-- step 3 end-->
-                            <!-- step 3 start-->
-                            <div
-                                class="col-md-4 d-flex justify-content-center align-items-stretch">
-                                <div class="card mb-4"
-                                    style="min-width: 250px;">
-                                    <div
-                                        class="card-header d-flex justify-content-between align-items-center"
-                                        style="background-color: #9de5ff;">
-                                        <h5 class="card-title mt-1">Dilekçe
-                                            Kayıt</h5>
-                                    </div>
-                                    <div
-                                        class="card-body d-flex flex-column mt-1">
-                                        <!-- Ad Soyad -->
-                                        <div class="mb-3">
-                                            <input type="text"
-                                                maxlength="200"
-                                                class="form-control"
-                                                placeholder="Ad Soyad"
-                                                [(ngModel)]="fullName">
-                                        </div>
-                                        <!-- T.C. Kimlik No -->
-                                        <div class="mb-4">
-                                            <input type="text"
-                                                maxlength="11"
-                                                class="form-control"
-                                                placeholder="T.C. Kimlik No"
-                                                [(ngModel)]="tckn"
-                                                (keydown)="allowOnlyNumbers($event)">
-                                        </div>
-                                        <!-- BUTON -->
-                                        <button class="btn btn-modern"
-                                            (click)="openPreview()">
-                                            <span
-                                                class="material-symbols-outlined me-1">description</span>
-                                            Başvuru Alındı Belgesi
-                                        </button>
-                                        <div class="activity-list mb-2 mt-auto"
-                                            style="border-top: 1px solid #dee2e6; display: flex; flex-direction: row; align-items: center;">
-                                            <span class="text-muted small mt-2">
-                                                * Alındı belgesinin çıktısı
-                                                alınarak dilekçe sahibine teslim
-                                                edilmelidir.</span>
-                                        </div>
-                                    </div>
+
+                                <div class="process-footer">
+                                    <span
+                                        class="material-symbols-outlined process-icon"
+                                        title="Ön Kayıt Yapıldı">
+                                        save
+                                    </span>
+                                    <span
+                                        class="material-symbols-outlined process-icon"
+                                        title="Zimmetleme Yapıldı">
+                                        contract_edit
+                                    </span>
                                 </div>
                             </div>
+                        </div>
+                    </div>
 
-                            <!-- step 3 end-->
-
-                            <!-- step 4 start-->
+                    <!-- ARROW -->
+                    <div
+                        class="col-md-4 d-flex justify-content-center align-items-center">
+                        <div class="step-arrow-wrapper">
+                            <div class="step-text">
+                                Opsiyonel
+                            </div>
+                            <span class="material-symbols-outlined step-arrow">
+                                arrow_forward
+                            </span>
+                        </div>
+                    </div>
+                    <!-- DİLEKÇE -->
+                    <div
+                        class="col-md-4 d-flex justify-content-center align-items-stretch">
+                        <div class="card process-card">
                             <div
-                                class="col-md-4 d-flex justify-content-center align-items-stretch">
-                                <div class="card mb-4"
-                                    style="min-width: 250px;">
-                                    <div
-                                        class="card-header d-flex justify-content-between align-items-center"
-                                        style="background-color: #b2fbbd;">
-                                        <h5 class="card-title mt-1">Evrak
-                                            Kaydını Tamamla</h5>
-                                    </div>
-                                    <div
-                                        class="card-body d-flex flex-column mt-1">
-                                        <div class="activity-list mb-2">
-                                            <button class="btn-modern-green"
-                                                (click)="goToDetail()">
-                                                <span
-                                                    class="material-symbols-outlined me-1">assignment_turned_in</span>
-                                                Kayıt Ekranına Geç
-                                            </button>
-                                        </div>
+                                class="card-header process-header petition-header">
+                                <span
+                                    class="material-symbols-outlined me-2">description</span>
+                                Dilekçe
+                            </div>
+                            <div class="card-body process-body">
+                                <div class="form-group mb-3">
+                                    <label class="form-label">Ad Soyad</label>
+                                    <input
+                                        type="text"
+                                        maxlength="200"
+                                        class="form-control modern-input"
+                                        [(ngModel)]="fullName">
 
-                                        <div class="activity-list mb-2 mt-auto"
-                                            style="border-top: 1px solid #dee2e6; display: flex; flex-direction: row; align-items: center;">
-                                            <span class="text-muted small mt-2">
-                                                * Eksik bilgilerin girişini
-                                                yaparak, gelen
-                                                evrak kayıt işlemini
-                                                tamamlayabilirsiniz.</span>
-                                        </div>
-                                    </div>
+                                </div>
+
+                                <div class="form-group mb-4">
+
+                                    <label class="form-label">T.C. Kimlik
+                                        No</label>
+
+                                    <input
+                                        type="text"
+                                        maxlength="11"
+                                        class="form-control modern-input"
+                                        [(ngModel)]="tckn"
+                                        (keydown)="allowOnlyNumbers($event)">
+
+                                </div>
+
+                                <button
+                                    class="btn petition-btn"
+                                    (click)="openPreview()">
+                                    <span
+                                        class="material-symbols-outlined me-1">
+                                        description
+                                    </span>
+                                    Başvuru Alındı Belgesi
+                                </button>
+                                <div class="petition-info">
+                                    * Alındı belgesinin çıktısı alınarak dilekçe
+                                    sahibine teslim edilmelidir.
                                 </div>
                             </div>
-                            <!-- step 4 end-->
                         </div>
                     </div>
                 </div>
             </div>
 
-            }
-
         </div>
     </div>
-         <!-- SAĞ INFO PANEL -->
-  <div class="col-md-3 col-12">
-    <div class="card info-panel h-100">
+    <!-- SAĞ INFO PANEL -->
+    <div class="col-md-3 col-12" *ngIf="!detailsVisible()">
+        <div class="card info-panel h-100">
+            <div class="card-header">
+                <h6 class="m-0">Bilgilendirme</h6>
+            </div>
+            <div class="card-body">
+                <div class="info-item mt-2">
+                    <span class="material-symbols-outlined sec-icon">
+                        info
+                    </span>
+                    <div>
+                        <strong>QR Okuma</strong>
+                        <p class="mb-0">
+                            Sistem QR kod okuyucu ile QR kodu okutmanızı
+                            beklemektedir.
+                        </p>
+                    </div>
+                </div>
+                <div class="detail-card-hr"></div>
+                <div class="info-item mt-4">
+                    <span class="material-symbols-outlined sec-icon">
+                        keyboard
+                    </span>
+                    <div>
+                        <strong>Manuel Giriş</strong>
+                        <p class="mb-0">
+                            QR kod okuma sırasında sorun yaşıyorsanız, evrak
+                            numarası manuel olarak girerek evrakın ön kaydını ve
+                            zimmetlemesini yapabilirsiniz.
+                        </p>
+                        <div class="qr-wait-cardOther mt-2">
+                            <input #qrInput
+                                type="text"
+                                class="form-control qr-result-input2 mt-2" />
 
-      <div class="card-header">
-        <h6 class="m-0">Bilgilendirme</h6>
-      </div>
-
-      <div class="card-body">
-
-        <div class="info-item">
-          <span class="material-symbols-outlined info-icon">
-            info
-          </span>
-          <div>
-            <strong>QR Okuma</strong>
-            <p class="mb-0">
-              Sistem QR kodu okutmanızı beklemektedir.
-            </p>
-          </div>
+                            <button class="qr-manual-btn2"
+                                (click)="onQrScanned(qrInput.value)">
+                                Ön Kayıt Oluştur
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-
-        <hr />
-
-        <div class="info-item">
-          <span class="material-symbols-outlined info-icon">
-            keyboard
-          </span>
-          <div>
-            <strong>Manuel Giriş</strong>
-            <p class="mb-0">
-            Evrak numarası girip, enter tuşu ile kayıt ekranına geçiş yapabilirsiniz.
-            </p>
-          </div>
-        </div>
-
-
-
-      </div>
-
     </div>
-  </div>
 </div>

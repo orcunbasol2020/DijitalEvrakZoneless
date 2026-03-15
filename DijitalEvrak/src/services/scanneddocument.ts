@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpService } from './http';
 import { ScannedDocumentModel } from '../models/scanneddocument.model';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class ScannedDocumentService {
@@ -8,7 +9,7 @@ export class ScannedDocumentService {
   private httpService = inject(HttpService);
   private baseUrl = 'api/ScannedDocuments/';
 
-  // 📌 Seçili taranmış belge
+  // Seçili taranmış belge
   private selectedScannedDocumentId = signal<string | null>(null);
 
   setSelectedScannedDocument(id: string) {
@@ -23,11 +24,19 @@ export class ScannedDocumentService {
     return this.selectedScannedDocumentId();
   }
 
-  // GET ALL
-  getScannedDocuments() {
-    return this.httpService.createResource<ScannedDocumentModel[]>(
-      this.baseUrl + "GetAll"
-    );
+  // GET ALL (Observable ile)
+  async getScannedDocuments(): Promise<ScannedDocumentModel[]> {
+    try {
+      const docs$ = this.httpService.get<ScannedDocumentModel[]>(
+        this.baseUrl + "GetAll"
+      );
+      // firstValueFrom ile observable'ı promise'e çeviriyoruz
+      const docs = await firstValueFrom(docs$);
+      return docs ?? [];
+    } catch (error) {
+      console.error("Scanned documents load error:", error);
+      return [];
+    }
   }
 
   // GET BY ID
@@ -37,7 +46,7 @@ export class ScannedDocumentService {
     );
   }
 
-  // PDF URL ÜRETİCİ
+  // PDF URL
   getPdfUrl(fileName: string): string {
     if (!fileName) return '';
     return `https://localhost:7056/api/ScannedDocuments/GetPdf?fileName=${encodeURIComponent(fileName)}`;
@@ -59,10 +68,12 @@ export class ScannedDocumentService {
   }
 
   // UPDATE Document Number
-  updateScannedDocumentNumber(id: string, documentNumber: string) {
+  updateScannedDocumentNumber(id: string, documentNumber: string, userId: string) {
     return this.httpService.put<any>(
       `${this.baseUrl}Update`,
       { id, documentNumber }
     );
   }
+
+  
 }

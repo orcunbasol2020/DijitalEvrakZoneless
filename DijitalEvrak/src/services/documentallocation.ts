@@ -11,11 +11,17 @@ export class DocumentAllocation {
   private baseUrl = 'api/DocumentAllocations';
 
   // DocumentId ile aktif zimmet kontrol / listeleme
-getByDocumentId(documentId: string) {
-  return this.httpService.get<DocumentAllocationModel[]>(
-    `${this.baseUrl}/GetByDocumentId?incomingDocumentId=${encodeURIComponent(documentId)}`
-  );
-}
+  getByDocumentId(documentId: string) {
+    return this.httpService.get<DocumentAllocationModel[]>(
+      `${this.baseUrl}/GetByDocumentId?incomingDocumentId=${encodeURIComponent(documentId)}`
+    );
+  }
+
+  getActiveByDocumentId(documentId: string) {
+    return this.httpService.get<DocumentAllocationModel>(
+      `${this.baseUrl}/GetActiveByDocumentId?incomingDocumentId=${encodeURIComponent(documentId)}`
+    );
+  }
 
   // Yeni zimmet oluşturma
   createAllocation(allocation: {

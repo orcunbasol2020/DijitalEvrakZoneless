@@ -59,9 +59,14 @@
                 style="cursor: pointer;">
                 save
             </span>
-
+            <span *ngIf="item.transactionType === 3"
+                class="material-symbols-outlined fs-5 mt-2 ms-1 text-dark"
+                title="Güncellendi"
+                style="cursor: pointer;">
+                save
+            </span>
             <span
-                *ngIf="item.transactionType === 1 || item.transactionType === 3 || item.transactionType === 6 || item.transactionType === 7"
+                *ngIf="item.transactionType === 1 || item.transactionType === 6 || item.transactionType === 7"
                 class="material-symbols-outlined fs-5 mt-2 ms-1 text-secondary"
                 title="Zimmetleme Yapıldı"
                 style="cursor: pointer;">
