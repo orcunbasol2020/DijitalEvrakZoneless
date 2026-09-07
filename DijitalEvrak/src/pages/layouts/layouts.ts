@@ -7,13 +7,15 @@ import { FormsModule } from '@angular/forms';
 import { Common } from '../../services/common';
 import { initialUser } from '../users/users';
 import { IncomingDocumentService } from '../../services/incomingdocument';
+import { Sidebar } from './sidebar/sidebar/sidebar';
+
 
 @Component({
   imports: [
     Breadcrumb,
     RouterLink,
     RouterLinkActive,
-    SearchMenuPipe,
+    Sidebar,
     FormsModule,
     RouterOutlet
   ],

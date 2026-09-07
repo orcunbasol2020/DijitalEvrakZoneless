@@ -1,0 +1,49 @@
+<app-generic pageTitle="Dış Kurumlar"
+  [breadcrumbs]="[{ title: 'Dış Kurumlar', url: 'externalinstitution', icon: '' }]">
+</app-generic>
+
+<div [class.show-filters]="showFilters">
+  <flexi-grid
+    [data]="data()"
+    [loading]="loading()"
+    language="tr"
+    [showCaption]="true"
+    captionTitle="Dış Kurumlar"
+    [showExportExcelBtn]="true"
+    exportExcelFileName="externalInstitution"
+    (onRefresh)="result.reload()">
+
+    <flexi-grid-column field="name" title="Adı" />
+    <flexi-grid-column field="type" title="Tür" width="100px">
+      <ng-template flexiGridCellTemplate let-item>
+        {{ typeMap[+item.type] || '-' }}
+      </ng-template>
+    </flexi-grid-column>
+    <flexi-grid-column field="address" title="Adres" />
+    <ng-template flexiGridColumnCommandTemplate let-item width="60px">
+      <flexi-button
+        [routerLink]="['/','envelopes','edit',item.id]"
+        btnIcon="edit"
+        btnColor="info"
+        title="Güncelle"
+        flexiTooltip />
+    </ng-template>
+
+    <flexi-grid-column field="isDeleted" title="Silindi" textAlign="center"
+      filterType="boolean" [booleanData]="['Silindi', 'Silinmedi']"
+      width="60px">
+      <ng-template flexiGridCellTemplate let-item>
+        <div class="d-flex justify-content-center">
+          <div class="form-check form-switch">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              role="switch"
+              [id]="item.id"
+              name="item.id">
+          </div>
+        </div>
+      </ng-template>
+    </flexi-grid-column>
+  </flexi-grid>
+</div>

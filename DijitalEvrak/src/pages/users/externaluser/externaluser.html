@@ -1,0 +1,96 @@
+<app-generic pageTitle="Dış Kurum Kullanıcıları"
+  [breadcrumbs]="[{title: 'Dış Kurum Kullanıcıları', url: 'users', icon: ''}]">
+</app-generic>
+<div [class.show-filters]="showFilters">
+  <flexi-grid
+    [data]="data()"
+    [loading]="loading()"
+    language="tr"
+    [showCaption]="true"
+    captionTitle="Dış Kurum Kullanıcıları"
+    [showExportExcelBtn]="true"
+    exportExcelFileName="kullanicilar"
+    (onRefresh)="result.reload()">
+    <ng-template flexiGridCaptionCommandTemplate>
+      <!-- 🔥 Filtre Aç/Kapa butonu -->
+      <flexi-button
+        btnIcon="filter_alt"
+        btnColor="light"
+        title="Filtre Aç/Kapat"
+        flexiTooltip
+        (click)="showFilters = !showFilters">
+      </flexi-button>
+
+      <flexi-button
+        routerLink="/users/create"
+        btnIcon="add"
+        btnColor="primary"
+        title="Kullanıcı Ekle"
+        flexiTooltip />
+    </ng-template>
+
+    <flexi-grid-column field="name" title="Ad" />
+    <flexi-grid-column field="surname" title="Soyad" />
+    <flexi-grid-column field="email" title="Eposta" />
+    <flexi-grid-column title="Birimi" width="150px">
+      <ng-template flexiGridCellTemplate let-item>
+        <span
+          [title]="item.departmentName">
+          {{ item.departmentShortName }}
+        </span>
+      </ng-template>
+    </flexi-grid-column>
+
+    <flexi-grid-column field="isActive" title="Aktif" textAlign="center"
+      filterType="boolean" [booleanData]="['Aktif', 'Pasif']" width="100px">
+      <ng-template flexiGridCellTemplate let-item>
+        <div class="d-flex justify-content-center">
+          <div class="form-check form-switch">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              role="switch"
+              [id]="item.id"
+              name="item.id"
+              [(ngModel)]="item.isActive">
+          </div>
+        </div>
+      </ng-template>
+    </flexi-grid-column>
+    <flexi-grid-column field="isDeleted" title="Silindi" textAlign="center"
+      filterType="boolean" [booleanData]="['Silindi', 'Silinmedi']"
+      textAlign="center" width="100px">
+      <ng-template flexiGridCellTemplate let-item>
+        <div class="d-flex justify-content-center">
+          <div class="form-check form-switch">
+            <input
+              (change)="changeIsAdmin(item)"
+              class="form-check-input"
+              type="checkbox"
+              role="switch"
+              [id]="item.id"
+              name="item.id"
+              [(ngModel)]="item.isDeleted">
+          </div>
+        </div>
+      </ng-template>
+    </flexi-grid-column>
+
+    <ng-template flexiGridColumnCommandTemplate let-item>
+      <flexi-button
+        [routerLink]="['/','users','edit',item.id]"
+        btnIcon="edit"
+        btnColor="info"
+        title="Güncelle"
+        flexiTooltip />
+
+      <flexi-button
+        (click)="delete(item.id)"
+        btnIcon="delete"
+        btnColor="warning"
+        title="Sil"
+        flexiTooltip />
+    </ng-template>
+
+  </flexi-grid>
+</div>

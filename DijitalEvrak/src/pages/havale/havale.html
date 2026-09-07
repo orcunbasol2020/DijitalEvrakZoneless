@@ -4,65 +4,71 @@
 ></app-generic>
 <div class="row">
     <div class="col-md-9 col-12">
-        <div class="card">
-            <div
-                class="card-header d-flex justify-content-between align-items-center">
-                <h4 class="m-0">Birim Bazlı Anahtar Kelime Tanımlama</h4></div>
-
-<div class="container p-3">
-
-  <div class="mb-3 col-md-4">
-    <label class="form-label">Birim</label>
-    <!-- <select class="form-select" [(ngModel)]="selectedUnit">
-      <option [ngValue]="null" disabled>Birim seçiniz</option>
-      <option *ngFor="let unit of units" [ngValue]="unit.code">
-        {{ unit.name }}
-      </option>
-    </select> -->
+<div class="card havale-card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h4 class="m-0">Birim Bazlı Anahtar Kelime Tanımlama</h4>
   </div>
 
-  <div class="mb-3 col-md-6">
-    <label class="form-label">Anahtar Kelime</label>
-    <div class="input-group">
-      <input
-        type="text"
-        class="form-control"
-        [(ngModel)]="keywordInput"
-        (keyup.enter)="addKeyword()"
-        placeholder="29 Ekim kutlama mesajları"
-      />
-      <button class="btn btn-primary" (click)="addKeyword()">Ekle</button>
+  <div class="card-body">
+    <div class="container">
+
+      <!-- Birim seçimi -->
+      <div class="mb-3 col-md-4">
+        <label class="form-label">Birim</label>
+        <select class="form-select" [(ngModel)]="selectedUnit">
+          <option [ngValue]="null" disabled>Birim seçiniz</option>
+          <option *ngFor="let unit of units" [ngValue]="unit.code">
+            {{ unit.name }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Anahtar Kelime Ekleme -->
+      <div class="mb-3 col-md-6">
+        <label class="form-label">Anahtar Kelime</label>
+        <div class="input-group havale-input-group">
+          <input
+            type="text"
+            class="form-control"
+            [(ngModel)]="keywordInput"
+            (keyup.enter)="addKeyword()"
+            placeholder="Örn: 29 Ekim kutlama mesajları"
+          />
+          <button class="btn btn-primary" (click)="addKeyword()">Ekle</button>
+        </div>
+      </div>
+
+      <!-- Sol ve Sağ Listeler -->
+      <div class="row mt-4 havale-lists">
+        <!-- Sol: Ekleme yapılabilecek örnek kelimeler -->
+        <div class="col-md-6 mb-3">
+          <h6>Eklenebilecek Anahtar Kelimeler</h6>
+          <ul class="list-group list-group-hover">
+            <li class="list-group-item" *ngFor="let kw of availableKeywords" (click)="addKeywordFromList(kw)">
+              {{ kw }}
+              <button class="btn btn-sm btn-outline-primary float-end">Ekle</button>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Sağ: Mevcut eklenen kelimeler -->
+        <div class="col-md-6 mb-3">
+          <h6>Mevcut Anahtar Kelimeler</h6>
+          <ul class="list-group list-group-hover">
+            <li class="list-group-item" *ngFor="let kw of keywords; index as i">
+              {{ kw }}
+              <button class="btn btn-sm btn-outline-danger float-end" (click)="removeKeyword(i)">Sil</button>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Kaydet / Temizle -->
+      <div class="d-flex gap-2 mt-3">
+        <button class="btn btn-success" [disabled]="!selectedUnit || !keywords.length" (click)="saveKeywords()">Kaydet</button>
+        <button class="btn btn-secondary" (click)="resetForm()">Temizle</button>
+      </div>
+
     </div>
   </div>
-
-  <!-- <div class="mb-3 col-md-6" *ngIf="keywords.length">
-    <ul class="list-group">
-       <li
-        class="list-group-item d-flex justify-content-between align-items-center"
-        *ngFor="let keyword of keywords; index as i"
-      >
-        {{ keyword }}
-        <button
-          class="btn btn-sm btn-outline-danger"
-          (click)="removeKeyword(i)">
-          Sil
-        </button>
-      </li> 
-    </ul>
-  </div> -->
-
-  <div class="d-flex gap-2">
-    <button
-      class="btn btn-success"
-      [disabled]="!selectedUnit || !keywords.length"
-      (click)="saveKeywords()">
-      Kaydet
-    </button>
-
-    <button class="btn btn-secondary" (click)="resetForm()">
-      Temizle
-    </button>
-  </div>
-
-</div>
-  </div></div>
+</div></div></div>

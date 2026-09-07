@@ -36,9 +36,18 @@
             </div>
           </div>
 
-          <button type="submit" class="btn-login mt-3" id="loginBtn">
-            <span class="btn-text">Giriş Yap</span>
-          </button>
+<button type="submit"
+        class="btn-login mt-3"
+        id="loginBtn"
+        [disabled]="isLoading">
+
+  <span *ngIf="!isLoading">Giriş Yap</span>
+
+  <span *ngIf="isLoading">
+    Giriş yapılıyor...
+  </span>
+
+</button>
 
         </form>
       </div>
@@ -48,6 +57,10 @@
   <div class="login-right-content">
     <h1 class="login-title">T.C. Dışişleri Bakanlığı</h1>
     <p class="login-subtitle">Dijital Evrak Takip Sistemi</p>
+        <span *ngIf="isLoading" class="d-flex align-items-center justify-content-center mt-1">
+  <span class="spinner-border spinner-border-sm me-2"></span>
+ <span class="spinner-text"> Giriş yapılıyor...</span>
+</span>
   </div>
 
   <div class="login-version">
@@ -57,5 +70,6 @@
 
 
     </div>
+
   </div>
 </div>

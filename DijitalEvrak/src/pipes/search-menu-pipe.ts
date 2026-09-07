@@ -7,7 +7,14 @@ import { NavigationModel } from '../navigation';
 export class SearchMenuPipe implements PipeTransform {
 
   transform(value: NavigationModel[], search: string): NavigationModel[] {
-    return value.filter(p => p.title?.toLocaleLowerCase().includes(search.toLocaleLowerCase()));
-  }
 
+    if (!search) return value;
+
+    const s = search.toLocaleLowerCase();
+
+    return value.filter(p =>
+      p.title?.toLocaleLowerCase().includes(s) ||
+      p.category?.toLocaleLowerCase().includes(s)
+    );
+  }
 }

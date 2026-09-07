@@ -1,0 +1,123 @@
+<app-generic pageTitle="Teslim Et"
+    [breadcrumbs]="[{title: 'Teslim Et', url: '', icon:''}]">
+</app-generic>
+
+<div class="row">
+    <div class="col-md-4 col-12">
+        <div class="card page-wrapper">
+            <div class="card-header">
+                <h4 class="m-0">Zarf Etiketi</h4>
+            </div>
+
+            <div class="card-body" [ngClass]="{'gradient-bg': previewEnvelope}">
+
+                <div
+                    class="position-relative d-flex justify-content-center align-items-center mt-3">
+                    <div *ngIf="previewEnvelope">
+                        <div class="envelope-label" id="print-area">
+                            <div class="label-box sender-box">
+                                <div class="label-title">Gönderen</div>
+                                <div class="label-content">
+                                    {{user()?.departmentName}}
+                                </div>
+                                <div class="ministry-row">
+                                    <div class="ministry">
+                                        T.C. DIŞİŞLERİ BAKANLIĞI
+                                    </div>
+                                    <div class="label-contentPostCode">
+                                        06520
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- QR -->
+                            <div class="qr-section">
+                                <img
+                                    [src]="'https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=' + previewEnvelope.envelopeNo"
+                                    alt="QR Code">
+                            </div>
+
+                            <!-- NUMARA -->
+                            <div class="label-number">
+                                {{ previewEnvelope.envelopeNo }}
+                            </div>
+
+                            <!-- ALICI -->
+                            <div class="label-box receiver-box">
+                                <div class="label-title">Alıcı</div>
+                                <div class="label-External">
+                                    {{ externalName() || '-' }}
+                                </div>
+                                <div class="labelDepartment">
+                                    {{ previewEnvelope.unitName }}
+                                </div>
+                                <div class="labelAddress">
+                                    {{ previewEnvelope.address || '-' }}
+                                </div>
+
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="col-md-4 col-12">
+
+        <flexi-grid
+            [data]="documents"
+            [loading]="loading"
+            [showCaption]="true"
+            [captionTitle]="getCaptionTitle()"
+            class="card page-wrapper">
+            <flexi-grid-column field="qrCode" title="Belge No" />
+            <flexi-grid-column title="Eklenme Tarihi">
+                <ng-template flexiGridCellTemplate let-item>
+                    {{ item.createdDate | date:'dd.MM.yyyy HH:mm' }}
+                </ng-template>
+            </flexi-grid-column>
+        </flexi-grid>
+        <div class="text-center mt-3" *ngIf="documents.length === 0">
+            Gösterilecek belge yok
+        </div>
+
+    </div>
+    <div class="col-md-4 col-12">
+        <div class="card page-wrapper">
+            <div
+                class="card-header">
+                <h4 class="m-0">{{ getTitle() }}</h4>
+            </div>
+            <!-- PERSONEL SEÇ -->
+            <div class="p-3">
+                <label>Personel</label>
+                <select class="form-select"
+                    [(ngModel)]="selectedPersonId">
+                    <option
+                        [ngValue]="null">Seçiniz...</option>
+                    <option *ngFor="let p of personList()"
+                        [ngValue]="p.id">
+                        {{ p.name }} {{ p.surname }} ({{
+                        p.departmentShortName }})
+                    </option>
+                </select>
+            </div>
+            <div class="d-flex justify-content-center mt-3 gap-2">
+                <button class="btn btn-secondary" (click)="reset()">
+                    Geri
+                </button>
+                <button class="btn btn-primary" (click)="addZimmet()">
+                    <span
+                        class="material-symbols-outlined me-1 mb-1 mt-1">
+                        hand_package
+                    </span>
+                    Teslim Et
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>

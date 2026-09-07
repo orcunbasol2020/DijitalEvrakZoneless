@@ -1,0 +1,72 @@
+<app-generic pageTitle="Giden Evraklar"
+  [breadcrumbs]="[{title: 'Giden Evraklar', url: 'gidenvrak/outgoing', icon: ''}]">
+</app-generic>
+
+<div [class.show-filters]="showFilters">
+  <flexi-grid
+    [data]="scanListData()"
+    [loading]="loading()"
+    [showCaption]="true"
+    captionTitle="Giden Evraklar"
+    [showExportExcelBtn]="true"
+    exportExcelFileName="TaranmisEvrakListesi"
+    [filterable]="true"
+    language="tr"
+    (onRefresh)="loadDocuments()">
+
+    <ng-template flexiGridCaptionCommandTemplate>
+
+      <flexi-button
+        btnIcon="filter_alt"
+        btnColor="light"
+        title="Filtre Aç/Kapat"
+        flexiTooltip
+        (click)="showFilters = !showFilters">
+      </flexi-button>
+      <flexi-button
+        routerLink="/scanlist/create"
+        btnIcon="upload_file"
+        btnColor="dark"
+        title="Taranmış Evrak Yükle"
+        flexiTooltip>
+      </flexi-button>
+    </ng-template>
+    <flexi-grid-column field="qrCode" title="Belge No" />
+    <flexi-grid-column title="Kayıt Tarihi" width="100px">
+      <ng-template flexiGridCellTemplate let-item>
+        {{ item.createdDate | date:'dd.MM.yyyy' }}
+      </ng-template>
+    </flexi-grid-column>
+   <flexi-grid-column title="Takip" textAlign="center" width="55px">
+      <ng-template flexiGridCellTemplate let-item>
+        <flexi-button
+          btnIcon="conversion_path"
+          title="Süreçler"
+          btnColor="info"
+          (click)="goToProcess(item.id)">
+        </flexi-button>
+      </ng-template>
+    </flexi-grid-column>
+    <flexi-grid-column title="Zimmet" textAlign="center" width="55px">
+      <ng-template flexiGridCellTemplate let-item>
+        <flexi-button
+          btnIcon="article_person"
+          title="Zimmetleme"
+          btnColor="light"
+          (click)="goToZimmet(item.id)">
+        </flexi-button>
+      </ng-template>
+    </flexi-grid-column>
+    <flexi-grid-column textAlign="center" width="50px">
+      <ng-template flexiGridCellTemplate let-item>
+        <flexi-button
+          btnIcon="delete"
+          title="Taranmış Evrakı Sil"
+          btnColor="warning"
+          (click)="delete(item.id)">
+        </flexi-button>
+      </ng-template>
+    </flexi-grid-column>
+  </flexi-grid>
+</div>
+

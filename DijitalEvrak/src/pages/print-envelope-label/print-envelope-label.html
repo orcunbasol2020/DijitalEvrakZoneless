@@ -1,0 +1,58 @@
+<div id="print-area">
+
+  <div class="envelope-label">
+
+    <!-- GÖNDEREN -->
+    <div class="label-box sender-box">
+      <div class="label-title">Gönderen</div>
+      <div class="label-content">
+        {{ data.departmentName }}
+      </div>
+
+      <div class="ministry">
+        T.C. DIŞİŞLERİ BAKANLIĞI
+      </div>
+
+      <div class="label-contentPostCode">
+        06520
+      </div>
+    </div>
+
+    <!-- ORTA -->
+    <div class="label-middle">
+      <div class="package-info">
+        <div class="doc-type">Türü : EVRAK</div>
+      </div>
+    </div>
+
+    <!-- QR -->
+    <div class="qr-section">
+      <img
+        [src]="'https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=' + data.envelopeNo">
+    </div>
+
+    <!-- NUMARA -->
+    <div class="label-number">
+      {{ data.envelopeNo }}
+    </div>
+
+    <!-- ALICI -->
+    <div class="label-box receiver-box">
+      <div class="label-title">Alıcı</div>
+
+      <div class="label-content">
+        {{ data.externalInstitutionName }}
+      </div>
+
+      <div class="labelAddress">
+        {{ data.address }}
+      </div>
+
+      <div class="label-contentPostCode">
+        {{ data.unitName }}
+      </div>
+    </div>
+
+  </div>
+
+</div>

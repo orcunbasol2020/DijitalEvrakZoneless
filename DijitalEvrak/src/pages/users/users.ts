@@ -32,7 +32,7 @@ export const initialUser:UserModel = {
   isActive: true,
   isDeleted: false,
   createDate: "",
-  updateDate: ""
+  updateDate: "",
 }
 
 @Component({

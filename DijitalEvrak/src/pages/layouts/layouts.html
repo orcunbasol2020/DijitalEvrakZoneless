@@ -12,13 +12,16 @@
             </nav>
         </div>
         <!-- Search Bar -->
-        <!--             <div class="search-container d-none d-md-block mx-auto">
-                <div class="position-relative">
-                    <input type="text" class="form-control search-input" placeholder="Search...">
-                    <span class="material-symbols-outlined search-icon">search</span>
-                </div>
-            </div> -->
-        <div class="ms-auto d-flex align-items-center">
+<div class="ms-auto d-flex align-items-center gap-3">
+
+    <!-- search -->
+    <div class="search-container">
+        <div class="position-relative">
+            <input type="text" class="form-control search-input" placeholder="Belge Ara ...">
+            <span class="material-symbols-outlined search-icon">search</span>
+        </div>
+    </div> 
+
             <!-- Notification -->
             <div class="dropdown me-3 notification-container">
                 <!-- Notification Button -->
@@ -49,7 +52,8 @@
                     <li><hr class="dropdown-divider"></li>
 
                     <li>
-                        <a class="dropdown-item notification-item" href="#" (click)="goToPendingScanList()">
+                        <a class="dropdown-item notification-item" href="#"
+                            (click)="goToPendingScanList()">
                             <div class="notification-icon bg-warning">
                                 <span class="material-symbols-outlined"
                                     style="font-size:18px;">hourglass_bottom</span>
@@ -90,7 +94,7 @@
                     <div class="avatar">
                         <img [src]="userAvatar()" alt="User Avatar" />
                     </div>
-                    <div class="d-flex flex-direction-column pl-2">
+                    <div class="d-flex flex-column ps-2">
                         <span
                             class="d-none d-md-inline small-text">{{user()?.name}}
                             {{user()?.surname}}</span>
@@ -120,76 +124,8 @@
 
 <div class="d-flex" id="wrapper">
     <!-- Sidebar -->
-    <div id="sidebar-wrapper">
-        <!-- Brand -->
-        <div
-            class="sidebar-brand d-flex align-items-center justify-content-between">
-            <a href="#" class="d-flex gap-3 logo mt-1">
-                <img src="assets/images/logo.png" width="190" height="60"
-                    alt="Logo"
-                    style="margin-left: 10px;margin-top: 2px;" />
-            </a>
-            <button class="btn-close-sidebar d-md-none">
-                <span class="material-symbols-outlined">close</span>
-            </button>
-        </div>
+    <app-sidebar></app-sidebar>
 
-        <!-- Sidebar Search -->
-        <div class="sidebar-search">
-            <div class="position-relative">
-                <input type="text" class="form-control sidebar-search-input"
-                    [(ngModel)]="search"
-                    placeholder="arama ...">
-                <span
-                    class="material-symbols-outlined sidebar-search-icon">search</span>
-            </div>
-        </div>
-
-        <!-- Navigation Menu -->
-        <ul class="nav-menu">
-            @for (item of navigations() | searchMenu:search(); track item.title
-            ?? item.category) {
-            @if (item.category) {
-            <li class="nav-category">{{ item.category }}</li>
-            <li class="nav-item">
-                <a [routerLink]="item.url" routerLinkActive="active"
-                    [routerLinkActiveOptions]="{exact:true}"
-                    class="nav-link">
-                    <div class="nav-icon-text">
-                        <span class="nav-icon material-symbols-outlined">{{
-                            item.icon }}</span>
-                        <span>{{ item.title }}</span>
-                    </div>
-                </a>
-            </li>
-            } @else {
-            <li class="nav-item">
-                <a [routerLink]="item.url" routerLinkActive="active"
-                    [routerLinkActiveOptions]="{exact:true}"
-                    class="nav-link">
-                    <div class="nav-icon-text">
-                        <span class="nav-icon material-symbols-outlined">{{
-                            item.icon }}</span>
-                        <span>{{ item.title }}</span>
-                    </div>
-                </a>
-            </li>
-            }}
-
-        </ul>
-
-        <div class="sidebar-sticky-menu">
-            <a href="#" class="sticky-menu-item" title="ayarlar">
-                <span class="material-symbols-outlined">settings</span>
-            </a>
-            <a href="#" class="sticky-menu-item" title="yardım">
-                <span class="material-symbols-outlined">help</span>
-            </a>
-            <a routerLink="/login" class="sticky-menu-item" title="çıkış">
-                <span class="material-symbols-outlined">logout</span>
-            </a>
-        </div>
-    </div>
     <!-- Main Content Area -->
     <div id="page-content-wrapper">
         <!-- Main Content Container -->

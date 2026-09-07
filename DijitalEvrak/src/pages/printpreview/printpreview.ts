@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import PrintPetition from '../print-petition/print-petition';
 import html2pdf from "html2pdf.js";
 import Printqrlist from '../printqrlist/printqrlist';
+import { PrintEnvelopeLabel } from '../print-envelope-label/print-envelope-label';
 
 @Component({
   selector: 'print-preview',
@@ -10,24 +11,20 @@ import Printqrlist from '../printqrlist/printqrlist';
   imports: [
     CommonModule,
     PrintPetition,
-    Printqrlist
+    Printqrlist,
+    PrintEnvelopeLabel
   ],
   templateUrl: './printpreview.html',
   styleUrls: ['./printpreview.css'],
   encapsulation: ViewEncapsulation.None
 })
 export class PrintPreview {
-
+  @Input() isLabel = false;
   @Input() data: any;
   @Output() closed = new EventEmitter<void>();
   @Input() isQrList = false;
 
-  // 🚀 Yeni eklenen PDF kaynağı
   @Input() pdfBlobUrl: string | null = null;
-
-  // -----------------------------------
-  // HTML PRINT FUNCTIONS (Petition Mode)
-  // -----------------------------------
 
   printPdf() {
     if (this.pdfBlobUrl) {

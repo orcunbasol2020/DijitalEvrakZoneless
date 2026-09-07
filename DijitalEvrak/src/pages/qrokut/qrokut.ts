@@ -22,10 +22,8 @@ export default class Qrokut implements OnInit, OnDestroy {
   private incomingDocumentService = inject(IncomingDocumentService);
   readonly #toast = inject(FlexiToastService);
   private readonly router = inject(Router);
-
   // buffer artık component property (doğru yer)
   private buffer: string = '';
-
   // event handler referansı
   private keydownHandler: any;
 
@@ -36,11 +34,9 @@ export default class Qrokut implements OnInit, OnDestroy {
     this.keydownHandler = (e: KeyboardEvent) => {
       this.handleKeydown(e);
     };
-
     // sadece bu component çalışırken aktif
     window.addEventListener('keydown', this.keydownHandler);
   }
-
   // önemli! başka componentlere geçince listener kaldırılır
   ngOnDestroy() {
     window.removeEventListener('keydown', this.keydownHandler);
@@ -53,7 +49,7 @@ export default class Qrokut implements OnInit, OnDestroy {
       this.#toast.showToast('Bilgi', 'Lütfen QR Kodu Okutunuz veya Belge Numarasını Girerek Enter Tuşuna Basınız.', 'warning');
     }
   }
-  // 🔥 QR inputunu yakalama işini yöneten method
+  // QR inputunu yakalama işini yöneten method
   private handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Enter') {
       this.redirectEvrakKayit(this.buffer.trim());
@@ -62,43 +58,43 @@ export default class Qrokut implements OnInit, OnDestroy {
       this.buffer += e.key;
     }
   }
-
+  
   // QR okunduğunda yapılacak işlem
-redirectEvrakKayit(result: string) {
+  redirectEvrakKayit(result: string) {
 
-  if (!result) {
-    this.#toast.showToast(
-      'Bilgi',
-      'Lütfen QR Kodu Okutunuz veya Belge Numarasını Girerek Enter Tuşuna Basınız.',
-      'warning'
-    );
-    return;
+    if (!result) {
+      this.#toast.showToast(
+        'Bilgi',
+        'Lütfen QR Kodu Okutunuz veya Belge Numarasını Girerek Enter Tuşuna Basınız.',
+        'warning'
+      );
+      return;
+    }
+
+    this.incomingDocumentService.GetByQrCode(result).subscribe(doc => {
+
+      if (!doc) {
+        this.#toast.showToast(
+          'Belge bulunamadı',
+          'Girilen QR koda ait herhangi bir belge bulunamadı.',
+          'error'
+        );
+        return;
+      }
+
+      if (!doc.documentName) {
+        this.#toast.showToast(
+          "Belge henüz taranmamış",
+          "Tarama işlemi tamamlandıktan sonra belge kayıt ekranına geçiş yapabilirsiniz."
+        );
+        return;
+      }
+
+      this.incomingDocumentService.setSelectedIncomingDocument(result);
+      this.incomingDocumentService.setIncomingDocumentUpdateType("2");
+      this.router.navigate(['/evrakkayit']);
+
+    });
   }
-
-  this.incomingDocumentService.GetByQrCode(result).subscribe(doc => {
-
-  if (!doc) {
-      this.#toast.showToast(
-        'Belge bulunamadı',
-        'Girilen QR koda ait herhangi bir belge bulunamadı.',
-        'error'
-      );
-      return;
-    }
-
-    if (!doc.documentName) {
-      this.#toast.showToast(
-        "Belge henüz taranmamış",
-        "Tarama işlemi tamamlandıktan sonra belge kayıt ekranına geçiş yapabilirsiniz."
-      );
-      return;
-    }
-
-    this.incomingDocumentService.setSelectedIncomingDocument(result);
-    this.incomingDocumentService.setIncomingDocumentUpdateType("2");
-    this.router.navigate(['/evrakkayit']);
-
-  });
-}
 
 }

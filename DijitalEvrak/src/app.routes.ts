@@ -36,6 +36,10 @@ export const routes: Routes = [
                 loadChildren: () => import('./pages/scanlist/route')
             },
             {
+                path: 'documentlist',
+                loadChildren: () => import('./pages/documentlist/route')
+            },
+            {
                 path: 'scanneddocument',
                 loadComponent: () => import('./pages/scanneddocument/scanneddocument')
             },
@@ -46,6 +50,10 @@ export const routes: Routes = [
             {
                 path: 'users',
                 loadChildren: () => import('./pages/users/route')
+            },
+            {
+                path: 'externaluser',
+                loadComponent: () => import('./pages/users/externaluser/externaluser')
             },
             {
                 path: 'evrakkayit',
@@ -62,6 +70,30 @@ export const routes: Routes = [
             {
                 path: 'birimler',
                 loadComponent: () => import('./pages/parameters/departments/departments')
+            },
+                        {
+                path: 'externalinstitution',
+                loadComponent: () => import('./pages/parameters/external-institutions/external-institutions')
+            },
+            {
+                path: 'gidenevrak/outgoing',
+                loadComponent: () => import('./pages/gidenevrak/outgoing/outgoing')
+            },
+            {
+                path: 'gidenevrak/zimmet',
+                loadComponent: () => import('./pages/gidenevrak/zimmet/zimmet')
+            },
+            {
+                path: 'envelope',
+                loadComponent: () => import('./pages/envelope/envelope/envelope')
+            },
+                        {
+                path: 'gidenzimmet',
+                loadComponent: () => import('./pages/gidenevrak/gidenzimmet/gidenzimmet')
+            },
+            {
+                path: 'ticket',
+                loadComponent: () => import('./pages/envelope/ticket/ticket')
             }
             /*
             {
