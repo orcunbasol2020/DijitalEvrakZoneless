@@ -1,0 +1,89 @@
+
+.table-container {
+    max-height: 520px; /* istediğin yükseklik */
+    overflow-y: auto;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+}
+
+/* Scrollbar’ı soft yapabiliriz (opsiyonel) */
+.table-container::-webkit-scrollbar {
+    width: 7px;
+}
+
+.table-container::-webkit-scrollbar-track {
+    background: #eef3f5;
+    border-radius: 3px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+    background: #c9dae0;
+    border-radius: 3px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+    background: #9fc2cf;
+}/* Tablo ana gövde */
+
+
+.premium-table {
+    border-radius: 8px;
+    overflow: hidden;
+    width: 100%;
+    border: none;
+    box-shadow: 0 2px 6px rgba(168, 177, 179, 0.08);
+}
+
+/* Tablo başlığı */
+.premium-table thead th {
+    background: #e9eff2 !important; /* soft pastel mavi */
+    color: #333 !important;
+    font-weight: 500;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    text-align: left;
+}
+
+/* Satır hover efekti */
+.premium-table tbody tr:hover {
+    background-color: rgba(37, 184, 252, 0.08) !important; /* soft mavi hover */
+    transition: background-color 0.3s;
+    cursor: pointer;
+}
+
+/* Satır hover üzerindeki td’leri de etkiler */
+.premium-table tbody tr:hover td {
+    background-color: rgba(178, 214, 223, 0.08) !important;
+}
+
+/* Buton */
+.premium-btn {
+    border: 0.5px solid #74c3d4; /* ince border, soft renk */
+    padding: 4px 16px;
+    border-radius: 8px;
+    background: transparent; /* arka plan kaldırıldı */
+    color: #74c3d4; /* border rengi ile uyumlu */
+    font-weight: 500;
+    transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s, color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.premium-btn:hover {
+    transform: translateY(-2px);
+    background: linear-gradient(90deg,#ff2600, #fe547c);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    color: aliceblue;
+        border: 0.5px solid #adbec6; /* ince border, soft renk */
+}
+
+.premium-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Spinner beyaz */
+.spinner-border.text-white {
+    border-top-color: white;
+}

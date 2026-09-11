@@ -1,13 +1,10 @@
 <div class="overlay">
   <div class="modal">
-
     <div class="modal-header">
       <h3>Önizleme</h3>
       <button class="close-btn" (click)="close()">×</button>
     </div>
-
     <div class="modal-body">
-
       <iframe
         *ngIf="pdfBlobUrl"
         [src]="pdfBlobUrl"
@@ -15,17 +12,18 @@
         height="100%"
         style="border:none">
       </iframe>
-
       <printqrlist *ngIf="!pdfBlobUrl && isQrList" [data]="data"></printqrlist>
-
-      <print-petition *ngIf="!pdfBlobUrl && !isQrList" [data]="data"></print-petition>
-
+      <print-petition *ngIf="!pdfBlobUrl && !isQrList && !isLabel"
+        [data]="data">
+      </print-petition>
+      <print-envelope-label
+        *ngIf="!pdfBlobUrl && isLabel"
+        [data]="data">
+      </print-envelope-label>
     </div>
-
     <div class="modal-footer">
       <button class="btn btn-secondary" (click)="close()">Kapat</button>
       <button class="btn btn-success" (click)="printPdf()">Yazdır</button>
     </div>
-
   </div>
 </div>

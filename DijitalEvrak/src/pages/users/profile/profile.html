@@ -1,13 +1,44 @@
 <app-generic pageTitle="Kullanıcı Profili" [breadcrumbs]="[
-  {title: 'Kullanıcı Profili', url: 'users/profile', icon: ''}
+  {title: 'Kullanıcı Profili', url: 'users/profile', icon: 'account_circle'}
   ]">
 </app-generic>
 
 <div class="row">
+  <!-- Profil Özeti -->
+  <div class="col-12 mb-4">
+    <div class="card settings-profile-card">
+      <div class="card-body d-flex align-items-center flex-wrap gap-3">
+        <div class="settings-avatar">
+          <img [src]="userAvatar()" alt="Kullanıcı Avatarı" />
+        </div>
+        <div class="flex-grow-1">
+          <h4 class="mb-1">{{ user()?.name }} {{ user()?.surname }}</h4>
+          <div class="text-muted small mb-2">{{ user()?.email || user()?.userName }}</div>
+          @if (user()?.departmentName) {
+            <span class="settings-department-badge">
+              <span class="material-symbols-outlined" style="font-size:14px;">apartment</span>
+              {{ user()?.departmentName }}
+            </span>
+          }
+        </div>
+        <a routerLink="/settings" class="btn btn-sm settings-profile-link">
+          <span class="material-symbols-outlined align-middle me-1" style="font-size:16px;">settings</span>
+          Ayarlara Git
+        </a>
+      </div>
+    </div>
+  </div>
+
   <div class="col-md-12 col-12">
-    <div class="card">
-      <div class="card-header">
-        <h4>{{ user()?.name }} {{ user()?.surname }} ({{user()?.departmentShortName}})</h4>
+    <div class="card settings-section-card">
+      <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+          <span class="material-symbols-outlined settings-section-icon">security</span>
+          <h4 class="m-0">Roller / Yetkiler</h4>
+        </div>
+        <span class="doc-category-chip active" style="cursor: default;">
+          {{ activeRoleCount() }} / {{ data().length }} Aktif
+        </span>
       </div>
 
       <div class="card h-100">

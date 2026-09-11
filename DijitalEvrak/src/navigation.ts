@@ -2,6 +2,7 @@ export interface NavigationModel {
     title?: string;
     url?: string;
     icon?: string;
+    roles?: string[];
     category?: string;
 }
 
@@ -11,31 +12,53 @@ export const navigations: NavigationModel[] = [
         url: "/",
         icon: "dashboard"
     },
+
     {
         category: "Gelen Evrak",
+        title: undefined,
+        url: undefined,
+        icon: undefined
+    },
+    {
         title: "Ön Kayıt",
         url: "/onkayit",
-        icon: "app_registration"
+        icon: "app_registration",
+        roles: ["Gelen Evrak"]
     },
     {
         title: "Evrak Kayıt",
         url: "/qrokut",
-        icon: "qr_code"
+        icon: "qr_code",
+        roles: ["Gelen Evrak"]
     },
     {
         title: "Gelen Evraklar",
         url: "/scanlist",
-        icon: "add_notes"
+        icon: "add_notes",
+        roles: ["Gelen Evrak"]
+    },
+    {
+        title: "Gelen Evraklar",
+        url: "/documentlist",
+        icon: "add_notes",
+        roles: ["Yönetici"]
+    },
+    {
+        title: "Zimmetlerim",
+        url: "/zimmetlerim",
+        icon: "assignment_ind"
     },
     {
         title: "Zimmet",
         url: "/zimmet",
-        icon: "contract_edit"
+        icon: "contract_edit",
+        roles: ["Gelen Evrak"]
     },
     {
         title: "Evrak Eşleştirme",
         url: "/scanneddocument",
-        icon: "folder_match"
+        icon: "folder_match",
+        roles: ["Gelen Evrak"]
     },
     {
         title: "Havale (AI)",
@@ -45,50 +68,107 @@ export const navigations: NavigationModel[] = [
     {
         title: "OCR Takip",
         url: "/ocrtakip",
-        icon: "document_scanner"
+        icon: "document_scanner",
+        roles: ["Gelen Evrak"]
     },
+    {
+        title: "Dijitalleştirme Takip",
+        url: "/dijitallestirme-takip",
+        icon: "cloud_sync",
+        roles: ["Gelen Evrak"]
+    },
+
     {
         category: "Giden Evrak",
-        title: "Giden Taranmış Evraklar",
-        url: "/gidenscanlist",
-        icon: "add_notes"
+        title: undefined,
+        url: undefined,
+        icon: undefined
     },
     {
-        title: "Giden QR List",
-        url: "/gidenqrlist",
-        icon: "qr_code"
+        title: "Giden Evraklar",
+        url: "/gidenevrak/outgoing",
+        icon: "local_post_office"
     },
     {
-        title: "Giden Evrak Takip",
-        url: "/gelenevraktakip",
-        icon: "article_shortcut"
+        title: "Zarflar",
+        url: "/envelope",
+        icon: "stacked_email",
+        roles: ["Gelen Evrak"]
     },
+    {
+        title: "Zarf Etiketi",
+        url: "/ticket",
+        icon: "book",
+        roles: ["Gelen Evrak"]
+    },
+    {
+        title: "Teslim Al",
+        url: "/gidenevrak/zimmet",
+        icon: "approval_delegation",
+        roles: ["Gelen Evrak"]
+    },
+
     {
         category: "Kullanıcılar",
-        title: "Kullanıcı Listesi",
+        title: undefined,
+        url: undefined,
+        icon: undefined
+    },
+    {
+        title: "Kullanıcılar",
         url: "/users",
-        icon: "diversity_3"
+        icon: "diversity_3",
+        roles: ["Gelen Evrak"]
+    },
+        {
+        title: "Yetkiler",
+        url: "/users",
+        icon: "diversity_3",
+        roles: ["Yönetici"]
+    },
+    {
+        title: "Dış Kurum Kullanıcıları",
+        url: "/externaluser",
+        icon: "contact_emergency",
+        roles: ["Gelen Evrak"]
     },
     {
         title: "Roller",
         url: "users/role",
-        icon: "security"
+        icon: "security",
+        roles: ["Admin"]
     },
+
     {
         category: "Parametreler",
+        title: undefined,
+        url: undefined,
+        icon: undefined
+    },
+    {
         title: "QR Oluştur",
         url: "/qrlist",
-        icon: "qr_code"
+        icon: "qr_code",
+        roles: ["Gelen Evrak"]
     },
     {
         title: "Birimler",
         url: "/birimler",
+        icon: "apartment"
+    },
+    {
+        title: "Dış Kurumlar",
+        url: "/externalinstitution",
         icon: "moving_ministry"
     },
     {
         title: "Diller",
-        url: "parameters/languages",
+        url: "/parameters/languages",
         icon: "language_chinese_array"
+    },
+    {
+        title: "Raporlar",
+        url: "/reports",
+        icon: "monitoring"
     }
-
-]
+];

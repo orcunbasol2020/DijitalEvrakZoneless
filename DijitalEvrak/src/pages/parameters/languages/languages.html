@@ -1,1 +1,147 @@
-<p>languages works!</p>
+<app-generic pageTitle="Diller"
+  [breadcrumbs]="[{title: 'Diller', url: 'parameters/languages', icon: ''}]">
+</app-generic>
+
+<div [class.show-filters]="showFilters">
+  <flexi-grid
+    [data]="data()"
+    [loading]="loading()"
+    language="tr"
+    [showCaption]="true"
+    captionTitle="Diller"
+    [showExportExcelBtn]="true"
+    exportExcelFileName="diller"
+    [filterable]="true"
+    (onRefresh)="result.reload()">
+    <ng-template flexiGridCaptionCommandTemplate>
+
+      <!-- Filtre Aç/Kapa butonu -->
+      <flexi-button
+        btnIcon="filter_alt"
+        btnColor="light"
+        title="Filtre Aç/Kapat"
+        flexiTooltip
+        (click)="showFilters = !showFilters">
+      </flexi-button>
+
+      <flexi-button
+        (click)="openCreateModal()"
+        btnIcon="add"
+        btnColor="primary"
+        title="Dil Ekle"
+        flexiTooltip />
+    </ng-template>
+
+    <flexi-grid-column field="name" title="Dil Adı" />
+
+    <flexi-grid-column
+      field="ocrSupport"
+      title="OCR Desteği"
+      width="120px"
+      textAlign="center"
+      filterType="boolean"
+      [booleanData]="['Desteklenmiyor', 'Destekleniyor']">
+      <ng-template flexiGridCellTemplate let-item>
+        <span
+          class="material-symbols-outlined"
+          style="font-size: 1.35rem; vertical-align: middle;"
+          [ngStyle]="{ color: item.ocrSupport ? '#4CAF50' : '#cfd8dc' }">
+          {{ item.ocrSupport ? 'check_circle' : 'remove_circle_outline' }}
+        </span>
+      </ng-template>
+    </flexi-grid-column>
+
+    <flexi-grid-column
+      field="isActive"
+      title="Aktif"
+      textAlign="center"
+      filterType="boolean"
+      [booleanData]="['Pasif', 'Aktif']"
+      width="100px">
+      <ng-template flexiGridCellTemplate let-item>
+        <div class="d-flex justify-content-center">
+          <div class="form-check form-switch">
+            <input
+              (change)="toggleActive(item)"
+              class="form-check-input"
+              type="checkbox"
+              role="switch"
+              [id]="item.id"
+              name="item.id"
+              [(ngModel)]="item.isActive">
+          </div>
+        </div>
+      </ng-template>
+    </flexi-grid-column>
+
+    <ng-template flexiGridColumnCommandTemplate let-item>
+      <flexi-button
+        (click)="openEditModal(item)"
+        btnIcon="edit"
+        btnColor="info"
+        title="Güncelle"
+        flexiTooltip />
+
+      <flexi-button
+        (click)="delete(item)"
+        btnIcon="delete"
+        btnColor="warning"
+        title="Sil"
+        flexiTooltip />
+    </ng-template>
+
+  </flexi-grid>
+</div>
+
+<!-- Ekle / Düzenle Modal -->
+@if (modalVisible()) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal-box" style="width: 420px;" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h5 class="d-flex align-items-center mb-0">
+          <span class="material-symbols-outlined me-2 text-secondary">language</span>
+          {{ editingId() ? 'Dili Güncelle' : 'Yeni Dil Ekle' }}
+        </h5>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Dil Adı</label>
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Örn. Türkçe"
+            [(ngModel)]="form.name" />
+        </div>
+
+        <div class="form-check form-switch mb-2">
+          <input
+            class="form-check-input"
+            type="checkbox"
+            role="switch"
+            id="ocrSupportSwitch"
+            [(ngModel)]="form.ocrSupport">
+          <label class="form-check-label" for="ocrSupportSwitch">OCR Desteği</label>
+        </div>
+
+        <div class="form-check form-switch">
+          <input
+            class="form-check-input"
+            type="checkbox"
+            role="switch"
+            id="isActiveSwitch"
+            [(ngModel)]="form.isActive">
+          <label class="form-check-label" for="isActiveSwitch">Aktif</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" [disabled]="saving()" (click)="closeModal()">İptal</button>
+        <button class="btn btn-primary" [disabled]="saving()" (click)="save()">
+          @if (saving()) {
+            <span class="spinner-border spinner-border-sm me-1"></span>
+          }
+          Kaydet
+        </button>
+      </div>
+    </div>
+  </div>
+}

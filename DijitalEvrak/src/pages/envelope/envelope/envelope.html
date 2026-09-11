@@ -1,0 +1,61 @@
+<app-generic pageTitle="Zarflar"
+  [breadcrumbs]="[{ title: 'Zarflar', url: 'envelopes', icon: '' }]">
+</app-generic>
+
+<div [class.show-filters]="showFilters">
+  <flexi-grid
+    [data]="data()"
+    [loading]="loading()"
+    language="tr"
+    [showCaption]="true"
+    captionTitle="Zarflar"
+    [showExportExcelBtn]="true"
+    exportExcelFileName="etiketler"
+    (onRefresh)="result.reload()">
+
+
+    <flexi-grid-column field="envelopeNo" title="Etiket No" width="150px" />
+        <flexi-grid-column field="externalInstitutionName" title="Gideceği Yer" width="150px" />
+    <flexi-grid-column field="documentCount" title="Evrak Sayısı" width="60px" />
+    <flexi-grid-column field="createdDate" title="Kayıt Tarihi" width="80px">
+      <ng-template flexiGridCellTemplate let-item>
+        {{ item.createdDate | date:'dd.MM.yyyy HH:mm' }}
+      </ng-template>
+    </flexi-grid-column>
+    <flexi-grid-column title="Teslim Et" textAlign="center" width="100px">
+      <ng-template flexiGridCellTemplate let-item>
+        <flexi-button
+          [btnIcon]="item.status === 2 ? 'task_alt' : 'hand_package'"
+          [title]="item.status === 2 ? 'Teslim Edildi' : 'Zarfı Teslim Et'"
+          [btnColor]="item.status === 2 ? 'success' : 'primary'"
+           (click)="goToGidenZimmet(item.id)">
+        </flexi-button>
+      </ng-template>
+    </flexi-grid-column>
+        <flexi-grid-column title="Detaya Git" textAlign="center" width="50px">
+      <ng-template flexiGridCellTemplate let-item>
+        <flexi-button
+          *ngIf="item.status !== 2"
+          btnIcon="expand_circle_right"
+          title="Zarf Detayına Git"
+          btnColor="info"
+          (click)="goToDetail(item.id)">
+        </flexi-button>
+      </ng-template>
+    </flexi-grid-column>
+        <flexi-grid-column textAlign="center" width="50px">
+      <ng-template flexiGridCellTemplate let-item>
+        <flexi-button
+          *ngIf="item.status !== 2"
+          btnIcon="delete"
+          title="Sil"
+          btnColor="warning"
+          (click)="deleteEnvelope(item.id)">
+        </flexi-button>
+      </ng-template>
+    </flexi-grid-column>
+
+    
+
+  </flexi-grid>
+</div>

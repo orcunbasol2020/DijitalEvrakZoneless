@@ -1,0 +1,257 @@
+<app-generic pageTitle="Teslim Et"
+    [breadcrumbs]="[{title: 'Zarflar', url: 'envelope', icon:''}, {title: 'Teslim Et', url: '', icon:''}]">
+</app-generic>
+
+<div class="row">
+    <div class="col-md-4 col-12">
+        <div class="card page-wrapper">
+            <div class="card-header dashboard-header d-flex align-items-center">
+                <span class="material-symbols-outlined me-2 text-info">local_post_office</span>
+                <h5 class="card-title mb-0 fw-semibold">Zarf Etiketi</h5>
+            </div>
+
+            <div class="card-body" [ngClass]="{'gradient-bg': previewEnvelope()}">
+
+                <div
+                    class="position-relative d-flex justify-content-center align-items-center mt-3">
+                    <div *ngIf="previewEnvelope() as envelope">
+                        <div class="envelope-label" id="print-area">
+                            <div class="label-box sender-box">
+                                <div class="label-title">Gönderen</div>
+                                <div class="label-content">
+                                    {{user()?.departmentName}}
+                                </div>
+                                <div class="ministry-row">
+                                    <div class="ministry">
+                                        T.C. DIŞİŞLERİ BAKANLIĞI
+                                    </div>
+                                    <div class="label-contentPostCode">
+                                        06520
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- QR -->
+                            <div class="qr-section">
+                                <qrcode [qrdata]="envelope.envelopeNo"
+                                    [width]="100"
+                                    [errorCorrectionLevel]="'H'"></qrcode>
+                            </div>
+
+                            <!-- NUMARA -->
+                            <div class="label-number">
+                                {{ envelope.envelopeNo }}
+                            </div>
+
+                            <!-- ALICI -->
+                            <div class="label-box receiver-box">
+                                <div class="label-title">Alıcı</div>
+                                <div class="label-External">
+                                    {{ externalName() || '-' }}
+                                </div>
+                                <div class="labelDepartment">
+                                    {{ envelope.unitName }}
+                                </div>
+                                <div class="labelAddress">
+                                    {{ envelope.address || '-' }}
+                                </div>
+
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="col-md-4 col-12">
+        <div class="card page-wrapper">
+            <div class="card-header dashboard-header d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <span class="material-symbols-outlined me-2 text-info">inventory_2</span>
+                    <h5 class="card-title mb-0 fw-semibold">Zarf İçindeki Evraklar</h5>
+                </div>
+                <span class="badge rounded-pill bg-light text-muted border" *ngIf="documents().length">{{ documents().length }}</span>
+            </div>
+            <div class="card-body p-0">
+
+                <div *ngIf="loading()" class="d-flex justify-content-center align-items-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Yükleniyor...</span>
+                    </div>
+                </div>
+
+                <div class="document-list" *ngIf="!loading() && documents().length">
+                    <div class="document-list-item" *ngFor="let doc of documents()">
+                        <div class="document-list-info">
+                            <div class="document-list-title">{{ doc.qrCode }}</div>
+                            <div class="document-list-date">
+                                <span class="material-symbols-outlined">calendar_today</span>
+                                {{ doc.createdDate | date:'dd.MM.yyyy HH:mm' }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center text-muted py-5" *ngIf="!loading() && !documents().length">
+                    <span class="material-symbols-outlined d-block mb-2" style="font-size: 32px;">inbox</span>
+                    Gösterilecek belge yok
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-12">
+        <div class="card page-wrapper d-flex flex-column">
+            <div class="card-header dashboard-header d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <span class="material-symbols-outlined me-2 text-info">person_check</span>
+                    <h5 class="card-title mb-0 fw-semibold">Teslim Et</h5>
+                </div>
+                <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 flex-shrink-0"
+                    *ngIf="!delivered()"
+                    [disabled]="!externalInstitutionId()" (click)="openQuickAddModal()">
+                    Personel Ekle
+                </button>
+            </div>
+
+            <!-- TESLİM EDİLDİ BİLGİSİ -->
+            <div class="card-body" *ngIf="delivered()">
+                <div class="d-flex align-items-center gap-2 mb-3 text-success">
+                    <span class="material-symbols-outlined" style="font-size: 28px;">task_alt</span>
+                    <div class="fw-semibold">Evraklar teslim edildi</div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="text-muted small mb-1">Teslim Alan</div>
+                    <div class="fw-semibold">{{ deliveredPersonName() || '-' }}</div>
+                    <div class="text-muted small" *ngIf="externalName()">{{ externalName() }}</div>
+                </div>
+
+                <div class="mb-3" *ngIf="deliveredByPersonName()">
+                    <div class="text-muted small mb-1">Teslim Eden</div>
+                    <div class="fw-semibold">{{ deliveredByPersonName() }}</div>
+                    <div class="text-muted small" *ngIf="deliveredJustNow() && user()?.departmentName">{{ user()?.departmentName }}</div>
+                </div>
+
+                <div>
+                    <div class="text-muted small mb-1">Teslim Tarihi</div>
+                    <div class="fw-semibold">{{ deliveredDate() | date:'dd.MM.yyyy HH:mm' }}</div>
+                </div>
+            </div>
+
+            <!-- PERSONEL SEÇ -->
+            <div class="card-body d-flex flex-column p-0" *ngIf="!delivered()">
+                <div class="px-3 pt-3">
+                    <label class="form-label text-muted mb-2" style="font-size: 0.9rem;">
+                        {{ externalName() ? externalName() + ' Personelleri' : 'Personel' }}
+                    </label>
+                    <div class="input-group input-group-sm mb-2" *ngIf="personList().length > 5">
+                        <span class="input-group-text bg-white">
+                            <span class="material-symbols-outlined" style="font-size: 16px;">search</span>
+                        </span>
+                        <input type="text" class="form-control" placeholder="Personel ara..."
+                            [ngModel]="personSearch()" (ngModelChange)="personSearch.set($event)">
+                    </div>
+                </div>
+
+                <div class="person-list" *ngIf="externalInstitutionId() && personList().length">
+                    <div class="person-list-item" *ngFor="let p of filteredPersonList()"
+                        [class.is-selected]="selectedPersonId() === p.id"
+                        (click)="selectPerson(p.id)">
+                        <span class="person-list-avatar">{{ initials(p) }}</span>
+                        <div class="person-list-info">
+                            <div class="person-list-name">{{ p.name }} {{ p.surname }}</div>
+                            <div class="person-list-meta">{{ p.identityNo || p.email }}</div>
+                        </div>
+                        <span class="material-symbols-outlined person-list-radio">
+                            {{ selectedPersonId() === p.id ? 'radio_button_checked' : 'radio_button_unchecked' }}
+                        </span>
+                    </div>
+
+                    <div class="text-center text-muted py-4" *ngIf="!filteredPersonList().length">
+                        <span class="material-symbols-outlined d-block mb-1" style="font-size: 24px;">search_off</span>
+                        Aramanızla eşleşen personel bulunamadı.
+                    </div>
+                </div>
+
+                <div class="text-center text-muted py-4 px-3" *ngIf="!externalInstitutionId()">
+                    Personel listesi için kurum bilgisi bekleniyor.
+                </div>
+
+                <div class="text-center text-muted py-4 px-3" *ngIf="externalInstitutionId() && !personList().length">
+                    <span class="material-symbols-outlined d-block mb-1" style="font-size: 24px;">person_off</span>
+                    Bu kurum için tanımlı personel bulunamadı.
+                </div>
+            </div>
+            <div class="card-footer bg-white mt-auto d-flex justify-content-end gap-2">
+                <button class="btn btn-secondary d-flex align-items-center gap-1" (click)="reset()">
+                    <span class="material-symbols-outlined" style="font-size: 18px;">arrow_back</span>
+                    Geri
+                </button>
+                <button class="btn btn-primary d-flex align-items-center gap-1" *ngIf="!delivered()" (click)="addZimmet()">
+                    <span class="material-symbols-outlined" style="font-size: 18px;">hand_package</span>
+                    Teslim Et
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Hızlı Personel Ekle Popup -->
+<div class="modal-overlay" *ngIf="quickAddModalVisible()" (click)="closeQuickAddModal()">
+    <div class="modal-box" style="width: 460px;" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h5 class="d-flex align-items-center mb-0">
+                <span class="material-symbols-outlined me-2 text-secondary">person_add</span>
+                Personel Ekle
+            </h5>
+        </div>
+        <div class="modal-body">
+            <div class="mb-3 text-muted small">
+                <span class="material-symbols-outlined align-middle" style="font-size: 16px;">domain</span>
+                Kurum: <span class="fw-semibold">{{ externalName() || '-' }}</span>
+            </div>
+
+            <div class="row">
+                <div class="col-6 mb-3">
+                    <label class="form-label">Ad</label>
+                    <input type="text" class="form-control" [(ngModel)]="quickAddForm.name" />
+                </div>
+                <div class="col-6 mb-3">
+                    <label class="form-label">Soyad</label>
+                    <input type="text" class="form-control" [(ngModel)]="quickAddForm.surname" />
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">E-posta</label>
+                <input type="email" class="form-control" [(ngModel)]="quickAddForm.email" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Kimlik / Pasaport No</label>
+                <input type="text" class="form-control" [(ngModel)]="quickAddForm.identityNo" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Kullanıcı Türü</label>
+                <select class="form-select" [(ngModel)]="quickAddForm.userType">
+                    <option [ngValue]="1">Standart</option>
+                    <option [ngValue]="2">Yetkili</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" [disabled]="quickAddSaving()" (click)="closeQuickAddModal()">İptal</button>
+            <button class="btn btn-primary" [disabled]="quickAddSaving()" (click)="saveQuickAddPerson()">
+                @if (quickAddSaving()) {
+                    <span class="spinner-border spinner-border-sm me-1"></span>
+                }
+                Kaydet
+            </button>
+        </div>
+    </div>
+</div>

@@ -10,4 +10,13 @@ export interface DocumentAllocationModel {
   createdDate: string;            // Oluşturulma tarihi
   updateDate?: string;            // Güncellenme tarihi (opsiyonel)
   isDeleted: boolean;             // Silinmiş mi
+  // GetActiveByUserId gibi uçlarda backend'in evrak bilgisiyle birlikte
+  // döndürdüğü (varsayılan) alanlar
+  qrCode?: string;
+  documentName?: string;
+  documentDate?: string;
+  // Backend henüz bu alanı göndermiyor; Atlas entegrasyonu tamamlanınca
+  // zimmetin hangi sistemde yapıldığını taşıyacak. Gelmediği sürece
+  // "EvrakTakip" varsayılır (bkz. allocation-card.ts).
+  source?: 'EvrakTakip' | 'Atlas';
 }

@@ -1,0 +1,52 @@
+import { Injectable, inject } from '@angular/core';
+import { HttpService } from './http';
+import { OutgoingDocumentModel } from '../models/outgoingdocument.model';
+
+@Injectable({ providedIn: 'root' })
+export class OutgoingDocumentService {
+
+  private httpService = inject(HttpService);
+  private baseUrl = 'api/OutgoingDocuments/';
+
+  // CREATE (OutgoingDocumentTransactions'a "Taslak" kaydı da düşer)
+  createOutgoingDocument(model: Partial<OutgoingDocumentModel>) {
+    return this.httpService.post<OutgoingDocumentModel>(
+      `${this.baseUrl}Create`,
+      model
+    );
+  }
+
+  // UPDATE (durum değişince transaction kaydı düşer, CargoPostNumber girilebilir)
+  updateOutgoingDocument(model: Partial<OutgoingDocumentModel>) {
+    return this.httpService.put<OutgoingDocumentModel>(
+      `${this.baseUrl}Update`,
+      model
+    );
+  }
+
+  getById(id: string) {
+    return this.httpService.get<OutgoingDocumentModel>(
+      `${this.baseUrl}GetById?id=${encodeURIComponent(id)}`
+    );
+  }
+
+  getByQrCode(qrCode: string) {
+    return this.httpService.get<OutgoingDocumentModel>(
+      `${this.baseUrl}GetByQrCode?qrCode=${encodeURIComponent(qrCode)}`
+    );
+  }
+
+  // status verilmezse tüm kayıtlar, verilirse OutgoingDocumentStatus'a göre filtrelenir
+  getAll(status?: number) {
+    const query = status != null ? `?status=${status}` : '';
+    return this.httpService.createResource<OutgoingDocumentModel[]>(
+      `${this.baseUrl}GetAll${query}`
+    );
+  }
+
+  deleteOutgoingDocument(id: string) {
+    return this.httpService.delete(
+      `${this.baseUrl}${encodeURIComponent(id)}`
+    );
+  }
+}

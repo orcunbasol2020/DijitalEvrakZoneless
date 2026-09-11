@@ -5,10 +5,12 @@ import { Router } from '@angular/router';
 import { FlexiToastService } from 'flexi-toast';
 import { UserModel } from '../users/users';
 import { UserService } from '../../services/user';
+import { CommonModule } from '@angular/common';
 
 @Component({
   imports: [
-    FormsModule
+    FormsModule,
+    CommonModule
   ],
   templateUrl: './login.html',
   encapsulation: ViewEncapsulation.None,
@@ -20,15 +22,19 @@ export default class Login {
   readonly #router = inject(Router);
   private userService = inject(UserService);
 
+  isLoading = false;
+
   signIn(form: NgForm) {
     if (!form.valid) return;
-
-    //const endpoint = `api/users?userName=${form.value['userName']}&password=${form.value['password']}`;
+    this.isLoading = true;
     const userName = form.value['userName'];
     const password = form.value['password'];
+    const rememberMe = !!form.value['rememberMe'];
 
     this.userService.getUserByUsername(userName, password).subscribe({
       next: (res) => {
+        this.isLoading = false;
+
         if (!res) {
           this.#toast.showToast("Hata", "Kullanıcı adı ya da şifre hatalı", "error");
           return;
@@ -39,10 +45,14 @@ export default class Login {
           return;
         }
 
-        localStorage.setItem("user", JSON.stringify(res));
+        const storage = rememberMe ? localStorage : sessionStorage;
+        storage.setItem("user", JSON.stringify(res));
         this.#router.navigateByUrl("/");
+      },
+      error: () => {
+        this.isLoading = false;
+        this.#toast.showToast("Hata", "Bir hata oluştu", "error");
       }
     });
-
   }
 }

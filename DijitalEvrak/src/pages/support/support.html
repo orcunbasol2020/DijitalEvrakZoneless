@@ -1,0 +1,91 @@
+<app-generic pageTitle="Destek" [breadcrumbs]="[
+  {title: 'Destek', url: 'support', icon: 'support_agent'}
+  ]">
+</app-generic>
+
+<div class="row">
+  <!-- Hero / Arama -->
+  <div class="col-12 mb-4">
+    <div class="card settings-profile-card">
+      <div class="card-body">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span class="material-symbols-outlined" style="font-size:26px;">support_agent</span>
+          <h4 class="m-0">Nasıl yardımcı olabiliriz?</h4>
+        </div>
+        <div class="text-muted mb-3">
+          Sık sorulan sorular arasında arama yapabilir ya da aşağıdaki hızlı
+          bağlantıları kullanabilirsiniz.
+        </div>
+        <div class="support-search-box">
+          <span class="material-symbols-outlined">search</span>
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Bir konu veya soru arayın..."
+            [ngModel]="search()"
+            (ngModelChange)="search.set($event)" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sık Sorulan Sorular -->
+  <div class="col-lg-8 col-12 mb-4">
+    <div class="card h-100 settings-section-card">
+      <div class="card-header d-flex align-items-center gap-2">
+        <span class="material-symbols-outlined settings-section-icon">quiz</span>
+        <h4 class="m-0">Sık Sorulan Sorular</h4>
+      </div>
+      <div class="card-body">
+        @for (faq of filteredFaqs(); track faq.question) {
+          <details class="support-faq-item">
+            <summary>
+              <span class="d-flex align-items-center gap-2">
+                <span class="material-symbols-outlined support-faq-icon">{{ faq.icon }}</span>
+                {{ faq.question }}
+              </span>
+            </summary>
+            <p>{{ faq.answer }}</p>
+          </details>
+        } @empty {
+          <div class="support-empty-state">
+            <span class="material-symbols-outlined">search_off</span>
+            <p class="mb-0">"{{ search() }}" ile eşleşen bir sonuç bulunamadı.</p>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Sağ Panel -->
+  <div class="col-lg-4 col-12 mb-4">
+    <div class="card mb-4 settings-section-card">
+      <div class="card-header d-flex align-items-center gap-2">
+        <span class="material-symbols-outlined settings-section-icon">bolt</span>
+        <h4 class="m-0">Hızlı Bağlantılar</h4>
+      </div>
+      <div class="card-body">
+        @for (link of quickLinks; track link.url) {
+          <a class="support-quick-link" [routerLink]="link.url">
+            <span class="material-symbols-outlined">{{ link.icon }}</span>
+            <span>{{ link.title }}</span>
+            <span class="material-symbols-outlined support-quick-link-arrow">chevron_right</span>
+          </a>
+        }
+      </div>
+    </div>
+
+    <div class="card settings-section-card">
+      <div class="card-header d-flex align-items-center gap-2">
+        <span class="material-symbols-outlined settings-section-icon">admin_panel_settings</span>
+        <h4 class="m-0">Teknik Destek</h4>
+      </div>
+      <div class="card-body">
+        <p class="mb-0 text-muted" style="font-size: 0.85rem;">
+          Sorun yaşadığınızda ya da erişim/şifre talepleriniz için
+          biriminizin sistem yöneticisiyle iletişime geçebilirsiniz.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

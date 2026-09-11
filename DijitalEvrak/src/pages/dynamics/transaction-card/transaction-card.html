@@ -1,4 +1,4 @@
-<div class="card mb-4" style="min-width: 220px; position: relative;">
+﻿<div class="card mb-4" style="min-width: 220px; position: relative;">
 
     <div *ngIf="loading"
         class="d-flex justify-content-center align-items-center position-absolute top-0 start-0 w-100 h-100"
@@ -51,45 +51,47 @@
             </div>
         </div>
 
-  <div class="mt-auto pt-2 d-flex justify-content-end gap-2 border-top">
+  <div class="mt-auto pt-2 d-flex justify-content-end align-items-center gap-2 border-top">
+            <div class="d-flex gap-2">
             <!-- Ön Kayıt ve Zimmetleme -->
             <span *ngIf="item.transactionType === 1"
-                class="material-symbols-outlined fs-5 mt-2 ms-1 text-dark"
+                class="material-symbols-outlined fs-5 ms-1 text-dark"
                 title="Ön Kayıt Yapıldı"
                 style="cursor: pointer;">
                 save
             </span>
             <span *ngIf="item.transactionType === 3"
-                class="material-symbols-outlined fs-5 mt-2 ms-1 text-dark"
+                class="material-symbols-outlined fs-5 ms-1 text-dark"
                 title="Güncellendi"
                 style="cursor: pointer;">
                 save
             </span>
             <span
                 *ngIf="item.transactionType === 1 || item.transactionType === 6 || item.transactionType === 7"
-                class="material-symbols-outlined fs-5 mt-2 ms-1 text-secondary"
+                class="material-symbols-outlined fs-5 ms-1 text-secondary"
                 title="Zimmetleme Yapıldı"
                 style="cursor: pointer;">
                 contract_edit
             </span>
             <span *ngIf="item.transactionType === 7"
-                class="material-symbols-outlined fs-5 mt-2 ms-1 text-success"
+                class="material-symbols-outlined fs-5 ms-1 text-success"
                 title="Evrak Teslim Edildi"
                 style="cursor: pointer;">
                 task_alt
             </span>
             <span *ngIf="item.transactionType === 8"
-                class="material-symbols-outlined fs-5 mt-2 ms-1 text-warning"
+                class="material-symbols-outlined fs-5 ms-1 text-warning"
                 title="OCR Tamamlandı"
                 style="cursor: pointer;">
                 document_scanner
             </span>
             <span *ngIf="item.transactionType === 9"
-                class="material-symbols-outlined fs-5 mt-2 ms-1 text-secondary"
+                class="material-symbols-outlined fs-5 ms-1 text-secondary"
                 title="Birim Arşivine Kaldırıldı"
                 style="cursor: pointer;">
                 assured_workload
             </span>
+            </div>
         </div>
 
     </div>

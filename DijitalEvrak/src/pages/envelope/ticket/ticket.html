@@ -1,0 +1,278 @@
+<app-generic pageTitle="Zarf Etiketi Oluştur"
+    [breadcrumbs]="[{ title: 'Zarf Etiketi Oluştur', url: 'envelopes', icon: '' }]">
+</app-generic>
+<print-preview
+    *ngIf="previewOpen"
+    [data]="previewData"
+    [isLabel]="true"
+    (closed)="previewOpen = false">
+</print-preview>
+<div class="row">
+    <!-- SOL PANEL -->
+    <div class="col-md-4 col-12">
+        <div class="card page-wrapper">
+            <div class="card-header dashboard-header d-flex align-items-center">
+                <span class="material-symbols-outlined me-2 text-info">edit_document</span>
+                <h5 class="card-title mb-0 fw-semibold">
+                    {{ isViewMode ? 'Zarf Bilgileri' : 'Etiket Oluştur' }}
+                </h5>
+            </div>
+
+            <!-- YENİ ETİKET FORMU -->
+            <div class="card-body" *ngIf="!isViewMode">
+                <!-- Gideceği Kurum -->
+                <div class="form-group mb-3">
+                    <label class="form-label text-muted small">Gideceği Kurum</label>
+                    <app-simple-autocomplete
+                        [control]="externalInstitutionControl"
+                        [options]="externalInstitutions"
+                        placeholder="Kurum seçiniz">
+                    </app-simple-autocomplete>
+                </div>
+
+                <!-- Birim Adı -->
+                <div class="form-group mb-3">
+                    <label class="form-label text-muted small">Birim Adı</label>
+                    <input
+                        type="text"
+                        class="form-control"
+                        [(ngModel)]="model.unitName"
+                        placeholder="Birim adı giriniz">
+                </div>
+
+                <!-- Adres -->
+                <div class="form-group mb-3">
+                    <label class="form-label text-muted small">Adres</label>
+                    <textarea
+                        class="form-control"
+                        rows="2"
+                        [(ngModel)]="model.address"
+                        placeholder="Adres giriniz"></textarea>
+                </div>
+
+                <!-- Gönderen Birim -->
+                <div class="form-group mb-4" style="display: none;">
+                    <label>Gönderen Birim</label>
+                    <input
+                        type="text"
+                        class="form-control"
+                        [(ngModel)]="model.departmentId">
+                </div>
+
+                <!-- Kaydet -->
+                <div class="d-flex justify-content-end">
+                    <button
+                        class="qr-manual-btn px-4 d-flex align-items-center gap-1"
+                        (click)="createEnvelope()">
+                        <span class="material-symbols-outlined" style="font-size: 18px;">add_box</span>
+                        Etiket Oluştur
+                    </button>
+                </div>
+            </div>
+
+            <!-- MEVCUT ZARF ÖZETİ -->
+            <div class="card-body" *ngIf="isViewMode && previewEnvelope">
+                <div class="info-item zarf-info-row mt-2">
+                    <span class="material-symbols-outlined sec-icon">domain</span>
+                    <div>
+                        <strong>Gideceği Kurum</strong>
+                        <p class="mb-0">{{ previewEnvelope.externalInstitutionName || '-' }}</p>
+                    </div>
+                </div>
+                <div class="detail-card-hr"></div>
+                <div class="info-item zarf-info-row mt-4">
+                    <span class="material-symbols-outlined sec-icon">apartment</span>
+                    <div>
+                        <strong>Birim Adı</strong>
+                        <p class="mb-0">{{ previewEnvelope.unitName || '-' }}</p>
+                    </div>
+                </div>
+                <div class="detail-card-hr"></div>
+                <div class="info-item zarf-info-row mt-4">
+                    <span class="material-symbols-outlined sec-icon">location_on</span>
+                    <div>
+                        <strong>Adres</strong>
+                        <p class="mb-0">{{ previewEnvelope.address || '-' }}</p>
+                    </div>
+                </div>
+                <div class="detail-card-hr"></div>
+                <div class="info-item zarf-info-row mt-4">
+                    <span class="material-symbols-outlined sec-icon">tag</span>
+                    <div>
+                        <strong>Etiket No</strong>
+                        <p class="mb-0">{{ previewEnvelope.envelopeNo || '-' }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SAĞ PANEL -->
+    <div class="col-md-4 col-12">
+        <div class="card page-wrapper">
+            <div class="card-header dashboard-header d-flex align-items-center">
+                <span class="material-symbols-outlined me-2 text-info">visibility</span>
+                <h5 class="card-title mb-0 fw-semibold">Önizleme</h5>
+            </div>
+            <div class="card-body" [ngClass]="{'gradient-bg': previewEnvelope}">
+                <div
+                    class="position-relative d-flex justify-content-center align-items-center mt-3">
+                    <div *ngIf="previewEnvelope; else noPreview">
+                        <div class="envelope-label" id="print-area">
+                            <div class="label-box sender-box">
+                                <div class="label-title">Gönderen</div>
+                                <div class="label-content">
+                                    {{user()?.departmentName}}
+                                </div>
+                                <div class="ministry-row">
+                                    <div class="ministry">
+                                        T.C. DIŞİŞLERİ BAKANLIĞI
+                                    </div>
+                                    <div class="label-contentPostCode">
+                                        06520
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- QR -->
+                            <div class="qr-section">
+                                <qrcode [qrdata]="previewEnvelope.envelopeNo"
+                                    [width]="100"
+                                    [errorCorrectionLevel]="'H'"></qrcode>
+                            </div>
+
+                            <!-- NUMARA -->
+                            <div class="label-number">
+                                {{ previewEnvelope.envelopeNo }}
+                            </div>
+
+                            <!-- ALICI -->
+                            <div class="label-box receiver-box">
+                                <div class="label-title">Alıcı</div>
+                                <div class="label-External">
+                                    {{ previewEnvelope.externalInstitutionName
+                                    || '-' }}
+                                </div>
+                                <div class="labelDepartment">
+                                    {{ previewEnvelope.unitName }}
+                                </div>
+                                <div class="labelAddress">
+                                    {{ previewEnvelope.address || '-' }}
+                                </div>
+
+                            </div>
+
+                        </div>
+                        <div class="text-end mt-3 me-3">
+                            <button class="qr-manual-btn2 d-flex align-items-center gap-1 ms-auto"
+                                (click)="directPrint()">
+                                <span class="material-symbols-outlined" style="font-size: 18px;">print</span>
+                                Yazdır
+                            </button>
+                        </div>
+                    </div>
+                    <ng-template #noPreview>
+                        <div class="text-center text-muted py-5">
+                            <span class="material-symbols-outlined d-block mb-2" style="font-size: 32px;">local_post_office</span>
+                            Etiket oluşturduğunuzda önizleme burada görünecek.
+                        </div>
+                    </ng-template>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ÜÇÜNCÜ PANEL -->
+    <div class="col-md-4 col-12">
+        <div class="card page-wrapper">
+            <div class="card-header dashboard-header d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <span class="material-symbols-outlined me-2 text-info">inventory_2</span>
+                    <h5 class="card-title mb-0 fw-semibold">Evrak Ekle</h5>
+                </div>
+                <span class="badge rounded-pill bg-light text-muted border" *ngIf="documents.length">
+                    {{ documents.length }}
+                </span>
+            </div>
+            <div class="card-body" *ngIf="previewEnvelope; else noEnvelope">
+                <div class="mb-3">
+                    <label class="form-label text-muted small d-flex align-items-center justify-content-between">
+                        <span>QR Kod ile Evrak Ekle</span>
+                        <span class="badge rounded-pill d-inline-flex align-items-center gap-1 px-2 qr-ready-badge"
+                            [ngClass]="qrActive ? 'qr-ready-active' : 'qr-ready-idle'">
+                            <span class="qr-ready-dot" *ngIf="qrActive"></span>
+                            <span>{{ qrActive ? 'Okumaya Hazır' : 'Pasif' }}</span>
+                        </span>
+                    </label>
+                    <div class="input-group havale-input-group">
+                        <span class="input-group-text bg-white">
+                            <span class="material-symbols-outlined" style="font-size: 18px;">qr_code_scanner</span>
+                        </span>
+                        <input
+                            #qrInput
+                            type="text"
+                            class="form-control"
+                            placeholder="QR kodu okutun ya da numarayı yazıp Enter'a basın"
+                            (keydown)="onQrKeydown($event)"
+                            (focus)="qrActive = true"
+                            (blur)="qrActive = false"
+                            autocomplete="off">
+                    </div>
+                    <div class="form-text">
+                        Kutuya tıklayıp okuyucu ile okutabilir ya da numarayı elle yazıp Enter'a basabilirsiniz.
+                    </div>
+                </div>
+
+                <div class="table-wrapper">
+                    <div class="table-container">
+                        <table class="table table-sm premium-table"
+                            *ngIf="documents.length > 0">
+                            <thead>
+                                <tr>
+                                    <th>Evrak Numarası</th>
+                                    <th style="width:120px"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let doc of documents">
+                                    <td>{{ doc.qrCode }}</td>
+                                    <td>
+                                        <button class="premium-btn"
+                                            (click)="removeDocument(doc.id)"
+                                            [disabled]="loadingRemove"
+                                            title="Evrakı çıkar">
+                                            <span *ngIf="loadingRemove"
+                                                class="spinner-border spinner-border-sm text-white"></span>
+                                            <span *ngIf="!loadingRemove"
+                                                class="material-symbols-outlined">
+                                                delete
+                                            </span>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="text-center text-muted py-5" *ngIf="documents.length === 0 && !loading">
+                            <span class="material-symbols-outlined d-block mb-2" style="font-size: 32px;">qr_code_scanner</span>
+                            Henüz evrak eklenmedi. QR kod okutarak ekleyebilirsiniz.
+                        </div>
+                    </div>
+
+                    <div class="table-loading" *ngIf="loading">
+                        <div class="spinner-border text-primary"></div>
+                    </div>
+
+                </div>
+            </div>
+            <ng-template #noEnvelope>
+                <div class="card-body">
+                    <div class="text-center text-muted py-5">
+                        <span class="material-symbols-outlined d-block mb-2" style="font-size: 32px;">inventory_2</span>
+                        Evrak eklemek için önce bir etiket oluşturun ya da
+                        Zarflar listesinden bir zarfın detayına gidin.
+                    </div>
+                </div>
+            </ng-template>
+        </div>
+    </div>
+</div>

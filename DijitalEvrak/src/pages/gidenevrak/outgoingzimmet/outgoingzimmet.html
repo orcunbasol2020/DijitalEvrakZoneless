@@ -1,0 +1,217 @@
+<app-generic pageTitle="Zimmetleme"
+    [breadcrumbs]="[{title: 'Giden Evraklar', url: 'gidenevrak/outgoing', icon:''}, {title: 'Zimmetleme', url: '', icon:''}]">
+</app-generic>
+
+<div class="row">
+    <div class="col-md-5 col-12">
+        <div class="card page-wrapper">
+            <div class="card-header dashboard-header d-flex align-items-center">
+                <span class="material-symbols-outlined me-2 text-info">description</span>
+                <h5 class="card-title mb-0 fw-semibold">Evrak Bilgisi</h5>
+            </div>
+            <div class="card-body">
+
+                <div *ngIf="loading()" class="d-flex justify-content-center align-items-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Yükleniyor...</span>
+                    </div>
+                </div>
+
+                <div *ngIf="!loading() && document() as doc">
+                    <div class="mb-3 d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small mb-1">Belge No</div>
+                            <div class="fw-semibold">{{ doc.qrCode || '-' }}</div>
+                        </div>
+                        <span class="badge rounded-pill py-2" [ngClass]="statusBadgeStyle[doc.status]">
+                            {{ statusLabelMap[doc.status] || '-' }}
+                        </span>
+                    </div>
+
+                    <div class="mb-3" *ngIf="doc.originalDocumentNumber">
+                        <div class="text-muted small mb-1">Belge Sayısı</div>
+                        <div class="fw-semibold">{{ doc.originalDocumentNumber }}</div>
+                    </div>
+
+                    <div class="mb-3" *ngIf="doc.subject">
+                        <div class="text-muted small mb-1">Konu</div>
+                        <div class="fw-semibold">{{ doc.subject }}</div>
+                    </div>
+
+                    <div>
+                        <div class="text-muted small mb-1">Belge Tarihi</div>
+                        <div class="fw-semibold">{{ (doc.documentDate || doc.createdDate) | date:'dd.MM.yyyy' }}</div>
+                    </div>
+                </div>
+
+                <div class="text-center text-muted py-5" *ngIf="!loading() && !document()">
+                    <span class="material-symbols-outlined d-block mb-2" style="font-size: 32px;">inbox</span>
+                    Evrak bulunamadı
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-7 col-12">
+        <div class="card page-wrapper d-flex flex-column">
+            <div class="card-header dashboard-header d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <span class="material-symbols-outlined me-2 text-info">person_check</span>
+                    <h5 class="card-title mb-0 fw-semibold">Zimmetle</h5>
+                </div>
+                <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 flex-shrink-0"
+                    *ngIf="!delivered() && mode() === 'external'"
+                    [disabled]="!selectedInstitutionId()" (click)="openQuickAddModal()">
+                    Personel Ekle
+                </button>
+            </div>
+
+            <!-- ZİMMETLENDİ BİLGİSİ -->
+            <div class="card-body" *ngIf="delivered()">
+                <div class="d-flex align-items-center gap-2 mb-3 text-success">
+                    <span class="material-symbols-outlined" style="font-size: 28px;">task_alt</span>
+                    <div class="fw-semibold">Evrak zimmetlendi</div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="text-muted small mb-1">Zimmetli</div>
+                    <div class="fw-semibold">{{ deliveredPersonName() || '-' }}</div>
+                </div>
+
+                <div class="mb-3" *ngIf="deliveredByPersonName()">
+                    <div class="text-muted small mb-1">Zimmeti Yapan</div>
+                    <div class="fw-semibold">{{ deliveredByPersonName() }}</div>
+                </div>
+
+                <div>
+                    <div class="text-muted small mb-1">Zimmet Tarihi</div>
+                    <div class="fw-semibold">{{ deliveredDate() | date:'dd.MM.yyyy HH:mm' }}</div>
+                </div>
+            </div>
+
+            <!-- PERSONEL SEÇ -->
+            <div class="card-body d-flex flex-column p-0" *ngIf="!delivered()">
+                <div class="px-3 pt-3">
+                    <div class="btn-group w-100 mb-3" role="group">
+                        <button type="button" class="btn btn-sm"
+                            [class.btn-primary]="mode() === 'internal'"
+                            [class.btn-outline-secondary]="mode() !== 'internal'"
+                            (click)="setMode('internal')">
+                            İç Kullanıcı
+                        </button>
+                        <button type="button" class="btn btn-sm"
+                            [class.btn-primary]="mode() === 'external'"
+                            [class.btn-outline-secondary]="mode() !== 'external'"
+                            (click)="setMode('external')">
+                            Dış Kurum
+                        </button>
+                    </div>
+
+                    <div class="mb-2" *ngIf="mode() === 'external'">
+                        <label class="form-label text-muted mb-1" style="font-size: 0.85rem;">Kurum</label>
+                        <select class="form-select form-select-sm"
+                            [ngModel]="selectedInstitutionId()"
+                            (ngModelChange)="selectInstitution($event)">
+                            <option [ngValue]="null">Kurum seçiniz</option>
+                            <option *ngFor="let inst of institutionList()" [ngValue]="inst.id">{{ inst.name }}</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group input-group-sm mb-2" *ngIf="currentPersonList().length > 5">
+                        <span class="input-group-text bg-white">
+                            <span class="material-symbols-outlined" style="font-size: 16px;">search</span>
+                        </span>
+                        <input type="text" class="form-control" placeholder="Personel ara..."
+                            [ngModel]="personSearch()" (ngModelChange)="personSearch.set($event)">
+                    </div>
+                </div>
+
+                <div class="person-list" *ngIf="mode() === 'internal' || selectedInstitutionId()">
+                    <div class="person-list-item" *ngFor="let p of filteredPersonList()"
+                        [class.is-selected]="selectedPersonId() === p.id"
+                        (click)="selectPerson(p.id)">
+                        <span class="person-list-avatar">{{ initials(p) }}</span>
+                        <div class="person-list-info">
+                            <div class="person-list-name">{{ p.name }} {{ p.surname }}</div>
+                            <div class="person-list-meta">{{ p.identityNo || p.email }}</div>
+                        </div>
+                        <span class="material-symbols-outlined person-list-radio">
+                            {{ selectedPersonId() === p.id ? 'radio_button_checked' : 'radio_button_unchecked' }}
+                        </span>
+                    </div>
+
+                    <div class="text-center text-muted py-4" *ngIf="!filteredPersonList().length">
+                        <span class="material-symbols-outlined d-block mb-1" style="font-size: 24px;">search_off</span>
+                        {{ mode() === 'internal' ? 'Kullanıcı bulunamadı.' : 'Bu kurum için tanımlı personel bulunamadı.' }}
+                    </div>
+                </div>
+
+                <div class="text-center text-muted py-4 px-3" *ngIf="mode() === 'external' && !selectedInstitutionId()">
+                    Personel listesi için kurum seçiniz.
+                </div>
+            </div>
+            <div class="card-footer bg-white mt-auto d-flex justify-content-end gap-2">
+                <button class="btn btn-secondary d-flex align-items-center gap-1" (click)="reset()">
+                    <span class="material-symbols-outlined" style="font-size: 18px;">arrow_back</span>
+                    Geri
+                </button>
+                <button class="btn btn-primary d-flex align-items-center gap-1" *ngIf="!delivered()" (click)="addZimmet()">
+                    <span class="material-symbols-outlined" style="font-size: 18px;">hand_package</span>
+                    Zimmetle
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Hızlı Personel Ekle Popup -->
+<div class="modal-overlay" *ngIf="quickAddModalVisible()" (click)="closeQuickAddModal()">
+    <div class="modal-box" style="width: 460px;" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h5 class="d-flex align-items-center mb-0">
+                <span class="material-symbols-outlined me-2 text-secondary">person_add</span>
+                Personel Ekle
+            </h5>
+        </div>
+        <div class="modal-body">
+            <div class="row">
+                <div class="col-6 mb-3">
+                    <label class="form-label">Ad</label>
+                    <input type="text" class="form-control" [(ngModel)]="quickAddForm.name" />
+                </div>
+                <div class="col-6 mb-3">
+                    <label class="form-label">Soyad</label>
+                    <input type="text" class="form-control" [(ngModel)]="quickAddForm.surname" />
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">E-posta</label>
+                <input type="email" class="form-control" [(ngModel)]="quickAddForm.email" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Kimlik / Pasaport No</label>
+                <input type="text" class="form-control" [(ngModel)]="quickAddForm.identityNo" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Kullanıcı Türü</label>
+                <select class="form-select" [(ngModel)]="quickAddForm.userType">
+                    <option [ngValue]="1">Standart</option>
+                    <option [ngValue]="2">Yetkili</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" [disabled]="quickAddSaving()" (click)="closeQuickAddModal()">İptal</button>
+            <button class="btn btn-primary" [disabled]="quickAddSaving()" (click)="saveQuickAddPerson()">
+                @if (quickAddSaving()) {
+                    <span class="spinner-border spinner-border-sm me-1"></span>
+                }
+                Kaydet
+            </button>
+        </div>
+    </div>
+</div>
