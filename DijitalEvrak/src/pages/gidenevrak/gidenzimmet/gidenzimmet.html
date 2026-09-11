@@ -33,9 +33,9 @@
 
                             <!-- QR -->
                             <div class="qr-section">
-                                <img
-                                    [src]="'https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=' + envelope.envelopeNo"
-                                    alt="QR Code">
+                                <qrcode [qrdata]="envelope.envelopeNo"
+                                    [width]="100"
+                                    [errorCorrectionLevel]="'H'"></qrcode>
                             </div>
 
                             <!-- NUMARA -->

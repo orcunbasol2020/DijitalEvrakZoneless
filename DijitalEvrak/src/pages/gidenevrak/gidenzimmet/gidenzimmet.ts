@@ -14,12 +14,14 @@ import { OutgoingDocumentAllocation } from '../../../services/outgoingdocumental
 import { Common } from '../../../services/common';
 import { httpResource } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
+import { QRCodeComponent } from 'angularx-qrcode';
 
 @Component({
   imports: [
     GenericModel,
     CommonModule,
-    FormsModule
+    FormsModule,
+    QRCodeComponent
   ],
   templateUrl: './gidenzimmet.html',
   encapsulation: ViewEncapsulation.None,

@@ -16,6 +16,7 @@ import html2pdf from "html2pdf.js";
 import { EnvelopeDocumentService } from '../../../services/envelopedocument';
 import { EnvelopeDocumentModel } from '../../../models/envelopedocument.model';
 import { firstValueFrom } from 'rxjs';
+import { QRCodeComponent } from 'angularx-qrcode';
 
 @Component({
   standalone: true,
@@ -26,7 +27,8 @@ import { firstValueFrom } from 'rxjs';
     ReactiveFormsModule,
     CommonModule,
     SimpleAutocompleteComponent,
-    PrintPreview
+    PrintPreview,
+    QRCodeComponent
   ],
   templateUrl: './ticket.html',
   styleUrls: ['./ticket.css'],
