@@ -7,7 +7,7 @@ export class RoleService {
   private _roles: string[] = [];
 
   constructor() {
-    const user = localStorage.getItem("user");
+    const user = localStorage.getItem("user") ?? sessionStorage.getItem("user");
 
     if (!user) {
       this._roles = [];
@@ -37,19 +37,23 @@ export class RoleService {
   getMenu(): NavigationModel[] {
     const result: NavigationModel[] = [];
 
-    let currentCategory: string | null = null;
+    let pendingCategory: string | null = null;
 
     for (const nav of navigations) {
 
       if (nav.category) {
-        currentCategory = nav.category;
-        result.push({ category: currentCategory });
+        pendingCategory = nav.category;
         continue;
       }
 
       const isVisible = !nav.roles?.length || this.hasAny(nav.roles);
 
       if (!isVisible) continue;
+
+      if (pendingCategory) {
+        result.push({ category: pendingCategory });
+        pendingCategory = null;
+      }
 
       result.push(nav);
     }

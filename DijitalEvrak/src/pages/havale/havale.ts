@@ -34,6 +34,10 @@ keywords: string[] = [
     { code: 'FIN', name: 'FIN - Finans' }
   ];
 
+  getSelectedUnitName(): string {
+    return this.units.find(u => u.code === this.selectedUnit)?.name ?? '';
+  }
+
   addKeyword() {
     if (!this.keywordInput.trim()) return;
     if (!this.keywords.includes(this.keywordInput.trim())) {

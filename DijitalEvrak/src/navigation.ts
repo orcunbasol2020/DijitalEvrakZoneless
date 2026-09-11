@@ -44,6 +44,11 @@ export const navigations: NavigationModel[] = [
         roles: ["Yönetici"]
     },
     {
+        title: "Zimmetlerim",
+        url: "/zimmetlerim",
+        icon: "assignment_ind"
+    },
+    {
         title: "Zimmet",
         url: "/zimmet",
         icon: "contract_edit",
@@ -66,6 +71,12 @@ export const navigations: NavigationModel[] = [
         icon: "document_scanner",
         roles: ["Gelen Evrak"]
     },
+    {
+        title: "Dijitalleştirme Takip",
+        url: "/dijitallestirme-takip",
+        icon: "cloud_sync",
+        roles: ["Gelen Evrak"]
+    },
 
     {
         category: "Giden Evrak",
@@ -85,15 +96,15 @@ export const navigations: NavigationModel[] = [
         roles: ["Gelen Evrak"]
     },
     {
-        title: "Teslim Al",
-        url: "/gidenevrak/zimmet",
-        icon: "approval_delegation",
+        title: "Zarf Etiketi",
+        url: "/ticket",
+        icon: "book",
         roles: ["Gelen Evrak"]
     },
     {
-        title: "Etiket Oluştur",
-        url: "/ticket",
-        icon: "book",
+        title: "Teslim Al",
+        url: "/gidenevrak/zimmet",
+        icon: "approval_delegation",
         roles: ["Gelen Evrak"]
     },
 
@@ -152,7 +163,12 @@ export const navigations: NavigationModel[] = [
     },
     {
         title: "Diller",
-        url: "parameters/languages",
+        url: "/parameters/languages",
         icon: "language_chinese_array"
+    },
+    {
+        title: "Raporlar",
+        url: "/reports",
+        icon: "monitoring"
     }
 ];

@@ -3,9 +3,9 @@
         Gelen Evrak
     </h1>
     <div class="d-flex header-actions">
-        <button class="btn btn-sm btn-outline-secondary me-2">
+        <a routerLink="/reports" class="btn btn-sm btn-outline-secondary me-2">
             <span class="material-symbols-outlined">file_download</span> Rapor
-        </button>
+        </a>
         <button class="btn btn-sm btn-outline-info" (click)="loadAll()">
             <span class="material-symbols-outlined"
                 title="Güncel Verileri Getir">refresh</span>
@@ -140,64 +140,60 @@
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover orders-table">
+                    <table class="table table-hover orders-table align-middle">
                         <thead>
                             <tr>
                                 <th scope="col">Belge No</th>
                                 <th scope="col">Kurum</th>
                                 <th scope="col">Tarih</th>
                                 <th scope="col">Zimmet</th>
-                                <th scope="col"></th>
+                                <th scope="col">Durum</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr class="clickable-row" (click)="goDetail('')">
-                                <td>2026/459763/19</td>
-                                <td>Emniyet Genel Müd.</td>
-
-                                <td>18.11.2025 14:25</td>
-                                <td>Murat Kale</td> <td><span
-                                        class="badge rounded-pill py-2 mt-1 bg-warning-subtle text-dark border border-warning-subtle">
-                                        Zimmet </span></td>
+                            <tr class="clickable-row" tabindex="0"
+                                *ngFor="let doc of recentDocumentsSignal()"
+                                (click)="goDetail(doc.id)"
+                                (keydown.enter)="goDetail(doc.id)">
+                                <td>
+                                    <span class="fw-semibold text-primary">{{ doc.documentNo }}</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2 institution-cell" [title]="doc.institution">
+                                        <span class="avatar-circle" [ngClass]="getAvatarColorClass(doc.institution)">
+                                            {{ getInitials(doc.institution) }}
+                                        </span>
+                                        <span class="institution-name text-truncate">{{ doc.institution }}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="date-cell" [title]="getFullDateTime(doc.date)">
+                                        <span class="material-symbols-outlined date-icon">schedule</span>
+                                        {{ getRelativeDateLabel(doc.date) }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-1">
+                                        <span class="material-symbols-outlined text-muted" style="font-size: 16px;">person</span>
+                                        {{ doc.custodian }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge rounded-pill py-2 mt-1 d-inline-flex align-items-center gap-1"
+                                        [ngClass]="getStatusConfig(doc.status).badgeClass">
+                                        <span class="material-symbols-outlined"
+                                            style="font-size: 14px;">{{ getStatusConfig(doc.status).icon }}</span>
+                                        {{ getStatusConfig(doc.status).label }}
+                                    </span>
+                                </td>
                             </tr>
-                            <tr class="clickable-row" (click)="goDetail('')">
-                                <td>2026/353646/11</td>
-                                <td>Türkiye Noterler Birliği</td>
-
-                                <td>17.11.2025 17:26</td>
-                                <td>Murat Kale</td> <td>
-                                    <span
-                                        class="badge rounded-pill py-2 mt-1 bg-secondary-subtle text-dark border border-secondary-subtle">
-                                        Ön Kayıt </span></td>
+                            <tr *ngIf="recentDocumentsSignal().length === 0">
+                                <td colspan="5" class="text-center text-muted py-5">
+                                    <span class="material-symbols-outlined d-block mb-2"
+                                        style="font-size: 28px;">inbox</span>
+                                    Henüz gelen evrak bulunmuyor.
+                                </td>
                             </tr>
-                            <tr class="clickable-row" (click)="goDetail('')">
-                                <td>2026/561235/9</td>
-                                <td>Rusya Federasyonu, Moskova BE</td>
-
-                                <td>17.11.2025 12:26</td>
-                                <td>Bülent Arslan</td> <td><span
-                                        class="badge rounded-pill py-2 mt-1 bg-warning-subtle text-dark border border-warning-subtle">
-                                        Zimmet </span></td>
-                            </tr>
-                            <tr class="clickable-row" (click)="goDetail('')">
-                                <td>2026/862442/4</td>
-                                <td>İçişleri Bakanlığı</td>
-
-                                <td>16.11.2025 17:18</td>
-                                <td>Oral Akçakoyun</td> <td> <span
-                                        class="badge rounded-pill py-2 mt-1 bg-info-subtle text-dark border border-info-subtle">
-                                        OCR </span></td>
-                            </tr>
-                            <tr class="clickable-row" (click)="goDetail('')">
-                                <td>2026/408672/14</td>
-                                <td>Adalet Bakanlığı</td>
-
-                                <td>16.11.2025 17:16</td>
-                                <td>Bülent Arslan</td> <td><span
-                                        class="badge rounded-pill py-2 mt-1 bg-success-subtle text-dark border border-success-subtle">
-                                        Yayınlandı </span></td>
-                            </tr>
-
                         </tbody>
                     </table>
                 </div>

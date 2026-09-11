@@ -8,6 +8,8 @@ import { Common } from '../../services/common';
 import { initialUser } from '../users/users';
 import { IncomingDocumentService } from '../../services/incomingdocument';
 import { Sidebar } from './sidebar/sidebar/sidebar';
+import { RoleService } from '../../services/role-service';
+import { DocumentAllocation } from '../../services/documentallocation';
 
 
 @Component({
@@ -31,6 +33,16 @@ export default class Layouts {
   readonly #incomingDocumentService = inject(IncomingDocumentService);
   readonly pendingCount = signal<number>(0);
   private readonly router = inject(Router);
+  readonly roleService = inject(RoleService);
+  readonly isAdmin = computed(() => this.roleService.has('Yönetici'));
+  readonly #allocationService = inject(DocumentAllocation);
+  readonly transferredToMeCount = signal<number>(0);
+  readonly transferCount = signal<number>(0);
+  readonly totalNotificationCount = computed(() =>
+    this.pendingCount() +
+    this.transferredToMeCount() +
+    this.transferCount()
+  );
 
   constructor() {
     const userId = this.user()?.id;
@@ -39,6 +51,14 @@ export default class Layouts {
       this.#incomingDocumentService
         .getPendingCount(userId)
         .subscribe(c => this.pendingCount.set(c));
+
+      this.#allocationService
+        .getActiveByUserId(userId)
+        .subscribe(allocations => this.transferredToMeCount.set(allocations?.length ?? 0));
+
+      this.#allocationService
+        .getTransferCountByUserId(userId)
+        .subscribe(c => this.transferCount.set(c));
     }
   }
 

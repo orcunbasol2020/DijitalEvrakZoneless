@@ -1,0 +1,96 @@
+<app-generic pageTitle="Dokümanlar" [breadcrumbs]="[
+  {title: 'Dokümanlar', url: 'documents', icon: 'menu_book'}
+  ]">
+</app-generic>
+
+<div class="row">
+  <!-- Hero / Arama -->
+  <div class="col-12 mb-4">
+    <div class="card settings-profile-card">
+      <div class="card-body">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span class="material-symbols-outlined" style="font-size:26px;">menu_book</span>
+          <h4 class="m-0">Kullanım Kılavuzu</h4>
+        </div>
+        <div class="text-muted mb-3">
+          Uygulamanın modüllerine göre kısa açıklamalar bulabilir, aradığınız
+          ekrana buradan doğrudan geçebilirsiniz.
+        </div>
+        <div class="support-search-box">
+          <span class="material-symbols-outlined">search</span>
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Bir modül veya konu arayın..."
+            [ngModel]="search()"
+            (ngModelChange)="search.set($event)" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rehber Listesi -->
+  <div class="col-lg-8 col-12 mb-4">
+    <div class="card h-100 settings-section-card">
+      <div class="card-header d-flex align-items-center gap-2">
+        <span class="material-symbols-outlined settings-section-icon">menu_book</span>
+        <h4 class="m-0">Modüller</h4>
+      </div>
+      <div class="card-body">
+        @for (guide of filteredGuides(); track guide.url) {
+          <a class="support-quick-link doc-guide-item" [routerLink]="guide.url">
+            <span class="material-symbols-outlined">{{ guide.icon }}</span>
+            <span class="doc-guide-text">
+              <span class="doc-guide-title">{{ guide.title }}</span>
+              <span class="doc-guide-description">{{ guide.description }}</span>
+            </span>
+            <span class="material-symbols-outlined support-quick-link-arrow">chevron_right</span>
+          </a>
+        } @empty {
+          <div class="support-empty-state">
+            <span class="material-symbols-outlined">search_off</span>
+            <p class="mb-0">"{{ search() }}" ile eşleşen bir sonuç bulunamadı.</p>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Sağ Panel -->
+  <div class="col-lg-4 col-12 mb-4">
+    <div class="card mb-4 settings-section-card">
+      <div class="card-header d-flex align-items-center gap-2">
+        <span class="material-symbols-outlined settings-section-icon">category</span>
+        <h4 class="m-0">Kategoriler</h4>
+      </div>
+      <div class="card-body d-flex flex-wrap gap-2">
+        @for (category of categories; track category) {
+          <button
+            type="button"
+            class="doc-category-chip"
+            [class.active]="activeCategory() === category"
+            (click)="toggleCategory(category)">
+            {{ category }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="card settings-section-card">
+      <div class="card-header d-flex align-items-center gap-2">
+        <span class="material-symbols-outlined settings-section-icon">support_agent</span>
+        <h4 class="m-0">Sorunuzu bulamadınız mı?</h4>
+      </div>
+      <div class="card-body">
+        <p class="mb-3 text-muted" style="font-size: 0.85rem;">
+          Sık sorulan sorular ve teknik destek bilgileri için Destek
+          sayfasına göz atabilirsiniz.
+        </p>
+        <a routerLink="/support" class="btn btn-sm doc-support-link">
+          <span class="material-symbols-outlined align-middle me-1" style="font-size:16px;">support_agent</span>
+          Destek Sayfasına Git
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

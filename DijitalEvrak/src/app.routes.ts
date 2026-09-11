@@ -40,6 +40,10 @@ export const routes: Routes = [
                 loadChildren: () => import('./pages/documentlist/route')
             },
             {
+                path: 'zimmetlerim',
+                loadComponent: () => import('./pages/zimmetlerim/zimmetlerim')
+            },
+            {
                 path: 'scanneddocument',
                 loadComponent: () => import('./pages/scanneddocument/scanneddocument')
             },
@@ -48,12 +52,20 @@ export const routes: Routes = [
                 loadComponent: () => import("./pages/ocrtakip/ocrtakip")
             },
             {
+                path: "dijitallestirme-takip",
+                loadComponent: () => import("./pages/dijitallestirme-takip/dijitallestirme-takip")
+            },
+            {
                 path: 'users',
                 loadChildren: () => import('./pages/users/route')
             },
             {
                 path: 'externaluser',
                 loadComponent: () => import('./pages/users/externaluser/externaluser')
+            },
+            {
+                path: 'externaluser/:id/zimmetler',
+                loadComponent: () => import('./pages/users/externaluser/externaluser-zimmetleri/externaluser-zimmetleri')
             },
             {
                 path: 'evrakkayit',
@@ -71,6 +83,10 @@ export const routes: Routes = [
                 path: 'birimler',
                 loadComponent: () => import('./pages/parameters/departments/departments')
             },
+            {
+                path: 'parameters/languages',
+                loadComponent: () => import('./pages/parameters/languages/languages')
+            },
                         {
                 path: 'externalinstitution',
                 loadComponent: () => import('./pages/parameters/external-institutions/external-institutions')
@@ -84,6 +100,10 @@ export const routes: Routes = [
                 loadComponent: () => import('./pages/gidenevrak/zimmet/zimmet')
             },
             {
+                path: 'gidenevrak/outgoingzimmet',
+                loadComponent: () => import('./pages/gidenevrak/outgoingzimmet/outgoingzimmet')
+            },
+            {
                 path: 'envelope',
                 loadComponent: () => import('./pages/envelope/envelope/envelope')
             },
@@ -94,6 +114,22 @@ export const routes: Routes = [
             {
                 path: 'ticket',
                 loadComponent: () => import('./pages/envelope/ticket/ticket')
+            },
+            {
+                path: 'settings',
+                loadComponent: () => import('./pages/settings/settings')
+            },
+            {
+                path: 'support',
+                loadComponent: () => import('./pages/support/support')
+            },
+            {
+                path: 'documents',
+                loadComponent: () => import('./pages/documents/documents')
+            },
+            {
+                path: 'reports',
+                loadComponent: () => import('./pages/reports/reports')
             }
             /*
             {

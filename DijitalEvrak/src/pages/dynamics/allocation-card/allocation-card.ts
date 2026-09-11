@@ -11,4 +11,8 @@ import { DocumentAllocationModel } from '../../../models/documentallocation.mode
 export class AllocationCardComponent {
   @Input() item!: DocumentAllocationModel;
   @Input() loading: boolean = false;
+
+  get source(): 'EvrakTakip' | 'Atlas' {
+    return this.item.source ?? 'EvrakTakip';
+  }
 }

@@ -25,9 +25,9 @@
     <flexi-grid-column title="Teslim Et" textAlign="center" width="100px">
       <ng-template flexiGridCellTemplate let-item>
         <flexi-button
-          btnIcon="hand_package"
-          title="Zarfı Teslim Et"
-          btnColor="primary"
+          [btnIcon]="item.status === 2 ? 'task_alt' : 'hand_package'"
+          [title]="item.status === 2 ? 'Teslim Edildi' : 'Zarfı Teslim Et'"
+          [btnColor]="item.status === 2 ? 'success' : 'primary'"
            (click)="goToGidenZimmet(item.id)">
         </flexi-button>
       </ng-template>
@@ -35,17 +35,22 @@
         <flexi-grid-column title="Detaya Git" textAlign="center" width="50px">
       <ng-template flexiGridCellTemplate let-item>
         <flexi-button
+          *ngIf="item.status !== 2"
           btnIcon="expand_circle_right"
-          btnColor="info">
+          title="Zarf Detayına Git"
+          btnColor="info"
+          (click)="goToDetail(item.id)">
         </flexi-button>
       </ng-template>
     </flexi-grid-column>
         <flexi-grid-column textAlign="center" width="50px">
       <ng-template flexiGridCellTemplate let-item>
         <flexi-button
+          *ngIf="item.status !== 2"
           btnIcon="delete"
           title="Sil"
-          btnColor="warning">
+          btnColor="warning"
+          (click)="deleteEnvelope(item.id)">
         </flexi-button>
       </ng-template>
     </flexi-grid-column>

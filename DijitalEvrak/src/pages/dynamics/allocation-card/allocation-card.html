@@ -33,31 +33,39 @@
       </div>
     </div>
 
-  <div class="mt-auto pt-2 d-flex justify-content-end gap-2 border-top">
-  <!-- Ön Kayıt ve Zimmetleme -->
-  <ng-container *ngIf="item.isPreRegistered; else onlyAllocated">
-    <span class="material-symbols-outlined fs-5 mt-2 ms-1 text-dark"
-          title="Ön Kayıt Yapıldı"
-          style="cursor: pointer;">save</span>
+  <div class="mt-auto pt-2 d-flex justify-content-between align-items-center gap-2 border-top">
+    <span class="badge rounded-pill py-1 px-2"
+        [ngClass]="source === 'Atlas'
+            ? 'bg-primary-subtle text-primary border border-primary-subtle'
+            : 'bg-info-subtle text-dark border border-info-subtle'">
+        {{ source === 'Atlas' ? 'Atlas' : 'Evrak Takip' }}
+    </span>
 
-    <span class="material-symbols-outlined fs-5 mt-2 ms-1 text-dark"
-          title="Zimmetleme Yapıldı"
-          style="cursor: pointer;">contract_edit</span>
-  </ng-container>
+    <div class="d-flex gap-2">
+      <!-- Ön Kayıt ve Zimmetleme -->
+      <ng-container *ngIf="item.isPreRegistered; else onlyAllocated">
+        <span class="material-symbols-outlined fs-5 ms-1 text-dark"
+              title="Ön Kayıt Yapıldı"
+              style="cursor: pointer;">save</span>
 
-  <!-- Sadece Zimmetleme -->
-  <ng-template #onlyAllocated>
-    <span class="material-symbols-outlined fs-5 mt-2 ms-1 text-dark"
-          title="Zimmet Devri Yapıldı"
-          style="cursor: pointer;">contract_edit</span>
-  </ng-template>
-<span *ngIf="item.status === 3"
-      class="material-symbols-outlined fs-5 mt-2 ms-1 text-success"
-      title="Teslim Edildi"
-      style="cursor: pointer;">
-    hand_package
-</span>
+        <span class="material-symbols-outlined fs-5 ms-1 text-dark"
+              title="Zimmetleme Yapıldı"
+              style="cursor: pointer;">contract_edit</span>
+      </ng-container>
 
+      <!-- Sadece Zimmetleme -->
+      <ng-template #onlyAllocated>
+        <span class="material-symbols-outlined fs-5 ms-1 text-dark"
+              title="Zimmet Devri Yapıldı"
+              style="cursor: pointer;">contract_edit</span>
+      </ng-template>
+      <span *ngIf="item.status === 3"
+            class="material-symbols-outlined fs-5 ms-1 text-success"
+            title="Teslim Edildi"
+            style="cursor: pointer;">
+          hand_package
+      </span>
+    </div>
 </div>
 
   </div>

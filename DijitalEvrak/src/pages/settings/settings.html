@@ -1,0 +1,113 @@
+<app-generic pageTitle="Ayarlar" [breadcrumbs]="[
+  {title: 'Ayarlar', url: 'settings', icon: 'settings'}
+  ]">
+</app-generic>
+
+<div class="row">
+  <!-- Profil Özeti -->
+  <div class="col-12 mb-4">
+    <div class="card settings-profile-card">
+      <div class="card-body d-flex align-items-center flex-wrap gap-3">
+        <div class="settings-avatar">
+          <img [src]="userAvatar()" alt="Kullanıcı Avatarı" />
+        </div>
+        <div class="flex-grow-1">
+          <h4 class="mb-1">{{ user()?.name }} {{ user()?.surname }}</h4>
+          <div class="text-muted small mb-2">{{ user()?.email || user()?.userName }}</div>
+          @if (user()?.departmentName) {
+            <span class="settings-department-badge">
+              <span class="material-symbols-outlined" style="font-size:14px;">apartment</span>
+              {{ user()?.departmentName }}
+            </span>
+          }
+        </div>
+        <a
+          routerLink="/users/profile"
+          class="btn btn-sm settings-profile-link">
+          <span class="material-symbols-outlined align-middle me-1" style="font-size:16px;">account_circle</span>
+          Yetkilerimi Görüntüle
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hesap Bilgileri -->
+  <div class="col-lg-6 col-12 mb-4">
+    <div class="card h-100 settings-section-card">
+      <div class="card-header d-flex align-items-center gap-2">
+        <span class="material-symbols-outlined settings-section-icon">badge</span>
+        <h4 class="m-0">Hesap Bilgileri</h4>
+      </div>
+      <div class="card-body">
+        <div class="settings-info-row">
+          <span class="material-symbols-outlined settings-info-icon">person</span>
+          <div>
+            <div class="settings-info-label">Ad Soyad</div>
+            <div class="settings-info-value">{{ user()?.name }} {{ user()?.surname }}</div>
+          </div>
+        </div>
+        <div class="settings-info-row">
+          <span class="material-symbols-outlined settings-info-icon">alternate_email</span>
+          <div>
+            <div class="settings-info-label">Kullanıcı Adı</div>
+            <div class="settings-info-value">{{ user()?.userName }}</div>
+          </div>
+        </div>
+        <div class="settings-info-row">
+          <span class="material-symbols-outlined settings-info-icon">mail</span>
+          <div>
+            <div class="settings-info-label">E-posta</div>
+            <div class="settings-info-value">{{ user()?.email || '-' }}</div>
+          </div>
+        </div>
+        <div class="settings-info-row">
+          <span class="material-symbols-outlined settings-info-icon">apartment</span>
+          <div>
+            <div class="settings-info-label">Birim</div>
+            <div class="settings-info-value">{{ user()?.departmentName || '-' }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Görünüm -->
+  <div class="col-lg-6 col-12 mb-4">
+    <div class="card h-100 settings-section-card">
+      <div class="card-header d-flex align-items-center gap-2">
+        <span class="material-symbols-outlined settings-section-icon">palette</span>
+        <h4 class="m-0">Görünüm</h4>
+      </div>
+      <div class="card-body">
+        <div class="settings-info-row">
+          <span class="material-symbols-outlined settings-info-icon">contrast</span>
+          <div class="flex-grow-1">
+            <div class="settings-info-label">Tema</div>
+            <div class="settings-info-value mb-3">
+              Uygulamanın açık veya koyu görünümünü seçin.
+            </div>
+
+            <div class="settings-theme-options">
+              <button
+                type="button"
+                class="settings-theme-option"
+                [class.active]="theme() === 'light'"
+                (click)="setTheme('light')">
+                <span class="material-symbols-outlined">light_mode</span>
+                <span>Açık</span>
+              </button>
+              <button
+                type="button"
+                class="settings-theme-option"
+                [class.active]="theme() === 'dark'"
+                (click)="setTheme('dark')">
+                <span class="material-symbols-outlined">dark_mode</span>
+                <span>Koyu</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

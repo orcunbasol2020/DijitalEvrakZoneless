@@ -1,5 +1,5 @@
 <app-generic pageTitle="Giden Evraklar"
-  [breadcrumbs]="[{title: 'Giden Evraklar', url: 'gidenvrak/outgoing', icon: ''}]">
+  [breadcrumbs]="[{title: 'Giden Evraklar', url: 'gidenevrak/outgoing', icon: ''}]">
 </app-generic>
 
 <div [class.show-filters]="showFilters">
@@ -35,6 +35,13 @@
     <flexi-grid-column title="Kayıt Tarihi" width="100px">
       <ng-template flexiGridCellTemplate let-item>
         {{ item.createdDate | date:'dd.MM.yyyy' }}
+      </ng-template>
+    </flexi-grid-column>
+    <flexi-grid-column title="Durum" textAlign="center" width="110px">
+      <ng-template flexiGridCellTemplate let-item>
+        <span class="badge rounded-pill py-2" [ngClass]="statusBadgeStyle[item.status]">
+          {{ statusLabelMap[item.status] || '-' }}
+        </span>
       </ng-template>
     </flexi-grid-column>
    <flexi-grid-column title="Takip" textAlign="center" width="55px">

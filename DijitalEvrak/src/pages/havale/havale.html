@@ -1,74 +1,170 @@
 <app-generic
-  pageTitle="OCR Takip Paneli"
-  [breadcrumbs]="[{ title: 'OCR Takip', url: 'ocrtakip', icon: '' }]"
+  pageTitle="Havale (AI)"
+  [breadcrumbs]="[{ title: 'Havale (AI)', url: 'havale', icon: '' }]"
 ></app-generic>
+
 <div class="row">
-    <div class="col-md-9 col-12">
-<div class="card havale-card">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <h4 class="m-0">Birim Bazlı Anahtar Kelime Tanımlama</h4>
-  </div>
-
-  <div class="card-body">
-    <div class="container">
-
-      <!-- Birim seçimi -->
-      <div class="mb-3 col-md-4">
-        <label class="form-label">Birim</label>
-        <select class="form-select" [(ngModel)]="selectedUnit">
-          <option [ngValue]="null" disabled>Birim seçiniz</option>
-          <option *ngFor="let unit of units" [ngValue]="unit.code">
-            {{ unit.name }}
-          </option>
-        </select>
+  <div class="col-md-9 col-12">
+    <div class="card havale-card h-100">
+      <div class="card-header dashboard-header d-flex align-items-center">
+        <span class="material-symbols-outlined me-2 text-info">alt_route</span>
+        <h5 class="card-title mb-0 fw-semibold">Birim Bazlı Anahtar Kelime Tanımlama</h5>
       </div>
 
-      <!-- Anahtar Kelime Ekleme -->
-      <div class="mb-3 col-md-6">
-        <label class="form-label">Anahtar Kelime</label>
-        <div class="input-group havale-input-group">
-          <input
-            type="text"
-            class="form-control"
-            [(ngModel)]="keywordInput"
-            (keyup.enter)="addKeyword()"
-            placeholder="Örn: 29 Ekim kutlama mesajları"
-          />
-          <button class="btn btn-primary" (click)="addKeyword()">Ekle</button>
-        </div>
-      </div>
+      <div class="card-body">
 
-      <!-- Sol ve Sağ Listeler -->
-      <div class="row mt-4 havale-lists">
-        <!-- Sol: Ekleme yapılabilecek örnek kelimeler -->
-        <div class="col-md-6 mb-3">
-          <h6>Eklenebilecek Anahtar Kelimeler</h6>
-          <ul class="list-group list-group-hover">
-            <li class="list-group-item" *ngFor="let kw of availableKeywords" (click)="addKeywordFromList(kw)">
-              {{ kw }}
-              <button class="btn btn-sm btn-outline-primary float-end">Ekle</button>
-            </li>
-          </ul>
+        <div class="row g-3">
+          <!-- Birim seçimi -->
+          <div class="col-md-4">
+            <label class="form-label text-muted small">Birim</label>
+            <select class="form-select" [(ngModel)]="selectedUnit">
+              <option [ngValue]="null" disabled>Birim seçiniz</option>
+              <option *ngFor="let unit of units" [ngValue]="unit.code">
+                {{ unit.name }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Anahtar Kelime Ekleme -->
+          <div class="col-md-8">
+            <label class="form-label text-muted small">Anahtar Kelime</label>
+            <div class="input-group havale-input-group">
+              <span class="input-group-text bg-white">
+                <span class="material-symbols-outlined" style="font-size: 18px;">key</span>
+              </span>
+              <input
+                type="text"
+                class="form-control"
+                [(ngModel)]="keywordInput"
+                (keyup.enter)="addKeyword()"
+                placeholder="Örn: 29 Ekim kutlama mesajları"
+              />
+              <button class="btn btn-primary d-flex align-items-center gap-1" (click)="addKeyword()">
+                <span class="material-symbols-outlined" style="font-size: 18px;">add</span>
+                Ekle
+              </button>
+            </div>
+          </div>
         </div>
 
-        <!-- Sağ: Mevcut eklenen kelimeler -->
-        <div class="col-md-6 mb-3">
-          <h6>Mevcut Anahtar Kelimeler</h6>
-          <ul class="list-group list-group-hover">
-            <li class="list-group-item" *ngFor="let kw of keywords; index as i">
-              {{ kw }}
-              <button class="btn btn-sm btn-outline-danger float-end" (click)="removeKeyword(i)">Sil</button>
-            </li>
-          </ul>
+        <div *ngIf="selectedUnit" class="mt-3">
+          <span class="badge rounded-pill source-badge source-badge-evraktakip">
+            <span class="material-symbols-outlined">domain</span>
+            {{ getSelectedUnitName() }}
+          </span>
         </div>
+
+        <hr class="my-4" style="opacity: .1;">
+
+        <!-- Sol ve Sağ Listeler -->
+        <div class="row havale-lists">
+          <!-- Sol: Ekleme yapılabilecek örnek kelimeler -->
+          <div class="col-md-6 mb-3">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <h6 class="d-flex align-items-center gap-2 mb-0">
+                <span class="material-symbols-outlined text-warning" style="font-size: 18px;">lightbulb</span>
+                Önerilen Anahtar Kelimeler
+              </h6>
+              <span class="badge rounded-pill bg-light text-muted border">{{ availableKeywords.length }}</span>
+            </div>
+            <ul class="list-group list-group-hover" *ngIf="availableKeywords.length; else noAvailable">
+              <li class="list-group-item" *ngFor="let kw of availableKeywords" (click)="addKeywordFromList(kw)">
+                <span class="d-flex align-items-center gap-2">
+                  <span class="material-symbols-outlined text-muted" style="font-size: 18px;">tag</span>
+                  {{ kw }}
+                </span>
+                <button class="btn btn-sm btn-outline-primary">Ekle</button>
+              </li>
+            </ul>
+            <ng-template #noAvailable>
+              <div class="text-center text-muted py-4">
+                <span class="material-symbols-outlined d-block mb-1" style="font-size: 28px;">inbox</span>
+                Önerilecek anahtar kelime bulunmuyor.
+              </div>
+            </ng-template>
+          </div>
+
+          <!-- Sağ: Mevcut eklenen kelimeler -->
+          <div class="col-md-6 mb-3">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <h6 class="d-flex align-items-center gap-2 mb-0">
+                <span class="material-symbols-outlined text-success" style="font-size: 18px;">playlist_add_check</span>
+                Mevcut Anahtar Kelimeler
+              </h6>
+              <span class="badge rounded-pill bg-light text-muted border">{{ keywords.length }}</span>
+            </div>
+            <ul class="list-group list-group-hover" *ngIf="keywords.length; else noKeywords">
+              <li class="list-group-item" *ngFor="let kw of keywords; index as i">
+                <span class="d-flex align-items-center gap-2">
+                  <span class="material-symbols-outlined text-success" style="font-size: 18px;">check_circle</span>
+                  {{ kw }}
+                </span>
+                <button class="btn btn-sm btn-outline-danger" (click)="removeKeyword(i)">Sil</button>
+              </li>
+            </ul>
+            <ng-template #noKeywords>
+              <div class="text-center text-muted py-4">
+                <span class="material-symbols-outlined d-block mb-1" style="font-size: 28px;">playlist_add</span>
+                Henüz anahtar kelime eklenmedi.
+              </div>
+            </ng-template>
+          </div>
+        </div>
+
       </div>
 
       <!-- Kaydet / Temizle -->
-      <div class="d-flex gap-2 mt-3">
-        <button class="btn btn-success" [disabled]="!selectedUnit || !keywords.length" (click)="saveKeywords()">Kaydet</button>
-        <button class="btn btn-secondary" (click)="resetForm()">Temizle</button>
+      <div class="card-footer bg-white d-flex justify-content-end gap-2">
+        <button class="btn btn-secondary d-flex align-items-center gap-1" (click)="resetForm()">
+          <span class="material-symbols-outlined" style="font-size: 18px;">restart_alt</span>
+          Temizle
+        </button>
+        <button class="btn btn-success d-flex align-items-center gap-1" [disabled]="!selectedUnit || !keywords.length" (click)="saveKeywords()">
+          <span class="material-symbols-outlined" style="font-size: 18px;">save</span>
+          Kaydet
+        </button>
       </div>
-
     </div>
   </div>
-</div></div></div>
+
+  <!-- SAĞ BİLGİLENDİRME PANELİ -->
+  <div class="col-md-3 col-12">
+    <div class="card info-panel h-100">
+      <div class="card-header">
+        <h6 class="m-0">Bilgilendirme</h6>
+      </div>
+
+      <div class="card-body">
+        <div class="info-item mt-2">
+          <span class="material-symbols-outlined sec-icon">domain</span>
+          <div>
+            <strong>Birim Seçimi</strong>
+            <p class="mb-0">
+              Anahtar kelimelerin hangi birime yönlendirileceğini belirlemek için önce bir birim seçin.
+            </p>
+          </div>
+        </div>
+        <div class="detail-card-hr"></div>
+        <div class="info-item mt-4">
+          <span class="material-symbols-outlined sec-icon">key</span>
+          <div>
+            <strong>Anahtar Kelime</strong>
+            <p class="mb-0">
+              Gelen evrak konusunda geçen kelimeler, seçtiğiniz birime otomatik olarak havale edilmesini sağlar.
+            </p>
+          </div>
+        </div>
+        <div class="detail-card-hr"></div>
+        <div class="info-item mt-4">
+          <span class="material-symbols-outlined sec-icon">auto_awesome</span>
+          <div>
+            <strong>AI Destekli Eşleşme</strong>
+            <p class="mb-0">
+              Sistem, evrak içeriğini tanımlı kelimelerle karşılaştırarak en uygun birime yönlendirme yapar.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

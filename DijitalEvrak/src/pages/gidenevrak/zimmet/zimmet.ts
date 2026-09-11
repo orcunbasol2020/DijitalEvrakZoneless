@@ -182,6 +182,7 @@ export default class Zimmet implements OnInit {
         id: "",
         qrCode: doc.qrCode,
         userId: userId,
+        userType: 1,
         documentDirection: 2,
         isDeleted: false,
         createdDate: new Date()

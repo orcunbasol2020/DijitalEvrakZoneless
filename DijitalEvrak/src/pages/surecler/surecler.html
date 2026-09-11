@@ -6,21 +6,25 @@
 
 <div class="row">
     <div class="col-md-9 col-12">
-        <div class="card">
-            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-                <h4>Evrak Süreç Akışı</h4>
+        <div class="card h-100">
+            <div class="card-header dashboard-header d-flex align-items-center">
+                <span class="material-symbols-outlined me-2 text-info">conversion_path</span>
+                <h5 class="card-title mb-0 fw-semibold">Evrak Süreç Akışı</h5>
             </div>
-            <div class="card h-100ß">
-                <div class="card-body">
-                    <div class="activity-list">
-                             <div class="row">
-                                
-                            <app-transaction-flow
-                                [items]="transactions()">
-                            </app-transaction-flow>
-                     </div>
-
+            <div class="card-body">
+                <div class="activity-list">
+                    <div class="row" *ngIf="transactions().length; else noTransactions">
+                        <app-transaction-flow
+                            [items]="transactions()">
+                        </app-transaction-flow>
                     </div>
+                    <ng-template #noTransactions>
+                        <div class="text-center text-muted py-5">
+                            <span class="material-symbols-outlined d-block mb-2"
+                                style="font-size: 32px;">history_toggle_off</span>
+                            Bu evrak için henüz bir işlem kaydı bulunmuyor.
+                        </div>
+                    </ng-template>
                 </div>
             </div>
         </div>
@@ -28,69 +32,75 @@
 
        <div class="col-md-3 col-12"
         *ngIf="documentDetail() as doc">
-        <div class="card">
-            <!-- QR -->
-            <div class="d-flex justify-content-center mt-5">
+        <div class="card h-100">
+            <div class="card-header dashboard-header d-flex align-items-center">
+                <span class="material-symbols-outlined me-2 text-info">description</span>
+                <h5 class="card-title mb-0 fw-semibold">Evrak Bilgileri</h5>
+            </div>
+            <div class="card-body">
+
+                <!-- QR -->
                 @if (doc.id) {
-                <div>
+                <div class="text-center mb-4 p-3"
+                    style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;">
                     <qrcode [qrdata]="doc.qrCode!"
                         [width]="120"
                         [errorCorrectionLevel]="'H'"></qrcode>
-                    <div class="fw-semibold text-center"
-                        style="font-size: 16px; font-weight: 500;">
+                    <div class="fw-semibold mt-2"
+                        style="font-size: 16px;">
                         {{ doc.qrCode }}
                     </div>
                 </div>
                 }
-            </div>
-            <!-- BELGE ÖZETİ -->
-            <div class="card shadow-sm border-0 bg-white">
-                <div class="card-body">
 
-                    <div class="d-flex align-items-center mb-1 mt-1">
-                        <h5 class="fw-bold m-1">
-                            Evrak Bilgileri
-                        </h5>
+                <div class="row gy-3">
+
+                    <div class="col-12" *ngIf="doc.documentName">
+                        <div class="text-muted small">Dosya Adı</div>
+                        <div class="fw-semibold">
+                            {{ doc.documentName }}
+                        </div>
                     </div>
 
-                    <hr class="mt-2 mb-4" style="opacity: .15;">
-                    <div class="row gy-3">
-
-                        <div class="col-12">
-                            <div class="text-muted small">Konu</div>
-                            <div class="fw-semibold">
-                                {{ doc.subject }}
-                            </div>
+                    <div class="col-12">
+                        <div class="text-muted small">Konu</div>
+                        <div class="fw-semibold">
+                            {{ doc.subject || '-' }}
                         </div>
+                    </div>
 
-                        <div class="col-6">
-                            <div class="text-muted small">Belge Orjinal No</div>
-                            <div class="fw-semibold">
-                                {{ doc.orginalNo }}
-                            </div>
+                    <div class="col-6">
+                        <div class="text-muted small">Belge Orijinal No</div>
+                        <div class="fw-semibold">
+                            {{ doc.orginalNo || '-' }}
                         </div>
+                    </div>
 
-                        <div class="col-6">
-                            <div class="text-muted small">Tarih</div>
-                            <div class="fw-semibold">
-                                {{ doc.documentDate | date:'dd.MM.yyyy' }}
-                            </div>
+                    <div class="col-6">
+                        <div class="text-muted small">Tarih</div>
+                        <div class="fw-semibold">
+                            {{ doc.documentDate | date:'dd.MM.yyyy' }}
                         </div>
+                    </div>
 
-                        <div class="col-12 mb-5">
-                            <div class="text-muted small">Gizlilik
-                                Derecesi</div>
-
-                            <span class="badge rounded-pill px-3 py-2 mt-1"
-                                [ngClass]="securityDegreeStyle[doc.securityDegree]">
-                                {{ securityDegreeMap[doc.securityDegree] || '-'
-                                }}
-                            </span>
+                    <div class="col-6">
+                        <div class="text-muted small">Sayfa Sayısı</div>
+                        <div class="fw-semibold">
+                            {{ doc.pageCount ?? '-' }}
                         </div>
+                    </div>
 
+                    <div class="col-6">
+                        <div class="text-muted small mb-1">Gizlilik Derecesi</div>
+                        <span class="badge rounded-pill px-3 py-2"
+                            [ngClass]="securityDegreeStyle[doc.securityDegree]">
+                            {{ securityDegreeMap[doc.securityDegree] || '-'
+                            }}
+                        </span>
                     </div>
 
                 </div>
+
             </div>
         </div>
     </div>

@@ -1,4 +1,5 @@
 import { Component, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { MapWorld } from '../../map-world/map-world';
 import { PendingChart } from '../pending-chart/pending-chart';
 import { CenterChart } from '../center-chart/center-chart';
@@ -10,6 +11,7 @@ import { Currentdocument } from '../currentdocument/currentdocument';
 @Component({
   imports: [
     CommonModule,
+    RouterLink,
     MapWorld,
     PendingChart,
     CenterChart,

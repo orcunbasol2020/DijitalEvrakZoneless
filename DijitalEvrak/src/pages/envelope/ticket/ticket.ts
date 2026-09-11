@@ -48,19 +48,17 @@ export default class Ticket implements OnInit {
   @ViewChild('qrInput') qrInput!: ElementRef<HTMLInputElement>;
   documents: EnvelopeDocumentModel[] = [];
   selectedEnvelope: EnvelopeModel | null = null;
+  // Zarflar listesinden "Detaya Git" ile gelindiğinde true olur;
+  // yeni etiket oluşturma formu yerine mevcut zarfın özeti gösterilir.
+  isViewMode = false;
 
 
   qrActive = false;      // QR okutma aktif mi
-  qrHover = false;       // Hover etkisi
 
-  toggleQr() {
-    this.qrActive = !this.qrActive;
-
-    if (this.qrActive) {
-      this.qrInput.nativeElement.focus();
-    } else {
-      this.qrInput.nativeElement.blur();
-    }
+  // Evrak Ekle paneli göründüğü an imleç doğrudan QR alanında olsun diye
+  // *ngIf render'ının tamamlanmasını bekleyip odaklanıyoruz.
+  private focusQrInputSoon() {
+    setTimeout(() => this.qrInput?.nativeElement.focus());
   }
 
   activateQr() {
@@ -86,7 +84,7 @@ export default class Ticket implements OnInit {
       // EnvelopeId zaten seçili veya başka bir değişkende tutuluyor olmalı
       const envelopeId = this.selectedEnvelope?.id;
       if (!envelopeId) {
-        console.warn("Zarf seçili değil!");
+        this.#toast.showToast('Uyarı', 'Önce bir zarf oluşturun ya da seçin', 'warning');
         return;
       }
 
@@ -108,6 +106,12 @@ export default class Ticket implements OnInit {
       return;
     }
 
+    const createdUserId = this.user()?.id;
+    if (!createdUserId) {
+      this.#toast.showToast('Hata', 'Kullanıcı bilgisi alınamadı', 'error');
+      return;
+    }
+
     try {
 
       this.loading = true;
@@ -116,17 +120,20 @@ export default class Ticket implements OnInit {
       const newEnvelopeDoc: EnvelopeDocumentModel = {
         id: '',
         envelopeId: envelopeId,
+        documentId: '',
         qrCode: qrCode,
+        createdUserId: createdUserId,
       };
 
       const createdDoc = await firstValueFrom(
         this.envelopeDocumentService.createEnvelopeDocument(newEnvelopeDoc)
       );
 
-      //console.log(createdDoc.data);
       this.documents.push(createdDoc.data);
+      this.#toast.showToast('Başarılı', 'Evrak zarfa eklendi', 'success');
 
     } catch (error) {
+      this.#toast.showToast('Hata', 'Evrak eklenemedi. QR kodu kontrol ediniz.', 'error');
       console.error("Evrak ekleme hatası:", error);
     } finally {
 
@@ -147,6 +154,56 @@ export default class Ticket implements OnInit {
 
   ngOnInit(): void {
     this.loadExternalInstitutions();
+
+    const envelopeId = this.envelopeService.currentEnvelopeId;
+    if (envelopeId) {
+      this.loadEnvelopeDetail(envelopeId);
+      this.envelopeService.clearSelectedEnvelope();
+    }
+  }
+
+  private loadEnvelopeDetail(envelopeId: string) {
+    this.envelopeService.getEnvelopeById(envelopeId).subscribe({
+      next: (res: EnvelopeModel) => {
+        if (res) {
+          this.previewEnvelope = res;
+          this.selectedEnvelope = res;
+          this.isViewMode = true;
+          this.cdr.markForCheck();
+          this.focusQrInputSoon();
+          this.loadEnvelopeDocuments(envelopeId);
+
+          // GetById uçları, GetAll'ın aksine kurum adını (externalInstitutionName)
+          // join'lemeden dönüyor; yalnızca id geldiği için burada ayrıca çekiyoruz.
+          if (!res.externalInstitutionName && res.externalInstitutionId) {
+            this.externalInstitutionService.getExternalInstitutionById(res.externalInstitutionId).subscribe({
+              next: (institution) => {
+                if (this.previewEnvelope === res) {
+                  this.previewEnvelope = { ...res, externalInstitutionName: institution.name };
+                  this.cdr.markForCheck();
+                }
+              }
+            });
+          }
+        }
+      },
+      error: (err) => {
+        this.#toast.showToast('Hata', 'Zarf bilgileri yüklenemedi', 'error');
+        console.error(err);
+      }
+    });
+  }
+
+  private async loadEnvelopeDocuments(envelopeId: string) {
+    this.loading = true;
+    this.cdr.markForCheck();
+
+    try {
+      this.documents = await this.envelopeDocumentService.getEnvelopeDocumentsByEnvelopeId(envelopeId);
+    } finally {
+      this.loading = false;
+      this.cdr.markForCheck();
+    }
   }
 
   private loadExternalInstitutions() {
@@ -183,6 +240,7 @@ export default class Ticket implements OnInit {
           this.previewEnvelope = res;
           this.selectedEnvelope = res;
           this.cdr.markForCheck();
+          this.focusQrInputSoon();
           this.#toast.showToast('Bilgi', 'Etiket Oluşturuldu', 'success');
 
           // Formu temizleme

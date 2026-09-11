@@ -73,6 +73,14 @@ export default class Zimmet implements OnInit, OnDestroy {
       .filter(x => !x.isDeleted && x.isActive)
   );
 
+  // Aktif zimmet zaten giriş yapan kullanıcının üzerindeyse
+  // "Zimmeti Devir Al" seçeneği anlamsız olduğundan gizlenir.
+  readonly isActiveOnCurrentUser = computed(() => {
+    const currentUserId = this.user()?.id;
+    if (!currentUserId) return false;
+    return this.allocations().some(a => a.isActive && a.userId === currentUserId);
+  });
+
   ngOnInit() {
     this.id = this.incomingDocumentService.currentZimmetDocumentId;
 
@@ -155,6 +163,7 @@ export default class Zimmet implements OnInit, OnDestroy {
       userId: userId,
       createdUserId: createdUserId,
       status: status,
+      userType: 1,
     }).subscribe({
       next: () => {
         this.#toast.showToast('Başarılı', 'Zimmetleme tamamlandı', 'success');

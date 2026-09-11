@@ -8,6 +8,7 @@ import GenericModel from '../../../../components/generic-model/generic-model';
 import { CommonModule } from '@angular/common';
 import { EnvelopeModel } from '../../../models/envelope.model';
 import { ZimmetStateService } from '../../../services/zimmet-state-service';
+import { EnvelopeService } from '../../../services/envelope';
 
 
 @Component({
@@ -23,10 +24,15 @@ import { ZimmetStateService } from '../../../services/zimmet-state-service';
 })
 export default class Envelopes {
   readonly result = httpResource<EnvelopeModel[]>(() => "api/Envelopes/GetAll");
-  readonly data = computed(() => this.result.value() ?? []);
+  readonly data = computed(() =>
+    [...(this.result.value() ?? [])].sort(
+      (a, b) => new Date(b.createdDate ?? 0).getTime() - new Date(a.createdDate ?? 0).getTime()
+    )
+  );
   readonly loading = computed(() => this.result.isLoading());
   readonly #toast = inject(FlexiToastService);
   readonly #http = inject(HttpClient);
+  readonly #envelopeService = inject(EnvelopeService);
   // Modal veya filtre açma durumu
   showFilters = false;
 
@@ -37,6 +43,11 @@ export default class Envelopes {
   goToGidenZimmet(envelopeId: string) {
     this.state.setEnvelopeId(envelopeId);
     this.router.navigate(['/gidenzimmet']);
+  }
+
+  goToDetail(envelopeId: string) {
+    this.#envelopeService.setSelectedEnvelope(envelopeId);
+    this.router.navigate(['/ticket']);
   }
   deleteEnvelope(id: string) {
     this.#http.delete(`api/envelopes/${id}`).subscribe(() => {

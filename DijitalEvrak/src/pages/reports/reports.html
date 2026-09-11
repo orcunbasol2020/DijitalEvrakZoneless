@@ -1,0 +1,182 @@
+<app-generic pageTitle="Raporlar" [breadcrumbs]="[
+  {title: 'Raporlar', url: 'reports', icon: 'monitoring'}
+  ]">
+</app-generic>
+
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <div class="modern-tabs mb-0">
+    <div class="tab-item" [class.active]="selectedPeriod() === '7g'" (click)="setPeriod('7g')">Son 7 Gün</div>
+    <div class="tab-item" [class.active]="selectedPeriod() === '30g'" (click)="setPeriod('30g')">Son 30 Gün</div>
+    <div class="tab-item" [class.active]="selectedPeriod() === '90g'" (click)="setPeriod('90g')">Son 90 Gün</div>
+  </div>
+  <div class="d-flex header-actions">
+    <button class="btn btn-sm btn-outline-secondary me-2">
+      <span class="material-symbols-outlined">file_download</span> Dışa Aktar
+    </button>
+    <button class="btn btn-sm btn-outline-secondary">
+      <span class="material-symbols-outlined" title="Verileri Yenile">refresh</span>
+    </button>
+  </div>
+</div>
+
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-md-6 col-lg-3">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <h6 class="card-subtitle text-muted">Toplam Evrak</h6>
+            <h4 class="card-title mt-2">39.900</h4>
+            <div class="stat-change positive">
+              <span class="material-symbols-outlined">trending_up</span>
+              <span>+9.4%</span>
+            </div>
+          </div>
+          <div class="stat-icon bg-primary-light">
+            <span class="material-symbols-outlined text-primary" style="font-size:21px">folder_open</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-lg-3">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <h6 class="card-subtitle text-muted">Ortalama İşlem Süresi</h6>
+            <h4 class="card-title mt-2">1g 4s</h4>
+            <div class="stat-change positive">
+              <span class="material-symbols-outlined">trending_down</span>
+              <span>-11.2%</span>
+            </div>
+          </div>
+          <div class="stat-icon bg-success-light">
+            <span class="material-symbols-outlined text-success" style="font-size:21px">schedule</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-lg-3">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <h6 class="card-subtitle text-muted">Bekleyen Evrak</h6>
+            <h4 class="card-title mt-2">105</h4>
+            <div class="stat-change negative">
+              <span class="material-symbols-outlined">trending_up</span>
+              <span>+3.8%</span>
+            </div>
+          </div>
+          <div class="stat-icon bg-warning-light">
+            <span class="material-symbols-outlined text-warning" style="font-size:21px">hourglass</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-lg-3">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <h6 class="card-subtitle text-muted">Oluşturulan Rapor</h6>
+            <h4 class="card-title mt-2">128</h4>
+            <div class="stat-change positive">
+              <span class="material-symbols-outlined">trending_up</span>
+              <span>+15.7%</span>
+            </div>
+          </div>
+          <div class="stat-icon bg-info-light">
+            <span class="material-symbols-outlined text-info" style="font-size:21px">summarize</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-3 mb-4">
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Evrak Trendi (Gelen / Giden)</h5>
+      </div>
+      <div class="card-body">
+        <div #trendChart style="width: 100%; height: 320px;"></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-3">
+    <div class="card h-100">
+      <div class="card-header">
+        <h5 class="card-title mb-0">Evrak Durum Dağılımı</h5>
+      </div>
+      <div class="card-body">
+        <div #statusChart style="width: 100%; height: 320px;"></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-3">
+    <div class="card h-100">
+      <div class="card-header">
+        <h5 class="card-title mb-0">En Çok Bekleyen Birimler</h5>
+      </div>
+      <div class="card-body">
+        <div #departmentChart style="width: 100%; height: 320px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Reports Table -->
+<div class="row g-3 mb-4">
+  <div class="col-12">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Son Oluşturulan Raporlar</h5>
+        <a href="#" class="btn btn-sm btn-link">Tümü</a>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table customers-table mb-0">
+            <thead>
+              <tr>
+                <td scope="col" class="grid-header">Rapor Adı</td>
+                <td scope="col" class="grid-header">Kategori</td>
+                <td scope="col" class="grid-header">Oluşturan</td>
+                <td scope="col" class="grid-header">Tarih</td>
+                <td scope="col" class="grid-header">Format</td>
+                <td scope="col" class="grid-header">Durum</td>
+                <td scope="col" class="grid-header" style="width: 60px;"></td>
+              </tr>
+            </thead>
+            <tbody>
+              @for (report of recentReports; track report.name) {
+                <tr>
+                  <td>{{ report.name }}</td>
+                  <td>{{ report.type }}</td>
+                  <td>{{ report.createdBy }}</td>
+                  <td>{{ report.date }}</td>
+                  <td>{{ report.format }}</td>
+                  <td>
+                    <span class="badge" [ngClass]="statusBadgeClass[report.status]">{{ report.status }}</span>
+                  </td>
+                  <td>
+                    <button class="btn btn-sm btn-outline-secondary" title="İndir">
+                      <span class="material-symbols-outlined" style="font-size:16px;">download</span>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

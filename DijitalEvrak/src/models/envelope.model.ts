@@ -8,4 +8,6 @@ export interface EnvelopeModel {
   unitName?: string;
   address?: string;
   documentCount:number;
+  createdDate?: string;
+  status?: number;
 }

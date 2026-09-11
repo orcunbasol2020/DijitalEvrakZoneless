@@ -11,13 +11,18 @@
     <!-- SOL PANEL -->
     <div class="col-md-4 col-12">
         <div class="card page-wrapper">
-            <div class="card-body">
-                <h5 class="mb-4">Etiket Oluştur</h5>
-                <hr class="my-3">
+            <div class="card-header dashboard-header d-flex align-items-center">
+                <span class="material-symbols-outlined me-2 text-info">edit_document</span>
+                <h5 class="card-title mb-0 fw-semibold">
+                    {{ isViewMode ? 'Zarf Bilgileri' : 'Etiket Oluştur' }}
+                </h5>
+            </div>
 
+            <!-- YENİ ETİKET FORMU -->
+            <div class="card-body" *ngIf="!isViewMode">
                 <!-- Gideceği Kurum -->
                 <div class="form-group mb-3">
-                    <label>Gideceği Kurum</label>
+                    <label class="form-label text-muted small">Gideceği Kurum</label>
                     <app-simple-autocomplete
                         [control]="externalInstitutionControl"
                         [options]="externalInstitutions"
@@ -27,7 +32,7 @@
 
                 <!-- Birim Adı -->
                 <div class="form-group mb-3">
-                    <label>Birim Adı</label>
+                    <label class="form-label text-muted small">Birim Adı</label>
                     <input
                         type="text"
                         class="form-control"
@@ -37,7 +42,7 @@
 
                 <!-- Adres -->
                 <div class="form-group mb-3">
-                    <label>Adres</label>
+                    <label class="form-label text-muted small">Adres</label>
                     <textarea
                         class="form-control"
                         rows="2"
@@ -57,10 +62,46 @@
                 <!-- Kaydet -->
                 <div class="d-flex justify-content-end">
                     <button
-                        class="qr-manual-btn px-4"
+                        class="qr-manual-btn px-4 d-flex align-items-center gap-1"
                         (click)="createEnvelope()">
+                        <span class="material-symbols-outlined" style="font-size: 18px;">add_box</span>
                         Etiket Oluştur
                     </button>
+                </div>
+            </div>
+
+            <!-- MEVCUT ZARF ÖZETİ -->
+            <div class="card-body" *ngIf="isViewMode && previewEnvelope">
+                <div class="info-item zarf-info-row mt-2">
+                    <span class="material-symbols-outlined sec-icon">domain</span>
+                    <div>
+                        <strong>Gideceği Kurum</strong>
+                        <p class="mb-0">{{ previewEnvelope.externalInstitutionName || '-' }}</p>
+                    </div>
+                </div>
+                <div class="detail-card-hr"></div>
+                <div class="info-item zarf-info-row mt-4">
+                    <span class="material-symbols-outlined sec-icon">apartment</span>
+                    <div>
+                        <strong>Birim Adı</strong>
+                        <p class="mb-0">{{ previewEnvelope.unitName || '-' }}</p>
+                    </div>
+                </div>
+                <div class="detail-card-hr"></div>
+                <div class="info-item zarf-info-row mt-4">
+                    <span class="material-symbols-outlined sec-icon">location_on</span>
+                    <div>
+                        <strong>Adres</strong>
+                        <p class="mb-0">{{ previewEnvelope.address || '-' }}</p>
+                    </div>
+                </div>
+                <div class="detail-card-hr"></div>
+                <div class="info-item zarf-info-row mt-4">
+                    <span class="material-symbols-outlined sec-icon">tag</span>
+                    <div>
+                        <strong>Etiket No</strong>
+                        <p class="mb-0">{{ previewEnvelope.envelopeNo || '-' }}</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -69,13 +110,14 @@
     <!-- SAĞ PANEL -->
     <div class="col-md-4 col-12">
         <div class="card page-wrapper">
-                <div class="card-header">
-                <h4 class="m-0">Önizleme</h4>
+            <div class="card-header dashboard-header d-flex align-items-center">
+                <span class="material-symbols-outlined me-2 text-info">visibility</span>
+                <h5 class="card-title mb-0 fw-semibold">Önizleme</h5>
             </div>
             <div class="card-body" [ngClass]="{'gradient-bg': previewEnvelope}">
                 <div
                     class="position-relative d-flex justify-content-center align-items-center mt-3">
-                    <div *ngIf="previewEnvelope">
+                    <div *ngIf="previewEnvelope; else noPreview">
                         <div class="envelope-label" id="print-area">
                             <div class="label-box sender-box">
                                 <div class="label-title">Gönderen</div>
@@ -122,14 +164,19 @@
 
                         </div>
                         <div class="text-end mt-3 me-3">
-                            <button class="qr-manual-btn2"
+                            <button class="qr-manual-btn2 d-flex align-items-center gap-1 ms-auto"
                                 (click)="directPrint()">
-                                <span
-                                    class="material-symbols-outlined me-1 mb-1 mt-1">
-                                    print </span> Yazdır
+                                <span class="material-symbols-outlined" style="font-size: 18px;">print</span>
+                                Yazdır
                             </button>
                         </div>
                     </div>
+                    <ng-template #noPreview>
+                        <div class="text-center text-muted py-5">
+                            <span class="material-symbols-outlined d-block mb-2" style="font-size: 32px;">local_post_office</span>
+                            Etiket oluşturduğunuzda önizleme burada görünecek.
+                        </div>
+                    </ng-template>
                 </div>
             </div>
         </div>
@@ -138,38 +185,43 @@
     <!-- ÜÇÜNCÜ PANEL -->
     <div class="col-md-4 col-12">
         <div class="card page-wrapper">
-            <div class="card-body" *ngIf="previewEnvelope">
-                <h5 class="mb-4">Evrak Ekle</h5>
-                <hr class="my-3">
-                <div
-                    class="alert d-flex align-items-center justify-content-between alert-qr"
-                    [class.active]="qrActive"
-                    [class.alert-info]="!qrActive"
-                    [class.alert-success]="qrActive"
-                    (click)="toggleQr()"
-                    style="cursor: pointer; position: relative;">
-
-                    <div class="d-flex align-items-center">
-                        <span
-                            class="material-symbols-outlined labelQrIcon me-2">
-                            {{ qrActive ? 'qr_code_2' : 'qr_code_scanner' }}
+            <div class="card-header dashboard-header d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <span class="material-symbols-outlined me-2 text-info">inventory_2</span>
+                    <h5 class="card-title mb-0 fw-semibold">Evrak Ekle</h5>
+                </div>
+                <span class="badge rounded-pill bg-light text-muted border" *ngIf="documents.length">
+                    {{ documents.length }}
+                </span>
+            </div>
+            <div class="card-body" *ngIf="previewEnvelope; else noEnvelope">
+                <div class="mb-3">
+                    <label class="form-label text-muted small d-flex align-items-center justify-content-between">
+                        <span>QR Kod ile Evrak Ekle</span>
+                        <span class="badge rounded-pill d-inline-flex align-items-center gap-1 px-2 qr-ready-badge"
+                            [ngClass]="qrActive ? 'qr-ready-active' : 'qr-ready-idle'">
+                            <span class="qr-ready-dot" *ngIf="qrActive"></span>
+                            <span>{{ qrActive ? 'Okumaya Hazır' : 'Pasif' }}</span>
                         </span>
-                        <span>
-                            {{ qrActive ? 'QR kod okuma aktif' :
-                            'QR kod okumayı aktifleştir' }}
+                    </label>
+                    <div class="input-group havale-input-group">
+                        <span class="input-group-text bg-white">
+                            <span class="material-symbols-outlined" style="font-size: 18px;">qr_code_scanner</span>
                         </span>
-                    </div>
-
-                    <input type="checkbox" [checked]="qrActive" readonly
-                        style="margin-left:10px;">
-                    <div> <input
+                        <input
                             #qrInput
                             type="text"
                             class="form-control"
+                            placeholder="QR kodu okutun ya da numarayı yazıp Enter'a basın"
                             (keydown)="onQrKeydown($event)"
-                            autocomplete="off"></div>
+                            (focus)="qrActive = true"
+                            (blur)="qrActive = false"
+                            autocomplete="off">
+                    </div>
+                    <div class="form-text">
+                        Kutuya tıklayıp okuyucu ile okutabilir ya da numarayı elle yazıp Enter'a basabilirsiniz.
+                    </div>
                 </div>
-                <!-- Gizli input qr-hidden-input-->
 
                 <div class="table-wrapper">
                     <div class="table-container">
@@ -199,7 +251,12 @@
                                     </td>
                                 </tr>
                             </tbody>
-                        </table></div>
+                        </table>
+                        <div class="text-center text-muted py-5" *ngIf="documents.length === 0 && !loading">
+                            <span class="material-symbols-outlined d-block mb-2" style="font-size: 32px;">qr_code_scanner</span>
+                            Henüz evrak eklenmedi. QR kod okutarak ekleyebilirsiniz.
+                        </div>
+                    </div>
 
                     <div class="table-loading" *ngIf="loading">
                         <div class="spinner-border text-primary"></div>
@@ -207,6 +264,15 @@
 
                 </div>
             </div>
+            <ng-template #noEnvelope>
+                <div class="card-body">
+                    <div class="text-center text-muted py-5">
+                        <span class="material-symbols-outlined d-block mb-2" style="font-size: 32px;">inventory_2</span>
+                        Evrak eklemek için önce bir etiket oluşturun ya da
+                        Zarflar listesinden bir zarfın detayına gidin.
+                    </div>
+                </div>
+            </ng-template>
         </div>
     </div>
 </div>

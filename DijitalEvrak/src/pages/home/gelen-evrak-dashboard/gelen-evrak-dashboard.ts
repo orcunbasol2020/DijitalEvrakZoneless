@@ -6,12 +6,22 @@ import { IncomingDocumentLast30DaysStats } from '../../../models/dashboard/Incom
 import { IncomingDocumentPendingScanStats } from '../../../models/dashboard/IncomingDocumentPendingScanStats.model';
 import { IncomingDocumentOcrQueueStats } from '../../../models/dashboard/IncomingDocumentOcrQueueStats.model';
 import { FlexiToastService } from 'flexi-toast';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+
+interface RecentIncomingDocument {
+  id: string;
+  documentNo: string;
+  institution: string;
+  date: Date;
+  custodian: string;
+  status: 'zimmet' | 'onkayit' | 'ocr' | 'yayinlandi';
+}
 
 @Component({
   imports: [
     DecimalPipe,
-    CommonModule
+    CommonModule,
+    RouterLink
   ],
   selector: 'app-gelen-evrak-dashboard',
   standalone: true,
@@ -98,6 +108,57 @@ export default class GelenEvrakDashboard {
 
   goToIncoming() {
     this.router.navigate(['/evrakkayit']);
+  }
+
+  // Son Gelen Evraklar
+  private readonly statusConfig: Record<RecentIncomingDocument['status'], { label: string; badgeClass: string; icon: string }> = {
+    zimmet: { label: 'Zimmet', badgeClass: 'bg-warning-subtle text-dark border border-warning-subtle', icon: 'inventory_2' },
+    onkayit: { label: 'Ön Kayıt', badgeClass: 'bg-secondary-subtle text-dark border border-secondary-subtle', icon: 'draft' },
+    ocr: { label: 'OCR', badgeClass: 'bg-info-subtle text-dark border border-info-subtle', icon: 'document_scanner' },
+    yayinlandi: { label: 'Yayınlandı', badgeClass: 'bg-success-subtle text-dark border border-success-subtle', icon: 'check_circle' },
+  };
+
+  private readonly avatarPalette = ['avatar-indigo', 'avatar-teal', 'avatar-orange', 'avatar-rose', 'avatar-blue'];
+
+  recentDocumentsSignal = signal<RecentIncomingDocument[]>([
+    { id: '1', documentNo: '2026/459763/19', institution: 'Emniyet Genel Müdürlüğü', date: new Date(2025, 10, 18, 14, 25), custodian: 'Murat Kale', status: 'zimmet' },
+    { id: '2', documentNo: '2026/353646/11', institution: 'Türkiye Noterler Birliği', date: new Date(2025, 10, 17, 17, 26), custodian: 'Murat Kale', status: 'onkayit' },
+    { id: '3', documentNo: '2026/561235/9', institution: 'Rusya Federasyonu, Moskova BE', date: new Date(2025, 10, 17, 12, 26), custodian: 'Bülent Arslan', status: 'zimmet' },
+    { id: '4', documentNo: '2026/862442/4', institution: 'İçişleri Bakanlığı', date: new Date(2025, 10, 16, 17, 18), custodian: 'Oral Akçakoyun', status: 'ocr' },
+    { id: '5', documentNo: '2026/408672/14', institution: 'Adalet Bakanlığı', date: new Date(2025, 10, 16, 17, 16), custodian: 'Bülent Arslan', status: 'yayinlandi' },
+  ]);
+
+  getStatusConfig(status: RecentIncomingDocument['status']) {
+    return this.statusConfig[status];
+  }
+
+  getInitials(name: string): string {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return '?';
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+
+  getAvatarColorClass(name: string): string {
+    const sum = [...name].reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+    return this.avatarPalette[sum % this.avatarPalette.length];
+  }
+
+  getRelativeDateLabel(date: Date): string {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const diffDays = Math.round((startOfToday.getTime() - startOfDate.getTime()) / 86400000);
+    const time = date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+
+    if (diffDays === 0) return `Bugün, ${time}`;
+    if (diffDays === 1) return `Dün, ${time}`;
+    if (diffDays > 1 && diffDays < 7) return `${diffDays} gün önce`;
+    return date.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+
+  getFullDateTime(date: Date): string {
+    return date.toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
 
 row1 = { mailSent: false, loading: false };
