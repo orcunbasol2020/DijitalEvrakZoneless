@@ -1,11 +1,11 @@
-import { HttpClient, httpResource } from '@angular/common/http';
+import { httpResource } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, ViewEncapsulation } from '@angular/core';
 import { FlexiGridModule } from 'flexi-grid';
 import { RouterLink } from '@angular/router';
-import { FlexiToastService } from 'flexi-toast';
 import { FormsModule } from '@angular/forms';
 import { NgClass } from '@angular/common';
 import GenericModel from '../../../components/generic-model/generic-model';
+import { UserService } from '../../services/user';
 
 export interface UserModel{
   id?: string;
@@ -20,6 +20,7 @@ export interface UserModel{
   isDeleted: boolean;
   createDate: string;
   updateDate: string;
+  password?: string;
 }
 
 export const initialUser:UserModel = {
@@ -54,8 +55,7 @@ export default class Users {
   readonly loading = computed(() => this.result.isLoading());
   readonly activeCount = computed(() => this.data().filter(u => u.isActive).length);
   showFilters = false;
-  readonly #toast = inject(FlexiToastService);
-  readonly #http = inject(HttpClient);
+  readonly #userService = inject(UserService);
 
   private readonly departmentBadgeClasses: Record<string, string> = {
     'BK': 'badge-soft-info',
@@ -66,16 +66,14 @@ export default class Users {
     return this.departmentBadgeClasses[shortName] ?? 'badge-soft-secondary';
   }
 
-  delete(id: string){
-    this.#toast.showSwal("Sil","Kullanıcı silmek istiyor musunuz?","Sil",() => {
-      this.#http.delete(`api/users/${id}`).subscribe(()=> {
-        this.result.reload();
-      })
-    })
+  changeIsAdmin(data:UserModel){
+    this.#userService.update(data as Partial<UserModel> & { id: string }).subscribe(() => {
+      this.result.reload();
+    });
   }
 
-  changeIsAdmin(data:UserModel){
-    this.#http.put(`api/users/${data.id}`,data).subscribe(() => {
+  changeIsActive(data:UserModel){
+    this.#userService.update(data as Partial<UserModel> & { id: string }).subscribe(() => {
       this.result.reload();
     });
   }

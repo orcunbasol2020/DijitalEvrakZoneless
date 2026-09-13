@@ -1,10 +1,11 @@
 import { Component, inject, signal, computed, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { RoleService } from '../../../../services/role-service';
 import { SearchMenuPipe } from '../../../../pipes/search-menu-pipe';
 import { NavigationModel } from '../../../../navigation';
+import { Common } from '../../../../services/common';
 
 @Component({
   selector: 'app-sidebar',
@@ -17,6 +18,8 @@ import { NavigationModel } from '../../../../navigation';
 export class Sidebar {
 
   private roleService = inject(RoleService);
+  private common = inject(Common);
+  private router = inject(Router);
 
   search = signal<string>("");
 
@@ -63,6 +66,11 @@ export class Sidebar {
     }
 
     return result;
+  }
+
+  logout(): void {
+    this.common.logout();
+    this.router.navigateByUrl('/login');
   }
 
 }

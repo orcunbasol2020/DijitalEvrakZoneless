@@ -118,8 +118,6 @@ export default class GelenEvrakDashboard {
     yayinlandi: { label: 'Yayınlandı', badgeClass: 'doc-status doc-status-yayinlandi', icon: 'check_circle' },
   };
 
-  private readonly avatarPalette = ['avatar-indigo', 'avatar-teal', 'avatar-orange', 'avatar-rose', 'avatar-blue'];
-
   recentDocumentsSignal = signal<RecentIncomingDocument[]>([
     { id: '1', documentNo: '2026/459763/19', institution: 'Emniyet Genel Müdürlüğü', date: new Date(2025, 10, 18, 14, 25), custodian: 'Murat Kale', status: 'zimmet' },
     { id: '2', documentNo: '2026/353646/11', institution: 'Türkiye Noterler Birliği', date: new Date(2025, 10, 17, 17, 26), custodian: 'Murat Kale', status: 'onkayit' },
@@ -130,18 +128,6 @@ export default class GelenEvrakDashboard {
 
   getStatusConfig(status: RecentIncomingDocument['status']) {
     return this.statusConfig[status];
-  }
-
-  getInitials(name: string): string {
-    const parts = name.trim().split(/\s+/).filter(Boolean);
-    if (parts.length === 0) return '?';
-    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  }
-
-  getAvatarColorClass(name: string): string {
-    const sum = [...name].reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
-    return this.avatarPalette[sum % this.avatarPalette.length];
   }
 
   getRelativeDateLabel(date: Date): string {

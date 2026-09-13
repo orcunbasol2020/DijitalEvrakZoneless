@@ -178,6 +178,11 @@ export default class Layouts {
     }
   });
 
+logout(): void {
+  this.#common.logout();
+  this.router.navigateByUrl('/login');
+}
+
 public goToPendingScanList() {
   this.#incomingDocumentService.setIncomingDocumentSearchType('pending');
   this.router.navigateByUrl('/scanlist', { skipLocationChange: true }).then(() => {

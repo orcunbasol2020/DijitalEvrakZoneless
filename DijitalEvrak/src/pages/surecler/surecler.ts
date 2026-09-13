@@ -63,7 +63,7 @@ export default class Surecler implements OnInit {
   loadTransactions(docId: string) {
     this.documentTransactionService.getTransactionsByDocumentId(docId).subscribe({
       next: (res) => {
-        this.transactions.set([...res].reverse());
+        this.transactions.set([...res].reverse().filter(t => t.transactionType !== 3));
       },
       error: (err) => console.error(err)
     });

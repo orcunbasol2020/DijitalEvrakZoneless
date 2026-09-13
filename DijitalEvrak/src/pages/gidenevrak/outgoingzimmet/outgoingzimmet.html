@@ -2,6 +2,7 @@
     [breadcrumbs]="[{title: 'Giden Evraklar', url: 'gidenevrak/outgoing', icon:''}, {title: 'Zimmetleme', url: '', icon:''}]">
 </app-generic>
 
+<div class="outgoingzimmet-page">
 <div class="row">
     <div class="col-md-5 col-12">
         <div class="card page-wrapper">
@@ -109,12 +110,11 @@
 
                     <div class="mb-2" *ngIf="mode() === 'external'">
                         <label class="form-label text-muted mb-1" style="font-size: 0.85rem;">Kurum</label>
-                        <select class="form-select form-select-sm"
-                            [ngModel]="selectedInstitutionId()"
-                            (ngModelChange)="selectInstitution($event)">
-                            <option [ngValue]="null">Kurum seçiniz</option>
-                            <option *ngFor="let inst of institutionList()" [ngValue]="inst.id">{{ inst.name }}</option>
-                        </select>
+                        <app-simple-autocomplete
+                            [control]="institutionControl"
+                            [options]="institutionOptions()"
+                            placeholder="Kurum adıyla arayın...">
+                        </app-simple-autocomplete>
                     </div>
 
                     <div class="input-group input-group-sm mb-2" *ngIf="currentPersonList().length > 5">
@@ -214,4 +214,5 @@
             </button>
         </div>
     </div>
+</div>
 </div>

@@ -162,14 +162,12 @@
                         </thead>
                         <tbody>
                             <tr class="clickable-row" tabindex="0"
+                                title="Evrak detayına git"
                                 *ngFor="let doc of recentDocumentsSignal()"
                                 (click)="goDetail(doc.id)"
                                 (keydown.enter)="goDetail(doc.id)">
                                 <td>
                                     <div class="d-flex align-items-center gap-2 institution-cell" [title]="doc.institution">
-                                        <span class="avatar-circle" [ngClass]="getAvatarColorClass(doc.institution)">
-                                            {{ getInitials(doc.institution) }}
-                                        </span>
                                         <span class="institution-name text-truncate">{{ doc.institution }}</span>
                                     </div>
                                 </td>
@@ -394,9 +392,11 @@
                         </div>
                         <div class="activity-content">
                             <div class="activity-title">Ön Kayıt</div>
-                            <div class="activity-subtitle">Giriş Yapan Evrak
-                                Sayısı: <span
-                                    class="text-number">48</span></div>
+                            <div class="activity-subtitle">Bugün giriş yapan</div>
+                        </div>
+                        <div class="activity-value">
+                            <span class="count-chip">48</span>
+                            <span class="activity-value-label">Evrak</span>
                         </div>
                     </div>
 
@@ -407,9 +407,11 @@
                         </div>
                         <div class="activity-content">
                             <div class="activity-title">Kurye Kayıt</div>
-                            <div class="activity-subtitle">Kurye İle Gelen Evrak
-                                Sayısı: <span
-                                    class="text-number">14</span></div>
+                            <div class="activity-subtitle">Kurye ile gelen</div>
+                        </div>
+                        <div class="activity-value">
+                            <span class="count-chip">14</span>
+                            <span class="activity-value-label">Evrak</span>
                         </div>
                     </div>
 
@@ -420,9 +422,10 @@
                         </div>
                         <div class="activity-content">
                             <div class="activity-title">OCR Kuyruk</div>
-                            <div class="activity-subtitle">Bekleyen Evrak
-                                Sayısı: <span
-                                    class="text-number">23</span></div>
+                        </div>
+                        <div class="activity-value">
+                            <span class="count-chip count-chip-alert">23</span>
+                            <span class="activity-value-label">Bekleyen</span>
                         </div>
                     </div>
 
@@ -433,8 +436,10 @@
                         </div>
                         <div class="activity-content">
                             <div class="activity-title">OCR Tamamlanan</div>
-                            <div class="activity-subtitle">Evrak Sayısı: <span
-                                    class="text-number">20</span></div>
+                        </div>
+                        <div class="activity-value">
+                            <span class="count-chip count-chip-info">20</span>
+                            <span class="activity-value-label">Evrak</span>
                         </div>
                     </div>
 
@@ -445,8 +450,10 @@
                         </div>
                         <div class="activity-content">
                             <div class="activity-title">Kaydı Tamamlanan</div>
-                            <div class="activity-subtitle">Evrak Sayısı: <span
-                                    class="text-number">21</span></div>
+                        </div>
+                        <div class="activity-value">
+                            <span class="count-chip count-chip-success">21</span>
+                            <span class="activity-value-label">Evrak</span>
                         </div>
                     </div>
 
@@ -457,8 +464,10 @@
                         </div>
                         <div class="activity-content">
                             <div class="activity-title">Teslim Edilen</div>
-                            <div class="activity-subtitle">Evrak Sayısı: <span
-                                    class="text-number">56</span></div>
+                        </div>
+                        <div class="activity-value">
+                            <span class="count-chip count-chip-success">56</span>
+                            <span class="activity-value-label">Evrak</span>
                         </div>
                     </div>
 

@@ -4,34 +4,28 @@ import { navigations, NavigationModel } from '../navigation';
 @Injectable({ providedIn: 'root' })
 export class RoleService {
 
-  private _roles: string[] = [];
-
-  constructor() {
+  get roles(): string[] {
     const user = localStorage.getItem("user") ?? sessionStorage.getItem("user");
 
     if (!user) {
-      this._roles = [];
-      return;
+      return [];
     }
 
     try {
       const parsed = JSON.parse(user);
-      this._roles = Array.isArray(parsed.roles) ? parsed.roles : [];
+      return Array.isArray(parsed.roles) ? parsed.roles : [];
     } catch {
-      this._roles = [];
+      return [];
     }
   }
 
-  get roles(): string[] {
-    return this._roles;
-  }
-
   has(role: string): boolean {
-    return this._roles.includes(role);
+    return this.roles.includes(role);
   }
 
   hasAny(roles: string[]): boolean {
-    return roles.some(r => this._roles.includes(r));
+    const current = this.roles;
+    return roles.some(r => current.includes(r));
   }
 
   getMenu(): NavigationModel[] {

@@ -64,13 +64,13 @@ export const navigations: NavigationModel[] = [
         title: "OCR Takip",
         url: "/ocrtakip",
         icon: "document_scanner",
-        roles: ["Gelen Evrak"]
+        roles: ["Gelen Evrak", "Yönetici"]
     },
     {
         title: "Dijitalleştirme Takip",
         url: "/dijitallestirme-takip",
         icon: "cloud_sync",
-        roles: ["Gelen Evrak"]
+        roles: ["Gelen Evrak", "Yönetici"]
     },
 
     {
@@ -113,13 +113,7 @@ export const navigations: NavigationModel[] = [
         title: "Kullanıcılar",
         url: "/users",
         icon: "diversity_3",
-        roles: ["Gelen Evrak"]
-    },
-        {
-        title: "Yetkiler",
-        url: "/users",
-        icon: "diversity_3",
-        roles: ["Yönetici"]
+        roles: ["Gelen Evrak", "Yönetici"]
     },
     {
         title: "Dış Kurum Kullanıcıları",
@@ -129,9 +123,9 @@ export const navigations: NavigationModel[] = [
     },
     {
         title: "Roller",
-        url: "users/role",
+        url: "/users/role",
         icon: "security",
-        roles: ["Admin"]
+        roles: ["Yönetici"]
     },
 
     {

@@ -1841,10 +1841,10 @@ table.zimmet-table .sort-icon.active {
 
 .zimmet-history-item {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.85rem;
     position: relative;
-    padding-bottom: 1.1rem;
+    padding-bottom: 1.35rem;
 }
 
 .zimmet-history-item:last-child {
@@ -1886,6 +1886,10 @@ table.zimmet-table .sort-icon.active {
     background: linear-gradient(135deg, #9ca3af, #6b7280);
 }
 
+.zimmet-history-dot.is-delivered {
+    background: linear-gradient(135deg, #60a5fa, #2563eb);
+}
+
 .zimmet-history-info {
     flex: 1;
     min-width: 0;
@@ -1900,6 +1904,235 @@ table.zimmet-table .sort-icon.active {
 .zimmet-history-date {
     font-size: 0.78rem;
     color: var(--text-muted);
+}
+
+/* Gelen Evrak Zimmet ekranı - "Zimmet Geçmişi" premium zaman çizelgesi
+   (app-allocation-flow / app-allocation-card). Bilinçli olarak zimmetlerim
+   ekranındaki geçmiş popover'ından (bkz. .zimmet-history-* yukarıda) bağımsız,
+   kendi sınıf setini kullanır; böylece biri değişince diğeri etkilenmez. */
+.zt-list {
+    max-height: 460px;
+    overflow-y: auto;
+    padding: 1.5rem;
+}
+
+.zt-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    position: relative;
+    margin: 0 -1.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.zt-row:not(:last-child) {
+    border-bottom: 1px solid var(--border-light);
+}
+
+.zt-row:hover {
+    background-color: var(--bg-light);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+/* Zebra çizgileri: art arda gelen satırları ayırt etmek için hafif ton farkı */
+app-allocation-card:nth-child(even) .zt-row {
+    background-color: rgba(0, 0, 0, 0.028);
+}
+
+app-allocation-card:nth-child(even) .zt-row:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] app-allocation-card:nth-child(even) .zt-row {
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="dark"] app-allocation-card:nth-child(even) .zt-row:hover {
+    background-color: rgba(255, 255, 255, 0.075);
+}
+
+.zt-row:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: calc(1.5rem + 15px);
+    top: calc(0.75rem + 32px);
+    bottom: -0.75rem;
+    width: 2px;
+    background-color: var(--border-color);
+}
+
+.zt-dot {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    z-index: 1;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.zt-dot .material-symbols-outlined {
+    font-size: 16px;
+    color: #fff;
+}
+
+.zt-dot.is-active {
+    background: linear-gradient(135deg, #34d399, #059669);
+    box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.15), 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.zt-dot.is-past {
+    background: linear-gradient(135deg, #9ca3af, #6b7280);
+    box-shadow: 0 0 0 4px rgba(107, 114, 128, 0.12), 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.zt-dot.is-delivered {
+    background: linear-gradient(135deg, #60a5fa, #2563eb);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15), 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* İsim/tarih, kaynak (Evrak Takip/Atlas) ve durum; her biri sabit genişlikte
+   birer sütun olarak dizilir ki tüm satırlarda aynı yatay konumda hizalı
+   dursunlar (uzunluğu değişen isme/etikete göre kaymasınlar). */
+.zt-info {
+    flex: 0 1 220px;
+    max-width: 220px;
+    min-width: 0;
+}
+
+.zt-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-color);
+    margin-bottom: 0.2rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.zt-date {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.zt-date .material-symbols-outlined {
+    font-size: 14px;
+}
+
+.zt-source,
+.zt-status {
+    flex-shrink: 0;
+    align-self: center;
+    text-align: center;
+}
+
+.zt-source {
+    width: 100px;
+}
+
+.zt-status {
+    width: 120px;
+}
+
+/* Gelen Evrak Zimmet ekranı - "Zimmet İşlemi" bölümü: güncel zimmet sahibi şeridi
+   ve devir/üstlenme seçimi için kart tarzı seçenekler (bkz. .evrak-form-section-*
+   ile aynı başlık dili). */
+.zimmet-holder-strip {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.65rem 0.9rem;
+    border-radius: 10px;
+    background: var(--bg-light);
+    border: 1px solid var(--border-light);
+    font-size: 0.85rem;
+    color: var(--text-color);
+    margin-bottom: 1.25rem;
+}
+
+.zimmet-holder-strip .material-symbols-outlined {
+    font-size: 18px;
+    color: var(--primary-color);
+}
+
+.zimmet-holder-strip.is-empty {
+    color: var(--text-muted);
+}
+
+.zimmet-choice-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-bottom: 1.25rem;
+}
+
+.zimmet-choice-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0.9rem;
+    border: 1.5px solid var(--border-light);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: border-color 0.18s ease, background-color 0.18s ease;
+    background: var(--card-bg);
+}
+
+.zimmet-choice-option:hover {
+    border-color: var(--primary-color);
+}
+
+.zimmet-choice-option.selected {
+    border-color: var(--primary-color);
+    background: rgba(67, 97, 238, 0.08);
+}
+
+.zimmet-choice-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: var(--bg-light);
+    color: var(--text-muted);
+    transition: background 0.18s ease, color 0.18s ease;
+}
+
+.zimmet-choice-option.selected .zimmet-choice-icon {
+    background: linear-gradient(135deg, var(--primary-color), #6c8cff);
+    color: #fff;
+}
+
+.zimmet-choice-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.3;
+}
+
+.zimmet-choice-text strong {
+    font-size: 0.88rem;
+    color: var(--text-color);
+}
+
+.zimmet-choice-text small {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+.zimmet-actions-row {
+    border-top: 1px solid var(--border-light);
+    margin-top: 0.5rem;
+    padding-top: 1rem;
 }
 
 /* Evrak Kayıt ekranı - "Evrak Kayıt" / "Diğer Bilgiler" sekmeleri: premium
@@ -2549,6 +2782,23 @@ body.layout-collapsed .sidebar-sticky-menu {
     border-color: var(--border-color);
 }
 
+/* Dark theme bootstrap alert fixes */
+[data-theme="dark"] .alert-info {
+    background-color: rgba(13, 202, 240, 0.12);
+    border-color: rgba(13, 202, 240, 0.3);
+    color: #9eeaf9;
+}
+
+[data-theme="dark"] .alert-danger {
+    background-color: rgba(220, 53, 69, 0.15);
+    border-color: rgba(220, 53, 69, 0.35);
+    color: #f5b8bf;
+}
+
+[data-theme="dark"] .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
 /* Dark theme dropdown fixes */
 [data-theme="dark"] .dropdown-menu {
     background-color: var(--card-bg);
@@ -2844,6 +3094,12 @@ body.layout-collapsed .sidebar-sticky-menu {
 .form-check-lg .form-check-label {
     font-size: 1.1rem;
     padding-left: 0.25rem;
+}
+
+.form-switch-lg .form-check-input {
+    width: 2.5em;
+    height: 1.125em;
+    margin-top: 0.15em;
 }
 
 /* Card Selection Components */
@@ -4791,6 +5047,19 @@ flexi-grid table td:hover {
     transform: translateX(4px);
 }
 
+[data-theme="dark"] .qr-icon-wrapper {
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: none;
+}
+
+[data-theme="dark"] .qr-title {
+    color: var(--text-color);
+}
+
+[data-theme="dark"] .qr-description {
+    color: var(--text-muted);
+}
+
 /* QR pulse efekti */
 @keyframes qrPulse {
     0% {
@@ -5564,6 +5833,25 @@ table .grid-header {
     transform: translateY(2px);
 }
 
+[data-theme="dark"] .nav-pills .nav-link {
+    background-color: var(--card-bg);
+    color: #22d3ee;
+    border-color: rgba(34, 211, 238, 0.3);
+}
+
+[data-theme="dark"] .nav-pills .nav-link.active,
+[data-theme="dark"] .nav-pills .nav-link:hover {
+    background-color: #0891b2;
+    color: #fff;
+}
+
+/* Gelen Evrak Zimmet ekranı: "Zimmet İşlemi" / "Zimmet Geçmişi" sekme başlıkları
+   diğer sayfalardaki (ör. Evrak Kayıt) küçük sekmelerden bir tık daha büyük
+   görünsün diye kendi kapsamında büyütüldü. */
+#zimmetTabs.nav-pills .nav-link {
+    font-size: 14px;
+}
+
 /* Tab içerikleri: hafif gölge + padding */
 .tab-pane {
     padding: 10px;
@@ -5621,9 +5909,17 @@ table .grid-header {
     border-bottom: 1px solid #cffafe;
 }
 
+[data-theme="dark"] .info-panel .card-header {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
 .info-panel h6 {
     color: #0e7490;
     font-weight: 600;
+}
+
+[data-theme="dark"] .info-panel h6 {
+    color: #22d3ee;
 }
 
 .info-item {
@@ -5665,9 +5961,17 @@ table .grid-header {
     color: #155e75;
 }
 
+[data-theme="dark"] .info-item strong {
+    color: var(--text-color);
+}
+
 .info-item p {
     color: #164e63;
     font-size: 0.85rem;
+}
+
+[data-theme="dark"] .info-item p {
+    color: var(--text-muted);
 }
 
 .ocr-filter-wrapper {
@@ -6000,6 +6304,11 @@ button:disabled {
     animation: fadeInUp 0.4s ease;
 }
 
+[data-theme="dark"] .qr-wait-cardOther {
+    background: linear-gradient(145deg, var(--card-bg), var(--bg-color));
+    box-shadow: none;
+}
+
 /* Card */
 .qr-wait-card {
     background: linear-gradient(145deg, #ffffff, #f8fafc);
@@ -6009,6 +6318,11 @@ button:disabled {
     text-align: center;
     min-width: 360px;
     animation: fadeInUp 0.4s ease;
+}
+
+[data-theme="dark"] .qr-wait-card {
+    background: linear-gradient(145deg, var(--card-bg), var(--bg-color));
+    box-shadow: none;
 }
 
 /* Icon wrapper */
@@ -6093,6 +6407,13 @@ button:disabled {
     /* hafif yukarı hareket */
     box-shadow: 0 6px 12px rgba(37, 99, 235, 0.25);
     /* daha soft gölge */
+}
+
+.qr-manual-btn2:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
 }
 
 
@@ -7268,6 +7589,11 @@ button:disabled {
     border-bottom: 1px solid #e5e7eb;
 }
 
+[data-theme="dark"] .dashboard-header {
+    background: rgba(255, 255, 255, 0.04);
+    border-bottom-color: var(--border-color);
+}
+
 /* Son Gelen Evraklar / Teslim Edilmeyi Bekleyenler tabloları */
 .orders-table .institution-cell,
 .customers-table .institution-cell {
@@ -7577,32 +7903,31 @@ button:disabled {
 .activity-item {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 4px;
-
+    gap: 10px;
+    padding: 8px;
+    border-radius: 12px;
+    transition: background-color .15s ease, box-shadow .15s ease;
 }
 
 .activity-item:hover {
-    background-color: rgba(59, 130, 246, 0.1);
-    /* hafif mavi arka plan */
-
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    /* hafif gölge */
-    padding: 6px;
-    border-radius: 28px;
+    background-color: rgba(59, 130, 246, 0.08);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
     cursor: pointer;
+}
 
+[data-theme="dark"] .activity-item:hover {
+    background-color: rgba(59, 130, 246, 0.14);
 }
 
 .activity-icon {
-    width: 42px;
-    height: 42px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     display: flex;
     justify-content: center;
     align-items: center;
     color: white;
-    font-size: 20px;
+    font-size: 16px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     flex-shrink: 0;
 }
@@ -7610,12 +7935,18 @@ button:disabled {
 .activity-content {
     display: flex;
     flex-direction: column;
+    flex: 1 1 auto;
+    min-width: 0;
 }
 
 .activity-title {
     font-weight: 600;
     font-size: 0.90rem;
     color: #374151;
+}
+
+[data-theme="dark"] .activity-title {
+    color: #e5e7eb;
 }
 
 .activity-subtitle {
@@ -7626,6 +7957,46 @@ button:disabled {
 .text-number {
     font-weight: 700;
     color: #1d4ed8;
+}
+
+.activity-value {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    flex-shrink: 0;
+}
+
+.activity-value-label {
+    font-size: 0.62rem;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+[data-theme="dark"] .activity-value-label {
+    color: #64748b;
+}
+
+.count-chip.count-chip-success {
+    background: rgba(16, 185, 129, 0.14);
+    color: #047857;
+}
+
+.count-chip.count-chip-info {
+    background: rgba(59, 130, 246, 0.14);
+    color: #1d4ed8;
+}
+
+[data-theme="dark"] .count-chip.count-chip-success {
+    background: rgba(16, 185, 129, 0.22);
+    color: #6ee7b7;
+}
+
+[data-theme="dark"] .count-chip.count-chip-info {
+    background: rgba(59, 130, 246, 0.22);
+    color: #93c5fd;
 }
 
 /* Gradient Renkler */
@@ -8760,4 +9131,38 @@ body {
 
 [data-theme="dark"] .person-list-item.is-selected {
     background-color: rgba(99, 102, 241, 0.15);
+}
+
+/* Giden Evrak Zimmetleme ekranı: buton ve seçim vurguları varsayılan mavi
+   yerine Gelen Evrak Zimmet ekranındaki sekme (cyan) rengiyle eşleşsin diye
+   burada geçersiz kılınır. */
+.outgoingzimmet-page .btn-primary {
+    background-color: #0dcaf0;
+    border-color: #0dcaf0;
+    color: #fff;
+}
+
+.outgoingzimmet-page .btn-primary:hover,
+.outgoingzimmet-page .btn-primary:focus,
+.outgoingzimmet-page .btn-primary:active {
+    background-color: #0aa2c0;
+    border-color: #0aa2c0;
+    color: #fff;
+}
+
+.outgoingzimmet-page .person-list-item.is-selected {
+    background-color: rgba(13, 202, 240, 0.12);
+    border-left-color: #0dcaf0;
+}
+
+.outgoingzimmet-page .person-list-item.is-selected .person-list-radio {
+    color: #0dcaf0;
+}
+
+.outgoingzimmet-page .person-list-avatar {
+    background: linear-gradient(135deg, #22d3ee, #0dcaf0);
+}
+
+[data-theme="dark"] .outgoingzimmet-page .person-list-item.is-selected {
+    background-color: rgba(34, 211, 238, 0.15);
 }

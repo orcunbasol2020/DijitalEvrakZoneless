@@ -1,4 +1,5 @@
 import { Routes } from "@angular/router";
+import { canDeactivateCreate } from "./create/create";
 
 const routes: Routes = [
     {
@@ -7,11 +8,13 @@ const routes: Routes = [
     },
     {
         path: 'create',
-        loadComponent: () => import('./create/create')
+        loadComponent: () => import('./create/create'),
+        canDeactivate: [canDeactivateCreate]
     },
     {
         path: 'edit/:id',
-        loadComponent: () => import('./create/create')
+        loadComponent: () => import('./create/create'),
+        canDeactivate: [canDeactivateCreate]
     },
     {
         path: 'profile',

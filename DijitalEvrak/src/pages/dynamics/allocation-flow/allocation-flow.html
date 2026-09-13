@@ -1,18 +1,5 @@
-<div class="row align-items-stretch g-4 ms-3">
-
-  <ng-container *ngFor="let item of items; let i = index">
-
-    <div class="col-auto">
-      <app-allocation-card [item]="item"></app-allocation-card>
-    </div>
-
-    <div *ngIf="i < items.length - 1"
-         class="col-auto d-flex align-items-center">
-      <span class="material-symbols-outlined text-info">
-        arrow_forward
-      </span>
-    </div>
-
+<div class="zt-list">
+  <ng-container *ngFor="let item of items">
+    <app-allocation-card [item]="item"></app-allocation-card>
   </ng-container>
-
 </div>

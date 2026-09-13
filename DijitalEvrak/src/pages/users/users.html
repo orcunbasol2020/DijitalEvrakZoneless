@@ -11,6 +11,7 @@
     [showExportExcelBtn]="true"
     exportExcelFileName="kullanicilar"
     [filterable]="true"
+    commandColumnTitle="Güncelle"
     (onRefresh)="result.reload()">
     <ng-template flexiGridCaptionCommandTemplate>
       <span class="doc-category-chip active me-2" style="cursor: default;">
@@ -60,8 +61,9 @@
       filterType="boolean" [booleanData]="['Aktif', 'Pasif']" width="110px">
       <ng-template flexiGridCellTemplate let-item>
         <div class="d-flex align-items-center justify-content-center gap-2">
-          <div class="form-check form-switch mb-0">
+          <div class="form-check form-switch form-switch-lg mb-0">
             <input
+              (change)="changeIsActive(item)"
               class="form-check-input"
               type="checkbox"
               role="switch"
@@ -69,9 +71,6 @@
               name="item.id"
               [(ngModel)]="item.isActive">
           </div>
-          <span class="badge" [ngClass]="item.isActive ? 'badge-soft-success' : 'badge-soft-secondary'">
-            {{ item.isActive ? 'Aktif' : 'Pasif' }}
-          </span>
         </div>
       </ng-template>
     </flexi-grid-column>
@@ -80,7 +79,7 @@
       width="110px">
       <ng-template flexiGridCellTemplate let-item>
         <div class="d-flex align-items-center justify-content-center gap-2">
-          <div class="form-check form-switch mb-0">
+          <div class="form-check form-switch form-switch-lg mb-0">
             <input
               (change)="changeIsAdmin(item)"
               class="form-check-input"
@@ -90,9 +89,6 @@
               name="item.id"
               [(ngModel)]="item.isDeleted">
           </div>
-          <span class="badge" [ngClass]="item.isDeleted ? 'badge-soft-danger' : 'badge-soft-success'">
-            {{ item.isDeleted ? 'Silindi' : 'Aktif' }}
-          </span>
         </div>
       </ng-template>
     </flexi-grid-column>
@@ -103,13 +99,6 @@
         btnIcon="edit"
         btnColor="info"
         title="Güncelle"
-        flexiTooltip />
-
-      <flexi-button
-        (click)="delete(item.id)"
-        btnIcon="delete"
-        btnColor="warning"
-        title="Sil"
         flexiTooltip />
     </ng-template>
 

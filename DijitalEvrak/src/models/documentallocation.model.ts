@@ -15,8 +15,9 @@ export interface DocumentAllocationModel {
   qrCode?: string;
   documentName?: string;
   documentDate?: string;
-  // Backend henüz bu alanı göndermiyor; Atlas entegrasyonu tamamlanınca
-  // zimmetin hangi sistemde yapıldığını taşıyacak. Gelmediği sürece
-  // "EvrakTakip" varsayılır (bkz. allocation-card.ts).
-  source?: 'EvrakTakip' | 'Atlas';
+  // Zimmetin hangi sistemde yapıldığını taşır. Backend bunu şu an sayısal bir
+  // enum olarak gönderiyor (gözlemlenen tek değer: 1 = EvrakTakip); Atlas
+  // entegrasyonu ilerledikçe string ('EvrakTakip' | 'Atlas') de gelebilir.
+  // allocation-card.ts'teki source getter'ı her iki biçimi de karşılar.
+  source?: 'EvrakTakip' | 'Atlas' | number;
 }

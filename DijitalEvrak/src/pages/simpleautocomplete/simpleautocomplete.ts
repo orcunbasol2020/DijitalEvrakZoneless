@@ -96,6 +96,9 @@ export class SimpleAutocompleteComponent implements OnInit, OnChanges {
   show = false;
   activeIndex = -1;
 
+  /** Metin kutusunda gösterilen, henüz seçime dönüşmemiş olabilecek arama metni. */
+  private searchText: string | null = null;
+
   ngOnInit() {
     this.filteredOptions = this.options;
   }
@@ -107,6 +110,9 @@ export class SimpleAutocompleteComponent implements OnInit, OnChanges {
   }
 
   get displayValue(): string {
+    if (this.searchText !== null) {
+      return this.searchText;
+    }
     const value = this.control?.value;
     return typeof value === 'string'
       ? value
@@ -115,12 +121,15 @@ export class SimpleAutocompleteComponent implements OnInit, OnChanges {
 
   open() {
     this.show = true;
+    this.searchText = '';
     this.filteredOptions = this.options;
   }
 
   onInput(event: Event) {
     const value = (event.target as HTMLInputElement).value;
-    this.control.setValue(value);
+    // control.value her zaman ya null ya da seçilmiş bir { id, name } nesnesi olmalı;
+    // burada henüz bir seçim yapılmadığından ham metni control'e yazmıyoruz.
+    this.searchText = value;
     this.filter(value);
     this.show = true;
     this.activeIndex = -1;
@@ -165,17 +174,21 @@ export class SimpleAutocompleteComponent implements OnInit, OnChanges {
         event.preventDefault();
         if (this.activeIndex >= 0) {
           this.select(this.filteredOptions[this.activeIndex]);
+        } else if (this.filteredOptions.length === 1) {
+          this.select(this.filteredOptions[0]);
         }
         break;
 
       case 'Escape':
         this.show = false;
+        this.searchText = null;
         break;
     }
   }
 
   select(option: any) {
     this.control.setValue(option);
+    this.searchText = null;
     this.show = false;
     this.activeIndex = -1;
   }
@@ -184,8 +197,15 @@ export class SimpleAutocompleteComponent implements OnInit, OnChanges {
   onClickOutside(event: MouseEvent) {
     const target = event.target as HTMLElement;
     if (!target.closest('.position-relative')) {
-      this.show = false;
+      this.close();
     }
+  }
+
+  private close() {
+    this.show = false;
+    // Yazılan metin geçerli bir seçime dönüşmediyse, control.value'yu bozmadan
+    // son geçerli seçime (varsa) geri dön.
+    this.searchText = null;
   }
 
 }

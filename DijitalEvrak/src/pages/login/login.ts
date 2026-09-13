@@ -45,6 +45,9 @@ export default class Login {
           return;
         }
 
+        localStorage.removeItem("user");
+        sessionStorage.removeItem("user");
+
         const storage = rememberMe ? localStorage : sessionStorage;
         storage.setItem("user", JSON.stringify(res));
         this.#router.navigateByUrl("/");

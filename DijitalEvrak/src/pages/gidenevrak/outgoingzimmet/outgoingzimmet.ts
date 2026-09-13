@@ -1,7 +1,7 @@
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, OnInit, signal, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { httpResource } from '@angular/common/http';
 import GenericModel from '../../../../components/generic-model/generic-model';
 import { FlexiToastService } from 'flexi-toast';
@@ -13,6 +13,7 @@ import { ExternalInstitutionModel } from '../../../services/external-institution
 import { ExternalUserService, ExternalUserModel, initialExternalUser } from '../../../services/external-user';
 import { Common } from '../../../services/common';
 import { UserModel } from '../../users/users';
+import { SimpleAutocompleteComponent } from '../../simpleautocomplete/simpleautocomplete';
 
 type ZimmetMode = 'internal' | 'external';
 type PersonListItem = { id: string; name: string; surname: string; identityNo?: string; email?: string };
@@ -21,7 +22,9 @@ type PersonListItem = { id: string; name: string; surname: string; identityNo?: 
   imports: [
     GenericModel,
     CommonModule,
-    FormsModule
+    FormsModule,
+    ReactiveFormsModule,
+    SimpleAutocompleteComponent
   ],
   templateUrl: './outgoingzimmet.html',
   encapsulation: ViewEncapsulation.None,
@@ -68,6 +71,10 @@ export default class Outgoingzimmet implements OnInit {
   readonly institutionList = computed(() =>
     (this.institutionsResult.value() ?? []).filter(x => !x.isDeleted)
   );
+  readonly institutionOptions = computed(() =>
+    this.institutionList().map(i => ({ id: i.id, name: i.name }))
+  );
+  readonly institutionControl = new FormControl<{ id: string, name: string } | null>(null);
 
   readonly externalUsersResult = httpResource<ExternalUserModel[]>(() => "api/ExternalUsers/GetAll");
   readonly externalPersonList = computed<PersonListItem[]>(() => {
@@ -104,6 +111,22 @@ export default class Outgoingzimmet implements OnInit {
   readonly deliveredPersonName = signal<string | null>(null);
   readonly deliveredByPersonName = signal<string | null>(null);
   readonly deliveredDate = signal<string | Date | null>(null);
+
+  constructor() {
+    // Belgenin kurumu (ör. daha önce kayıtlı dış kurum) değiştiğinde arama
+    // kutusunda gösterilen seçimi de eşitle.
+    effect(() => {
+      const id = this.selectedInstitutionId();
+      const match = id ? this.institutionOptions().find(o => o.id === id) ?? null : null;
+      if (this.institutionControl.value?.id !== match?.id) {
+        this.institutionControl.setValue(match, { emitEvent: false });
+      }
+    });
+
+    this.institutionControl.valueChanges.subscribe(value => {
+      this.selectInstitution(value?.id ?? null);
+    });
+  }
 
   ngOnInit(): void {
     const outgoingDocumentId = this.state.getOutgoingDocumentId();
@@ -165,7 +188,7 @@ export default class Outgoingzimmet implements OnInit {
     this.personSearch.set('');
   }
 
-  selectInstitution(id: string): void {
+  selectInstitution(id: string | null): void {
     this.selectedInstitutionId.set(id);
     this.selectedPersonId.set(null);
   }
