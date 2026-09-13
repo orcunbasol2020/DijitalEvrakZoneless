@@ -20,6 +20,7 @@ import { UserModel } from '../users/users';
 import { DocumentAllocationModel } from '../../models/documentallocation.model';
 
 type ZimmetKaynak = 'EvrakTakip' | 'Atlas';
+type SortColumn = 'qrCode' | 'documentName' | 'documentDate' | 'source';
 
 interface ZimmetRow {
   id: string;
@@ -58,15 +59,97 @@ export default class Zimmetlerim {
   ]);
 
   readonly sourceFilter = signal<'all' | ZimmetKaynak>('all');
+  readonly searchQuery = signal('');
+  readonly sortColumn = signal<SortColumn | null>(null);
+  readonly sortDirection = signal<'asc' | 'desc'>('asc');
+
   readonly filteredZimmetlerim = computed(() => {
     const filter = this.sourceFilter();
-    return filter === 'all'
-      ? this.zimmetlerim()
-      : this.zimmetlerim().filter(item => item.source === filter);
+    const query = this.searchQuery().trim().toLocaleLowerCase('tr');
+    const column = this.sortColumn();
+    const direction = this.sortDirection();
+
+    const filtered = this.zimmetlerim()
+      .filter(item => filter === 'all' || item.source === filter)
+      .filter(item => !query
+        || (item.qrCode ?? '').toLocaleLowerCase('tr').includes(query)
+        || (item.documentName ?? '').toLocaleLowerCase('tr').includes(query));
+
+    if (!column) return filtered;
+
+    const factor = direction === 'asc' ? 1 : -1;
+    return [...filtered].sort((a, b) => {
+      if (column === 'documentDate') {
+        const aTime = a.documentDate ? new Date(a.documentDate).getTime() : 0;
+        const bTime = b.documentDate ? new Date(b.documentDate).getTime() : 0;
+        return (aTime - bTime) * factor;
+      }
+      return (a[column] ?? '').localeCompare(b[column] ?? '', 'tr') * factor;
+    });
   });
 
   setSourceFilter(filter: 'all' | ZimmetKaynak): void {
     this.sourceFilter.set(filter);
+    this.currentPage.set(1);
+    this.closeDetail();
+  }
+
+  setSearchQuery(query: string): void {
+    this.searchQuery.set(query);
+    this.currentPage.set(1);
+    this.closeDetail();
+  }
+
+  toggleSort(column: SortColumn): void {
+    if (this.sortColumn() === column) {
+      this.sortDirection.set(this.sortDirection() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
+    }
+    this.currentPage.set(1);
+    this.closeDetail();
+  }
+
+  sortIcon(column: SortColumn): string {
+    if (this.sortColumn() !== column) return 'unfold_more';
+    return this.sortDirection() === 'asc' ? 'arrow_upward' : 'arrow_downward';
+  }
+
+  // Sayfalama: liste uzunsa "Üzerimdeki Zimmetler" tablosunu sayfalar.
+  readonly pageSize = 10;
+  readonly currentPage = signal(1);
+
+  readonly totalPages = computed(() =>
+    Math.max(1, Math.ceil(this.filteredZimmetlerim().length / this.pageSize)));
+
+  readonly pagedZimmetlerim = computed(() => {
+    const page = Math.min(this.currentPage(), this.totalPages());
+    const start = (page - 1) * this.pageSize;
+    return this.filteredZimmetlerim().slice(start, start + this.pageSize);
+  });
+
+  readonly pageNumbers = computed(() => {
+    const total = this.totalPages();
+    const current = Math.min(this.currentPage(), total);
+    const delta = 2;
+    const from = Math.max(1, current - delta);
+    const to = Math.min(total, current + delta);
+    const range: number[] = [];
+    for (let i = from; i <= to; i++) range.push(i);
+    return range;
+  });
+
+  readonly pageRangeStart = computed(() =>
+    this.filteredZimmetlerim().length === 0 ? 0 : (Math.min(this.currentPage(), this.totalPages()) - 1) * this.pageSize + 1);
+
+  readonly pageRangeEnd = computed(() =>
+    Math.min(Math.min(this.currentPage(), this.totalPages()) * this.pageSize, this.filteredZimmetlerim().length));
+
+  goToPage(page: number): void {
+    const clamped = Math.min(Math.max(page, 1), this.totalPages());
+    if (clamped === this.currentPage()) return;
+    this.currentPage.set(clamped);
     this.closeDetail();
   }
 
@@ -151,6 +234,7 @@ export default class Zimmetlerim {
 
   loadZimmetlerim(): void {
     this.closeDetail();
+    this.currentPage.set(1);
     const currentUserId = this.currentUserId;
     if (!currentUserId) {
       this.evrakTakipZimmetleri.set([]);

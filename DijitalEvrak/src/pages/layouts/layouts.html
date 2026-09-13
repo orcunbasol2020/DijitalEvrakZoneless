@@ -17,10 +17,59 @@
     <!-- search -->
     <div class="search-container">
         <div class="position-relative">
-            <input type="text" class="form-control search-input" placeholder="Belge Ara ...">
+            <input type="text" class="form-control search-input" placeholder="Belge Ara ..."
+                [ngModel]="search()"
+                (ngModelChange)="onSearchInput($event)"
+                (focus)="onSearchInput(search())"
+                (blur)="onSearchBlur()"
+                (keydown)="onSearchKeydown($event)"
+                role="combobox"
+                aria-autocomplete="list"
+                [attr.aria-expanded]="showSearchResults()"
+                autocomplete="off">
             <span class="material-symbols-outlined search-icon">search</span>
+
+            @if (showSearchResults() && search().trim().length > 0) {
+                <div class="search-autocomplete">
+                    @if (searchResults().length > 0) {
+                        <div class="search-autocomplete-header">
+                            <span class="material-symbols-outlined">description</span>
+                            Arama Sonuçları
+                        </div>
+                        <ul class="search-autocomplete-list">
+                            @for (result of searchResults(); track result.belgeNo; let i = $index) {
+                                <li>
+                                    <a class="search-autocomplete-item"
+                                        [class.active]="i === activeResultIndex()"
+                                        href="javascript:void(0)"
+                                        (mousedown)="selectSearchResult(result)"
+                                        (mouseenter)="activeResultIndex.set(i)">
+                                        <span class="search-autocomplete-icon material-symbols-outlined" [ngClass]="typeIconClasses[result.tur]">{{ typeIcons[result.tur] }}</span>
+                                        <div class="search-autocomplete-main">
+                                            <div class="search-autocomplete-top-row">
+                                                <span class="search-autocomplete-number">{{ result.belgeNo }}</span>
+                                                <span class="search-autocomplete-date">{{ result.tarih }}</span>
+                                            </div>
+                                            <div class="search-autocomplete-bottom-row">
+                                                <span class="search-autocomplete-konu">{{ result.konu }}</span>
+                                                <span class="badge badge-sm" [ngClass]="statusBadgeClasses[result.durum]">{{ statusLabels[result.durum] }}</span>
+                                            </div>
+                                            <span class="search-autocomplete-birim">{{ result.birim }}</span>
+                                        </div>
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    } @else {
+                        <div class="search-autocomplete-empty">
+                            <span class="material-symbols-outlined">search_off</span>
+                            <span>"{{ search() }}" ile eşleşen belge bulunamadı</span>
+                        </div>
+                    }
+                </div>
+            }
         </div>
-    </div> 
+    </div>
 
             <!-- Notification -->
             <div class="dropdown me-3 notification-container">
@@ -141,11 +190,11 @@
             <!-- User Dropdown -->
             <div class="dropdown">
                 <a
-                    class="d-flex align-items-center text-decoration-none dropdown-toggle"
+                    class="d-flex align-items-center text-decoration-none dropdown-toggle user-toggle-btn"
                     style="color: var(--text-color);" href="#" id="userDropdown"
                     role="button" data-bs-toggle="dropdown"
                     aria-expanded="false">
-                    <div class="avatar">
+                    <div class="avatar user-toggle-avatar">
                         <img [src]="userAvatar()" alt="User Avatar" />
                     </div>
                     <div class="d-flex flex-column ps-2">
@@ -165,22 +214,73 @@
                         </span>
                     </div>
                 </a>
-                <ul class="dropdown-menu dropdown-menu-end shadow"
+                <ul class="dropdown-menu dropdown-menu-end shadow user-dropdown-menu"
                     aria-labelledby="userDropdown">
-                    <li><a class="dropdown-item small-text"
-                            routerLink="/users/profile"
-                            routerLinkActive="active"><span
-                                class="material-symbols-outlined me-2">account_circle</span>Yetkiler</a></li>
-                    <li><a class="dropdown-item small-text"
-                            routerLink="/settings"
-                            routerLinkActive="active"><span
-                                class="material-symbols-outlined me-2">settings</span>Ayarlar</a></li>
-                    <li>
-                        <hr class="dropdown-divider">
+                    <li class="user-dropdown-header">
+                        <div class="user-dropdown-avatar">
+                            <img [src]="userAvatar()" alt="User Avatar" />
+                        </div>
+                        <div class="user-dropdown-identity">
+                            <span class="user-dropdown-name">{{user()?.name}} {{user()?.surname}}</span>
+                            <span class="user-dropdown-email">{{user()?.email}}</span>
+                            <span class="user-dropdown-dept" title="{{user()?.departmentName}}">
+                                {{user()?.departmentShortName}}
+                                @if (isAdmin()) {
+                                    <span class="badge badge-soft-warning badge-sm ms-1" title="Yönetici">
+                                        <span class="material-symbols-outlined"
+                                            style="font-size: 12px; vertical-align: -1px;">shield_person</span>
+                                        Yönetici
+                                    </span>
+                                }
+                            </span>
+                        </div>
                     </li>
-                    <li><a class="dropdown-item small-text"
-                            routerLink="/login"><span
-                                class="material-symbols-outlined me-2">logout</span>Çıkış</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item user-dropdown-item" routerLink="/users/profile" routerLinkActive="active">
+                            <span class="user-dropdown-icon user-dropdown-icon-primary">
+                                <span class="material-symbols-outlined">account_circle</span>
+                            </span>
+                            <span class="user-dropdown-item-text">
+                                <span class="user-dropdown-item-title">Yetkiler</span>
+                                <span class="user-dropdown-item-sub">Rol ve izinlerinizi görüntüleyin</span>
+                            </span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item user-dropdown-item" routerLink="/zimmetlerim" routerLinkActive="active">
+                            <span class="user-dropdown-icon user-dropdown-icon-info">
+                                <span class="material-symbols-outlined">assignment_ind</span>
+                            </span>
+                            <span class="user-dropdown-item-text">
+                                <span class="user-dropdown-item-title">Zimmetlerim</span>
+                                <span class="user-dropdown-item-sub">Üzerinizdeki evrakları yönetin</span>
+                            </span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item user-dropdown-item" routerLink="/settings" routerLinkActive="active">
+                            <span class="user-dropdown-icon user-dropdown-icon-secondary">
+                                <span class="material-symbols-outlined">settings</span>
+                            </span>
+                            <span class="user-dropdown-item-text">
+                                <span class="user-dropdown-item-title">Ayarlar</span>
+                                <span class="user-dropdown-item-sub">Hesap ve görünüm tercihleri</span>
+                            </span>
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item user-dropdown-item user-dropdown-item-danger" routerLink="/login">
+                            <span class="user-dropdown-icon user-dropdown-icon-danger">
+                                <span class="material-symbols-outlined">logout</span>
+                            </span>
+                            <span class="user-dropdown-item-text">
+                                <span class="user-dropdown-item-title">Çıkış</span>
+                                <span class="user-dropdown-item-sub">Oturumu sonlandırın</span>
+                            </span>
+                        </a>
+                    </li>
                 </ul>
             </div>
         </div>

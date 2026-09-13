@@ -44,11 +44,6 @@ export const navigations: NavigationModel[] = [
         roles: ["Yönetici"]
     },
     {
-        title: "Zimmetlerim",
-        url: "/zimmetlerim",
-        icon: "assignment_ind"
-    },
-    {
         title: "Zimmet",
         url: "/zimmet",
         icon: "contract_edit",

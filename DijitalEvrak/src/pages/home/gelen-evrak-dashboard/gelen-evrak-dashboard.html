@@ -34,8 +34,8 @@
                             </span>
                         </div>
                     </div>
-                    <div class="stat-icon bg-warning-light">
-                        <span class="material-symbols-outlined text-warning"
+                    <div class="stat-icon stat-icon-pro bg-gradient-warning">
+                        <span class="material-symbols-outlined"
                             style="font-size: 22px;">article_shortcut</span>
                     </div>
                 </div>
@@ -63,10 +63,10 @@
                         </div>
                     </div>
 
-                    <div class="stat-icon bg-primary-light">
+                    <div class="stat-icon stat-icon-pro bg-gradient-smoke">
                         <span
-                            class="material-symbols-outlined text-primary"
-                            style="font-size: 21px;">folder_open</span>
+                            class="material-symbols-outlined"
+                            style="font-size: 21px;">calendar_month</span>
                     </div>
                 </div>
             </div>
@@ -92,8 +92,8 @@
                             </span>
                         </div>
                     </div>
-                    <div class="stat-icon bg-info-light">
-                        <span class="material-symbols-outlined text-info"
+                    <div class="stat-icon stat-icon-pro bg-gradient-info">
+                        <span class="material-symbols-outlined"
                             style="font-size: 25px;">scanner</span>
                     </div>
                 </div>
@@ -118,8 +118,8 @@
                             </span>
                         </div>
                     </div>
-                    <div class="stat-icon bg-success-light">
-                        <span class="material-symbols-outlined text-success"
+                    <div class="stat-icon stat-icon-pro bg-gradient-success">
+                        <span class="material-symbols-outlined"
                             style="font-size: 20px;">document_scanner</span>
                     </div>
                 </div>
@@ -131,23 +131,33 @@
 <div class="row g-3 mb-4">
     <!-- Recent Orders -->
     <div class="col-lg-9">
-        <div class="card h-100">
+        <div class="card premium-card orders-card h-100">
             <div
                 class="card-header dashboard-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0 fw-semibold">Son Gelen Evraklar</h5>
-                <a class="btn btn-sm btn-light"
-                    (click)="goToIncoming()">Tümü</a>
+                <h5 class="card-title mb-0 fw-semibold">
+                    Son Gelen Evraklar
+                </h5>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="live-badge">
+                        <span class="blink-dot"></span>Canlı
+                    </span>
+                    <a class="btn btn-sm btn-light d-flex align-items-center gap-1"
+                        (click)="goToIncoming()">
+                        Tümü
+                        <span class="material-symbols-outlined" style="font-size: 16px;">arrow_forward</span>
+                    </a>
+                </div>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-hover orders-table align-middle">
                         <thead>
                             <tr>
-                                <th scope="col">Belge No</th>
-                                <th scope="col">Kurum</th>
-                                <th scope="col">Tarih</th>
-                                <th scope="col">Zimmet</th>
-                                <th scope="col">Durum</th>
+                                <th scope="col">KURUM</th>
+                                <th scope="col">TARİH</th>
+                                <th scope="col">BELGE NO</th>
+                                <th scope="col">ZİMMET</th>
+                                <th scope="col">DURUM</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -155,9 +165,6 @@
                                 *ngFor="let doc of recentDocumentsSignal()"
                                 (click)="goDetail(doc.id)"
                                 (keydown.enter)="goDetail(doc.id)">
-                                <td>
-                                    <span class="fw-semibold text-primary">{{ doc.documentNo }}</span>
-                                </td>
                                 <td>
                                     <div class="d-flex align-items-center gap-2 institution-cell" [title]="doc.institution">
                                         <span class="avatar-circle" [ngClass]="getAvatarColorClass(doc.institution)">
@@ -168,9 +175,11 @@
                                 </td>
                                 <td>
                                     <div class="date-cell" [title]="getFullDateTime(doc.date)">
-                                        <span class="material-symbols-outlined date-icon">schedule</span>
                                         {{ getRelativeDateLabel(doc.date) }}
                                     </div>
+                                </td>
+                                <td>
+                                    <span class="document-no">{{ doc.documentNo }}</span>
                                 </td>
                                 <td>
                                     <div class="d-flex align-items-center gap-1">
@@ -218,32 +227,40 @@
 <div class="row g-3">
     <!-- bekleyenler-->
     <div class="col-lg-9">
-        <div class="card h-100">
+        <div class="card premium-card h-100">
             <div
                 class="card-header dashboard-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0 fw-semibold">Teslim Edilmeyi
                     Bekleyenler</h5>
-                <a class="btn btn-sm btn-light"
-                    (click)="goToIncoming()">Tümü</a>
+                <a class="btn btn-sm btn-light d-flex align-items-center gap-1"
+                    (click)="goToIncoming()">
+                    Tümü
+                    <span class="material-symbols-outlined" style="font-size: 16px;">arrow_forward</span>
+                </a>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table customers-table">
                         <thead>
                             <tr>
-                                <th scope="col">Birim</th>
-                                <th scope="col">Evrak Sorumluları</th>
-                                <th scope="col">Gelen</th>
-                                <th scope="col">Bekleyen</th>
-                                <th scope="col">Hatırlat</th>
+                                <th scope="col">BİRİM</th>
+                                <th scope="col">EVRAK SORUMLULARI</th>
+                                <th scope="col">GELEN</th>
+                                <th scope="col">BEKLEYEN</th>
+                                <th scope="col">HATIRLAT</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td>EÇGM</td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2 institution-cell">
+                                        <span class="avatar-circle avatar-indigo">EÇ</span>
+                                        <span class="institution-name" title="Emniyet Genel Müdürlüğü">EÇGM</span>
+                                    </div>
+                                </td>
                                 <td>Banu Gültekin</td>
-                                <td>217</td>
-                                <td>18</td>
+                                <td><span class="count-chip">217</span></td>
+                                <td><span class="count-chip count-chip-alert">18</span></td>
                                 <td class="text-center">
                                     <button
                                         class="btn btn-sm btn-icon reminder-btn"
@@ -263,9 +280,9 @@
                             </tr>
                             <tr>
                                 <td>
-                                    <div class="d-flex align-items-center">
-                                        <div
-                                            title="Destek Hizmetleri Genel Müdürlüğü">DSGM</div>
+                                    <div class="d-flex align-items-center gap-2 institution-cell">
+                                        <span class="avatar-circle avatar-teal">DS</span>
+                                        <span class="institution-name" title="Destek Hizmetleri Genel Müdürlüğü">DSGM</span>
                                     </div>
                                 </td>
                                 <td><span
@@ -274,8 +291,8 @@
                                     <span
                                         title="Zeynep Büşra Tatar, Dahili: 1323">Zeynep
                                         Büşra Tatar</span></td>
-                                <td>376</td>
-                                <td>15</td>
+                                <td><span class="count-chip">376</span></td>
+                                <td><span class="count-chip count-chip-alert">15</span></td>
                                 <td>
                                     <button
                                         class="btn btn-sm btn-icon reminder-btn"
@@ -295,16 +312,17 @@
                             </tr>
                             <tr>
                                 <td>
-                                    <div class="d-flex align-items-center">
-                                        <div
-                                            title="Konsolosluk Hizmetleri ve Yurtdışında Yaşayan Vatandaşlar Genel Müdürlüğü">KOGM</div>
+                                    <div class="d-flex align-items-center gap-2 institution-cell">
+                                        <span class="avatar-circle avatar-orange">KO</span>
+                                        <span class="institution-name" title="Konsolosluk Hizmetleri ve Yurtdışında Yaşayan Vatandaşlar Genel Müdürlüğü">KOGM</span>
                                     </div>
                                 </td>
                                 <td><span
                                         title="Didem Pekzorlu, Dahili: 2025">Didem
                                         Pekzorlu</span></td>
-                                <td>450</td>
-                                <td>12</td> <td>
+                                <td><span class="count-chip">450</span></td>
+                                <td><span class="count-chip count-chip-alert">12</span></td>
+                                <td>
                                     <button
                                         class="btn btn-sm btn-icon reminder-btn"
                                         (click)="sendReminder(row3)"
@@ -323,16 +341,16 @@
                             </tr>
                             <tr>
                                 <td>
-                                    <div class="d-flex align-items-center">
-                                        <div
-                                            title="Bilim ve Teknoloji Politikaları Genel Müdürlüğü">TPGM</div>
+                                    <div class="d-flex align-items-center gap-2 institution-cell">
+                                        <span class="avatar-circle avatar-rose">TP</span>
+                                        <span class="institution-name" title="Bilim ve Teknoloji Politikaları Genel Müdürlüğü">TPGM</span>
                                     </div>
                                 </td>
                                 <td><span
                                         title="Cevşen Büşra Bahçecik, Dahili: 1116">Cevşen
                                         Büşra Bahçecik</span></td>
-                                <td>78</td>
-                                <td>9</td>
+                                <td><span class="count-chip">78</span></td>
+                                <td><span class="count-chip count-chip-alert">9</span></td>
                                 <td>
                                     <button
                                         class="btn btn-sm btn-icon reminder-btn"

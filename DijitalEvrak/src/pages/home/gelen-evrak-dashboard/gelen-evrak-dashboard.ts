@@ -112,10 +112,10 @@ export default class GelenEvrakDashboard {
 
   // Son Gelen Evraklar
   private readonly statusConfig: Record<RecentIncomingDocument['status'], { label: string; badgeClass: string; icon: string }> = {
-    zimmet: { label: 'Zimmet', badgeClass: 'bg-warning-subtle text-dark border border-warning-subtle', icon: 'inventory_2' },
-    onkayit: { label: 'Ön Kayıt', badgeClass: 'bg-secondary-subtle text-dark border border-secondary-subtle', icon: 'draft' },
-    ocr: { label: 'OCR', badgeClass: 'bg-info-subtle text-dark border border-info-subtle', icon: 'document_scanner' },
-    yayinlandi: { label: 'Yayınlandı', badgeClass: 'bg-success-subtle text-dark border border-success-subtle', icon: 'check_circle' },
+    zimmet: { label: 'Zimmet', badgeClass: 'doc-status doc-status-zimmet', icon: 'inventory_2' },
+    onkayit: { label: 'Ön kayıt', badgeClass: 'doc-status doc-status-onkayit', icon: 'draft' },
+    ocr: { label: 'Ocr', badgeClass: 'doc-status doc-status-ocr', icon: 'document_scanner' },
+    yayinlandi: { label: 'Yayınlandı', badgeClass: 'doc-status doc-status-yayinlandi', icon: 'check_circle' },
   };
 
   private readonly avatarPalette = ['avatar-indigo', 'avatar-teal', 'avatar-orange', 'avatar-rose', 'avatar-blue'];

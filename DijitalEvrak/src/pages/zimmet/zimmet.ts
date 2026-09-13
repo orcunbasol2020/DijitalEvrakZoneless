@@ -63,6 +63,7 @@ export default class Zimmet implements OnInit, OnDestroy {
   currentDocumentNo = signal<string | null>(null);
   id!: string | null;
   doc = signal<string>('');
+  manualEntryValue = signal<string>('');
   zimmetType: 'self' | 'other' = 'other';
   selectedPersonId: string | null = null;
   currentUserName = this.user()?.name + ' ' + this.user()?.surname;
@@ -113,6 +114,14 @@ export default class Zimmet implements OnInit, OnDestroy {
     } else {
       this.buffer += e.key;
     }
+  }
+
+  // Manuel giriş alanındaki "Zimmetleme Ekranına Geç" butonu için
+  submitManualEntry() {
+    const documentNumber = this.manualEntryValue().trim();
+    this.onQrScanned(documentNumber);
+    this.manualEntryValue.set('');
+    this.buffer = '';
   }
 
   // QR kod okunduğunda tetiklenecek fonksiyon

@@ -20,6 +20,8 @@ export interface OcrTakipModel {
   errorMessage?: string;
 }
 
+type SortColumn = 'documentName' | 'documentType' | 'status' | 'ocrDate' | 'pageCount';
+
 @Component({
   imports: [
     GenericModel,
@@ -39,9 +41,9 @@ export default class Ocrtakip {
   };
 
   readonly statusBadgeStyle: Record<OcrStatus, string> = {
-    [OcrStatus.Basarili]: 'bg-success-subtle text-success border border-success-subtle',
-    [OcrStatus.Isleniyor]: 'bg-warning-subtle text-dark border border-warning-subtle',
-    [OcrStatus.Hatali]: 'bg-danger-subtle text-danger border border-danger-subtle'
+    [OcrStatus.Basarili]: 'process-status-badge process-status-completed',
+    [OcrStatus.Isleniyor]: 'process-status-badge process-status-processing',
+    [OcrStatus.Hatali]: 'process-status-badge process-status-error'
   };
 
   readonly statusIconMap: Record<OcrStatus, string> = {
@@ -70,6 +72,9 @@ export default class Ocrtakip {
   readonly typeFilter = signal<string>('all');
   readonly dateFilter = signal<string>('');
 
+  readonly sortColumn = signal<SortColumn | null>(null);
+  readonly sortDirection = signal<'asc' | 'desc'>('asc');
+
   readonly expandedId = signal<number | null>(null);
 
   readonly stats = computed(() => {
@@ -87,13 +92,28 @@ export default class Ocrtakip {
     const status = this.statusFilter();
     const type = this.typeFilter();
     const date = this.dateFilter();
+    const column = this.sortColumn();
+    const direction = this.sortDirection();
 
-    return this.data().filter(item => {
+    const filtered = this.data().filter(item => {
       if (search && !item.documentName.toLocaleLowerCase('tr').includes(search)) return false;
       if (status !== 'all' && item.status !== status) return false;
       if (type !== 'all' && item.documentType !== type) return false;
       if (date && item.ocrDate !== date) return false;
       return true;
+    });
+
+    if (!column) return filtered;
+
+    const factor = direction === 'asc' ? 1 : -1;
+    return [...filtered].sort((a, b) => {
+      if (column === 'ocrDate') {
+        return (new Date(a.ocrDate).getTime() - new Date(b.ocrDate).getTime()) * factor;
+      }
+      if (column === 'pageCount' || column === 'status') {
+        return (a[column] - b[column]) * factor;
+      }
+      return a[column].localeCompare(b[column], 'tr') * factor;
     });
   });
 
@@ -101,11 +121,90 @@ export default class Ocrtakip {
     !!this.searchText().trim() || this.statusFilter() !== 'all' || this.typeFilter() !== 'all' || !!this.dateFilter()
   );
 
+  onSearchTextChange(value: string): void {
+    this.searchText.set(value);
+    this.currentPage.set(1);
+    this.expandedId.set(null);
+  }
+
+  onStatusFilterChange(value: OcrStatus | 'all'): void {
+    this.statusFilter.set(value);
+    this.currentPage.set(1);
+    this.expandedId.set(null);
+  }
+
+  onTypeFilterChange(value: string): void {
+    this.typeFilter.set(value);
+    this.currentPage.set(1);
+    this.expandedId.set(null);
+  }
+
+  onDateFilterChange(value: string): void {
+    this.dateFilter.set(value);
+    this.currentPage.set(1);
+    this.expandedId.set(null);
+  }
+
   resetFilters(): void {
     this.searchText.set('');
     this.statusFilter.set('all');
     this.typeFilter.set('all');
     this.dateFilter.set('');
+    this.currentPage.set(1);
+    this.expandedId.set(null);
+  }
+
+  toggleSort(column: SortColumn): void {
+    if (this.sortColumn() === column) {
+      this.sortDirection.set(this.sortDirection() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
+    }
+    this.currentPage.set(1);
+    this.expandedId.set(null);
+  }
+
+  sortIcon(column: SortColumn): string {
+    if (this.sortColumn() !== column) return 'unfold_more';
+    return this.sortDirection() === 'asc' ? 'arrow_upward' : 'arrow_downward';
+  }
+
+  // Sayfalama: zimmetlerim ekranıyla aynı mantık.
+  readonly pageSize = 10;
+  readonly currentPage = signal(1);
+
+  readonly totalPages = computed(() =>
+    Math.max(1, Math.ceil(this.filteredData().length / this.pageSize)));
+
+  readonly pagedData = computed(() => {
+    const page = Math.min(this.currentPage(), this.totalPages());
+    const start = (page - 1) * this.pageSize;
+    return this.filteredData().slice(start, start + this.pageSize);
+  });
+
+  readonly pageNumbers = computed(() => {
+    const total = this.totalPages();
+    const current = Math.min(this.currentPage(), total);
+    const delta = 2;
+    const from = Math.max(1, current - delta);
+    const to = Math.min(total, current + delta);
+    const range: number[] = [];
+    for (let i = from; i <= to; i++) range.push(i);
+    return range;
+  });
+
+  readonly pageRangeStart = computed(() =>
+    this.filteredData().length === 0 ? 0 : (Math.min(this.currentPage(), this.totalPages()) - 1) * this.pageSize + 1);
+
+  readonly pageRangeEnd = computed(() =>
+    Math.min(Math.min(this.currentPage(), this.totalPages()) * this.pageSize, this.filteredData().length));
+
+  goToPage(page: number): void {
+    const clamped = Math.min(Math.max(page, 1), this.totalPages());
+    if (clamped === this.currentPage()) return;
+    this.currentPage.set(clamped);
+    this.expandedId.set(null);
   }
 
   toggleDetail(id: number): void {
@@ -114,6 +213,7 @@ export default class Ocrtakip {
 
   refresh(): void {
     this.expandedId.set(null);
+    this.currentPage.set(1);
     this.loading.set(true);
     setTimeout(() => this.loading.set(false), 400);
   }

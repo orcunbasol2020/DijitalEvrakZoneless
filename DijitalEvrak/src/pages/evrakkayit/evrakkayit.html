@@ -1,7 +1,7 @@
 <app-generic [pageTitle]="title" [breadcrumbs]="breadcrumbs()">
 </app-generic>
 
-<div class="row">
+<div class="row evrakkayit-page">
   <!-- Sol taraf: Form ve Tablar -->
   <div class="col-md-5 col-12">
     <div class="card">
@@ -44,68 +44,89 @@
             <form [formGroup]="form" autocomplete="off" (ngSubmit)="save()">
 
               <!-- Sistem No -->
-              <div class="form-group mb-3"
-                style="padding:10px; border-radius:5px; border: 1px solid #c3d7db;">
-                <label for="documentNo">Sistem No</label>
-                <div class="input-group">
-                  <input type="text" id="documentNo" class="form-control"
-                    placeholder="2025/" formControlName="qrCode">
-                  <button class="btn btn-secondary btn-sm" type="button"
-                    (click)="getir('')">Getir</button>
+              <div class="evrak-lookup-box">
+                <span class="material-symbols-outlined">qr_code_2</span>
+                <div class="flex-grow-1">
+                  <label for="documentNo" class="evrak-lookup-label">SİSTEM NO</label>
+                  <div class="input-group input-group-sm">
+                    <input type="text" id="documentNo" class="form-control"
+                      placeholder="2025/" formControlName="qrCode">
+                    <button class="btn btn-outline-info" type="button"
+                      (click)="getir('')">
+                      <span class="material-symbols-outlined" style="font-size: 16px;">search</span>
+                      Getir
+                    </button>
+                  </div>
                 </div>
               </div>
-              <!-- Evrak Türü -->
-              <div class="row mb-3">
-                <div class="col-md-6">
-                  <label for="belgeTuru">Evrak Türü</label>
-                  <select
-                    id="belgeTuru"
-                    formControlName="documentTypeId"
-                    class="form-select custom-select-blue">
-                    <option [value]="1">Nota</option>
-                    <option [value]="2">Evrak</option>
-                  </select>
+
+              <div class="evrak-form-section">
+                <div class="evrak-form-section-header">
+                  <span class="material-symbols-outlined">description</span>
+                  BELGE BİLGİLERİ
                 </div>
-                <div class="col-md-6">
-                  <!-- Belge Tarihi -->
 
-                  <label for="belgeTarihi">Evrak Tarihi</label>
-                  <input type="date" id="belgeTarihi" class="form-control"
-                    formControlName="documentDate">
+                <!-- Evrak Türü -->
+                <div class="row g-3 mb-3">
+                  <div class="col-md-6">
+                    <label for="belgeTuru" class="form-label">Evrak Türü</label>
+                    <select
+                      id="belgeTuru"
+                      formControlName="documentTypeId"
+                      class="form-select custom-select-blue">
+                      <option [value]="1">Nota</option>
+                      <option [value]="2">Evrak</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <!-- Belge Tarihi -->
+                    <label for="belgeTarihi" class="form-label">Evrak Tarihi</label>
+                    <input type="date" id="belgeTarihi" class="form-control"
+                      formControlName="documentDate">
+                  </div>
+                </div>
+                <!-- Orjinal Belge No -->
+                <div class="form-group mb-3">
+                  <label for="orjBelge" class="form-label">Orjinal Belge No</label>
+                  <input type="text" id="orjBelge" class="form-control"
+                    formControlName="orginalNo">
+                </div>
 
+                <!-- Konusu -->
+                <div class="form-group">
+                  <label for="konusu" class="form-label">Konusu</label>
+                  <input type="text" id="konusu" class="form-control"
+                    formControlName="subject">
                 </div>
               </div>
-              <!-- Orjinal Belge No -->
-              <div class="form-group mb-3">
-                <label for="orjBelge">Orjinal Belge No</label>
-                <input type="text" id="orjBelge" class="form-control"
-                  formControlName="orginalNo">
+
+              <div class="evrak-form-section">
+                <!-- Kurum / Birim -->
+                <div class="form-group mb-3">
+                  <label for="nereden" class="form-label">
+                    <span class="material-symbols-outlined align-middle me-1" style="font-size: 16px;">call_made</span>
+                    Nereden
+                  </label>
+                  <app-simple-autocomplete [control]="externalInstitutionControl"
+                    [options]="externalInstitutions"
+                    placeholder="Kurum seçiniz"></app-simple-autocomplete>
+                </div>
+                <div class="form-group">
+                  <label for="nereye" class="form-label">
+                    <span class="material-symbols-outlined align-middle me-1" style="font-size: 16px;">call_received</span>
+                    Nereye
+                  </label>
+                  <app-simple-autocomplete [control]="departmentControl"
+                    [options]="departments"
+                    placeholder="Birim seçiniz"></app-simple-autocomplete>
+                </div>
               </div>
 
-              <!-- Konusu -->
-              <div class="form-group mb-3">
-                <label for="konusu">Konusu</label>
-                <input type="text" id="konusu" class="form-control"
-                  formControlName="subject">
-              </div>
-
-              <!-- Kurum / Birim -->
-              <div class="form-group mb-3">
-                <label for="nereden">Nereden</label>
-                <app-simple-autocomplete [control]="externalInstitutionControl"
-                  [options]="externalInstitutions"
-                  placeholder="Kurum seçiniz"></app-simple-autocomplete>
-              </div>
-              <div class="form-group mb-3">
-                <label for="nereye">Nereye</label>
-                <app-simple-autocomplete [control]="departmentControl"
-                  [options]="departments"
-                  placeholder="Birim seçiniz"></app-simple-autocomplete>
-              </div>
-
-              <!-- Notlar -->
-              <div class="form-group mb-3">
-                <label for="notlar">Notlar</label>
+              <div class="evrak-form-section">
+                <div class="evrak-form-section-header">
+                  <span class="material-symbols-outlined">sticky_note_2</span>
+                  NOTLAR
+                </div>
                 <textarea id="notlar" class="form-control"
                   formControlName="notes" rows="2"></textarea>
               </div>
@@ -134,90 +155,122 @@
             <form *ngIf="formDetail" [formGroup]="formDetail" autocomplete="off"
               (ngSubmit)="saveDetail()">
 
-              <div class="mb-3">
-                <label>Gizlilik Derecesi</label>
-                <select class="form-select" formControlName="securityDegree">
-                  <option [ngValue]="1">Hizmete Özel</option>
-                  <option [ngValue]="2">Gizli</option>
-                  <option [ngValue]="3">Çok Gizli</option>
-                  <option [ngValue]="4">Kripto</option>
-                </select>
+              <div class="evrak-form-section">
+                <div class="evrak-form-section-header">
+                  <span class="material-symbols-outlined">tune</span>
+                  BELGE ÖZELLİKLERİ
+                </div>
+
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label">Gizlilik Derecesi</label>
+                    <select class="form-select" formControlName="securityDegree">
+                      <option [ngValue]="1">Hizmete Özel</option>
+                      <option [ngValue]="2">Gizli</option>
+                      <option [ngValue]="3">Çok Gizli</option>
+                      <option [ngValue]="4">Kripto</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Elektronik Kopya</label>
+                    <select class="form-select" formControlName="electronicCopy">
+                      <option [ngValue]="true">Evet</option>
+                      <option [ngValue]="false">Hayır</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Dil</label>
+                    <select class="form-select" formControlName="languageId">
+                      <option [ngValue]="1">Türkçe</option>
+                      <option [ngValue]="2">İngilizce</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Sayfa Sayısı</label>
+                    <input type="number" class="form-control"
+                      formControlName="pageCount">
+                  </div>
+                </div>
               </div>
-              <div class="mb-3">
-                <label>Elektronik Kopya</label>
-                <select class="form-select" formControlName="electronicCopy">
-                  <option [ngValue]="true">Evet</option>
-                  <option [ngValue]="false">Hayır</option>
-                </select>
-              </div>
-              <div class="mb-3">
-                <label>Dil</label>
-                <select class="form-select" formControlName="languageId">
-                  <option [ngValue]="1">Türkçe</option>
-                  <option [ngValue]="2">İngilizce</option>
-                </select>
-              </div>
-              <div class="mb-3">
-                <label>Sayfa Sayısı</label>
-                <input type="number" class="form-control"
-                  formControlName="pageCount">
-              </div>
+
               <div class="d-flex justify-content-end">
-                <button type="submit"
-                  class="btn btn-primary px-4">Kaydet</button>
+                <button type="submit" class="btn btn-save px-4">
+                  <span class="material-symbols-outlined me-1" style="font-size: 16px;">save</span>
+                  Kaydet
+                </button>
               </div>
             </form>
           </div>
 
           <!-- Transaction / Takip Tab -->
           <div class="tab-pane fade" id="transaction" role="tabpanel">
-            <div class="border rounded p-3 mb-3 bg-lightBlue">
-              <div class="row text-center">
-                <div class="col-md-4 border-end">
-                  <div class="fw-semibold fs-8 text-secondary">Durum</div>
-                  <small class="fs-8 text-muted">
-                    {{ activeStatus() ? 'Yayınlandı' : getStatusText() }}
-                  </small>
+            <div class="transaction-status-row">
+              <div class="transaction-status-chip" [ngClass]="statusChipClass()">
+                <span class="material-symbols-outlined">fact_check</span>
+                <div>
+                  <div class="transaction-status-label">DURUM</div>
+                  <div class="transaction-status-value">{{ activeStatus() ? 'Yayınlandı' : getStatusText() }}</div>
                 </div>
+              </div>
 
-                <div class="col-md-4 border-end">
-                  <div class="fw-semibold fs-8 text-secondary">OCR Durumu</div>
-                  <small class="fs-8 text-muted">
-                    {{ getOcrStatusText() }}
-                  </small>
+              <div class="transaction-status-chip" [ngClass]="ocrChipClass()">
+                <span class="material-symbols-outlined">document_scanner</span>
+                <div>
+                  <div class="transaction-status-label">OCR DURUMU</div>
+                  <div class="transaction-status-value">{{ getOcrStatusText() }}</div>
                 </div>
+              </div>
 
-                <div class="col-md-4">
-                  <div class="fw-semibold fs-8 text-secondary">Yayınlanma
-                    Durumu</div>
-                  <small class="fs-8 text-muted">
-                    {{ getReleaseText() }}
-                  </small>
+              <div class="transaction-status-chip" [ngClass]="releaseChipClass()">
+                <span class="material-symbols-outlined">cloud_done</span>
+                <div>
+                  <div class="transaction-status-label">YAYINLANMA DURUMU</div>
+                  <div class="transaction-status-value">{{ getReleaseText() }}</div>
                 </div>
-
               </div>
             </div>
-            <flexi-grid
-              [data]="data()"
-              [loading]="loading()"
-              language="tr"
-              [showCaption]="true"
-              captionTitle="İşlemler"
-              [showExportExcelBtn]="true"
-              exportExcelFileName="document_transactions"
-              (onRefresh)="loadTransactions()">
 
-              <flexi-grid-column field="transactionTypeName" title="İşlem"
-                width="120px" />
-              <flexi-grid-column field="userFullName" title="Kullanıcı"
-                width="150px" />
+            <div class="transaction-timeline-card">
+              <div class="transaction-timeline-header">
+                <span class="d-flex align-items-center gap-2">
+                  <span class="material-symbols-outlined">history</span>
+                  İşlem Geçmişi
+                  <span class="badge rounded-pill bg-light text-muted border" *ngIf="data().length">{{ data().length }}</span>
+                </span>
+                <button class="btn btn-sm btn-outline-info" title="Güncel Verileri Getir" (click)="loadTransactions()">
+                  <span class="material-symbols-outlined" [class.spin]="loading()">refresh</span>
+                </button>
+              </div>
 
-              <flexi-grid-column title="Tarih" width="120px">
-                <ng-template flexiGridCellTemplate let-item>
-                  {{ item.createdDate | date:'dd.MM.yyyy HH:mm' }}
-                </ng-template>
-              </flexi-grid-column>
-            </flexi-grid>
+              <div class="transaction-timeline-body">
+                <div *ngIf="loading()" class="d-flex justify-content-center align-items-center py-4">
+                  <div class="spinner-border spinner-border-sm text-primary" role="status">
+                    <span class="visually-hidden">Yükleniyor...</span>
+                  </div>
+                </div>
+
+                <ng-container *ngIf="!loading()">
+                  <div class="transaction-timeline-item" *ngFor="let item of data()">
+                    <span class="transaction-timeline-dot" [ngClass]="transactionIconClass(item.transactionType)">
+                      <span class="material-symbols-outlined">{{ transactionIcon(item.transactionType) }}</span>
+                    </span>
+                    <div class="transaction-timeline-info">
+                      <div class="transaction-timeline-title">{{ item.transactionTypeName }}</div>
+                      <div class="transaction-timeline-user">
+                        <span class="material-symbols-outlined">person</span>
+                        {{ item.userFullName }}
+                      </div>
+                      <div class="transaction-timeline-date">{{ item.createdDate | date:'dd.MM.yyyy HH:mm' }}</div>
+                    </div>
+                  </div>
+
+                  <div *ngIf="!data().length" class="transaction-timeline-empty">
+                    <span class="material-symbols-outlined">history_toggle_off</span>
+                    Bu belge için henüz işlem kaydı bulunmuyor.
+                  </div>
+                </ng-container>
+              </div>
+            </div>
           </div>
         </div>
       </div>

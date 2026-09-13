@@ -23,11 +23,14 @@
 
   <ul class="nav-menu">
 
-    @for (item of (navigations() | searchMenu: search()); track item.title ?? item.category) {
+    @for (item of visibleItems(navigations() | searchMenu: search()); track item.title ?? item.category) {
 
       @if (item.category) {
-        <li class="nav-category">
-          {{ item.category }}
+        <li class="nav-category" (click)="toggleCategory(item.category)">
+          <span>{{ item.category }}</span>
+          <span class="material-symbols-outlined nav-category-chevron">
+            {{ isCategoryCollapsed(item.category) ? 'chevron_right' : 'expand_more' }}
+          </span>
         </li>
       } @else {
         <li class="nav-item">

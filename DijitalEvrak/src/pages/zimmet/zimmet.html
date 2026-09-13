@@ -240,8 +240,11 @@
                         </p>
                         <div class="qr-wait-cardOther mt-2">
                             <input type="text"
-                                class="form-control qr-result-input2 mt-2" />
-                            <button class="qr-manual-btn2">
+                                class="form-control qr-result-input2 mt-2"
+                                [ngModel]="manualEntryValue()"
+                                (ngModelChange)="manualEntryValue.set($event)" />
+                            <button class="qr-manual-btn2"
+                                (click)="submitManualEntry()">
                                 Zimmetleme Ekranına Geç
                             </button>
                         </div>

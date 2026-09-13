@@ -13,7 +13,6 @@ import { Observable, startWith, map } from 'rxjs';
 import { SimpleAutocompleteComponent } from '../simpleautocomplete/simpleautocomplete';
 import { IncomingDocumentModel } from '../../models/incoming-document/incoming-document.model';
 import { Common } from '../../services/common';
-import { FlexiGridModule } from 'flexi-grid';
 import { DocumentTransaction } from '../../services/documenttransaction';
 import { DocumentTransactionModel } from '../../models/documenttransaction.model';
 
@@ -24,8 +23,7 @@ import { DocumentTransactionModel } from '../../models/documenttransaction.model
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    SimpleAutocompleteComponent,
-    FlexiGridModule
+    SimpleAutocompleteComponent
   ],
   templateUrl: './evrakkayit.html',
   encapsulation: ViewEncapsulation.None,
@@ -456,6 +454,53 @@ export default class Evrakkayit implements OnInit {
     return 'Yayınlanmadı'; // false veya null dahil
   }
 
+  // İşlem Takip sekmesi: durum özet çipleri için renk sınıfı (metne göre belirlenir).
+  statusChipClass(): string {
+    const text = this.activeStatus() ? 'Yayınlandı' : this.getStatusText();
+    if (text === 'Yayınlandı' || text === 'Teslim Edildi') return 'chip-success';
+    if (text === 'Yayınlama Sırasında' || text === 'Kayıt Tamamlandı') return 'chip-warning';
+    if (text === 'Ön Kayıt') return 'chip-info';
+    return 'chip-muted';
+  }
+
+  ocrChipClass(): string {
+    const text = this.getOcrStatusText();
+    if (text === 'Tamamlandı') return 'chip-success';
+    if (text === 'Hatalı') return 'chip-danger';
+    return 'chip-warning';
+  }
+
+  releaseChipClass(): string {
+    return this.getReleaseText() === 'Yayınlandı' ? 'chip-success' : 'chip-muted';
+  }
+
+  // İşlem geçmişi zaman çizelgesi: işlem tipine göre ikon ve renk.
+  private readonly transactionIconMap: Record<number, string> = {
+    1: 'save',
+    3: 'edit_note',
+    6: 'contract_edit',
+    7: 'task_alt',
+    8: 'document_scanner',
+    9: 'assured_workload',
+  };
+
+  private readonly transactionColorMap: Record<number, string> = {
+    1: 'transaction-dot-info',
+    3: 'transaction-dot-info',
+    6: 'transaction-dot-secondary',
+    7: 'transaction-dot-success',
+    8: 'transaction-dot-warning',
+    9: 'transaction-dot-secondary',
+  };
+
+  transactionIcon(type: number): string {
+    return this.transactionIconMap[type] ?? 'history';
+  }
+
+  transactionIconClass(type: number): string {
+    return this.transactionColorMap[type] ?? 'transaction-dot-secondary';
+  }
+
   loadTransactions() {
     const docId = this.form.value.id; // formdaki documentId
     if (!docId) return;
@@ -468,7 +513,6 @@ export default class Evrakkayit implements OnInit {
     });
   }
 
-  // flexi-grid getter
   get data() { return computed(() => this.transactionData() ?? []); }
   get loading() { return computed(() => this.transactionLoading()); }
 
