@@ -24,24 +24,47 @@
         (click)="showFilters = !showFilters">
       </flexi-button>
       <flexi-button
-        routerLink="/scanlist/create"
-        btnIcon="upload_file"
+        btnIcon="add_box"
         btnColor="dark"
-        title="Taranmış Evrak Yükle"
-        flexiTooltip>
+        title="Giden Evrak Kaydı"
+        flexiTooltip
+        (click)="openCreateModal()">
       </flexi-button>
     </ng-template>
     <flexi-grid-column field="qrCode" title="Belge No" />
+    <flexi-grid-column title="Evrak Türü" textAlign="left" width="100px">
+      <ng-template flexiGridCellTemplate let-item>
+        {{ documentTypeLabelMap[item.type] || '-' }}
+      </ng-template>
+    </flexi-grid-column>
+    <flexi-grid-column title="Gizlilik Der." textAlign="left" width="120px">
+      <ng-template flexiGridCellTemplate let-item>
+        {{ securityDegreeMap[item.securityDegree] || '-' }}
+      </ng-template>
+    </flexi-grid-column>
+    <flexi-grid-column title="İvedilik Der." textAlign="left" width="120px">
+      <ng-template flexiGridCellTemplate let-item>
+        {{ urgencyDegreeMap[item.urgencyDegree] || '-' }}
+      </ng-template>
+    </flexi-grid-column>
+    <flexi-grid-column title="Gereği/Bilgi" textAlign="left" width="100px">
+      <ng-template flexiGridCellTemplate let-item>
+        {{ actionRequiredLabel(item.actionRequired) }}
+      </ng-template>
+    </flexi-grid-column>
     <flexi-grid-column title="Kayıt Tarihi" width="100px">
       <ng-template flexiGridCellTemplate let-item>
         {{ item.createdDate | date:'dd.MM.yyyy' }}
       </ng-template>
     </flexi-grid-column>
-    <flexi-grid-column title="Durum" textAlign="center" width="110px">
+    <flexi-grid-column title="Durum" textAlign="left" width="110px">
       <ng-template flexiGridCellTemplate let-item>
-        <span class="badge rounded-pill py-2" [ngClass]="statusBadgeStyle[item.status]">
-          {{ statusLabelMap[item.status] || '-' }}
-        </span>
+        {{ statusLabelMap[item.status] || '-' }}
+      </ng-template>
+    </flexi-grid-column>
+    <flexi-grid-column title="Kaynak" textAlign="left" width="90px">
+      <ng-template flexiGridCellTemplate let-item>
+        {{ sourceLabelMap[item.source] || '-' }}
       </ng-template>
     </flexi-grid-column>
    <flexi-grid-column title="Takip" textAlign="center" width="55px">
@@ -64,6 +87,17 @@
         </flexi-button>
       </ng-template>
     </flexi-grid-column>
+    <flexi-grid-column title="Güncelle" textAlign="center" width="55px">
+      <ng-template flexiGridCellTemplate let-item>
+        <flexi-button
+          *ngIf="item.source === 1"
+          btnIcon="expand_circle_right"
+          title="Giden Evrakı Güncelle"
+          btnColor="primary"
+          (click)="openEditModal(item)">
+        </flexi-button>
+      </ng-template>
+    </flexi-grid-column>
     <flexi-grid-column textAlign="center" width="50px">
       <ng-template flexiGridCellTemplate let-item>
         <flexi-button
@@ -75,5 +109,116 @@
       </ng-template>
     </flexi-grid-column>
   </flexi-grid>
+</div>
+
+<!-- Giden Evrak Kaydı Popup -->
+<div class="modal-overlay" *ngIf="createModalVisible()" (click)="closeCreateModal()">
+  <div class="modal-box" style="width: 600px; max-width: 90vw;" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h5 class="d-flex align-items-center mb-0">
+        <span class="material-symbols-outlined me-2 text-secondary">{{ editingId() ? 'edit' : 'add_box' }}</span>
+        {{ editingId() ? 'Giden Evrakı Güncelle' : 'Giden Evrak Kaydı' }}
+      </h5>
+    </div>
+    <div class="modal-body">
+      <div class="row">
+        <div class="col-6 mb-3">
+          <label class="form-label">Belge Numarası</label>
+          <input type="text" class="form-control"
+            [(ngModel)]="createModel.qrCode">
+        </div>
+        <div class="col-6 mb-3">
+          <label class="form-label">Belge Tarihi</label>
+          <input type="date" class="form-control"
+            [(ngModel)]="createModel.documentDate">
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Konu</label>
+        <input type="text" class="form-control"
+          [(ngModel)]="createModel.subject">
+      </div>
+
+      <div class="row">
+        <div class="col-6 mb-3">
+          <label class="form-label">Orijinal Belge No</label>
+          <input type="text" class="form-control"
+            [(ngModel)]="createModel.originalDocumentNumber">
+        </div>
+        <div class="col-6 mb-3">
+          <label class="form-label">Gizlilik Derecesi</label>
+          <select class="form-select" [(ngModel)]="createModel.securityDegree">
+            <option *ngFor="let opt of securityDegreeOptions" [ngValue]="opt.value">{{ opt.label }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-6 mb-3">
+          <label class="form-label">Evrak Türü</label>
+          <select class="form-select" [(ngModel)]="createModel.type">
+            <option *ngFor="let opt of documentTypeOptions" [ngValue]="opt.value">{{ opt.label }}</option>
+          </select>
+        </div>
+        <div class="col-6 mb-3">
+          <label class="form-label">İvedilik Derecesi</label>
+          <select class="form-select" [(ngModel)]="createModel.urgencyDegree">
+            <option *ngFor="let opt of urgencyDegreeOptions" [ngValue]="opt.value">{{ opt.label }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-6 mb-3">
+          <label class="form-label">Gereği/Bilgi</label>
+          <select class="form-select" [(ngModel)]="createModel.actionRequired">
+            <option *ngFor="let opt of actionRequiredOptions" [ngValue]="opt.value">{{ opt.label }}</option>
+          </select>
+        </div>
+        <div class="col-6 mb-3">
+          <label class="form-label">Dil</label>
+          <app-simple-autocomplete
+            [control]="languageControl"
+            [options]="languages"
+            placeholder="Dil seçiniz">
+          </app-simple-autocomplete>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">
+          <span class="material-symbols-outlined align-middle me-1" style="font-size: 16px;">call_made</span>
+          Gönderen Birim
+        </label>
+        <app-simple-autocomplete
+          [control]="departmentControl"
+          [options]="departments"
+          placeholder="Birim seçiniz">
+        </app-simple-autocomplete>
+      </div>
+
+      <div class="mb-1">
+        <label class="form-label">
+          <span class="material-symbols-outlined align-middle me-1" style="font-size: 16px;">call_received</span>
+          Alan Birim
+        </label>
+        <app-simple-autocomplete
+          [control]="externalInstitutionControl"
+          [options]="externalInstitutions"
+          placeholder="Kurum seçiniz">
+        </app-simple-autocomplete>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" [disabled]="createSaving()" (click)="closeCreateModal()">İptal</button>
+      <button class="btn btn-primary" [disabled]="createSaving()" (click)="saveManualDocument()">
+        @if (createSaving()) {
+          <span class="spinner-border spinner-border-sm me-1"></span>
+        }
+        {{ editingId() ? 'Güncelle' : 'Kaydet' }}
+      </button>
+    </div>
+  </div>
 </div>
 

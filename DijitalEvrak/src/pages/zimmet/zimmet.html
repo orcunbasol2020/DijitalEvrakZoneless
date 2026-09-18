@@ -1,7 +1,7 @@
 <app-generic pageTitle="Gelen Evrak Zimmet"
     [breadcrumbs]="[{title: 'Gelen Evrak Zimmet', url: 'zimmet', icon:''}]" />
 
-<div class="row">
+<div class="row zimmet-page">
     <div class="col-md-8 col-12">
         <div class="card" style="min-height: 700px;">
             <div
@@ -274,6 +274,14 @@
                             [ngClass]="securityDegreeStyle[doc.securityDegree]">
                             {{ securityDegreeMap[doc.securityDegree] || '-'
                             }}
+                        </span>
+                    </div>
+
+                    <div class="col-6">
+                        <div class="text-muted small mb-1">Gereği/Bilgi</div>
+                        <span class="badge rounded-pill px-3 py-2"
+                            [ngClass]="actionRequiredBadgeClass(doc.actionRequired)">
+                            {{ actionRequiredLabel(doc.actionRequired) }}
                         </span>
                     </div>
 

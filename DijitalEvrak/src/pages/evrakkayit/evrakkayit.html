@@ -165,10 +165,7 @@
                   <div class="col-md-6">
                     <label class="form-label">Gizlilik Derecesi</label>
                     <select class="form-select" formControlName="securityDegree">
-                      <option [ngValue]="1">Hizmete Özel</option>
-                      <option [ngValue]="2">Gizli</option>
-                      <option [ngValue]="3">Çok Gizli</option>
-                      <option [ngValue]="4">Kripto</option>
+                      <option *ngFor="let opt of securityDegreeOptions" [ngValue]="opt.value">{{ opt.label }}</option>
                     </select>
                   </div>
                   <div class="col-md-6">
@@ -189,6 +186,12 @@
                     <label class="form-label">Sayfa Sayısı</label>
                     <input type="number" class="form-control"
                       formControlName="pageCount">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Gereği/Bilgi</label>
+                    <select class="form-select" formControlName="actionRequired">
+                      <option *ngFor="let opt of actionRequiredOptions" [ngValue]="opt.value">{{ opt.label }}</option>
+                    </select>
                   </div>
                 </div>
               </div>

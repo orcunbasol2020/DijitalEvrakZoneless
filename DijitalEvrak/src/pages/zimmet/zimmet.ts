@@ -12,6 +12,8 @@ import { DocumentAllocationModel } from '../../models/documentallocation.model';
 import { httpResource } from '@angular/common/http';
 import { UserModel } from '../users/users';
 import { SimpleAutocompleteComponent } from '../simpleautocomplete/simpleautocomplete';
+import { SecurityDegreeLabels, SecurityDegreeBadgeClass } from '../../models/securitydegree.model';
+import { actionRequiredLabel, actionRequiredBadgeClass } from '../../models/actionrequired.model';
 
 
 @Component({
@@ -36,19 +38,10 @@ export default class Zimmet implements OnInit, OnDestroy {
   private keydownHandler: any;
   allocations = signal<DocumentAllocationModel[]>([]);
   documentDetail = signal<any | null>(null);
-  securityDegreeMap: Record<number, string> = {
-    1: 'Hizmete Özel',
-    2: 'Gizli',
-    3: 'Çok Gizli',
-    4: 'Kripto'
-  };
-
-  securityDegreeStyle: Record<number, string> = {
-    1: 'bg-warning-subtle text-warning border border-warning-subtle',
-    2: 'bg-warning text-dark',
-    3: 'bg-danger',
-    4: 'bg-dark'
-  };
+  securityDegreeMap: Record<number, string> = SecurityDegreeLabels;
+  securityDegreeStyle: Record<number, string> = SecurityDegreeBadgeClass;
+  readonly actionRequiredLabel = actionRequiredLabel;
+  readonly actionRequiredBadgeClass = actionRequiredBadgeClass;
 
   documents = Array.from({ length: 1 }, (_, i) => `2025/2525567/${i + 1}`);
   readonly #toast = inject(FlexiToastService);

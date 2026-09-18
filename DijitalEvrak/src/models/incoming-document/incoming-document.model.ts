@@ -35,5 +35,8 @@ export interface IncomingDocumentModel {
   createdDate?: Date;
   updateDate?: Date | null;
 
+  // true: Gereği, false: Bilgi
+  actionRequired?: boolean | null;
+
   currentAssignmentUserId : string;
 }

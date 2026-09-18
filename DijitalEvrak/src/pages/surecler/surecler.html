@@ -99,6 +99,14 @@
                         </span>
                     </div>
 
+                    <div class="col-6">
+                        <div class="text-muted small mb-1">Gereği/Bilgi</div>
+                        <span class="badge rounded-pill px-3 py-2"
+                            [ngClass]="actionRequiredBadgeClass(doc.actionRequired)">
+                            {{ actionRequiredLabel(doc.actionRequired) }}
+                        </span>
+                    </div>
+
                 </div>
 
             </div>

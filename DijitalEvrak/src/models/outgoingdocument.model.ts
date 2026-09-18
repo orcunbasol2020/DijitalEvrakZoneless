@@ -15,6 +15,20 @@ export interface OutgoingDocumentModel {
   cargoPostNumber?: string;
   // API alan adı gerçekten böyle (harf eksik) döner, düzeltmeyin.
   externalInstitutonId?: string | null;
+  // Gönderen birim (dahili). Manuel giden evrak kaydında kullanılıyor.
+  departmentId?: string | null;
+  // Evrak türü (1: Nota, 2: Evrak). API alan adı "type" (documentTypeId değil).
+  type?: number;
+  // Gizlilik derecesi (bkz. SecurityDegreeEnum).
+  securityDegree?: number;
+  // Aciliyet derecesi (bkz. UrgencyDegreeEnum).
+  urgencyDegree?: number;
+  // true: Gereği, false: Bilgi
+  actionRequired?: boolean | null;
+  // Dil (bkz. services/language.ts - LanguageModel).
+  languageId?: string | null;
+  // Kayıt kaynağı (backend AllocationSourceEnum: 1: Evrak Takip / manuel kayıt, 2: Atlas).
+  source?: number;
   createdDate?: string;
   updateDate?: string;
   isDeleted?: boolean;

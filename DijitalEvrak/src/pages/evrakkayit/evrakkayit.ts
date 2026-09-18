@@ -15,6 +15,8 @@ import { IncomingDocumentModel } from '../../models/incoming-document/incoming-d
 import { Common } from '../../services/common';
 import { DocumentTransaction } from '../../services/documenttransaction';
 import { DocumentTransactionModel } from '../../models/documenttransaction.model';
+import { SecurityDegreeEnum, SecurityDegreeLabels } from '../../models/securitydegree.model';
+import { actionRequiredOptions } from '../../models/actionrequired.model';
 
 @Component({
   standalone: true,
@@ -83,6 +85,13 @@ export default class Evrakkayit implements OnInit {
 
   readonly title = "Gelen Evrak Kayıt";
 
+  readonly securityDegreeOptions = Object.entries(SecurityDegreeLabels).map(([value, label]) => ({
+    value: Number(value) as SecurityDegreeEnum,
+    label
+  }));
+
+  readonly actionRequiredOptions = actionRequiredOptions;
+
   private documentTransactionService = inject(DocumentTransaction);
   transactionData = signal<DocumentTransactionModel[]>([]);
   transactionLoading = signal(false);
@@ -108,6 +117,7 @@ export default class Evrakkayit implements OnInit {
       id: ['', Validators.required],
       status: [''],
       securityDegree: [''],
+      actionRequired: [null],
       electronicCopy: [''],
       languageId: [''],
       pageCount: [''],
@@ -160,6 +170,7 @@ export default class Evrakkayit implements OnInit {
         this.formDetail.patchValue({
           id: doc.id,
           securityDegree: doc.securityDegree,
+          actionRequired: doc.actionRequired,
           languageId: doc.languageId,
           electronicCopy: doc.electronicCopy,
           pageCount: doc.pageCount,
@@ -375,6 +386,7 @@ export default class Evrakkayit implements OnInit {
       this.formDetail.patchValue({
         id: doc.id,
         securityDegree: doc.securityDegree,
+        actionRequired: doc.actionRequired,
         languageId: doc.languageId,
         electronicCopy: doc.electronicCopy,
         pageCount: doc.pageCount,
@@ -447,6 +459,11 @@ export default class Evrakkayit implements OnInit {
       default: return '-';
     }
   }
+  getSecurityDegreeText(): string {
+    const value = this.formDetail.get('securityDegree')?.value;
+    return this.securityDegreeOptions.find(opt => opt.value === value)?.label ?? '-';
+  }
+
   getReleaseText(): string {
     const value = this.formDetail.get('release')?.value;
 

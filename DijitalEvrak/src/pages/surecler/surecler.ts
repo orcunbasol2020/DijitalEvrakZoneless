@@ -9,6 +9,8 @@ import { TransactionFlow } from '../dynamics/transaction-flow/transaction-flow';
 import { DocumentTransaction } from '../../services/documenttransaction';
 import { Common } from '../../services/common';
 import { FlexiToastService } from 'flexi-toast';
+import { SecurityDegreeLabels, SecurityDegreeBadgeClass } from '../../models/securitydegree.model';
+import { actionRequiredLabel, actionRequiredBadgeClass } from '../../models/actionrequired.model';
 
 @Component({
   imports: [
@@ -33,18 +35,10 @@ export default class Surecler implements OnInit {
   private documentService = inject(IncomingDocumentService);
   private router = inject(Router);
   private documentTransactionService = inject(DocumentTransaction);
-    securityDegreeMap: Record<number, string> = {
-    1: 'Hizmete Özel',
-    2: 'Gizli',
-    3: 'Çok Gizli',
-    4: 'Kripto'
-  };
-    securityDegreeStyle: Record<number, string> = {
-    1: 'bg-warning-subtle text-warning border border-warning-subtle',
-    2: 'bg-warning text-dark',
-    3: 'bg-danger',
-    4: 'bg-dark'
-  };
+  securityDegreeMap: Record<number, string> = SecurityDegreeLabels;
+  securityDegreeStyle: Record<number, string> = SecurityDegreeBadgeClass;
+  readonly actionRequiredLabel = actionRequiredLabel;
+  readonly actionRequiredBadgeClass = actionRequiredBadgeClass;
 
   ngOnInit(): void {
     this.id = this.documentService.currentIncomingDocumentId;
