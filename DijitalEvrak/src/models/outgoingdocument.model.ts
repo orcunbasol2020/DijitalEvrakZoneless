@@ -5,6 +5,22 @@ export enum OutgoingDocumentStatus {
   Iade = 4
 }
 
+// Liste görünümünde tam metin yerine baş harfli yuvarlak rozet gösterilirken kullanılır.
+export const OutgoingDocumentStatusInitials: Record<OutgoingDocumentStatus, string> = {
+  [OutgoingDocumentStatus.Taslak]: 'Ö',
+  [OutgoingDocumentStatus.Gonderildi]: 'G',
+  [OutgoingDocumentStatus.TeslimEdildi]: 'T',
+  [OutgoingDocumentStatus.Iade]: 'İ'
+};
+
+// "status-tier-*" sınıfları styles.css'te tanımlıdır.
+export const OutgoingDocumentStatusBadgeClass: Record<OutgoingDocumentStatus, string> = {
+  [OutgoingDocumentStatus.Taslak]: 'status-tier-taslak',
+  [OutgoingDocumentStatus.Gonderildi]: 'status-tier-gonderildi',
+  [OutgoingDocumentStatus.TeslimEdildi]: 'status-tier-teslim',
+  [OutgoingDocumentStatus.Iade]: 'status-tier-iade'
+};
+
 export interface OutgoingDocumentModel {
   id: string;
   qrCode?: string;
@@ -29,6 +45,7 @@ export interface OutgoingDocumentModel {
   languageId?: string | null;
   // Kayıt kaynağı (backend AllocationSourceEnum: 1: Evrak Takip / manuel kayıt, 2: Atlas).
   source?: number;
+  createdUserId?: string;
   createdDate?: string;
   updateDate?: string;
   isDeleted?: boolean;

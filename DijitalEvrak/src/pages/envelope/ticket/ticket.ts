@@ -114,6 +114,12 @@ export default class Ticket implements OnInit {
       return;
     }
 
+    const alreadyAdded = this.documents.some(x => x.qrCode === qrCode);
+    if (alreadyAdded) {
+      this.#toast.showToast('Uyarı', 'Bu evrak zarfa daha önce eklenmiş', 'warning');
+      return;
+    }
+
     try {
 
       this.loading = true;

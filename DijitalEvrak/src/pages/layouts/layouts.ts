@@ -42,6 +42,7 @@ export default class Layouts {
   readonly search = signal<string>("");
   readonly showSearchResults = signal<boolean>(false);
   readonly activeResultIndex = signal<number>(-1);
+  readonly sidebarCollapsed = signal<boolean>(false);
   private static readonly MAX_SEARCH_RESULTS = 6;
   private static readonly TEST_DOCUMENT_ID = '51550714-6b02-4003-9ba3-f705592bfea8';
 
@@ -181,6 +182,11 @@ export default class Layouts {
 logout(): void {
   this.#common.logout();
   this.router.navigateByUrl('/login');
+}
+
+toggleSidebar(): void {
+  this.sidebarCollapsed.update(collapsed => !collapsed);
+  document.body.classList.toggle('sb-toggled', this.sidebarCollapsed());
 }
 
 public goToPendingScanList() {

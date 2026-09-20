@@ -58,4 +58,24 @@ export class OutgoingDocumentAllocation {
       allocation
     );
   }
+
+  // Zimmeti tamamlanmış bir evrağın taranmış, ıslak imzalı halini yükler
+  uploadWetSignedDocument(outgoingDocumentId: string, file: File, uploadedUserId?: string) {
+    const formData = new FormData();
+    formData.append('outgoingDocumentId', outgoingDocumentId);
+    formData.append('file', file, file.name);
+    if (uploadedUserId) {
+      formData.append('uploadedUserId', uploadedUserId);
+    }
+
+    return this.httpService.post<{ message: string }>(
+      `${this.baseUrl}/UploadWetSignedDocument`,
+      formData
+    );
+  }
+
+  // Islak imzalı belgeyi indirmek için backend URL'i (anchor/window.open ile kullanılır)
+  getWetSignedDownloadUrl(allocationId: string): string {
+    return `https://localhost:7056/${this.baseUrl}/DownloadWetSignedDocument?allocationId=${encodeURIComponent(allocationId)}`;
+  }
 }

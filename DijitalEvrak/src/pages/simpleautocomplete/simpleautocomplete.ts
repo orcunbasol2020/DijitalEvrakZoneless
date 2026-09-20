@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges, HostListener } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, OnDestroy, SimpleChanges, ElementRef, ChangeDetectorRef, inject } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 
@@ -24,13 +24,16 @@ template: `
 
       <ng-container *ngIf="filteredOptions.length > 0; else noResult">
 
-        <li 
+        <li
           class="list-group-item list-group-item-action"
           *ngFor="let option of filteredOptions; let i = index"
           [class.active-item]="i === activeIndex"
+          [class.autocomplete-item-child]="(option.level || 0) > 0"
+          [style.padding-left.px]="option.level ? 14 + option.level * 18 : null"
           (mousedown)="select(option)"
           (mouseenter)="activeIndex = i">
 
+          <span *ngIf="option.level" class="autocomplete-tree-marker">└</span>
           {{ option.name }}
         </li>
 
@@ -84,23 +87,52 @@ template: `
       background: #e9f2ff !important;
       font-weight: 500;
     }
+
+    .autocomplete-item-child {
+      color: #5a6472;
+      font-size: 0.92em;
+    }
+
+    .autocomplete-tree-marker {
+      display: inline-block;
+      margin-right: 4px;
+      color: #9aa4b2;
+    }
   `]
 })
-export class SimpleAutocompleteComponent implements OnInit, OnChanges {
+export class SimpleAutocompleteComponent implements OnInit, OnChanges, OnDestroy {
 
-  @Input() options: { id: number | string, name: string }[] = [];
+  @Input() options: { id: number | string, name: string, level?: number }[] = [];
   @Input() control!: FormControl;
   @Input() placeholder: string = '';
 
-  filteredOptions: { id: number | string, name: string }[] = [];
+  filteredOptions: { id: number | string, name: string, level?: number }[] = [];
   show = false;
   activeIndex = -1;
 
   /** Metin kutusunda gösterilen, henüz seçime dönüşmemiş olabilecek arama metni. */
   private searchText: string | null = null;
 
+  /** stopPropagation() kullanan popup/modal kapsayıcıları içindeyken bile dışa tıklamayı
+   *  yakalayabilmek için document'e bubble yerine capture aşamasında dinleyici ekliyoruz. */
+  private readonly documentClickListener = (event: MouseEvent) => this.onClickOutside(event);
+
+  // Proje zoneless (provideZonelessChangeDetection) çalıştığından, aşağıdaki
+  // document.addEventListener ile eklenen dış tık dinleyicisi Angular'ın event
+  // binding'leri dışında kaldığı için değişiklik algılamayı tetiklemez; "show"
+  // false olsa bile görünüm güncellenmeden dropdown açık kalırdı. markForCheck()
+  // ile bu dinleyicideki değişikliği manuel olarak bildiriyoruz.
+  private readonly cdr = inject(ChangeDetectorRef);
+
+  constructor(private elementRef: ElementRef<HTMLElement>) {}
+
   ngOnInit() {
     this.filteredOptions = this.options;
+    document.addEventListener('click', this.documentClickListener, true);
+  }
+
+  ngOnDestroy() {
+    document.removeEventListener('click', this.documentClickListener, true);
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -141,10 +173,15 @@ export class SimpleAutocompleteComponent implements OnInit, OnChanges {
       return;
     }
 
-    const search = value.toLowerCase();
+    // Varsayılan (locale'siz) toLowerCase(), Türkçe "İ" harfini tek bir "i" yerine
+    // "i" + görünmez birleştirici nokta (U+0307) olarak küçültür; bu da kullanıcı
+    // düz "i" yazdığında "İ" ile başlayan kayıtların eşleşmemesine yol açar.
+    // 'tr' locale'i "İ" -> "i" dönüşümünü tek karakterde yaptığından iki taraf
+    // tutarlı hale gelir.
+    const search = value.toLocaleLowerCase('tr');
 
     this.filteredOptions = this.options.filter(o =>
-      o.name.toLowerCase().includes(search)
+      o.name.toLocaleLowerCase('tr').includes(search)
     );
   }
 
@@ -193,10 +230,9 @@ export class SimpleAutocompleteComponent implements OnInit, OnChanges {
     this.activeIndex = -1;
   }
 
-  @HostListener('document:click', ['$event'])
   onClickOutside(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    if (!target.closest('.position-relative')) {
+    if (!this.elementRef.nativeElement.contains(target)) {
       this.close();
     }
   }
@@ -206,6 +242,7 @@ export class SimpleAutocompleteComponent implements OnInit, OnChanges {
     // Yazılan metin geçerli bir seçime dönüşmediyse, control.value'yu bozmadan
     // son geçerli seçime (varsa) geri dön.
     this.searchText = null;
+    this.cdr.markForCheck();
   }
 
 }

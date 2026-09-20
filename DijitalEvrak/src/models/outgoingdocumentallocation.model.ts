@@ -10,4 +10,9 @@ export interface OutgoingDocumentAllocationModel {
   createdDate: string;            // Oluşturulma tarihi
   updateDate?: string;            // Güncellenme tarihi (opsiyonel)
   isDeleted: boolean;             // Silinmiş mi
+
+  wetSignedDocumentFileName?: string;          // Yüklenen ıslak imzalı belgenin orijinal adı
+  wetSignedDocumentUploadDate?: string;        // Islak imzalı belgenin yüklenme tarihi
+  wetSignedDocumentUploadedByFullName?: string; // Islak imzalı belgeyi yükleyen kişi Ad Soyad
+  hasWetSignedDocument?: boolean;              // Islak imzalı belge yüklenmiş mi
 }

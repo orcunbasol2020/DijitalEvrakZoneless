@@ -7,9 +7,10 @@ import GenericModel from '../../../../components/generic-model/generic-model';
 import { FlexiToastService } from 'flexi-toast';
 import { ZimmetStateService } from '../../../services/zimmet-state-service';
 import { OutgoingDocumentService } from '../../../services/outgoingdocument';
-import { OutgoingDocumentModel, OutgoingDocumentStatus } from '../../../models/outgoingdocument.model';
+import { OutgoingDocumentModel, OutgoingDocumentStatus, OutgoingDocumentStatusBadgeClass } from '../../../models/outgoingdocument.model';
 import { OutgoingDocumentAllocation } from '../../../services/outgoingdocumentallocation';
 import { ExternalInstitutionModel } from '../../../services/external-institution';
+import { DepartmentModel } from '../../../services/department';
 import { ExternalUserService, ExternalUserModel, initialExternalUser } from '../../../services/external-user';
 import { Common } from '../../../services/common';
 import { UserModel } from '../../users/users';
@@ -44,17 +45,23 @@ export default class Outgoingzimmet implements OnInit {
   readonly loading = signal(false);
 
   readonly statusLabelMap: Record<number, string> = {
-    [OutgoingDocumentStatus.Taslak]: 'Taslak',
+    [OutgoingDocumentStatus.Taslak]: 'Ön Kayıt',
     [OutgoingDocumentStatus.Gonderildi]: 'Gönderildi',
     [OutgoingDocumentStatus.TeslimEdildi]: 'Teslim Edildi',
     [OutgoingDocumentStatus.Iade]: 'İade'
   };
 
-  readonly statusBadgeStyle: Record<number, string> = {
-    [OutgoingDocumentStatus.Taslak]: 'bg-secondary-subtle text-secondary border border-secondary-subtle',
-    [OutgoingDocumentStatus.Gonderildi]: 'bg-info-subtle text-info border border-info-subtle',
-    [OutgoingDocumentStatus.TeslimEdildi]: 'bg-success-subtle text-success border border-success-subtle',
-    [OutgoingDocumentStatus.Iade]: 'bg-warning-subtle text-warning border border-warning-subtle'
+  readonly statusBadgeClassMap: Record<number, string> = OutgoingDocumentStatusBadgeClass;
+
+  readonly documentTypeLabelMap: Record<number, string> = {
+    1: 'Nota',
+    2: 'Evrak'
+  };
+
+  // Backend AllocationSourceEnum ile birebir: 1: Evrak Takip (bu sistemden manuel girilen kayıt), 2: Atlas'tan aktarılan kayıt.
+  readonly sourceLabelMap: Record<number, string> = {
+    1: 'Evrak Takip',
+    2: 'Atlas'
   };
 
   readonly mode = signal<ZimmetMode>('internal');
@@ -71,10 +78,49 @@ export default class Outgoingzimmet implements OnInit {
   readonly institutionList = computed(() =>
     (this.institutionsResult.value() ?? []).filter(x => !x.isDeleted)
   );
-  readonly institutionOptions = computed(() =>
-    this.institutionList().map(i => ({ id: i.id, name: i.name }))
-  );
+
+  // Kurumlar parentId ile hiyerarşik olabildiğinden, autocomplete listesinde
+  // üst kurumun hemen altına alt kurumlar girintili şekilde sıralanır.
+  readonly institutionOptions = computed(() => {
+    const list = this.institutionList();
+    const byParent = new Map<string | null, ExternalInstitutionModel[]>();
+
+    for (const inst of list) {
+      const key = list.some(p => p.id === inst.parentId) ? inst.parentId! : null;
+      if (!byParent.has(key)) byParent.set(key, []);
+      byParent.get(key)!.push(inst);
+    }
+    for (const group of byParent.values()) {
+      group.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+    }
+
+    const result: { id: string; name: string; level: number }[] = [];
+    const addChildren = (parentId: string | null, level: number) => {
+      for (const inst of byParent.get(parentId) ?? []) {
+        result.push({ id: inst.id, name: inst.name, level });
+        addChildren(inst.id, level + 1);
+      }
+    };
+    addChildren(null, 0);
+
+    return result;
+  });
   readonly institutionControl = new FormControl<{ id: string, name: string } | null>(null);
+
+  // Belgenin gönderen/alan birim bilgilerini isim olarak göstermek için.
+  readonly departmentsResult = httpResource<DepartmentModel[]>(() => "api/Departments/GetAll");
+
+  readonly senderDepartmentName = computed(() => {
+    const departmentId = this.document()?.departmentId;
+    if (!departmentId) return null;
+    return (this.departmentsResult.value() ?? []).find(d => d.id === departmentId)?.name ?? null;
+  });
+
+  readonly receiverInstitutionName = computed(() => {
+    const institutionId = this.document()?.externalInstitutonId;
+    if (!institutionId) return null;
+    return this.institutionList().find(i => i.id === institutionId)?.name ?? null;
+  });
 
   readonly externalUsersResult = httpResource<ExternalUserModel[]>(() => "api/ExternalUsers/GetAll");
   readonly externalPersonList = computed<PersonListItem[]>(() => {
@@ -98,6 +144,12 @@ export default class Outgoingzimmet implements OnInit {
       `${p.name} ${p.surname}`.toLocaleLowerCase('tr').includes(term) ||
       (p.identityNo ?? '').toLocaleLowerCase('tr').includes(term)
     );
+  });
+
+  readonly selectedInstitutionName = computed(() => {
+    const id = this.selectedInstitutionId();
+    if (!id) return null;
+    return this.institutionList().find(i => i.id === id)?.name ?? null;
   });
 
   readonly quickAddModalVisible = signal(false);

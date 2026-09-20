@@ -96,6 +96,14 @@ export const routes: Routes = [
                 loadComponent: () => import('./pages/gidenevrak/outgoing/outgoing')
             },
             {
+                path: 'gidenevrak/outgoing/create',
+                loadComponent: () => import('./pages/gidenevrak/outgoingcreate/outgoingcreate')
+            },
+            {
+                path: 'gidenevrak/outgoing/create/:id',
+                loadComponent: () => import('./pages/gidenevrak/outgoingcreate/outgoingcreate')
+            },
+            {
                 path: 'gidenevrak/zimmet',
                 loadComponent: () => import('./pages/gidenevrak/zimmet/zimmet')
             },

@@ -1,12 +1,10 @@
 // Started script
 document.addEventListener('DOMContentLoaded', function () {
-    const sidebarToggle = document.getElementById('sidebarToggle');
-
-    if (sidebarToggle) {
-        sidebarToggle.addEventListener('click', function () {
-            // Footer positioning is handled by CSS transitions
-        });
-    }
+    // NOT: Sol menü aç/kapat butonu (#sidebarToggle) artık Angular tarafında
+    // (layouts.ts -> toggleSidebar()) yönetiliyor. Burada ikinci bir click
+    // listener eklemeyin; aynı butona iki listener bağlanırsa "sb-toggled"
+    // sınıfı art arda iki kez toggle'lanıp birbirini götürür ve menü hiç
+    // açılmıyormuş gibi görünür.
 
     // Update time in footer
     function updateTime() {
@@ -32,11 +30,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Initial time update
     updateTime();
-
-    // Toggle sidebar
-    document.getElementById('sidebarToggle').addEventListener('click', function () {
-        document.body.classList.toggle('sb-toggled');
-    });
 
     // Handle submenu toggle
     const menuItems = document.querySelectorAll('.nav-link.has-submenu, .nav-link.has-sub-submenu');

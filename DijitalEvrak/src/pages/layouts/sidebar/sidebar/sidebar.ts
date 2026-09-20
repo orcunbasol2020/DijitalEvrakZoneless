@@ -6,11 +6,12 @@ import { RoleService } from '../../../../services/role-service';
 import { SearchMenuPipe } from '../../../../pipes/search-menu-pipe';
 import { NavigationModel } from '../../../../navigation';
 import { Common } from '../../../../services/common';
+import { FlexiTooltipDirective } from 'flexi-tooltip';
 
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, RouterLinkActive, SearchMenuPipe],
+  imports: [CommonModule, FormsModule, RouterLink, RouterLinkActive, SearchMenuPipe, FlexiTooltipDirective],
   templateUrl: './sidebar.html',
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush

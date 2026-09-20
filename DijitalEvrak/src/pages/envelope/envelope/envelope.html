@@ -22,7 +22,7 @@
         {{ item.createdDate | date:'dd.MM.yyyy HH:mm' }}
       </ng-template>
     </flexi-grid-column>
-    <flexi-grid-column title="Teslim Et" textAlign="center" width="100px">
+    <flexi-grid-column title="Zimmetle" textAlign="center" width="100px">
       <ng-template flexiGridCellTemplate let-item>
         <flexi-button
           [btnIcon]="item.status === 2 ? 'task_alt' : 'hand_package'"

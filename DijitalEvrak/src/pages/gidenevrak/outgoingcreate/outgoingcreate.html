@@ -1,0 +1,152 @@
+<app-generic [pageTitle]="editingId() ? 'Giden Evrakı Güncelle' : 'Giden Evrak Kaydı'"
+  [breadcrumbs]="[
+    {title: 'Giden Evraklar', url: 'gidenevrak/outgoing', icon: ''},
+    {title: editingId() ? 'Güncelle' : 'Yeni Kayıt', url: '', icon: ''}
+  ]">
+</app-generic>
+
+<div class="outgoing-create-page">
+  <div class="outgoing-create-card">
+    <div class="outgoing-create-header">
+      <div class="d-flex align-items-center">
+        <span class="material-symbols-outlined me-2 text-secondary">{{ editingId() ? 'edit' : 'add_box' }}</span>
+        <h5 class="d-flex align-items-center mb-0">
+          {{ editingId() ? 'Giden Evrakı Güncelle' : 'Giden Evrak Kaydı' }}
+        </h5>
+      </div>
+
+      @if (editingId()) {
+        <div class="outgoing-create-meta">
+          <span class="outgoing-create-meta-badge">
+            <span class="material-symbols-outlined" style="font-size: 14px;">database</span>
+            {{ sourceLabelMap[documentSource() ?? -1] || 'Bilinmiyor' }}
+          </span>
+          <span class="outgoing-create-meta-badge {{ statusBadgeClassMap[documentStatus() ?? -1] || '' }}">
+            {{ statusLabelMap[documentStatus() ?? -1] || 'Bilinmiyor' }}
+          </span>
+        </div>
+      }
+    </div>
+
+    <div class="outgoing-doc-form">
+      <div class="row">
+        <div class="col-6">
+          <label class="form-label">Belge Numarası</label>
+          <input type="text" class="form-control"
+            [(ngModel)]="model.qrCode">
+        </div>
+        <div class="col-6">
+          <label class="form-label">Belge Tarihi</label>
+          <input type="date" class="form-control"
+            [(ngModel)]="model.documentDate">
+        </div>
+      </div>
+
+      <div>
+        <label class="form-label">Konu</label>
+        <input type="text" class="form-control"
+          [(ngModel)]="model.subject">
+      </div>
+
+      <div class="row">
+        <div class="col-6">
+          <label class="form-label">Orijinal Belge No</label>
+          <input type="text" class="form-control"
+            [(ngModel)]="model.originalDocumentNumber">
+        </div>
+        <div class="col-6">
+          <label class="form-label">Gizlilik Derecesi</label>
+          <select class="form-select" [(ngModel)]="model.securityDegree">
+            <option *ngFor="let opt of securityDegreeOptions" [ngValue]="opt.value">{{ opt.label }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-6">
+          <label class="form-label">Evrak Türü</label>
+          <select class="form-select" [(ngModel)]="model.type">
+            <option *ngFor="let opt of documentTypeOptions" [ngValue]="opt.value">{{ opt.label }}</option>
+          </select>
+        </div>
+        <div class="col-6">
+          <label class="form-label">İvedilik Derecesi</label>
+          <select class="form-select" [(ngModel)]="model.urgencyDegree">
+            <option *ngFor="let opt of urgencyDegreeOptions" [ngValue]="opt.value">{{ opt.label }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-6">
+          <label class="form-label">Gereği/Bilgi</label>
+          <select class="form-select" [(ngModel)]="model.actionRequired">
+            <option *ngFor="let opt of actionRequiredOptions" [ngValue]="opt.value">{{ opt.label }}</option>
+          </select>
+        </div>
+        <div class="col-6">
+          <label class="form-label">Dil</label>
+          <app-simple-autocomplete
+            [control]="languageControl"
+            [options]="languages"
+            placeholder="Dil seçiniz">
+          </app-simple-autocomplete>
+        </div>
+      </div>
+
+      <div class="outgoing-doc-divider"></div>
+
+      <div class="outgoing-doc-route-box">
+        <div class="row">
+          <div class="col-6">
+            <label class="form-label">
+              <span class="material-symbols-outlined align-middle me-1" style="font-size: 16px;">call_made</span>
+              Nereden
+            </label>
+            <app-simple-autocomplete
+              [control]="departmentControl"
+              [options]="departments()"
+              placeholder="Birim seçiniz">
+            </app-simple-autocomplete>
+          </div>
+          <div class="col-6">
+            <label class="form-label">
+              <span class="material-symbols-outlined align-middle me-1" style="font-size: 16px;">call_received</span>
+              Nereye
+            </label>
+            <app-simple-autocomplete
+              [control]="externalInstitutionControl"
+              [options]="externalInstitutionOptions()"
+              placeholder="Kurum seçiniz">
+            </app-simple-autocomplete>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="outgoing-create-footer">
+      <button class="btn btn-secondary" [disabled]="saving()" (click)="cancel()">İptal</button>
+      <button class="btn btn-primary" [disabled]="saving()" (click)="save()">
+        @if (saving()) {
+          <span class="spinner-border spinner-border-sm me-1"></span>
+        }
+        {{ editingId() ? 'Güncelle' : 'Kaydet' }}
+      </button>
+    </div>
+  </div>
+
+  <aside class="outgoing-create-help">
+    <div class="outgoing-create-help-title">
+      <span class="material-symbols-outlined">tips_and_updates</span>
+      Yardım
+    </div>
+    <ul>
+      <li><strong>Belge Numarası</strong>, evrağın QR kodundaki veya üzerindeki takip numarasıdır.</li>
+      <li><strong>Orijinal Belge No</strong> alanı, evrağın gönderen kurumdaki kendi referans numarasıdır; bilinmiyorsa boş bırakılabilir.</li>
+      <li><strong>Nereden</strong>, evrağı gönderen kendi birimimiz; <strong>Nereye</strong> ise evrağın teslim edileceği dış kurumdur.</li>
+      <li>Bir alt kuruma bağlı kurumlar <strong>Nereye</strong> listesinde "Üst Kurum / Alt Kurum" şeklinde gösterilir.</li>
+      <li><strong>Nereden</strong> / <strong>Nereye</strong> / <strong>Dil</strong> alanlarında arama kutusuna yazmaya başlamanız yeterlidir, büyük/küçük harf farkı gözetilmez.</li>
+      <li><strong>Gizlilik</strong> ve <strong>İvedilik Derecesi</strong>, evrak listesinde ilgili sütunlarda rozet olarak gösterilir.</li>
+    </ul>
+  </aside>
+</div>

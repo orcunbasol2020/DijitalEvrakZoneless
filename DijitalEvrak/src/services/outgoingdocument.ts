@@ -9,6 +9,9 @@ export class OutgoingDocumentService {
   private baseUrl = 'api/OutgoingDocuments/';
 
   // CREATE (OutgoingDocumentTransactions'a "Taslak" kaydı da düşer)
+  // Backend [FromBody] CreateOutgoingDocumentCommand bekliyor; gövde doğrudan
+  // command alanlarını içermeli ("request" gibi bir sarmalayıcı OLMAMALI,
+  // aksi halde tüm alanlar null/default olarak bağlanır ve kayıt boş oluşur.
   createOutgoingDocument(model: Partial<OutgoingDocumentModel>) {
     return this.httpService.post<OutgoingDocumentModel>(
       `${this.baseUrl}Create`,

@@ -1,8 +1,8 @@
 <!-- Header/Navbar -->
 <nav class="navbar navbar-expand-lg navbar-light bg-white fixed-top shadow-sm">
     <div class="container-fluid">
-        <button class="btn d-md-none" id="sidebarToggle">
-            <span class="material-symbols-outlined">menu</span>
+        <button class="btn" id="sidebarToggle" type="button" title="Menüyü Aç/Kapat" (click)="toggleSidebar()">
+            <span class="material-symbols-outlined sidebar-toggle-icon" [class.is-collapsed]="sidebarCollapsed()">menu_open</span>
         </button>
         <!-- Bread Crumb -->
         <div class="breadcrumb-container position-relative d-none d-md-block"

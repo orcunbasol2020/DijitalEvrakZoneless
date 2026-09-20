@@ -87,15 +87,15 @@
       </ng-template>
     </flexi-grid-column>
 
-    <flexi-grid-column title="Zimmet" textAlign="center" width="90px">
+    <flexi-grid-column title="Zimmet" textAlign="center" width="90px" [hideOverflow]="false">
       <ng-template flexiGridCellTemplate let-item>
         <div class="d-flex justify-content-center">
           <flexi-button
             (click)="openZimmetler(item)"
-            btnIcon="folder_open"
-            btnColor="secondary"
+            btnIcon="article_person"
+            btnColor="light"
             title="Zimmetli Evraklar"
-            flexiTooltip />
+            flexiTooltip="top" />
         </div>
       </ng-template>
     </flexi-grid-column>

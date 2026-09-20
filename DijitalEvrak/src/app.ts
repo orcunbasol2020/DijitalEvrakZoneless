@@ -12,6 +12,7 @@ export default class App {
   constructor() {
     if (localStorage.getItem('theme') === 'dark') {
       document.documentElement.setAttribute('data-theme', 'dark');
+      document.documentElement.setAttribute('data-bs-theme', 'dark');
     }
   }
 }

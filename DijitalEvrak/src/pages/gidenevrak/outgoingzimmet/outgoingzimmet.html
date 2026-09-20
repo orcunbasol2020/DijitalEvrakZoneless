@@ -19,29 +19,95 @@
                 </div>
 
                 <div *ngIf="!loading() && document() as doc">
-                    <div class="mb-3 d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="text-muted small mb-1">Belge No</div>
-                            <div class="fw-semibold">{{ doc.qrCode || '-' }}</div>
+                    <div class="evrak-lookup-box">
+                        <span class="material-symbols-outlined">qr_code_2</span>
+                        <div class="flex-grow-1 d-flex justify-content-between align-items-center">
+                            <div>
+                                <label class="evrak-lookup-label">BELGE NO</label>
+                                <div class="fw-semibold">{{ doc.qrCode || '-' }}</div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="outgoing-create-meta-badge">
+                                    <span class="material-symbols-outlined" style="font-size: 14px;">database</span>
+                                    {{ sourceLabelMap[doc.source ?? -1] || '-' }}
+                                </span>
+                                <span class="outgoing-create-meta-badge {{ statusBadgeClassMap[doc.status] || '' }}">
+                                    {{ statusLabelMap[doc.status] || '-' }}
+                                </span>
+                            </div>
                         </div>
-                        <span class="badge rounded-pill py-2" [ngClass]="statusBadgeStyle[doc.status]">
-                            {{ statusLabelMap[doc.status] || '-' }}
-                        </span>
                     </div>
 
-                    <div class="mb-3" *ngIf="doc.originalDocumentNumber">
-                        <div class="text-muted small mb-1">Belge Sayısı</div>
-                        <div class="fw-semibold">{{ doc.originalDocumentNumber }}</div>
-                    </div>
+                    <div class="evrak-form-section">
+                        <div class="info-item zarf-info-row mt-1">
+                            <span class="material-symbols-outlined sec-icon">article</span>
+                            <div>
+                                <strong>Evrak Türü</strong>
+                                <p class="mb-0">{{ documentTypeLabelMap[doc.type ?? -1] || '-' }}</p>
+                            </div>
+                        </div>
+                        <div class="detail-card-hr"></div>
 
-                    <div class="mb-3" *ngIf="doc.subject">
-                        <div class="text-muted small mb-1">Konu</div>
-                        <div class="fw-semibold">{{ doc.subject }}</div>
-                    </div>
+                        <div class="info-item zarf-info-row mt-1">
+                            <span class="material-symbols-outlined sec-icon">sync_alt</span>
+                            <div>
+                                <strong>Kaynak</strong>
+                                <p class="mb-0">{{ sourceLabelMap[doc.source ?? -1] || '-' }}</p>
+                            </div>
+                        </div>
+                        <div class="detail-card-hr"></div>
 
-                    <div>
-                        <div class="text-muted small mb-1">Belge Tarihi</div>
-                        <div class="fw-semibold">{{ (doc.documentDate || doc.createdDate) | date:'dd.MM.yyyy' }}</div>
+                        <div class="info-item zarf-info-row mt-1">
+                            <span class="material-symbols-outlined sec-icon">calendar_month</span>
+                            <div>
+                                <strong>Belge Tarihi</strong>
+                                <p class="mb-0">{{ (doc.documentDate || doc.createdDate) | date:'dd.MM.yyyy' }}</p>
+                            </div>
+                        </div>
+
+                        <ng-container *ngIf="doc.originalDocumentNumber">
+                            <div class="detail-card-hr"></div>
+                            <div class="info-item zarf-info-row mt-1">
+                                <span class="material-symbols-outlined sec-icon">tag</span>
+                                <div>
+                                    <strong>Orijinal Belge No</strong>
+                                    <p class="mb-0">{{ doc.originalDocumentNumber }}</p>
+                                </div>
+                            </div>
+                        </ng-container>
+
+                        <ng-container *ngIf="doc.subject">
+                            <div class="detail-card-hr"></div>
+                            <div class="info-item zarf-info-row mt-1">
+                                <span class="material-symbols-outlined sec-icon">subject</span>
+                                <div>
+                                    <strong>Konu</strong>
+                                    <p class="mb-0">{{ doc.subject }}</p>
+                                </div>
+                            </div>
+                        </ng-container>
+
+                        <ng-container *ngIf="senderDepartmentName()">
+                            <div class="detail-card-hr"></div>
+                            <div class="info-item zarf-info-row mt-1">
+                                <span class="material-symbols-outlined sec-icon">call_made</span>
+                                <div>
+                                    <strong>Gönderen Birim</strong>
+                                    <p class="mb-0">{{ senderDepartmentName() }}</p>
+                                </div>
+                            </div>
+                        </ng-container>
+
+                        <ng-container *ngIf="receiverInstitutionName()">
+                            <div class="detail-card-hr"></div>
+                            <div class="info-item zarf-info-row mt-1">
+                                <span class="material-symbols-outlined sec-icon">call_received</span>
+                                <div>
+                                    <strong>Alan Birim</strong>
+                                    <p class="mb-0">{{ receiverInstitutionName() }}</p>
+                                </div>
+                            </div>
+                        </ng-container>
                     </div>
                 </div>
 
@@ -60,9 +126,10 @@
                     <span class="material-symbols-outlined me-2 text-info">person_check</span>
                     <h5 class="card-title mb-0 fw-semibold">Zimmetle</h5>
                 </div>
-                <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 flex-shrink-0"
-                    *ngIf="!delivered() && mode() === 'external'"
-                    [disabled]="!selectedInstitutionId()" (click)="openQuickAddModal()">
+                <button type="button" class="btn btn-sm btn-primary d-flex align-items-center gap-1 flex-shrink-0"
+                    *ngIf="!delivered() && mode() === 'external' && selectedInstitutionId()"
+                    (click)="openQuickAddModal()">
+                    <span class="material-symbols-outlined" style="font-size: 16px;">person_add</span>
                     Personel Ekle
                 </button>
             </div>
@@ -174,34 +241,39 @@
                 Personel Ekle
             </h5>
         </div>
-        <div class="modal-body">
+        <div class="modal-body quick-add-form">
+            <div class="mb-1 text-muted small">
+                Kurum: <span class="fw-semibold">{{ selectedInstitutionName() || '-' }}</span>
+            </div>
+
             <div class="row">
-                <div class="col-6 mb-3">
+                <div class="col-6">
                     <label class="form-label">Ad</label>
                     <input type="text" class="form-control" [(ngModel)]="quickAddForm.name" />
                 </div>
-                <div class="col-6 mb-3">
+                <div class="col-6">
                     <label class="form-label">Soyad</label>
                     <input type="text" class="form-control" [(ngModel)]="quickAddForm.surname" />
                 </div>
             </div>
 
-            <div class="mb-3">
+            <div>
                 <label class="form-label">E-posta</label>
                 <input type="email" class="form-control" [(ngModel)]="quickAddForm.email" />
             </div>
 
-            <div class="mb-3">
-                <label class="form-label">Kimlik / Pasaport No</label>
-                <input type="text" class="form-control" [(ngModel)]="quickAddForm.identityNo" />
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Kullanıcı Türü</label>
-                <select class="form-select" [(ngModel)]="quickAddForm.userType">
-                    <option [ngValue]="1">Standart</option>
-                    <option [ngValue]="2">Yetkili</option>
-                </select>
+            <div class="row">
+                <div class="col-7">
+                    <label class="form-label">Kimlik / Pasaport No</label>
+                    <input type="text" class="form-control" [(ngModel)]="quickAddForm.identityNo" />
+                </div>
+                <div class="col-5">
+                    <label class="form-label">Kullanıcı Türü</label>
+                    <select class="form-select" [(ngModel)]="quickAddForm.userType">
+                        <option [ngValue]="1">Standart</option>
+                        <option [ngValue]="2">Yetkili</option>
+                    </select>
+                </div>
             </div>
         </div>
         <div class="modal-footer">

@@ -16,11 +16,22 @@ export const SecurityDegreeLabels: Record<SecurityDegreeEnum, string> = {
   [SecurityDegreeEnum.TopSecret]: 'Çok Gizli'
 };
 
+// "degree-tier-N" sınıfları styles.css'te tanımlıdır (düşükten yükseğe premium gradient rozet paleti).
 export const SecurityDegreeBadgeClass: Record<SecurityDegreeEnum, string> = {
-  [SecurityDegreeEnum.Unclassified]: 'bg-secondary-subtle text-secondary border border-secondary-subtle',
-  [SecurityDegreeEnum.Special]: 'bg-info-subtle text-info border border-info-subtle',
-  [SecurityDegreeEnum.ServiceUseOnly]: 'bg-warning-subtle text-warning border border-warning-subtle',
-  [SecurityDegreeEnum.PersonalUseOnly]: 'bg-warning text-dark',
-  [SecurityDegreeEnum.Confidential]: 'bg-danger',
-  [SecurityDegreeEnum.TopSecret]: 'bg-dark'
+  [SecurityDegreeEnum.Unclassified]: 'degree-tier-1',
+  [SecurityDegreeEnum.Special]: 'degree-tier-2',
+  [SecurityDegreeEnum.ServiceUseOnly]: 'degree-tier-3',
+  [SecurityDegreeEnum.PersonalUseOnly]: 'degree-tier-4',
+  [SecurityDegreeEnum.Confidential]: 'degree-tier-5',
+  [SecurityDegreeEnum.TopSecret]: 'degree-tier-6'
+};
+
+// Liste görünümünde tam metin yerine ikon gösterilirken kullanılır (Material Symbols).
+export const SecurityDegreeIcons: Record<SecurityDegreeEnum, string> = {
+  [SecurityDegreeEnum.Unclassified]: 'public',
+  [SecurityDegreeEnum.Special]: 'star',
+  [SecurityDegreeEnum.ServiceUseOnly]: 'work',
+  [SecurityDegreeEnum.PersonalUseOnly]: 'person',
+  [SecurityDegreeEnum.Confidential]: 'lock',
+  [SecurityDegreeEnum.TopSecret]: 'gpp_maybe'
 };
