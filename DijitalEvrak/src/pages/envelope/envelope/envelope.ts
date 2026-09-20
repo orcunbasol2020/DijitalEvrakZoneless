@@ -9,6 +9,8 @@ import { CommonModule } from '@angular/common';
 import { EnvelopeModel } from '../../../models/envelope.model';
 import { ZimmetStateService } from '../../../services/zimmet-state-service';
 import { EnvelopeService } from '../../../services/envelope';
+import { Common } from '../../../services/common';
+import { RoleService } from '../../../services/role-service';
 
 
 @Component({
@@ -23,13 +25,24 @@ import { EnvelopeService } from '../../../services/envelope';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export default class Envelopes {
-  readonly result = httpResource<EnvelopeModel[]>(() => "api/Envelopes/GetAll");
+  readonly #common = inject(Common);
+  readonly #roleService = inject(RoleService);
+  // Yönetici hiçbir filtre göndermez (tüm zarfları görür); diğer kullanıcılar
+  // kendi departmentId'siyle sınırlanır, böylece aynı birimdeki herkesin
+  // oluşturduğu zarfları görür (sadece kendi oluşturduklarını değil).
+  readonly result = httpResource<EnvelopeModel[]>(() => {
+    const departmentId = this.#roleService.has('Yönetici') ? undefined : this.#common.user()?.departmentId;
+    return departmentId
+      ? `api/Envelopes/GetAll?departmentId=${encodeURIComponent(departmentId)}`
+      : "api/Envelopes/GetAll";
+  });
   readonly data = computed(() =>
     [...(this.result.value() ?? [])].sort(
       (a, b) => new Date(b.createdDate ?? 0).getTime() - new Date(a.createdDate ?? 0).getTime()
     )
   );
   readonly loading = computed(() => this.result.isLoading());
+  readonly isBirimEvrakSorumlusu = computed(() => this.#roleService.has('Birim Evrak Sorumlusu'));
   readonly #toast = inject(FlexiToastService);
   readonly #http = inject(HttpClient);
   readonly #envelopeService = inject(EnvelopeService);

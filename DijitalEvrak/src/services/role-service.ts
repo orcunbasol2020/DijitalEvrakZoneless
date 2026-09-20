@@ -40,7 +40,8 @@ export class RoleService {
         continue;
       }
 
-      const isVisible = !nav.roles?.length || this.hasAny(nav.roles);
+      const isVisible = (!nav.roles?.length || this.hasAny(nav.roles))
+        && !(nav.excludeRoles?.length && this.hasAny(nav.excludeRoles));
 
       if (!isVisible) continue;
 

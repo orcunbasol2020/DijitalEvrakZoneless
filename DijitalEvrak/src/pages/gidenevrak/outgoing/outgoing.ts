@@ -21,6 +21,8 @@ import { ExternalInstitution, ExternalInstitutionModel } from '../../../services
 import { SecurityDegreeLabels, SecurityDegreeIcons, SecurityDegreeBadgeClass } from '../../../models/securitydegree.model';
 import { UrgencyDegreeLabels, UrgencyDegreeInitials, UrgencyDegreeBadgeClass } from '../../../models/urgencydegree.model';
 import { DocumentTypeLabels } from '../../../models/documenttype.model';
+import { Common } from '../../../services/common';
+import { RoleService } from '../../../services/role-service';
 
 @Component({
   imports: [
@@ -47,6 +49,8 @@ export default class Outgoing {
   private readonly zimmetState = inject(ZimmetStateService);
   private readonly departmentService = inject(Department);
   private readonly externalInstitutionService = inject(ExternalInstitution);
+  private readonly common = inject(Common);
+  private readonly roleService = inject(RoleService);
   readonly loading = computed(() => this.documentsResourceSig()?.isLoading?.() ?? false);
 
   readonly departments = signal<DepartmentModel[]>([]);
@@ -109,6 +113,13 @@ export default class Outgoing {
     });
   }
 
+  // Yönetici hiçbir filtre göndermez (tüm kayıtları görür); diğer kullanıcılar
+  // kendi departmentId'siyle sınırlanır, böylece aynı birimdeki herkesin
+  // oluşturduğu evrakları görür (sadece kendi oluşturduklarını değil).
+  private get departmentFilterId(): string | undefined {
+    return this.roleService.has('Yönetici') ? undefined : this.common.user()?.departmentId;
+  }
+
   // Kayıt tarihine göre en yeni en üstte; kayıt tarihi eşit olan kayıtlarda belge tarihi ile kırılır.
   private sortDocuments(docs: OutgoingDocumentModel[]): OutgoingDocumentModel[] {
     return [...docs].sort((a, b) => {
@@ -120,7 +131,7 @@ export default class Outgoing {
 
   loadDocuments(): void {
     this.documentsResourceSig.set(
-      this.outgoingDocumentService.getAll()
+      this.outgoingDocumentService.getAll(undefined, this.departmentFilterId)
     );
   }
 

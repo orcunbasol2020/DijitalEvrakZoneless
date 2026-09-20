@@ -51,9 +51,10 @@ export class IncomingDocumentService {
   }
 
   // GET ALL (resource)
-  getAllIncomingDocuments() {
+  getAllIncomingDocuments(departmentId?: string) {
+    const query = departmentId ? `?departmentId=${encodeURIComponent(departmentId)}` : '';
     return this.httpService.get<IncomingDocumentModel[]>(
-      this.baseUrl + "GetAll"
+      this.baseUrl + "GetAll" + query
     );
   }
 
@@ -95,9 +96,10 @@ export class IncomingDocumentService {
   }
 
   // OCR Filtreli liste
-  getIncomingDocumentsByStatus(status: string) {
+  getIncomingDocumentsByStatus(status: string, departmentId?: string) {
+    const departmentQuery = departmentId ? `&departmentId=${encodeURIComponent(departmentId)}` : '';
     return this.httpService.createResource<IncomingDocumentModel[]>(
-      `${this.baseUrl}GetAll?Status=${encodeURIComponent(status)}`
+      `${this.baseUrl}GetAll?Status=${encodeURIComponent(status)}${departmentQuery}`
     );
   }
   getIncomingDocumentsByDirection(documentDirection: string) {

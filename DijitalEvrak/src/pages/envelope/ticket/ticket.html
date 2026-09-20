@@ -276,3 +276,53 @@
         </div>
     </div>
 </div>
+
+<!-- Manuel Evrak Ekleme Popup (Birim Evrak Sorumlusu, evrak numarası bulunamadığında) -->
+<div class="modal-overlay" *ngIf="manualEntryModalVisible()" (click)="closeManualEntryModal()">
+    <div class="modal-box" style="width: 460px;" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h5 class="d-flex align-items-center mb-0">
+                <span class="material-symbols-outlined me-2 text-secondary">note_add</span>
+                Evrak Bulunamadı - Manuel Ekle
+            </h5>
+        </div>
+        <div class="modal-body">
+            <div class="mb-3 text-muted small">
+                <span class="material-symbols-outlined align-middle" style="font-size: 16px;">tag</span>
+                Evrak No: <span class="fw-semibold">{{ manualEntryForm.qrCode }}</span>
+            </div>
+
+            <div class="mb-3 text-muted small">
+                <span class="material-symbols-outlined align-middle" style="font-size: 16px;">apartment</span>
+                Gönderen Birim: <span class="fw-semibold">{{ user()?.departmentName }}</span>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Belge Tarihi</label>
+                <input type="date" class="form-control" [(ngModel)]="manualEntryForm.documentDate" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Alan Birim</label>
+                <select class="form-select" [(ngModel)]="manualEntryForm.externalInstitutionId">
+                    <option [ngValue]="null">Seçiniz</option>
+                    <option *ngFor="let inst of externalInstitutions" [ngValue]="inst.id">{{ inst.name }}</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Konu</label>
+                <textarea class="form-control" rows="2" [(ngModel)]="manualEntryForm.subject"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" [disabled]="manualEntrySaving()" (click)="closeManualEntryModal()">İptal</button>
+            <button class="btn btn-primary" [disabled]="manualEntrySaving()" (click)="saveManualEntry()">
+                @if (manualEntrySaving()) {
+                    <span class="spinner-border spinner-border-sm me-1"></span>
+                }
+                Kaydet ve Zarfa Ekle
+            </button>
+        </div>
+    </div>
+</div>

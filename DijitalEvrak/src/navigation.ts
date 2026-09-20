@@ -3,6 +3,7 @@ export interface NavigationModel {
     url?: string;
     icon?: string;
     roles?: string[];
+    excludeRoles?: string[];
     category?: string;
 }
 
@@ -35,7 +36,7 @@ export const navigations: NavigationModel[] = [
         title: "Gelen Evraklar",
         url: "/scanlist",
         icon: "add_notes",
-        roles: ["Gelen Evrak"]
+        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu"]
     },
     {
         title: "Gelen Evraklar",
@@ -47,7 +48,7 @@ export const navigations: NavigationModel[] = [
         title: "Zimmet",
         url: "/zimmet",
         icon: "contract_edit",
-        roles: ["Gelen Evrak"]
+        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu"]
     },
     {
         title: "Evrak Eşleştirme",
@@ -58,7 +59,8 @@ export const navigations: NavigationModel[] = [
     {
         title: "Havale (AI)",
         url: "/havale",
-        icon: "neurology"
+        icon: "neurology",
+        excludeRoles: ["Birim Evrak Sorumlusu"]
     },
     {
         title: "OCR Takip",
@@ -88,13 +90,13 @@ export const navigations: NavigationModel[] = [
         title: "Zarflar",
         url: "/envelope",
         icon: "stacked_email",
-        roles: ["Gelen Evrak"]
+        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu"]
     },
     {
         title: "Zarf Etiketi",
         url: "/ticket",
         icon: "book",
-        roles: ["Gelen Evrak"]
+        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu"]
     },
     {
         title: "Teslim Al",
@@ -143,21 +145,25 @@ export const navigations: NavigationModel[] = [
     {
         title: "Birimler",
         url: "/birimler",
-        icon: "apartment"
+        icon: "apartment",
+        excludeRoles: ["Birim Evrak Sorumlusu"]
     },
     {
         title: "Dış Kurumlar",
         url: "/externalinstitution",
-        icon: "moving_ministry"
+        icon: "moving_ministry",
+        excludeRoles: ["Birim Evrak Sorumlusu"]
     },
     {
         title: "Diller",
         url: "/parameters/languages",
-        icon: "language_chinese_array"
+        icon: "language_chinese_array",
+        excludeRoles: ["Birim Evrak Sorumlusu"]
     },
     {
         title: "Raporlar",
         url: "/reports",
-        icon: "monitoring"
+        icon: "monitoring",
+        excludeRoles: ["Birim Evrak Sorumlusu"]
     }
 ];

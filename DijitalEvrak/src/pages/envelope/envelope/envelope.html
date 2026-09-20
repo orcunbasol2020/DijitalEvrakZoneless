@@ -22,16 +22,20 @@
         {{ item.createdDate | date:'dd.MM.yyyy HH:mm' }}
       </ng-template>
     </flexi-grid-column>
-    <flexi-grid-column title="Zimmetle" textAlign="center" width="100px">
-      <ng-template flexiGridCellTemplate let-item>
-        <flexi-button
-          [btnIcon]="item.status === 2 ? 'task_alt' : 'hand_package'"
-          [title]="item.status === 2 ? 'Teslim Edildi' : 'Zarfı Teslim Et'"
-          [btnColor]="item.status === 2 ? 'success' : 'primary'"
-           (click)="goToGidenZimmet(item.id)">
-        </flexi-button>
-      </ng-template>
-    </flexi-grid-column>
+    @if (!isBirimEvrakSorumlusu()) {
+      <flexi-grid-column title="Zimmetle" textAlign="center" width="100px">
+        <ng-template flexiGridCellTemplate let-item>
+          @if (item.documentCount > 0) {
+            <flexi-button
+              [btnIcon]="item.status === 2 ? 'task_alt' : 'hand_package'"
+              [title]="item.status === 2 ? 'Teslim Edildi' : 'Zarfı Teslim Et'"
+              [btnColor]="item.status === 2 ? 'success' : 'primary'"
+               (click)="goToGidenZimmet(item.id)">
+            </flexi-button>
+          }
+        </ng-template>
+      </flexi-grid-column>
+    }
         <flexi-grid-column title="Detaya Git" textAlign="center" width="50px">
       <ng-template flexiGridCellTemplate let-item>
         <flexi-button

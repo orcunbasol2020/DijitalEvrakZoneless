@@ -40,8 +40,12 @@ export class OutgoingDocumentService {
   }
 
   // status verilmezse tüm kayıtlar, verilirse OutgoingDocumentStatus'a göre filtrelenir
-  getAll(status?: number) {
-    const query = status != null ? `?status=${status}` : '';
+  // departmentId verilirse (admin olmayan kullanıcılar için) sadece o birime ait kayıtlar döner
+  getAll(status?: number, departmentId?: string) {
+    const params: string[] = [];
+    if (status != null) params.push(`status=${status}`);
+    if (departmentId) params.push(`departmentId=${encodeURIComponent(departmentId)}`);
+    const query = params.length ? `?${params.join('&')}` : '';
     return this.httpService.createResource<OutgoingDocumentModel[]>(
       `${this.baseUrl}GetAll${query}`
     );

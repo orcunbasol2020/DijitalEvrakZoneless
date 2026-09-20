@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ViewEncapsulation, OnInit, inject, computed, ElementRef, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ViewEncapsulation, OnInit, inject, computed, signal, ElementRef, ViewChild } from '@angular/core';
 import GenericModel from '../../../../components/generic-model/generic-model';
 import { FlexiGridModule } from 'flexi-grid';
 import { RouterLink } from '@angular/router';
@@ -17,6 +17,9 @@ import { EnvelopeDocumentService } from '../../../services/envelopedocument';
 import { EnvelopeDocumentModel } from '../../../models/envelopedocument.model';
 import { firstValueFrom } from 'rxjs';
 import { QRCodeComponent } from 'angularx-qrcode';
+import { RoleService } from '../../../services/role-service';
+import { OutgoingDocumentService } from '../../../services/outgoingdocument';
+import { OutgoingDocumentStatus } from '../../../models/outgoingdocument.model';
 
 @Component({
   standalone: true,
@@ -39,6 +42,8 @@ export default class Ticket implements OnInit {
   previewOpen = false;
   private envelopeService = inject(EnvelopeService);
   private envelopeDocumentService = inject(EnvelopeDocumentService);
+  private outgoingDocumentService = inject(OutgoingDocumentService);
+  readonly #roleService = inject(RoleService);
   readonly #toast = inject(FlexiToastService);
   private externalInstitutionService = inject(ExternalInstitution);
   externalInstitutionControl = new FormControl<ExternalInstitutionModel | null>(null);
@@ -120,33 +125,150 @@ export default class Ticket implements OnInit {
       return;
     }
 
-    try {
+    // Birim Evrak Sorumlusu: sadece kendi biriminin evrakını zarfa ekleyebilir;
+    // girilen numaraya ait giden evrak yoksa manuel evrak ekleme popup'ı açılır.
+    if (this.#roleService.has('Birim Evrak Sorumlusu')) {
+      await this.addDocumentByQrForBirimSorumlusu(qrCode, envelopeId, createdUserId);
+      return;
+    }
 
+    try {
       this.loading = true;
       this.cdr.markForCheck();
-
-      const newEnvelopeDoc: EnvelopeDocumentModel = {
-        id: '',
-        envelopeId: envelopeId,
-        documentId: '',
-        qrCode: qrCode,
-        createdUserId: createdUserId,
-      };
-
-      const createdDoc = await firstValueFrom(
-        this.envelopeDocumentService.createEnvelopeDocument(newEnvelopeDoc)
-      );
-
-      this.documents.push(createdDoc.data);
-      this.#toast.showToast('Başarılı', 'Evrak zarfa eklendi', 'success');
-
+      await this.attachToEnvelope(qrCode, envelopeId, createdUserId);
     } catch (error) {
       this.#toast.showToast('Hata', 'Evrak eklenemedi. QR kodu kontrol ediniz.', 'error');
       console.error("Evrak ekleme hatası:", error);
     } finally {
-
       this.loading = false;
       this.cdr.markForCheck(); // kritik satır
+    }
+  }
+
+  private async addDocumentByQrForBirimSorumlusu(qrCode: string, envelopeId: string, createdUserId: string) {
+    this.loading = true;
+    this.cdr.markForCheck();
+
+    try {
+      const doc = await firstValueFrom(this.outgoingDocumentService.getByQrCode(qrCode));
+
+      if (!doc) {
+        this.openManualEntryModal(qrCode, envelopeId);
+        return;
+      }
+
+      const myDepartmentId = this.user()?.departmentId;
+      if (doc.departmentId !== myDepartmentId) {
+        this.#toast.showToast('Hata', 'Bu evrak kendi biriminize ait değil, zarfa ekleyemezsiniz', 'error');
+        return;
+      }
+
+      await this.attachToEnvelope(qrCode, envelopeId, createdUserId);
+    } catch (err: any) {
+      if (err?.status === 404) {
+        this.openManualEntryModal(qrCode, envelopeId);
+      } else {
+        this.#toast.showToast('Hata', 'Evrak sorgulanamadı', 'error');
+        console.error('Evrak sorgulama hatası:', err);
+      }
+    } finally {
+      this.loading = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  private async attachToEnvelope(qrCode: string, envelopeId: string, createdUserId: string) {
+    const newEnvelopeDoc: EnvelopeDocumentModel = {
+      id: '',
+      envelopeId: envelopeId,
+      documentId: '',
+      qrCode: qrCode,
+      createdUserId: createdUserId,
+    };
+
+    const createdDoc = await firstValueFrom(
+      this.envelopeDocumentService.createEnvelopeDocument(newEnvelopeDoc)
+    );
+
+    this.documents.push(createdDoc.data);
+    this.#toast.showToast('Başarılı', 'Evrak zarfa eklendi', 'success');
+  }
+
+  // ---- Manuel Evrak Ekleme Popup (Birim Evrak Sorumlusu) ----
+
+  readonly manualEntryModalVisible = signal(false);
+  readonly manualEntrySaving = signal(false);
+  private pendingManualEnvelopeId: string | null = null;
+
+  manualEntryForm: { qrCode: string; documentDate: string; subject: string; externalInstitutionId: string | null } = {
+    qrCode: '',
+    documentDate: '',
+    subject: '',
+    externalInstitutionId: null
+  };
+
+  private openManualEntryModal(qrCode: string, envelopeId: string) {
+    this.pendingManualEnvelopeId = envelopeId;
+    this.manualEntryForm = {
+      qrCode,
+      documentDate: '',
+      subject: '',
+      externalInstitutionId: null
+    };
+    this.manualEntryModalVisible.set(true);
+    this.cdr.markForCheck();
+  }
+
+  closeManualEntryModal() {
+    if (this.manualEntrySaving()) return;
+    this.manualEntryModalVisible.set(false);
+  }
+
+  async saveManualEntry() {
+    if (!this.manualEntryForm.documentDate) {
+      this.#toast.showToast('Uyarı', 'Belge tarihi zorunludur', 'warning');
+      return;
+    }
+
+    if (!this.manualEntryForm.externalInstitutionId) {
+      this.#toast.showToast('Uyarı', 'Alan birim zorunludur', 'warning');
+      return;
+    }
+
+    const envelopeId = this.pendingManualEnvelopeId;
+    const createdUserId = this.user()?.id;
+    const departmentId = this.user()?.departmentId;
+
+    if (!envelopeId || !createdUserId || !departmentId) {
+      this.#toast.showToast('Hata', 'Kullanıcı/zarf bilgisi alınamadı', 'error');
+      return;
+    }
+
+    this.manualEntrySaving.set(true);
+
+    try {
+      await firstValueFrom(
+        this.outgoingDocumentService.createOutgoingDocument({
+          qrCode: this.manualEntryForm.qrCode,
+          documentDate: this.manualEntryForm.documentDate,
+          subject: this.manualEntryForm.subject.trim() || undefined,
+          departmentId,
+          externalInstitutonId: this.manualEntryForm.externalInstitutionId,
+          status: OutgoingDocumentStatus.Taslak,
+          source: 1,
+          createdUserId
+        })
+      );
+
+      await this.attachToEnvelope(this.manualEntryForm.qrCode, envelopeId, createdUserId);
+
+      this.manualEntryModalVisible.set(false);
+    } catch (err) {
+      this.#toast.showToast('Hata', 'Evrak kaydedilemedi', 'error');
+      console.error('Manuel evrak kaydetme hatası:', err);
+    } finally {
+      this.manualEntrySaving.set(false);
+      this.cdr.markForCheck();
     }
   }
 
