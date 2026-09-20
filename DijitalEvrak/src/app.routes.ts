@@ -132,7 +132,7 @@ export const routes: Routes = [
                 path: 'gidenevrak/zimmet',
                 loadComponent: () => import('./pages/gidenevrak/zimmet/zimmet'),
                 canActivate: [roleGuard],
-                data: { roles: ["Gelen Evrak"] }
+                data: { roles: ["Gelen Evrak", "Giden Evrak"] }
             },
             {
                 path: 'gidenevrak/outgoingzimmet',
@@ -142,7 +142,7 @@ export const routes: Routes = [
                 path: 'envelope',
                 loadComponent: () => import('./pages/envelope/envelope/envelope'),
                 canActivate: [roleGuard],
-                data: { roles: ["Gelen Evrak", "Birim Evrak Sorumlusu"] }
+                data: { roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Giden Evrak"] }
             },
                         {
                 path: 'gidenzimmet',
@@ -152,7 +152,7 @@ export const routes: Routes = [
                 path: 'ticket',
                 loadComponent: () => import('./pages/envelope/ticket/ticket'),
                 canActivate: [roleGuard],
-                data: { roles: ["Gelen Evrak", "Birim Evrak Sorumlusu"] }
+                data: { roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Giden Evrak"] }
             },
             {
                 path: 'settings',

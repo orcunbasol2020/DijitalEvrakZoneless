@@ -4,7 +4,7 @@
 
 <div class="outgoing-grid" [class.show-filters]="showFilters">
   <flexi-grid
-    [data]="scanListData()"
+    [data]="gridData()"
     [loading]="loading()"
     [showCaption]="true"
     captionTitle="Giden Evraklar"
@@ -33,17 +33,19 @@
       </flexi-button>
     </ng-template>
     <flexi-grid-column field="qrCode" title="Belge No" />
-    <flexi-grid-column title="Türü" textAlign="left" width="100px">
+    <flexi-grid-column field="documentTypeLabel" title="Türü" textAlign="left" width="100px"
+      filterType="select" [filterData]="documentTypeFilterData()">
       <ng-template flexiGridCellTemplate let-item>
-        {{ documentTypeLabelMap[item.type] || '-' }}
+        {{ item.documentTypeLabel }}
       </ng-template>
     </flexi-grid-column>
-    <flexi-grid-column title="Tarihi" width="100px">
+    <flexi-grid-column field="documentDate" title="Tarihi" width="100px" filterType="date">
       <ng-template flexiGridCellTemplate let-item>
         {{ item.documentDate | date:'dd.MM.yyyy' }}
       </ng-template>
     </flexi-grid-column>
-    <flexi-grid-column title="Giz." textAlign="center" width="70px">
+    <flexi-grid-column field="securityDegreeLabel" title="Giz. Der." textAlign="center" width="90px"
+      filterType="select" [filterData]="securityDegreeFilterData()">
       <ng-template flexiGridCellTemplate let-item>
         <span class="degree-badge-circle {{ securityDegreeBadgeClassMap[item.securityDegree] || 'degree-tier-1' }}"
           [title]="securityDegreeMap[item.securityDegree] || '-'">
@@ -51,12 +53,13 @@
         </span>
       </ng-template>
     </flexi-grid-column>
-    <flexi-grid-column title="Konu" textAlign="left" width="200px">
+    <flexi-grid-column field="subject" title="Konu" textAlign="left" width="200px">
       <ng-template flexiGridCellTemplate let-item>
         {{ item.subject || '-' }}
       </ng-template>
     </flexi-grid-column>
-    <flexi-grid-column title="İved." textAlign="center" width="76px">
+    <flexi-grid-column field="urgencyDegreeLabel" title="İvedilik" textAlign="center" width="90px"
+      filterType="select" [filterData]="urgencyDegreeFilterData()">
       <ng-template flexiGridCellTemplate let-item>
         <span class="degree-badge-circle {{ urgencyDegreeBadgeClassMap[item.urgencyDegree] || 'degree-tier-1' }}"
           [title]="urgencyDegreeMap[item.urgencyDegree] || '-'">
@@ -64,17 +67,19 @@
         </span>
       </ng-template>
     </flexi-grid-column>
-    <flexi-grid-column title="Nereden" textAlign="left" width="150px">
+    <flexi-grid-column field="departmentName" title="Nereden" textAlign="left" width="150px"
+      filterType="select" [filterData]="departmentFilterData()">
       <ng-template flexiGridCellTemplate let-item>
-        {{ (item.departmentId && departmentNameMap()[item.departmentId]) || '-' }}
+        {{ item.departmentName }}
       </ng-template>
     </flexi-grid-column>
-    <flexi-grid-column title="Nereye" textAlign="left" width="150px">
+    <flexi-grid-column field="externalInstitutionName" title="Nereye" textAlign="left" width="150px"
+      filterType="select" [filterData]="externalInstitutionFilterData()">
       <ng-template flexiGridCellTemplate let-item>
-        {{ (item.externalInstitutonId && externalInstitutionNameMap()[item.externalInstitutonId]) || '-' }}
+        {{ item.externalInstitutionName }}
       </ng-template>
     </flexi-grid-column>
-   <flexi-grid-column title="Takip" textAlign="center" width="81px">
+   <flexi-grid-column title="Takip" textAlign="center" width="81px" [filterable]="false" [sortable]="false">
       <ng-template flexiGridCellTemplate let-item>
         <flexi-button
           btnIcon="conversion_path"
@@ -84,7 +89,7 @@
         </flexi-button>
       </ng-template>
     </flexi-grid-column>
-    <flexi-grid-column title="Zimmet" textAlign="center" width="96px">
+    <flexi-grid-column title="Zimmet" textAlign="center" width="96px" [visible]="!isBirimEvrakSorumlusu()" [filterable]="false" [sortable]="false">
       <ng-template flexiGridCellTemplate let-item>
         <flexi-button
           btnIcon="article_person"
@@ -94,7 +99,7 @@
         </flexi-button>
       </ng-template>
     </flexi-grid-column>
-    <flexi-grid-column title="" textAlign="center" width="80px">
+    <flexi-grid-column title="" textAlign="center" width="80px" [filterable]="false" [sortable]="false">
       <ng-template flexiGridCellTemplate let-item>
         <flexi-button
           *ngIf="item.source === 1"
@@ -105,7 +110,7 @@
         </flexi-button>
       </ng-template>
     </flexi-grid-column>
-    <flexi-grid-column title="" textAlign="center" width="60px">
+    <flexi-grid-column title="" textAlign="center" width="60px" [filterable]="false" [sortable]="false">
       <ng-template flexiGridCellTemplate let-item>
         <flexi-button
           btnIcon="delete"

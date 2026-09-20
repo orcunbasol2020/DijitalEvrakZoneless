@@ -245,8 +245,8 @@
                     Geri
                 </button>
                 <button class="btn btn-primary d-flex align-items-center gap-1" *ngIf="!delivered()" (click)="addZimmet()">
-                    <span class="material-symbols-outlined" style="font-size: 18px;">hand_package</span>
-                    Teslim Et
+                    <span class="material-symbols-outlined" style="font-size: 18px;">{{ mode() === 'self' ? 'approval_delegation' : 'hand_package' }}</span>
+                    {{ mode() === 'self' ? 'Teslim Al' : 'Teslim Et' }}
                 </button>
             </div>
         </div>

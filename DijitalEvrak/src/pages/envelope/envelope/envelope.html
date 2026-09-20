@@ -15,6 +15,7 @@
 
 
     <flexi-grid-column field="envelopeNo" title="Etiket No" width="150px" />
+    <flexi-grid-column field="departmentName" title="Ekleyen" width="150px" />
         <flexi-grid-column field="externalInstitutionName" title="Gideceği Yer" width="150px" />
     <flexi-grid-column field="documentCount" title="Evrak Sayısı" width="60px" />
     <flexi-grid-column field="createdDate" title="Kayıt Tarihi" width="80px">
@@ -26,12 +27,28 @@
       <flexi-grid-column title="Zimmetle" textAlign="center" width="100px">
         <ng-template flexiGridCellTemplate let-item>
           @if (item.documentCount > 0) {
-            <flexi-button
-              [btnIcon]="item.status === 2 ? 'task_alt' : 'hand_package'"
-              [title]="item.status === 2 ? 'Teslim Edildi' : 'Zarfı Teslim Et'"
-              [btnColor]="item.status === 2 ? 'success' : 'primary'"
-               (click)="goToGidenZimmet(item.id)">
-            </flexi-button>
+            @if (item.status === 2) {
+              <flexi-button
+                btnIcon="task_alt"
+                title="Teslim Edildi"
+                btnColor="success"
+                (click)="goToGidenZimmet(item.id)">
+              </flexi-button>
+            } @else if (isGidenEvrakUser() && item.departmentId !== ownDepartmentId()) {
+              <flexi-button
+                btnIcon="approval_delegation"
+                title="Teslim Al"
+                btnColor="indigo"
+                (click)="goToGidenZimmet(item.id)">
+              </flexi-button>
+            } @else {
+              <flexi-button
+                btnIcon="hand_package"
+                title="Zarfı Teslim Et"
+                btnColor="primary"
+                (click)="goToGidenZimmet(item.id)">
+              </flexi-button>
+            }
           }
         </ng-template>
       </flexi-grid-column>

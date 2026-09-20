@@ -90,19 +90,19 @@ export const navigations: NavigationModel[] = [
         title: "Zarflar",
         url: "/envelope",
         icon: "stacked_email",
-        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu"]
+        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Giden Evrak"]
     },
     {
         title: "Zarf Etiketi",
         url: "/ticket",
         icon: "book",
-        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu"]
+        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Giden Evrak"]
     },
     {
         title: "Teslim Al",
         url: "/gidenevrak/zimmet",
         icon: "approval_delegation",
-        roles: ["Gelen Evrak"]
+        roles: ["Gelen Evrak", "Giden Evrak"]
     },
 
     {

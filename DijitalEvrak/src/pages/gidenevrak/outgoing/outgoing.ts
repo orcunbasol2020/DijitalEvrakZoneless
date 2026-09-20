@@ -7,7 +7,7 @@ import {
   inject,
   effect
 } from '@angular/core';
-import { FlexiGridModule } from 'flexi-grid';
+import { FlexiGridFilterDataModel, FlexiGridModule } from 'flexi-grid';
 import { Router } from '@angular/router';
 import GenericModel from '../../../../components/generic-model/generic-model';
 import { CommonModule } from '@angular/common';
@@ -69,6 +69,43 @@ export default class Outgoing {
     return map;
   });
 
+  // Grid sütun filtreleri "Nereden"/"Nereye"/"Türü"/"Giz. Der."/"İvedilik" için
+  // ham (id/enum) değer yerine ekranda gösterilen metin üzerinden filtrelenebilsin
+  // diye satırlara bu türetilmiş alanlar ekleniyor; görünüm (ikon/rozet) hâlâ
+  // hücre şablonlarındaki ham alanlardan (type, securityDegree, ...) hesaplanıyor.
+  readonly gridData = computed(() => {
+    const deptMap = this.departmentNameMap();
+    const instMap = this.externalInstitutionNameMap();
+    return this.scanListData().map(doc => ({
+      ...doc,
+      documentTypeLabel: (doc.type != null && this.documentTypeLabelMap[doc.type]) || '-',
+      securityDegreeLabel: (doc.securityDegree != null && this.securityDegreeMap[doc.securityDegree]) || '-',
+      urgencyDegreeLabel: (doc.urgencyDegree != null && this.urgencyDegreeMap[doc.urgencyDegree]) || '-',
+      departmentName: (doc.departmentId && deptMap[doc.departmentId]) || '-',
+      externalInstitutionName: (doc.externalInstitutonId && instMap[doc.externalInstitutonId]) || '-'
+    }));
+  });
+
+  readonly documentTypeFilterData = computed((): FlexiGridFilterDataModel[] =>
+    Object.values(this.documentTypeLabelMap).map(label => ({ name: label, value: label }))
+  );
+
+  readonly securityDegreeFilterData = computed((): FlexiGridFilterDataModel[] =>
+    Object.values(this.securityDegreeMap).map(label => ({ name: label, value: label }))
+  );
+
+  readonly urgencyDegreeFilterData = computed((): FlexiGridFilterDataModel[] =>
+    Object.values(this.urgencyDegreeMap).map(label => ({ name: label, value: label }))
+  );
+
+  readonly departmentFilterData = computed((): FlexiGridFilterDataModel[] =>
+    this.departments().map(d => ({ name: d.name, value: d.name }))
+  );
+
+  readonly externalInstitutionFilterData = computed((): FlexiGridFilterDataModel[] =>
+    this.externalInstitutions().map(i => ({ name: i.name, value: i.name }))
+  );
+
   readonly documentTypeLabelMap: Record<number, string> = DocumentTypeLabels;
 
   readonly securityDegreeMap: Record<number, string> = SecurityDegreeLabels;
@@ -80,6 +117,8 @@ export default class Outgoing {
   readonly urgencyDegreeBadgeClassMap: Record<number, string> = UrgencyDegreeBadgeClass;
 
   showFilters = false;
+
+  readonly isBirimEvrakSorumlusu = computed(() => this.roleService.has('Birim Evrak Sorumlusu'));
 
   private emptyToastShown = false;
 
@@ -113,11 +152,12 @@ export default class Outgoing {
     });
   }
 
-  // Yönetici hiçbir filtre göndermez (tüm kayıtları görür); diğer kullanıcılar
-  // kendi departmentId'siyle sınırlanır, böylece aynı birimdeki herkesin
-  // oluşturduğu evrakları görür (sadece kendi oluşturduklarını değil).
+  // Yönetici ve Giden Evrak rolündeki kullanıcılar hiçbir filtre göndermez
+  // (tüm kayıtları görür); diğer kullanıcılar kendi departmentId'siyle
+  // sınırlanır, böylece aynı birimdeki herkesin oluşturduğu evrakları görür
+  // (sadece kendi oluşturduklarını değil).
   private get departmentFilterId(): string | undefined {
-    return this.roleService.has('Yönetici') ? undefined : this.common.user()?.departmentId;
+    return this.roleService.hasAny(['Yönetici', 'Giden Evrak']) ? undefined : this.common.user()?.departmentId;
   }
 
   // Kayıt tarihine göre en yeni en üstte; kayıt tarihi eşit olan kayıtlarda belge tarihi ile kırılır.
