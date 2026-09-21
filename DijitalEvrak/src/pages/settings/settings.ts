@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal, ViewEncap
 import { RouterLink } from '@angular/router';
 import GenericModel from '../../../components/generic-model/generic-model';
 import { Common } from '../../services/common';
+import { getUserAvatar } from '../../services/user-avatar';
 
 type Theme = 'light' | 'dark';
 
@@ -18,18 +19,7 @@ export default class Settings {
   readonly #common = inject(Common);
   readonly user = computed(() => this.#common.user());
 
-  readonly userAvatar = computed(() => {
-    const name = this.user()?.name ?? '';
-
-    switch (name) {
-      case 'Bülent':
-        return 'assets/images/personel/bulent.jpg';
-      case 'Tahsin':
-        return 'assets/images/personel/tahsin.jpg';
-      default:
-        return 'assets/images/personel/oral.jpg';
-    }
-  });
+  readonly userAvatar = computed(() => getUserAvatar(this.user(), 'assets/images/personel/oral.jpg'));
 
   readonly theme = signal<Theme>(
     localStorage.getItem('theme') === 'dark' ? 'dark' : 'light'

@@ -9,6 +9,7 @@ import { FormsModule } from '@angular/forms';
 import { NgStyle } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { RoleService } from '../../../services/role-service';
+import { getUserAvatar } from '../../../services/user-avatar';
 
 export interface RoleModel {
   id?: string;
@@ -49,18 +50,7 @@ export default class Profile {
 
   showFilters = false;
 
-  readonly userAvatar = computed(() => {
-    const name = this.user()?.name ?? '';
-
-    switch (name) {
-      case 'Bülent':
-        return 'assets/images/personel/bulent.jpg';
-      case 'Tahsin':
-        return 'assets/images/personel/tahsin.jpg';
-      default:
-        return 'assets/images/personel/oral.jpg';
-    }
-  });
+  readonly userAvatar = computed(() => getUserAvatar(this.user(), 'assets/images/personel/oral.jpg'));
   readonly title = 'Kullanıcı Profili';
 
   constructor() {

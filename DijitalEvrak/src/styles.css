@@ -9636,3 +9636,322 @@ body {
 [data-theme="dark"] .outgoingzimmet-page .person-list-item.is-selected {
     background-color: rgba(34, 211, 238, 0.15);
 }
+
+/* Birim Dashboard - Hızlı Erişim premium bağlantılar */
+.quick-links {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.quick-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    text-decoration: none;
+    color: var(--text-color);
+    background: #f8fafc;
+    border: 1px solid #eef2f7;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
+}
+
+.quick-link:hover,
+.quick-link:focus-visible {
+    color: var(--text-color);
+    background: #fff;
+    border-color: #c7d2fe;
+    box-shadow: 0 8px 18px rgba(67, 97, 238, 0.14);
+    transform: translateY(-2px);
+    outline: none;
+}
+
+.quick-link-icon {
+    flex: 0 0 auto;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.16);
+    transition: transform 0.18s ease;
+}
+
+.quick-link-icon .material-symbols-outlined {
+    color: #fff;
+    font-size: 22px;
+}
+
+.quick-link:hover .quick-link-icon {
+    transform: scale(1.06) rotate(-4deg);
+}
+
+.quick-link-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.quick-link-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    line-height: 1.2;
+}
+
+.quick-link-subtitle {
+    font-size: 0.74rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.quick-link-arrow {
+    flex: 0 0 auto;
+    font-size: 20px;
+    color: #94a3b8;
+    transition: transform 0.18s ease, color 0.18s ease;
+}
+
+.quick-link:hover .quick-link-arrow {
+    transform: translateX(3px);
+    color: #4361ee;
+}
+
+[data-theme="dark"] .quick-link {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .quick-link:hover,
+[data-theme="dark"] .quick-link:focus-visible {
+    background: rgba(99, 102, 241, 0.14);
+    border-color: rgba(129, 140, 248, 0.45);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .quick-link-arrow {
+    color: #64748b;
+}
+
+[data-theme="dark"] .quick-link:hover .quick-link-arrow {
+    color: #a5b4fc;
+}
+
+/* Zarflar listesi: Giden Evraklar listesiyle aynı premium kart/başlık/hover dili. */
+.envelope-grid .flexi-grid-table-container-wrapper {
+    border-radius: 14px;
+    box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
+    border: 1px solid #e7eaf0;
+    overflow: hidden;
+}
+
+.envelope-grid flexi-grid table thead th {
+    background: linear-gradient(180deg, #fbfcfe, #f2f4f8) !important;
+    color: #33404f !important;
+    font-weight: 700 !important;
+    font-size: 12.5px !important;
+    letter-spacing: 0.02em;
+    border-bottom: 2px solid #e4e8ee !important;
+}
+
+.envelope-grid flexi-grid table tbody tr {
+    transition: background-color 0.12s ease;
+}
+
+.envelope-grid flexi-grid table tbody tr:nth-child(even) {
+    background-color: #fbfcfe;
+}
+
+.envelope-grid flexi-grid table tbody tr:hover {
+    background-color: #eef4fc !important;
+}
+
+.envelope-grid flexi-grid table td {
+    vertical-align: middle;
+}
+
+/* Etiket No: hizalı rakamlar, biraz daha koyu ve belirgin. */
+.envelope-no {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    color: #1e293b;
+}
+
+/* İkonlu metin hücreleri (Ekleyen, Gideceği Yer). */
+.envelope-cell-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.envelope-cell-icon .material-symbols-outlined {
+    font-size: 16px !important;
+    color: #94a3b8;
+    flex: 0 0 auto;
+}
+
+/* Evrak Sayısı: yuvarlak sayaç; boş zarflarda soluk. */
+.envelope-count-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+    color: #3730a3;
+    border: 1px solid rgba(67, 56, 202, 0.2);
+}
+
+.envelope-count-pill.is-empty {
+    background: #f1f5f9;
+    color: #94a3b8;
+    border-color: #e2e8f0;
+}
+
+/* Kayıt Tarihi: tarih üstte, saat altta küçük ve soluk. */
+.envelope-date {
+    display: inline-flex;
+    flex-direction: column;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+}
+
+.envelope-date small {
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+/* Durum: renkli nokta + etiketli hap rozet. */
+.envelope-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px 3px 8px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+}
+
+.envelope-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.2);
+    flex: 0 0 auto;
+}
+
+.envelope-status-yeni {
+    background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+    color: #075985;
+    border-color: rgba(7, 89, 133, 0.2);
+}
+
+.envelope-status-yeni .envelope-status-dot {
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.22);
+}
+
+.envelope-status-birimde {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    color: #92400e;
+    border-color: rgba(146, 64, 14, 0.2);
+}
+
+.envelope-status-birimde .envelope-status-dot {
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.22);
+}
+
+.envelope-status-teslim {
+    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+    color: #166534;
+    border-color: rgba(22, 101, 52, 0.2);
+}
+
+.envelope-status-teslim .envelope-status-dot {
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.22);
+}
+
+/* Koyu tema */
+[data-theme="dark"] .envelope-grid .flexi-grid-table-container-wrapper {
+    border-color: #2b3445;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .envelope-grid flexi-grid table thead th {
+    background: linear-gradient(180deg, #1e2533, #1a2030) !important;
+    color: #cbd5e1 !important;
+    border-bottom-color: #2b3445 !important;
+}
+
+[data-theme="dark"] .envelope-grid flexi-grid table tbody tr:nth-child(even) {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+[data-theme="dark"] .envelope-grid flexi-grid table tbody tr:hover {
+    background-color: rgba(99, 102, 241, 0.12) !important;
+}
+
+[data-theme="dark"] .envelope-no {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .envelope-cell-icon .material-symbols-outlined {
+    color: #64748b;
+}
+
+[data-theme="dark"] .envelope-count-pill {
+    background: rgba(99, 102, 241, 0.22);
+    color: #c7d2fe;
+    border-color: rgba(129, 140, 248, 0.35);
+}
+
+[data-theme="dark"] .envelope-count-pill.is-empty {
+    background: rgba(148, 163, 184, 0.1);
+    color: #64748b;
+    border-color: rgba(148, 163, 184, 0.2);
+}
+
+[data-theme="dark"] .envelope-date small {
+    color: #64748b;
+}
+
+[data-theme="dark"] .envelope-status-pill {
+    background: rgba(148, 163, 184, 0.12);
+    color: #cbd5e1;
+    border-color: rgba(148, 163, 184, 0.25);
+}
+
+[data-theme="dark"] .envelope-status-yeni {
+    background: rgba(14, 165, 233, 0.18);
+    color: #7dd3fc;
+    border-color: rgba(14, 165, 233, 0.35);
+}
+
+[data-theme="dark"] .envelope-status-birimde {
+    background: rgba(245, 158, 11, 0.18);
+    color: #fcd34d;
+    border-color: rgba(245, 158, 11, 0.35);
+}
+
+[data-theme="dark"] .envelope-status-teslim {
+    background: rgba(34, 197, 94, 0.18);
+    color: #86efac;
+    border-color: rgba(34, 197, 94, 0.35);
+}

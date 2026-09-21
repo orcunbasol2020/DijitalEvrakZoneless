@@ -28,12 +28,18 @@ export class Sidebar {
 
   private static readonly DEFAULT_OPEN_CATEGORY = 'Gelen Evrak';
 
+  // Birim Evrak Sorumlusu'nun menüsü kısa olduğundan tüm kategoriler açık başlar
+  // ve kategoriler birbirinden bağımsız açılıp kapanır (akordeon davranışı yok).
+  private readonly expandAllByDefault = this.roleService.has('Birim Evrak Sorumlusu');
+
   private collapsedCategories = signal<Set<string>>(
-    new Set(
-      this.roleService.getMenu()
-        .map(item => item.category)
-        .filter((category): category is string => !!category && category !== Sidebar.DEFAULT_OPEN_CATEGORY)
-    )
+    this.expandAllByDefault
+      ? new Set<string>()
+      : new Set(
+          this.roleService.getMenu()
+            .map(item => item.category)
+            .filter((category): category is string => !!category && category !== Sidebar.DEFAULT_OPEN_CATEGORY)
+        )
   );
 
   isCategoryCollapsed(category: string): boolean {
@@ -41,6 +47,15 @@ export class Sidebar {
   }
 
   toggleCategory(category: string): void {
+    if (this.expandAllByDefault) {
+      this.collapsedCategories.update(current => {
+        const next = new Set(current);
+        next.has(category) ? next.delete(category) : next.add(category);
+        return next;
+      });
+      return;
+    }
+
     const allCategories = this.navigations()
       .map(item => item.category)
       .filter((c): c is string => !!c);

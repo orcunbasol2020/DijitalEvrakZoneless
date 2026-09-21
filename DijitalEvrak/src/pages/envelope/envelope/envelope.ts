@@ -6,7 +6,7 @@ import { FlexiToastService } from 'flexi-toast';
 import { FormsModule } from '@angular/forms';
 import GenericModel from '../../../../components/generic-model/generic-model';
 import { CommonModule } from '@angular/common';
-import { EnvelopeModel } from '../../../models/envelope.model';
+import { EnvelopeModel, EnvelopeStatus, EnvelopeStatusBadgeClass, EnvelopeStatusLabels } from '../../../models/envelope.model';
 import { ZimmetStateService } from '../../../services/zimmet-state-service';
 import { EnvelopeService } from '../../../services/envelope';
 import { Common } from '../../../services/common';
@@ -48,13 +48,19 @@ export default class Envelopes {
     return map;
   });
 
+  // Şablonda enum değerleriyle karşılaştırma yapabilmek için dışa açılıyor.
+  readonly EnvelopeStatus = EnvelopeStatus;
+  readonly statusBadgeClassMap: Record<number, string> = EnvelopeStatusBadgeClass;
+
   readonly data = computed(() => {
     const deptMap = this.departmentNameMap();
     return [...(this.result.value() ?? [])]
       .sort((a, b) => new Date(b.createdDate ?? 0).getTime() - new Date(a.createdDate ?? 0).getTime())
       .map(e => ({
         ...e,
-        departmentName: (e.departmentId && deptMap[e.departmentId]) || '-'
+        departmentName: (e.departmentId && deptMap[e.departmentId]) || '-',
+        // Durum sütunu, filtre ve Excel dışa aktarımı ham sayı yerine etiketi kullansın.
+        statusLabel: (e.status != null && EnvelopeStatusLabels[e.status]) || (e.status ?? '-')
       }));
   });
   readonly loading = computed(() => this.result.isLoading());
@@ -95,6 +101,13 @@ export default class Envelopes {
     this.#envelopeService.setSelectedEnvelope(envelopeId);
     this.router.navigate(['/ticket']);
   }
+
+  // Ticket sayfası seçili zarf yoksa "Etiket Oluştur" formuyla açılır;
+  // önceki bir "Detaya Git" seçimi kalmış olmasın diye önce temizlenir.
+  goToCreate() {
+    this.#envelopeService.clearSelectedEnvelope();
+    this.router.navigate(['/ticket']);
+  }
   deleteEnvelope(id: string) {
     this.#http.delete(`api/envelopes/${id}`).subscribe(() => {
       this.result.reload();
@@ -104,13 +117,5 @@ export default class Envelopes {
         'info'
       );
     });
-  }
-
-  createEnvelope2() {
-    this.#toast.showToast(
-      'Bilgi',
-      'Zarf Silindi.',
-      'info'
-    );
   }
 }

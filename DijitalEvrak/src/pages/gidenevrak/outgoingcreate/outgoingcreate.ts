@@ -4,6 +4,7 @@ import {
   signal,
   ViewEncapsulation,
   computed,
+  effect,
   inject
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -22,6 +23,7 @@ import { SecurityDegreeEnum, SecurityDegreeLabels } from '../../../models/securi
 import { UrgencyDegreeEnum, UrgencyDegreeLabels } from '../../../models/urgencydegree.model';
 import { DocumentTypeEnum, DocumentTypeLabels } from '../../../models/documenttype.model';
 import { actionRequiredOptions } from '../../../models/actionrequired.model';
+import { RoleService } from '../../../services/role-service';
 
 @Component({
   imports: [
@@ -45,6 +47,7 @@ export default class Outgoingcreate {
   private readonly departmentService = inject(Department);
   private readonly externalInstitutionService = inject(ExternalInstitution);
   private readonly languageService = inject(Language);
+  private readonly roleService = inject(RoleService);
 
   readonly saving = signal(false);
   readonly loading = signal(false);
@@ -140,6 +143,20 @@ export default class Outgoingcreate {
     if (id) {
       this.loadForEdit(id);
     }
+
+    // Yeni kayıtta, Birim Evrak Sorumlusu için "Nereden" alanı kullanıcının
+    // kendi birimiyle önceden doldurulur. Kullanıcı bilgisi ve birim listesi
+    // farklı zamanlarda gelebildiğinden ikisi de hazır olana kadar bekler.
+    effect(() => {
+      const departments = this.departments();
+      const departmentId = this.user()?.departmentId;
+      if (this.editingId() || departments.length === 0 || !departmentId) return;
+      if (!this.roleService.has('Birim Evrak Sorumlusu')) return;
+      if (this.departmentControl.value) return;
+
+      const own = departments.find(d => d.id === departmentId);
+      if (own) this.departmentControl.setValue(own);
+    });
   }
 
   private loadForEdit(id: string): void {

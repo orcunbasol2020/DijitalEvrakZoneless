@@ -11,6 +11,7 @@ import { IncomingDocumentService } from '../../services/incomingdocument';
 import { Sidebar } from './sidebar/sidebar/sidebar';
 import { RoleService } from '../../services/role-service';
 import { DocumentAllocation } from '../../services/documentallocation';
+import { getUserAvatar } from '../../services/user-avatar';
 
 type DocumentSearchStatus = 'beklemede' | 'işlemde' | 'tamamlandı';
 type DocumentSearchType = 'dahili' | 'harici';
@@ -167,18 +168,7 @@ export default class Layouts {
     }
   }
 
-  readonly userAvatar = computed(() => {
-    const name = this.user()?.name ?? '';
-
-    switch (name) {
-      case 'Bülent':
-        return 'assets/images/personel/bulent.jpg';
-      case 'Tahsin':
-        return 'assets/images/personel/tahsin.jpg';
-      default:
-        return null;
-    }
-  });
+  readonly userAvatar = computed(() => getUserAvatar(this.user()));
 
 logout(): void {
   this.#common.logout();
