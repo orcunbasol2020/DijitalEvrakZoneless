@@ -24,6 +24,8 @@ import { UrgencyDegreeEnum, UrgencyDegreeLabels } from '../../../models/urgencyd
 import { DocumentTypeEnum, DocumentTypeLabels } from '../../../models/documenttype.model';
 import { actionRequiredOptions } from '../../../models/actionrequired.model';
 import { RoleService } from '../../../services/role-service';
+import { OutgoingDocumentAllocation } from '../../../services/outgoingdocumentallocation';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   imports: [
@@ -48,6 +50,7 @@ export default class Outgoingcreate {
   private readonly externalInstitutionService = inject(ExternalInstitution);
   private readonly languageService = inject(Language);
   private readonly roleService = inject(RoleService);
+  private readonly allocationService = inject(OutgoingDocumentAllocation);
 
   readonly saving = signal(false);
   readonly loading = signal(false);
@@ -325,9 +328,22 @@ export default class Outgoingcreate {
 
     this.saving.set(true);
     request$.subscribe({
-      next: () => {
+      next: async (res) => {
+        if (editingId) {
+          this.saving.set(false);
+          this.#toast.showToast('Başarılı', 'Giden evrak kaydı güncellendi', 'success');
+          this.router.navigate(['/gidenevrak/outgoing']);
+          return;
+        }
+
+        // Yeni kayıt: evrak, kaydı oluşturan kullanıcının zimmetine otomatik alınır.
+        const allocated = await this.allocateToCurrentUser(res, body.qrCode!, body.createdUserId!);
         this.saving.set(false);
-        this.#toast.showToast('Başarılı', editingId ? 'Giden evrak kaydı güncellendi' : 'Giden evrak kaydı oluşturuldu', 'success');
+        this.#toast.showToast(
+          'Başarılı',
+          allocated ? 'Giden evrak kaydı oluşturuldu ve zimmetinize alındı' : 'Giden evrak kaydı oluşturuldu',
+          'success'
+        );
         this.router.navigate(['/gidenevrak/outgoing']);
       },
       error: (err) => {
@@ -336,5 +352,38 @@ export default class Outgoingcreate {
         this.#toast.showToast('Hata', editingId ? 'Giden evrak güncellenemedi' : 'Giden evrak kaydedilemedi', 'error');
       }
     });
+  }
+
+  // Kayıt sonrası evrakı oluşturan kullanıcıya zimmetler. Zimmetleme başarısız
+  // olsa bile evrak kaydı korunur; kullanıcı uyarı ile bilgilendirilir.
+  private async allocateToCurrentUser(createResponse: any, qrCode: string, userId: string): Promise<boolean> {
+    try {
+      // Create yanıtında id yoksa evrak belge numarasından bulunur.
+      let outgoingDocumentId: string | undefined = createResponse?.id ?? createResponse?.data?.id;
+      if (!outgoingDocumentId) {
+        const doc = await firstValueFrom(this.outgoingDocumentService.getByQrCode(qrCode));
+        outgoingDocumentId = doc?.id;
+      }
+
+      if (!outgoingDocumentId) {
+        this.#toast.showToast('Uyarı', 'Evrak kaydedildi ancak zimmet oluşturulamadı', 'warning');
+        return false;
+      }
+
+      await firstValueFrom(
+        this.allocationService.createAllocation({
+          outgoingDocumentId,
+          userId,
+          createdUserId: userId,
+          status: '2',
+          userType: 1
+        })
+      );
+      return true;
+    } catch (err) {
+      console.error('Otomatik zimmetleme hatası:', err);
+      this.#toast.showToast('Uyarı', 'Evrak kaydedildi ancak zimmet oluşturulamadı', 'warning');
+      return false;
+    }
   }
 }

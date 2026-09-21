@@ -15,6 +15,8 @@ import { FlexiToastService } from 'flexi-toast';
 import { IncomingDocumentService } from '../../../services/incomingdocument';
 import { OutgoingDocumentService } from '../../../services/outgoingdocument';
 import { OutgoingDocumentModel } from '../../../models/outgoingdocument.model';
+import { OutgoingDocumentAllocation } from '../../../services/outgoingdocumentallocation';
+import { OutgoingDocumentAllocationModel } from '../../../models/outgoingdocumentallocation.model';
 import { ZimmetStateService } from '../../../services/zimmet-state-service';
 import { Department, DepartmentModel } from '../../../services/department';
 import { ExternalInstitution, ExternalInstitutionModel } from '../../../services/external-institution';
@@ -31,6 +33,7 @@ import { RoleService } from '../../../services/role-service';
     CommonModule
   ],
   templateUrl: './outgoing.html',
+  styleUrls: ['./outgoing.css'],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -46,6 +49,7 @@ export default class Outgoing {
   // /gidenevrak/outgoingzimmet üzerinden OutgoingDocumentAllocations'a gidiyor.
   private readonly incomingDocumentService = inject(IncomingDocumentService);
   private readonly outgoingDocumentService = inject(OutgoingDocumentService);
+  private readonly allocationService = inject(OutgoingDocumentAllocation);
   private readonly zimmetState = inject(ZimmetStateService);
   private readonly departmentService = inject(Department);
   private readonly externalInstitutionService = inject(ExternalInstitution);
@@ -187,6 +191,46 @@ export default class Outgoing {
   goToZimmet(id: string) {
     this.zimmetState.setOutgoingDocumentId(id);
     this.router.navigate(['/gidenevrak/outgoingzimmet']);
+  }
+
+  // ---- Zimmet Geçmişi popup (Birim Evrak Sorumlusu) ----
+  // Birim Evrak Sorumlusu zimmetleme ekranına gidemediği için evrakın mevcut ve
+  // geçmiş zimmetlerini salt okunur bir popup'ta görür.
+
+  readonly zimmetHistoryVisible = signal(false);
+  readonly zimmetHistoryLoading = signal(false);
+  readonly zimmetHistoryDoc = signal<OutgoingDocumentModel | null>(null);
+  readonly zimmetHistory = signal<OutgoingDocumentAllocationModel[]>([]);
+  readonly activeZimmet = computed(() => this.zimmetHistory().find(h => h.isActive) ?? null);
+
+  openZimmetHistory(item: OutgoingDocumentModel): void {
+    this.zimmetHistoryDoc.set(item);
+    this.zimmetHistory.set([]);
+    this.zimmetHistoryVisible.set(true);
+    this.zimmetHistoryLoading.set(true);
+
+    this.allocationService.getByDocumentId(item.id).subscribe({
+      next: (history) => {
+        // Aktif zimmet en üstte, ardından en yeniden eskiye.
+        const sorted = (history ?? [])
+          .filter(h => !h.isDeleted)
+          .sort((a, b) => {
+            if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
+            return new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime();
+          });
+        this.zimmetHistory.set(sorted);
+        this.zimmetHistoryLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Zimmet geçmişi alınamadı:', err);
+        this.zimmetHistoryLoading.set(false);
+        this.#toast.showToast('Hata', 'Zimmet geçmişi alınamadı', 'error');
+      }
+    });
+  }
+
+  closeZimmetHistory(): void {
+    this.zimmetHistoryVisible.set(false);
   }
 
   delete(id: string) {

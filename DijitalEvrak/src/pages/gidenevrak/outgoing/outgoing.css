@@ -1,0 +1,158 @@
+/* ---- Zimmet Geçmişi popup (Birim Evrak Sorumlusu) ----
+   Zaman çizelgesi öğeleri styles.css'teki global .zimmet-history-* sınıflarını
+   kullanır; burada yalnızca popup kabuğu tanımlanır. */
+.zimmet-history-modal {
+    width: 560px;
+    max-width: calc(100vw - 32px);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
+}
+
+.zimmet-history-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 22px 14px;
+}
+
+.zimmet-history-modal-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #ccfbf1, #99f6e4);
+    color: #0f766e;
+    flex: 0 0 auto;
+}
+
+.zimmet-history-modal-icon .material-symbols-outlined {
+    font-size: 22px;
+}
+
+.zimmet-history-modal-text {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.zimmet-history-modal-title {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: #64748b;
+}
+
+.zimmet-history-modal-no {
+    font-size: 17px;
+    font-weight: 700;
+    color: #0f172a;
+    font-variant-numeric: tabular-nums;
+}
+
+.zimmet-history-modal-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 700;
+    white-space: nowrap;
+    max-width: 45%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background: #f1f5f9;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+}
+
+.zimmet-history-modal-badge.is-active {
+    background: #dcfce7;
+    color: #15803d;
+    border-color: #bbf7d0;
+}
+
+.zimmet-history-modal-close {
+    border: 0;
+    background: transparent;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    flex: 0 0 auto;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.zimmet-history-modal-close:hover {
+    background: #f1f5f9;
+    color: #334155;
+}
+
+.zimmet-history-modal-close .material-symbols-outlined {
+    font-size: 20px;
+}
+
+.zimmet-history-modal-body {
+    padding: 6px 22px 22px;
+    min-height: 200px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.zimmet-history-modal-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 48px 0;
+    color: #64748b;
+    font-size: 13px;
+}
+
+.zimmet-history-modal-state .material-symbols-outlined {
+    font-size: 22px;
+}
+
+.zimmet-history-by {
+    margin-left: 4px;
+    color: var(--text-muted);
+}
+
+/* Koyu tema */
+[data-theme="dark"] .zimmet-history-modal {
+    background: #1a2030;
+}
+
+[data-theme="dark"] .zimmet-history-modal-icon {
+    background: rgba(20, 184, 166, 0.18);
+    color: #5eead4;
+}
+
+[data-theme="dark"] .zimmet-history-modal-title {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .zimmet-history-modal-no {
+    color: #f1f5f9;
+}
+
+[data-theme="dark"] .zimmet-history-modal-badge {
+    background: rgba(148, 163, 184, 0.1);
+    color: #cbd5e1;
+    border-color: rgba(148, 163, 184, 0.22);
+}
+
+[data-theme="dark"] .zimmet-history-modal-badge.is-active {
+    background: rgba(34, 197, 94, 0.16);
+    color: #86efac;
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+[data-theme="dark"] .zimmet-history-modal-close:hover {
+    background: rgba(148, 163, 184, 0.12);
+    color: #e2e8f0;
+}

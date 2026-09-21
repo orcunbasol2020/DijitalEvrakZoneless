@@ -234,11 +234,19 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr *ngFor="let doc of documents">
-                                    <td>{{ doc.qrCode }}</td>
+                                <tr *ngFor="let doc of documents"
+                                    class="doc-row-clickable"
+                                    title="Evrak bilgisini görüntüle"
+                                    (click)="openDocumentDetail(doc)">
+                                    <td>
+                                        <span class="d-inline-flex align-items-center gap-1">
+                                            <span class="material-symbols-outlined doc-row-icon">info</span>
+                                            {{ doc.qrCode }}
+                                        </span>
+                                    </td>
                                     <td>
                                         <button class="premium-btn"
-                                            (click)="removeDocument(doc.id)"
+                                            (click)="$event.stopPropagation(); removeDocument(doc.id)"
                                             [disabled]="loadingRemove"
                                             title="Evrakı çıkar">
                                             <span *ngIf="loadingRemove"
@@ -273,6 +281,121 @@
                     </div>
                 </div>
             </ng-template>
+        </div>
+    </div>
+</div>
+
+<!-- Evrak Bilgisi Popup (sağdaki listede evraka tıklanınca) -->
+<div class="modal-overlay" *ngIf="documentDetailVisible()" (click)="closeDocumentDetail()">
+    <div class="modal-box doc-detail-modal" (click)="$event.stopPropagation()">
+        <div class="doc-detail-header">
+            <div class="doc-detail-header-icon">
+                <span class="material-symbols-outlined">description</span>
+            </div>
+            <div class="doc-detail-header-text">
+                <div class="doc-detail-title">{{ documentDetailEditing() ? 'Evrakı Düzenle' : 'Evrak Bilgisi' }}</div>
+                <div class="doc-detail-no">{{ documentDetailQr() }}</div>
+            </div>
+            @if (!documentDetailLoading() && documentDetail(); as d) {
+                <div class="doc-detail-chips">
+                    <span class="doc-detail-status {{ d.statusClass }}">{{ d.statusLabel }}</span>
+                    <span class="doc-detail-chip">{{ d.typeLabel }}</span>
+                    <span class="doc-detail-chip">
+                        <span class="material-symbols-outlined">event</span>
+                        {{ d.dateLabel }}
+                    </span>
+                </div>
+            }
+            @if (documentDetail()?.canEdit && !documentDetailEditing()) {
+                <button type="button" class="doc-detail-close" title="Düzenle" (click)="startDocumentEdit()">
+                    <span class="material-symbols-outlined">edit</span>
+                </button>
+            }
+            <button type="button" class="doc-detail-close" title="Kapat" [disabled]="documentDetailSaving()" (click)="closeDocumentDetail()">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+
+        <div class="doc-detail-body">
+            @if (documentDetailLoading()) {
+                <div class="doc-detail-state">
+                    <div class="spinner-border spinner-border-sm text-primary"></div>
+                    <span>Evrak bilgisi yükleniyor</span>
+                </div>
+            } @else if (documentDetailNotFound()) {
+                <div class="doc-detail-state">
+                    <span class="material-symbols-outlined">search_off</span>
+                    <span>Bu numaraya ait giden evrak kaydı bulunamadı.</span>
+                </div>
+            } @else if (documentDetailEditing()) {
+                <div class="doc-detail-form">
+                    <div class="doc-detail-field doc-detail-field-full">
+                        <label>Konu</label>
+                        <textarea class="form-control" rows="2" [(ngModel)]="documentEditForm.subject"></textarea>
+                    </div>
+                    <div class="doc-detail-field">
+                        <label>Belge Tarihi</label>
+                        <input type="date" class="form-control" [(ngModel)]="documentEditForm.documentDate" />
+                    </div>
+                    <div class="doc-detail-field">
+                        <label>Orijinal Belge No</label>
+                        <input type="text" class="form-control" [(ngModel)]="documentEditForm.originalDocumentNumber" />
+                    </div>
+                    <div class="doc-detail-field">
+                        <label>Türü</label>
+                        <select class="form-select" [(ngModel)]="documentEditForm.type">
+                            <option *ngFor="let o of documentTypeOptions" [ngValue]="o.value">{{ o.label }}</option>
+                        </select>
+                    </div>
+                    <div class="doc-detail-field">
+                        <label>Gereği / Bilgi</label>
+                        <select class="form-select" [(ngModel)]="documentEditForm.actionRequired">
+                            <option *ngFor="let o of actionRequiredOptions" [ngValue]="o.value">{{ o.label }}</option>
+                        </select>
+                    </div>
+                    <div class="doc-detail-field">
+                        <label>Gizlilik Derecesi</label>
+                        <select class="form-select" [(ngModel)]="documentEditForm.securityDegree">
+                            <option *ngFor="let o of securityDegreeOptions" [ngValue]="o.value">{{ o.label }}</option>
+                        </select>
+                    </div>
+                    <div class="doc-detail-field">
+                        <label>İvedilik</label>
+                        <select class="form-select" [(ngModel)]="documentEditForm.urgencyDegree">
+                            <option *ngFor="let o of urgencyDegreeOptions" [ngValue]="o.value">{{ o.label }}</option>
+                        </select>
+                    </div>
+                    <div class="doc-detail-field doc-detail-field-full">
+                        <label>Nereye</label>
+                        <select class="form-select" [(ngModel)]="documentEditForm.externalInstitutionId">
+                            <option [ngValue]="null">Seçiniz</option>
+                            <option *ngFor="let inst of externalInstitutions" [ngValue]="inst.id">{{ inst.name }}</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="doc-detail-actions">
+                    <button type="button" class="btn btn-light" [disabled]="documentDetailSaving()" (click)="cancelDocumentEdit()">İptal</button>
+                    <button type="button" class="btn btn-primary" [disabled]="documentDetailSaving()" (click)="saveDocumentEdit()">
+                        @if (documentDetailSaving()) {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        Kaydet
+                    </button>
+                </div>
+            } @else if (documentDetail(); as d) {
+                <div class="doc-detail-hero">
+                    <div class="doc-detail-subject" [class.is-empty]="!d.hasSubject">{{ d.subject }}</div>
+                </div>
+
+                <dl class="doc-detail-list">
+                    @for (row of d.rows; track row.label) {
+                        <div class="doc-detail-item">
+                            <dt>{{ row.label }}</dt>
+                            <dd>{{ row.value }}</dd>
+                        </div>
+                    }
+                </dl>
+            }
         </div>
     </div>
 </div>
