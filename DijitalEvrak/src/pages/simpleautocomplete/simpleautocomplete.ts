@@ -76,6 +76,11 @@ template: `
 
     .list-group-item {
       transition: all 0.12s ease;
+      cursor: pointer;
+    }
+
+    .list-group-item.no-result {
+      cursor: default;
     }
 
     .list-group-item:hover {
@@ -105,6 +110,9 @@ export class SimpleAutocompleteComponent implements OnInit, OnChanges, OnDestroy
   @Input() options: { id: number | string, name: string, level?: number }[] = [];
   @Input() control!: FormControl;
   @Input() placeholder: string = '';
+  /** 0 ise odaklanınca tüm liste açılır; >0 ise liste ancak bu kadar karakter yazılınca görünür
+   *  (büyük listeler — ör. tüm kullanıcılar — için "yazınca gelsin" davranışı). */
+  @Input() minChars = 0;
 
   filteredOptions: { id: number | string, name: string, level?: number }[] = [];
   show = false;
@@ -152,7 +160,7 @@ export class SimpleAutocompleteComponent implements OnInit, OnChanges, OnDestroy
   }
 
   open() {
-    this.show = true;
+    this.show = this.minChars === 0;
     this.searchText = '';
     this.filteredOptions = this.options;
   }
@@ -163,7 +171,7 @@ export class SimpleAutocompleteComponent implements OnInit, OnChanges, OnDestroy
     // burada henüz bir seçim yapılmadığından ham metni control'e yazmıyoruz.
     this.searchText = value;
     this.filter(value);
-    this.show = true;
+    this.show = value.trim().length >= this.minChars;
     this.activeIndex = -1;
   }
 

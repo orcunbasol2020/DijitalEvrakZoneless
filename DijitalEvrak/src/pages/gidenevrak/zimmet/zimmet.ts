@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, OnInit, signal, ViewEncapsulation } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, OnDestroy, OnInit, signal, ViewChild, ViewEncapsulation } from '@angular/core';
 import GenericModel from '../../../../components/generic-model/generic-model';
 import { FlexiToastService } from 'flexi-toast';
 import { EnvelopeDocumentService } from '../../../services/envelopedocument';
@@ -7,11 +7,14 @@ import { CommonModule } from '@angular/common';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { httpResource } from '@angular/common/http';
 import { ChangeDetectorRef } from '@angular/core';
-import { IncomingDocumentPreRegisterModel } from '../../../models/incoming-document/incomingdocument-pregister.model';
-import { IncomingDocumentService } from '../../../services/incomingdocument';
 import { Common } from '../../../services/common';
-import { forkJoin } from 'rxjs';
-import { EnvelopeModel, envelopeStatusForZimmetMode } from '../../../models/envelope.model';
+import { firstValueFrom } from 'rxjs';
+import { Router } from '@angular/router';
+import { EnvelopeModel, EnvelopeStatus, EnvelopeStatusBadgeClass, EnvelopeStatusLabels, envelopeStatusForZimmetMode } from '../../../models/envelope.model';
+import { ZimmetStateService } from '../../../services/zimmet-state-service';
+import { OutgoingDocumentService } from '../../../services/outgoingdocument';
+import { OutgoingDocumentAllocation } from '../../../services/outgoingdocumentallocation';
+import { AllocationStatusEnum } from '../../../models/allocationstatus.model';
 import { ExternalInstitution, ExternalInstitutionModel } from '../../../services/external-institution';
 import { ExternalUserService, ExternalUserModel, initialExternalUser } from '../../../services/external-user';
 import { UserModel } from '../../users/users';
@@ -35,17 +38,23 @@ type PersonListItem = { id: string; name: string; surname: string; identityNo?: 
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export default class Zimmet implements OnInit {
+export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
 
   private keydownHandler: any;
   detailsVisible = signal(false);
+  @ViewChild('qrInput') qrInput?: ElementRef<HTMLInputElement>;
+  // QR okutma alanı odaktayken "Okumaya Hazır" durumunu gösterir.
+  qrActive = false;
   readonly #toast = inject(FlexiToastService);
   private buffer: string = '';
   private envelopeDocumentService = inject(EnvelopeDocumentService);
-  private incomingDocumentService = inject(IncomingDocumentService);
+  private outgoingDocumentService = inject(OutgoingDocumentService);
+  private allocationService = inject(OutgoingDocumentAllocation);
   private envelopeService = inject(EnvelopeService);
   private externalUserService = inject(ExternalUserService);
   private externalInstitutionService = inject(ExternalInstitution);
+  private zimmetState = inject(ZimmetStateService);
+  private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
   readonly #common = inject(Common);
   readonly user = computed(() => this.#common.user());
@@ -56,21 +65,50 @@ export default class Zimmet implements OnInit {
     };
     window.addEventListener('keydown', this.keydownHandler);
   }
+  ngAfterViewInit(): void {
+    this.focusQrInputSoon();
+  }
   ngOnDestroy(): void {
     window.removeEventListener('keydown', this.keydownHandler);
   }
+  // Odak bir form alanındayken (personel arama, popup formu, QR alanının kendisi)
+  // tuşlar tampona alınmaz; aksi halde oraya yazılan metin QR olarak okunmaya çalışılırdı.
   private handleKeydown(e: KeyboardEvent) {
+    const target = e.target as HTMLElement | null;
+    const tag = target?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable) return;
+
     if (!this.detailsVisible()) {
       if (e.key === 'Enter') {
         this.onQrScanned(this.buffer.trim());
         this.buffer = '';
-      } else {
+      } else if (e.key.length === 1) {
         this.buffer += e.key;
       }
     }
   }
+
+  private focusQrInputSoon() {
+    setTimeout(() => this.qrInput?.nativeElement.focus());
+  }
+
+  // QR alanına yazıp / okutup Enter'a basılınca çalışır; alan temizlenip odak korunur.
+  async onQrKeydown(event: KeyboardEvent) {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+
+    const input = event.target as HTMLInputElement;
+    const value = input.value.trim();
+    if (!value) return;
+
+    await this.onQrScanned(value);
+    input.value = '';
+    this.focusQrInputSoon();
+  }
   documents: any[] = [];
   loading = false;
+  // Zimmetle butonuna basıldıktan sonra istekler bitene kadar buton kilitlenir.
+  readonly saving = signal(false);
   alertVisible = true;
   currentItem: {
     type: 'envelope' | 'document';
@@ -79,6 +117,17 @@ export default class Zimmet implements OnInit {
   // Zarf okutulduğunda etiket popup'ında gösterebilmek için zarf verisini burada tutuyoruz.
   previewEnvelope: EnvelopeModel | null = null;
   envelopeLabelVisible = false;
+
+  // Okutulan zarf özetindeki durum rozeti (Zarflar listesiyle aynı stil).
+  get envelopeStatusLabel(): string {
+    const status = this.previewEnvelope?.status;
+    return (status != null && EnvelopeStatusLabels[status]) || '-';
+  }
+
+  get envelopeStatusClass(): string {
+    const status = this.previewEnvelope?.status;
+    return (status != null && EnvelopeStatusBadgeClass[status]) || '';
+  }
 
   searchTerm = '';
   searchVisible = false;
@@ -100,6 +149,16 @@ export default class Zimmet implements OnInit {
     });
   }
 
+  // Yalnızca tek tek okutulan evraklar listeden çıkarılabilir (zarf içeriği bütün olarak işlenir).
+  removeDocument(qrCode: string) {
+    this.documents = this.documents.filter(d => d.qrCode !== qrCode);
+    if (this.documents.length === 0) {
+      this.currentItem = null;
+      this.alertVisible = true;
+      this.focusQrInputSoon();
+    }
+  }
+
   toggleSort(field: 'qrCode' | 'createdDate') {
     if (this.sortField === field) {
       this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
@@ -119,6 +178,19 @@ export default class Zimmet implements OnInit {
   readonly internalUserList = computed<PersonListItem[]>(() =>
     (this.usersResult.value() ?? []).filter((x): x is UserModel & { id: string } => !!x.id && !x.isDeleted && x.isActive)
   );
+
+  // İç kullanıcılar doğrudan listelenmez; ad/soyad yazıldıkça autocomplete ile gelir.
+  readonly internalUserControl = new FormControl<{ id: string, name: string } | null>(null);
+  readonly internalUserOptions = computed(() =>
+    this.internalUserList()
+      .map(u => ({ id: u.id, name: `${u.name} ${u.surname}`.trim() }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'tr'))
+  );
+  readonly selectedInternalUser = computed<PersonListItem | null>(() => {
+    const id = this.selectedPersonId();
+    if (this.mode() !== 'internal' || !id) return null;
+    return this.internalUserList().find(x => x.id === id) ?? null;
+  });
 
   readonly institutionsResult = httpResource<ExternalInstitutionModel[]>(() => "api/ExternalInstitutions/GetAll");
   readonly institutionList = computed(() =>
@@ -177,6 +249,32 @@ export default class Zimmet implements OnInit {
     );
   });
 
+  readonly selectedInstitutionName = computed(() => {
+    const id = this.selectedInstitutionId();
+    return id ? this.institutionList().find(x => x.id === id)?.name ?? null : null;
+  });
+
+  // Alt özet şeridinde "3 evrak → Ad Soyad" biçiminde gösterilecek hedef.
+  readonly selectedTargetLabel = computed<string | null>(() => {
+    const id = this.selectedPersonId();
+    if (!id) return null;
+
+    if (this.mode() === 'self') {
+      const u = this.user();
+      return u ? `${u.name} ${u.surname}` : null;
+    }
+
+    const p = this.currentPersonList().find(x => x.id === id);
+    if (!p) return null;
+
+    const fullName = `${p.name} ${p.surname}`;
+    const inst = this.mode() === 'external' ? this.selectedInstitutionName() : null;
+    return inst ? `${fullName} · ${inst}` : fullName;
+  });
+
+  // Tek personelli kurum için otomatik seçimin hangi kurumda yapıldığını tutar.
+  private autoSelectedInstitutionId: string | null = null;
+
   readonly quickAddModalVisible = signal(false);
   readonly quickAddSaving = signal(false);
   quickAddForm: ExternalUserModel = { ...initialExternalUser };
@@ -199,8 +297,27 @@ export default class Zimmet implements OnInit {
       }
     });
 
+    // Dış kurumda yalnızca tek personel tanımlıysa o kişi otomatik seçili gelsin.
+    // Personel listesi sonradan yüklense de çalışır; kullanıcı seçimi bilerek
+    // kaldırırsa aynı kurum için yeniden dayatılmaz.
+    effect(() => {
+      const institutionId = this.selectedInstitutionId();
+      const list = this.externalPersonList();
+      if (this.mode() !== 'external' || !institutionId || list.length !== 1) return;
+      if (this.selectedPersonId() || this.autoSelectedInstitutionId === institutionId) return;
+
+      this.autoSelectedInstitutionId = institutionId;
+      this.selectedPersonId.set(list[0].id);
+    });
+
     this.institutionControl.valueChanges.subscribe(value => {
       this.selectInstitution(value?.id ?? null);
+    });
+
+    this.internalUserControl.valueChanges.subscribe(value => {
+      if (this.mode() === 'internal') {
+        this.selectedPersonId.set(value?.id ?? null);
+      }
     });
   }
 
@@ -210,11 +327,32 @@ export default class Zimmet implements OnInit {
     this.selectedPersonId.set(mode === 'self' ? this.user()?.id ?? null : null);
     this.selectedInstitutionId.set(null);
     this.personSearch.set('');
+    this.internalUserControl.setValue(null, { emitEvent: false });
+
+    if (mode === 'external') {
+      this.applyEnvelopeInstitution();
+    }
+  }
+
+  // Zarfın alıcı kurumu belliyse "Dış Kurum" modunda kurum otomatik seçili gelir;
+  // kullanıcı isterse autocomplete'ten başka bir kurum seçebilir.
+  private applyEnvelopeInstitution(): void {
+    const institutionId = this.previewEnvelope?.externalInstitutionId;
+    if (!institutionId || this.mode() !== 'external') return;
+    if (this.selectedInstitutionId() === institutionId) return;
+
+    this.selectInstitution(institutionId);
+  }
+
+  clearInternalUser(): void {
+    this.selectedPersonId.set(null);
+    this.internalUserControl.setValue(null, { emitEvent: false });
   }
 
   selectInstitution(id: string | null): void {
     this.selectedInstitutionId.set(id);
     this.selectedPersonId.set(null);
+    this.autoSelectedInstitutionId = null;
   }
 
   selectPerson(id: string): void {
@@ -314,7 +452,21 @@ export default class Zimmet implements OnInit {
           return;
         }
 
+        // Teslim edilmiş zarf üzerinde yeniden zimmetleme yapılamaz; kullanıcı
+        // teslim bilgilerinin gösterildiği Teslim Et ekranına yönlendirilir.
+        // Oradaki "Geri" butonu bu okutma ekranına döner.
+        if (envelope.status === EnvelopeStatus.TeslimEdildi) {
+          this.documents = [];
+          this.previewEnvelope = null;
+          this.currentItem = null;
+          this.showToast('Bilgi', 'Bu zarf teslim edilmiş, teslim bilgileri gösteriliyor.', 'info');
+          this.zimmetState.setEnvelopeId(envelope.id, '/gidenevrak/zimmet');
+          this.router.navigate(['/gidenzimmet']);
+          return;
+        }
+
         this.previewEnvelope = envelope;
+        this.applyEnvelopeInstitution();
 
         // GetByNo, GetById gibi kurum adını (externalInstitutionName) join'lemeden
         // dönebiliyor; yalnızca id geldiyse burada ayrıca çekiyoruz.
@@ -417,12 +569,31 @@ export default class Zimmet implements OnInit {
     this.selectedPersonId.set(this.user()?.id ?? null);
     this.selectedInstitutionId.set(null);
     this.personSearch.set('');
+    this.internalUserControl.setValue(null, { emitEvent: false });
+    this.focusQrInputSoon();
   }
 
-  addZimmet() {
+  // Zimmetleme: her evrak için önce üzerindeki aktif zimmet kayıtları pasife
+  // (isActive=false) çekilir, ardından seçilen kişi adına yeni zimmet kaydı
+  // oluşturulur. Böylece evrak yeni kişiye geçerken eski kayıtlar geçmiş
+  // olarak izlenebilir kalır.
+  async addZimmet() {
+    if (this.saving()) return;
+
     const personId = this.selectedPersonId();
     if (!personId) {
       this.#toast.showToast('Hata', 'Personel seçilmedi', 'error');
+      return;
+    }
+
+    if (this.documents.length === 0) {
+      this.#toast.showToast('Hata', 'Zimmetlenecek evrak yok', 'error');
+      return;
+    }
+
+    const createdUserId = this.user()?.id;
+    if (!createdUserId) {
+      this.#toast.showToast('Hata', 'Kullanıcı bilgisi alınamadı', 'error');
       return;
     }
 
@@ -432,54 +603,72 @@ export default class Zimmet implements OnInit {
     const envelopeId = this.currentItem?.type === 'envelope' ? this.previewEnvelope?.id ?? null : null;
     const envelopeStatus = envelopeStatusForZimmetMode(this.mode());
 
-    const requests = this.documents.map(doc => {
-      const model: IncomingDocumentPreRegisterModel = {
-        id: "",
-        qrCode: doc.qrCode,
-        userId: personId,
-        userType,
-        documentDirection: 2,
-        isDeleted: false,
-        createdDate: new Date()
-      };
+    this.saving.set(true);
+    this.cdr.markForCheck();
 
-      return this.incomingDocumentService.createIncomingDocumentPreRegister(model);
-    });
+    let successCount = 0;
+    const failedCodes: string[] = [];
 
-    forkJoin(requests).subscribe({
-      next: (results) => {
-        let successCount = 0;
-        let alreadyCount = 0;
-
-        for (const res of results) {
-          if (!res) continue;
-
-          if (res.id != "") successCount++;
-          else alreadyCount++;
+    // Evraklar sırayla işlenir; bir evrak başarısız olsa da diğerleri devam eder.
+    for (const doc of this.documents) {
+      try {
+        const outgoingDocumentId = await this.resolveOutgoingDocumentId(doc);
+        if (!outgoingDocumentId) {
+          failedCodes.push(doc.qrCode);
+          continue;
         }
 
-        if (successCount > 0) {
-          this.#toast.showToast('Başarılı', `${successCount} evrak zimmetlendi`, 'info');
-
-          // Evraklar zimmetlendiyse zarfın durumu da moda göre güncellenir
-          // (Teslim Al / Zimmetle: Evrak Birimde, Teslim Et: Teslim Edildi).
-          if (envelopeId) {
-            this.updateEnvelopeStatus(envelopeId, envelopeStatus);
-          }
-
-          // TEMİZLEME
-          this.reset();
-          this.cdr.detectChanges();
-        }
-
-        if (alreadyCount > 0) {
-          this.#toast.showToast('Bilgi', `${alreadyCount} kayıt zaten vardı.`, 'warning');
-        }
-      },
-      error: () => {
-        this.#toast.showToast('Hata', 'Kayıtlar oluşturulamadı', 'error');
+        await this.allocationService.reallocate({
+          outgoingDocumentId,
+          userId: personId,
+          createdUserId,
+          status: AllocationStatusEnum.Devir,
+          userType
+        });
+        successCount++;
+      } catch (err) {
+        console.error(`Zimmet devri başarısız (${doc.qrCode}):`, err);
+        failedCodes.push(doc.qrCode);
       }
-    });
+    }
+
+    this.saving.set(false);
+
+    if (failedCodes.length > 0) {
+      this.#toast.showToast(
+        'Uyarı',
+        `${failedCodes.length} evrak zimmetlenemedi: ${failedCodes.join(', ')}`,
+        'warning'
+      );
+    }
+
+    if (successCount === 0) {
+      this.cdr.markForCheck();
+      return;
+    }
+
+    this.#toast.showToast('Başarılı', `${successCount} evrak zimmetlendi`, 'info');
+
+    // Evraklar zimmetlendiyse zarfın durumu da moda göre güncellenir
+    // (Teslim Al / Zimmetle: Evrak Birimde, Teslim Et: Teslim Edildi).
+    if (envelopeId) {
+      this.updateEnvelopeStatus(envelopeId, envelopeStatus);
+    }
+
+    // TEMİZLEME
+    this.reset();
+    this.cdr.detectChanges();
+  }
+
+  // Zarf içeriği EnvelopeDocuments kaydı olarak gelir ve evrakın gerçek id'sini
+  // documentId alanında taşır; tek tek okutulan evraklarda ise yalnızca QR kod
+  // bilinir ve id OutgoingDocuments üzerinden bulunur. Allocation kaydına
+  // EnvelopeDocuments'ın kendi id'si değil, evrakın gerçek id'si yazılmalı.
+  private async resolveOutgoingDocumentId(doc: { documentId?: string; qrCode: string }): Promise<string | null> {
+    if (doc.documentId) return doc.documentId;
+
+    const outgoingDoc = await firstValueFrom(this.outgoingDocumentService.getByQrCode(doc.qrCode));
+    return outgoingDoc?.id ?? null;
   }
 
   // Zarf durumu güncellenemezse zimmetler zaten kaydedilmiş olduğundan yalnızca uyarı verilir.

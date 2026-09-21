@@ -70,6 +70,15 @@ async getEnvelopeByNo(envelopeNo: string): Promise<EnvelopeModel | null> {
     );
   }
 
+  // UPDATE: zarfın birim adı / adres gibi etiket bilgilerini günceller.
+  // Yalnızca "Yeni Kayıt" durumundaki zarflar için kullanılır (ticket ekranı).
+  updateEnvelope(model: Partial<EnvelopeModel>) {
+    return this.httpService.post<void>(
+      `${this.baseUrl}Update`,
+      model
+    );
+  }
+
   // UPDATE STATUS: zarfın durumunu değiştirir (Yeni -> Evrak Birimde -> Teslim Edildi).
   // Zarf içindeki evraklar teslim alınıp / zimmetlenip / teslim edilince çağrılır.
   updateEnvelopeStatus(id: string, status: EnvelopeStatus) {

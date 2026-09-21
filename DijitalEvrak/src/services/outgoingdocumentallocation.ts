@@ -1,7 +1,16 @@
 import { Injectable, inject } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { HttpService } from './http';
 import { OutgoingDocumentAllocationModel } from '../models/outgoingdocumentallocation.model';
 import { AllocationStatusEnum } from '../models/allocationstatus.model';
+
+export interface OutgoingAllocationRequest {
+  outgoingDocumentId: string;
+  userId: string;
+  createdUserId: string;
+  status: AllocationStatusEnum;
+  userType: number;
+}
 
 @Injectable({ providedIn: 'root' })
 export class OutgoingDocumentAllocation {
@@ -41,13 +50,7 @@ export class OutgoingDocumentAllocation {
   // Yeni outgoing document allocation oluşturma
   // status: AllocationStatusEnum (1 İlk Kayıt, 2 Devir, 3 Teslim, 4 Arşiv);
   // backend bugüne kadar string olarak kabul ettiği için tel üzerinde string gönderilir.
-  createAllocation(allocation: {
-    outgoingDocumentId: string;
-    userId: string;
-    createdUserId: string;
-    status: AllocationStatusEnum;
-    userType: number;
-  }) {
+  createAllocation(allocation: OutgoingAllocationRequest) {
     return this.httpService.post(
       `${this.baseUrl}/Create`,
       { ...allocation, status: String(allocation.status) }
@@ -55,11 +58,41 @@ export class OutgoingDocumentAllocation {
   }
 
   // Mevcut allocation'ı günceller
-  updateAllocation(allocation: Partial<OutgoingDocumentAllocationModel>) {
+  // (status Create ile aynı sözleşme gereği string olarak da gönderilebilir).
+  updateAllocation(
+    allocation: Partial<Omit<OutgoingDocumentAllocationModel, 'status'>> & { status?: AllocationStatusEnum | string }
+  ) {
     return this.httpService.post(
       `${this.baseUrl}/Update`,
       allocation
     );
+  }
+
+  // Evrak üzerindeki aktif zimmet kayıtlarını isActive=false yapar.
+  // Eski kayıtlar silinmez; geçmiş (kimden kime, ne zaman) izlenebilir kalır.
+  async deactivateActiveAllocations(outgoingDocumentId: string): Promise<number> {
+    const existing = await firstValueFrom(this.getByDocumentId(outgoingDocumentId)) ?? [];
+    const active = existing.filter(a => a.isActive && !a.isDeleted);
+
+    for (const allocation of active) {
+      await firstValueFrom(
+        this.updateAllocation({
+          ...allocation,
+          isActive: false,
+          // Create ile aynı sözleşme: status tel üzerinde string gider.
+          status: String(allocation.status)
+        })
+      );
+    }
+
+    return active.length;
+  }
+
+  // Zimmet devri: önce evrakın mevcut aktif zimmetleri pasife çekilir,
+  // ardından seçilen kişi için yeni (aktif) zimmet kaydı oluşturulur.
+  async reallocate(allocation: OutgoingAllocationRequest): Promise<void> {
+    await this.deactivateActiveAllocations(allocation.outgoingDocumentId);
+    await firstValueFrom(this.createAllocation(allocation));
   }
 
   // Zimmeti tamamlanmış bir evrağın taranmış, ıslak imzalı halini yükler

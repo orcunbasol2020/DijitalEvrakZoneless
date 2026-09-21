@@ -8,7 +8,7 @@ import { SimpleAutocompleteComponent } from '../../simpleautocomplete/simpleauto
 import { ExternalInstitution, ExternalInstitutionModel } from '../../../services/external-institution';
 import { EnvelopeService } from '../../../services/envelope';
 import { FlexiToastService } from 'flexi-toast';
-import { EnvelopeModel } from '../../../models/envelope.model';
+import { EnvelopeModel, EnvelopeStatus, EnvelopeStatusBadgeClass, EnvelopeStatusLabels } from '../../../models/envelope.model';
 import { Common } from '../../../services/common';
 import { ChangeDetectorRef } from '@angular/core';
 import { PrintPreview } from '../../printpreview/printpreview';
@@ -85,6 +85,72 @@ export default class Ticket implements OnInit {
   readonly #common = inject(Common);
   readonly user = computed(() => this.#common.user());
   private cdr = inject(ChangeDetectorRef);
+
+  // Sol paneldeki zarf özetinde gösterilen durum rozeti (Zarflar listesiyle aynı stil).
+  get envelopeStatusLabel(): string {
+    const status = this.previewEnvelope?.status;
+    return (status != null && EnvelopeStatusLabels[status]) || '-';
+  }
+
+  get envelopeStatusClass(): string {
+    const status = this.previewEnvelope?.status;
+    return (status != null && EnvelopeStatusBadgeClass[status]) || '';
+  }
+
+  // ---- Zarf bilgilerini düzenleme (yalnızca "Yeni Kayıt" durumunda) ----
+  // Zarf henüz evrak birimine teslim edilmediyse etiketteki birim adı ve adres
+  // sol panelden düzeltilebilir; sonraki durumlarda etiket basılmış sayılır.
+
+  envelopeEditing = false;
+  readonly envelopeSaving = signal(false);
+  envelopeEditForm: { unitName: string; address: string } = { unitName: '', address: '' };
+
+  get canEditEnvelope(): boolean {
+    return this.previewEnvelope?.status === EnvelopeStatus.Yeni;
+  }
+
+  startEnvelopeEdit() {
+    if (!this.previewEnvelope || !this.canEditEnvelope) return;
+    this.envelopeEditForm = {
+      unitName: this.previewEnvelope.unitName ?? '',
+      address: this.previewEnvelope.address ?? ''
+    };
+    this.envelopeEditing = true;
+  }
+
+  cancelEnvelopeEdit() {
+    if (this.envelopeSaving()) return;
+    this.envelopeEditing = false;
+  }
+
+  async saveEnvelopeEdit() {
+    const envelope = this.previewEnvelope;
+    if (!envelope || !this.canEditEnvelope || this.envelopeSaving()) return;
+
+    const unitName = this.envelopeEditForm.unitName.trim();
+    const address = this.envelopeEditForm.address.trim();
+
+    this.envelopeSaving.set(true);
+    try {
+      await firstValueFrom(
+        this.envelopeService.updateEnvelope({ ...envelope, unitName, address })
+      );
+
+      // Sağdaki etiket önizlemesi de previewEnvelope'tan beslendiği için
+      // yeni referans vererek her iki paneli birlikte tazeliyoruz.
+      const updated = { ...envelope, unitName, address };
+      this.previewEnvelope = updated;
+      this.selectedEnvelope = updated;
+      this.envelopeEditing = false;
+      this.#toast.showToast('Bilgi', 'Zarf bilgileri güncellendi', 'success');
+    } catch (err) {
+      this.#toast.showToast('Hata', 'Zarf bilgileri güncellenemedi', 'error');
+      console.error('Zarf güncelleme hatası:', err);
+    } finally {
+      this.envelopeSaving.set(false);
+      this.cdr.markForCheck();
+    }
+  }
 
   @ViewChild('qrInput') qrInput!: ElementRef<HTMLInputElement>;
   documents: EnvelopeDocumentModel[] = [];
@@ -291,11 +357,14 @@ export default class Ticket implements OnInit {
 
   private openManualEntryModal(qrCode: string, envelopeId: string) {
     this.pendingManualEnvelopeId = envelopeId;
+    // Alan birim, etiketteki aktif alıcı (zarfın kurumu) ile önceden seçili gelsin;
+    // kullanıcı gerekirse popup içinden değiştirebilir.
+    const defaultInstitutionId = this.previewEnvelope?.externalInstitutionId ?? null;
     this.manualEntryForm = {
       qrCode,
       documentDate: '',
       subject: '',
-      externalInstitutionId: null
+      externalInstitutionId: defaultInstitutionId
     };
     this.manualEntryModalVisible.set(true);
     this.cdr.markForCheck();
@@ -313,7 +382,7 @@ export default class Ticket implements OnInit {
     }
 
     if (!this.manualEntryForm.externalInstitutionId) {
-      this.#toast.showToast('Uyarı', 'Alan birim zorunludur', 'warning');
+      this.#toast.showToast('Uyarı', 'Nereye alanı zorunludur', 'warning');
       return;
     }
 
@@ -679,6 +748,20 @@ export default class Ticket implements OnInit {
         console.error(err);
       }
     });
+  }
+
+  // ---- Etiket Önizleme Popup (sol panel başlığındaki göz ikonu) ----
+  // Etiket görseli ve Yazdır butonu ayrı bir panel yerine bu popup'ta gösterilir.
+
+  readonly labelPreviewVisible = signal(false);
+
+  openLabelPreview() {
+    if (!this.previewEnvelope) return;
+    this.labelPreviewVisible.set(true);
+  }
+
+  closeLabelPreview() {
+    this.labelPreviewVisible.set(false);
   }
 
   previewData: any;

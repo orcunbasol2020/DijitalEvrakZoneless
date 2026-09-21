@@ -6,7 +6,7 @@ import { FlexiToastService } from 'flexi-toast';
 import { EnvelopeDocumentService } from '../../../services/envelopedocument';
 import { forkJoin } from 'rxjs';
 import { ZimmetStateService } from '../../../services/zimmet-state-service';
-import { EnvelopeModel, envelopeStatusForZimmetMode } from '../../../models/envelope.model';
+import { EnvelopeModel, EnvelopeStatusBadgeClass, EnvelopeStatusLabels, envelopeStatusForZimmetMode } from '../../../models/envelope.model';
 import { EnvelopeService } from '../../../services/envelope';
 import { ExternalInstitution, ExternalInstitutionModel } from '../../../services/external-institution';
 import { ExternalUserService, ExternalUserModel, initialExternalUser } from '../../../services/external-user';
@@ -33,6 +33,8 @@ type PersonListItem = { id: string; name: string; surname: string; identityNo?: 
     QRCodeComponent
   ],
   templateUrl: './gidenzimmet.html',
+  // Görsel dil Giden Evrak Teslim Al (zimmet) ekranıyla ortak; zm-* sınıfları oradan gelir.
+  styleUrls: ['../zimmet/zimmet.css', './gidenzimmet.css'],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -158,6 +160,48 @@ export default class Gidenzimmet implements OnInit {
   readonly quickAddModalVisible = signal(false);
   readonly quickAddSaving = signal(false);
   quickAddForm: ExternalUserModel = { ...initialExternalUser };
+
+  // Teslim Et butonuna basıldıktan sonra istekler bitene kadar buton kilitlenir.
+  readonly saving = signal(false);
+
+  // Teslim edildi görünümündeki geri butonu: geldiği ekrana göre metin.
+  get backButtonLabel(): string {
+    return this.state.getReturnUrl() ? 'Okutma Ekranına Dön' : 'Zarflara Dön';
+  }
+
+  // Sol paneldeki zarf özetinde gösterilen durum rozeti (Zarflar listesiyle aynı stil).
+  get envelopeStatusLabel(): string {
+    const status = this.previewEnvelope()?.status;
+    return (status != null && EnvelopeStatusLabels[status]) || '-';
+  }
+
+  get envelopeStatusClass(): string {
+    const status = this.previewEnvelope()?.status;
+    return (status != null && EnvelopeStatusBadgeClass[status]) || '';
+  }
+
+  readonly selectedInstitutionName = computed(() => {
+    const id = this.selectedInstitutionId();
+    return id ? this.institutionList().find(x => x.id === id)?.name ?? null : null;
+  });
+
+  // Alt özet şeridinde "3 evrak → Ad Soyad" biçiminde gösterilecek hedef.
+  readonly selectedTargetLabel = computed<string | null>(() => {
+    const id = this.selectedPersonId();
+    if (!id) return null;
+
+    if (this.mode() === 'self') {
+      const u = this.user();
+      return u ? `${u.name} ${u.surname}` : null;
+    }
+
+    const p = this.currentPersonList().find(x => x.id === id);
+    if (!p) return null;
+
+    const fullName = `${p.name} ${p.surname}`;
+    const inst = this.mode() === 'external' ? this.selectedInstitutionName() : null;
+    return inst ? `${fullName} · ${inst}` : fullName;
+  });
 
   // delivered: bu zarf (daha önce ya da az önce) teslim edilmiş mi.
   // deliveredJustNow: teslim işlemi bu oturumda az önce yapıldıysa true.
@@ -334,6 +378,7 @@ export default class Gidenzimmet implements OnInit {
   }
 
 addZimmet() {
+  if (this.saving()) return;
 
   if (!this.selectedPersonId()) {
     this.toast.showToast('Hata', 'Personel seçilmedi', 'error');
@@ -371,8 +416,11 @@ addZimmet() {
     })
   );
 
+  this.saving.set(true);
+
   forkJoin(requests).subscribe({
     next: () => {
+      this.saving.set(false);
       this.toast.showToast('Başarılı', 'Evraklar teslim edildi', 'info');
 
       const person = this.mode() === 'self'
@@ -400,6 +448,7 @@ addZimmet() {
       });
     },
     error: () => {
+      this.saving.set(false);
       this.toast.showToast('Hata', 'Teslim işlemi başarısız', 'error');
     }
   });
@@ -420,8 +469,10 @@ addZimmet() {
     this.selectedInstitutionId.set(this.externalInstitutionId());
     this.selectedPersonId.set(null);
     this.personSearch.set('');
+    // Zimmet (QR okutma) ekranından yönlendirilmişse oraya, aksi halde Zarflar listesine dönülür.
+    const returnUrl = this.state.getReturnUrl() ?? '/envelope';
     this.state.clear();
-    this.router.navigate(['/envelope']);
+    this.router.navigate([returnUrl]);
   }
 
   openQuickAddModal() {

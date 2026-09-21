@@ -1,0 +1,448 @@
+/* ============================================================
+   Zarf Teslim Et (gidenzimmet) sayfası
+   Görsel dil: Giden Evrak Teslim Al (zimmet.css) ile aynı; oradaki
+   "zm-" sınıfları doğrudan kullanılır. Bu dosya yalnızca bu sayfaya
+   özgü parçaları ("gz-" öneki) tanımlar: zarf özeti hero'su, teslim
+   edildi özeti, bilgi kartçıkları ve ıslak imzalı belge bloğu.
+   ============================================================ */
+
+/* ---- Başlıktaki evrak sayacı ---- */
+.gz-count-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #0369a1;
+    background: #e0f2fe;
+    border: 1px solid rgba(3, 105, 161, 0.2);
+    white-space: nowrap;
+}
+
+.gz-count-chip .material-symbols-outlined {
+    font-size: 15px;
+}
+
+/* ---- Zarf özeti: koyu lacivert-gri zemin, beyaz metin ---- */
+.gz-hero {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #334155 0%, #475569 50%, #64748b 100%);
+    color: #fff;
+    box-shadow: 0 6px 18px rgba(71, 85, 105, 0.22);
+}
+
+.gz-hero-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #fff;
+    flex: 0 0 auto;
+}
+
+.gz-hero-icon .material-symbols-outlined {
+    font-size: 21px;
+}
+
+.gz-hero-text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.gz-hero-no {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gz-hero-meta {
+    margin-top: 3px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.78);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gz-hero-sep {
+    margin: 0 5px;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+.gz-hero-side {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+}
+
+.gz-hero-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    white-space: nowrap;
+}
+
+.gz-hero-chip .material-symbols-outlined {
+    font-size: 15px;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+/* ---- Teslim edildi özeti: yeşil gradient ---- */
+.gz-done-hero {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #15803d 0%, #16a34a 50%, #4ade80 100%);
+    color: #fff;
+    box-shadow: 0 8px 22px rgba(22, 163, 74, 0.22);
+}
+
+.gz-done-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    flex: 0 0 auto;
+}
+
+.gz-done-icon .material-symbols-outlined {
+    font-size: 26px;
+}
+
+.gz-done-text {
+    min-width: 0;
+}
+
+.gz-done-title {
+    font-size: 15.5px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.gz-done-sub {
+    margin-top: 3px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.82);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---- Bilgi kartçıkları (Zarf Bilgileri ekranındaki ile aynı) ---- */
+.gz-tiles {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.gz-tile {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid #e7eaf0;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    transition: box-shadow 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.gz-tile:hover {
+    border-color: #d5dbe5;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+    transform: translateY(-1px);
+}
+
+.gz-tile-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.gz-tile-icon .material-symbols-outlined {
+    font-size: 20px;
+}
+
+.gz-tile-icon.tint-blue  { background: #e0f2fe; color: #0369a1; }
+.gz-tile-icon.tint-green { background: #dcfce7; color: #15803d; }
+
+.gz-tile-body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.gz-tile-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: #94a3b8;
+    margin-bottom: 3px;
+}
+
+.gz-tile-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.gz-tile-meta {
+    margin-top: 2px;
+    font-size: 12px;
+    color: #64748b;
+}
+
+/* ---- Islak imzalı belge bölümü ---- */
+.gz-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 6px;
+    border-top: 1px solid #eef2f7;
+}
+
+.gz-section-title {
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #64748b;
+    padding-top: 6px;
+}
+
+/* Yüklü dosya kartı */
+.gz-file {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+}
+
+.gz-file-body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.gz-file-name {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gz-file-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11.5px;
+    color: #64748b;
+    font-variant-numeric: tabular-nums;
+}
+
+.gz-file-meta .material-symbols-outlined {
+    font-size: 14px;
+}
+
+.gz-file-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex: 0 0 auto;
+}
+
+.gz-file-actions .zm-icon-btn .spinner-border {
+    width: 14px;
+    height: 14px;
+    border-width: 2px;
+}
+
+.zm-icon-btn.is-disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* Yükleme alanı: kesikli çerçeve, hover'da mavi vurgu */
+.gz-upload {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px dashed #cbd5e1;
+    background: #fbfcfe;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.gz-upload:hover {
+    border-color: #7dd3fc;
+    background: #f0f9ff;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+}
+
+.gz-upload.is-disabled {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.gz-upload-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #e0f2fe;
+    color: #0369a1;
+    flex: 0 0 auto;
+}
+
+.gz-upload-icon .material-symbols-outlined {
+    font-size: 22px;
+}
+
+.gz-upload-icon .spinner-border {
+    width: 18px;
+    height: 18px;
+    border-width: 2px;
+}
+
+.gz-upload-text {
+    min-width: 0;
+}
+
+.gz-upload-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.gz-upload-hint {
+    font-size: 11.5px;
+    color: #94a3b8;
+    margin-top: 1px;
+}
+
+/* ---- Dar ekran ---- */
+@media (max-width: 575.98px) {
+    .gz-hero {
+        flex-wrap: wrap;
+    }
+
+    .gz-hero-side {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}
+
+/* ============================================================
+   Koyu tema
+   ============================================================ */
+[data-theme="dark"] .gz-count-chip {
+    background: rgba(14, 165, 233, 0.18);
+    border-color: rgba(14, 165, 233, 0.35);
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .gz-hero,
+[data-theme="dark"] .gz-done-hero {
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .gz-tile {
+    background: rgba(148, 163, 184, 0.06);
+    border-color: rgba(148, 163, 184, 0.18);
+}
+
+[data-theme="dark"] .gz-tile:hover {
+    border-color: rgba(148, 163, 184, 0.32);
+}
+
+[data-theme="dark"] .gz-tile-icon {
+    background: rgba(148, 163, 184, 0.14);
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .gz-tile-icon.tint-blue {
+    background: rgba(14, 165, 233, 0.18);
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .gz-tile-icon.tint-green {
+    background: rgba(34, 197, 94, 0.18);
+    color: #86efac;
+}
+
+[data-theme="dark"] .gz-tile-value,
+[data-theme="dark"] .gz-file-name,
+[data-theme="dark"] .gz-upload-title {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .gz-tile-meta,
+[data-theme="dark"] .gz-file-meta,
+[data-theme="dark"] .gz-section-title {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .gz-section {
+    border-top-color: rgba(148, 163, 184, 0.16);
+}
+
+[data-theme="dark"] .gz-file {
+    background: rgba(34, 197, 94, 0.1);
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+[data-theme="dark"] .gz-upload {
+    background: rgba(148, 163, 184, 0.05);
+    border-color: rgba(148, 163, 184, 0.25);
+}
+
+[data-theme="dark"] .gz-upload:hover {
+    background: rgba(14, 165, 233, 0.1);
+    border-color: rgba(14, 165, 233, 0.45);
+}
+
+[data-theme="dark"] .gz-upload-icon {
+    background: rgba(14, 165, 233, 0.18);
+    color: #7dd3fc;
+}
