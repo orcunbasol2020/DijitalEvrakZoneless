@@ -20,6 +20,7 @@ import { QRCodeComponent } from 'angularx-qrcode';
 import { RoleService } from '../../../services/role-service';
 import { OutgoingDocumentService } from '../../../services/outgoingdocument';
 import { OutgoingDocumentAllocation } from '../../../services/outgoingdocumentallocation';
+import { AllocationStatusEnum } from '../../../models/allocationstatus.model';
 import { OutgoingDocumentModel, OutgoingDocumentStatus, OutgoingDocumentStatusBadgeClass } from '../../../models/outgoingdocument.model';
 import { Department, DepartmentModel } from '../../../services/department';
 import { DocumentTypeEnum, DocumentTypeLabels } from '../../../models/documenttype.model';
@@ -210,7 +211,14 @@ export default class Ticket implements OnInit {
     }
   }
 
-  private async attachToEnvelope(qrCode: string, envelopeId: string, createdUserId: string) {
+  // allocationStatus: mevcut bir evrak zarfa eklenirken Devir (zimmet ekleyene geçer);
+  // manuel girişle o an oluşturulan evrakta İlk Kayıt (ilk zimmet kaydı).
+  private async attachToEnvelope(
+    qrCode: string,
+    envelopeId: string,
+    createdUserId: string,
+    allocationStatus: AllocationStatusEnum = AllocationStatusEnum.Devir
+  ) {
     const newEnvelopeDoc: EnvelopeDocumentModel = {
       id: '',
       envelopeId: envelopeId,
@@ -228,12 +236,16 @@ export default class Ticket implements OnInit {
     this.#toast.showToast('Başarılı', 'Evrak zarfa eklendi', 'success');
 
     // Zarfa eklenen evrakın zimmeti, ekleyen kullanıcıya geçer.
-    await this.allocateToCurrentUser(envelopeDoc, createdUserId);
+    await this.allocateToCurrentUser(envelopeDoc, createdUserId, allocationStatus);
   }
 
   // Evrak zarfa eklendiği anda zimmet, işlemi yapan kullanıcının üzerine alınır.
   // Zimmetleme başarısız olsa bile evrak zarfta kalır; kullanıcı uyarı ile bilgilendirilir.
-  private async allocateToCurrentUser(envelopeDoc: EnvelopeDocumentModel, userId: string) {
+  private async allocateToCurrentUser(
+    envelopeDoc: EnvelopeDocumentModel,
+    userId: string,
+    status: AllocationStatusEnum
+  ) {
     try {
       // Create yanıtı documentId döndürmezse evrakın gerçek id'si QR koddan bulunur.
       let outgoingDocumentId = envelopeDoc.documentId;
@@ -254,7 +266,7 @@ export default class Ticket implements OnInit {
           outgoingDocumentId,
           userId,
           createdUserId: userId,
-          status: '2',
+          status,
           userType: 1
         })
       );
@@ -330,7 +342,8 @@ export default class Ticket implements OnInit {
         })
       );
 
-      await this.attachToEnvelope(this.manualEntryForm.qrCode, envelopeId, createdUserId);
+      // Evrak az önce oluşturulduğu için ilk zimmet kaydı İlk Kayıt olarak düşer.
+      await this.attachToEnvelope(this.manualEntryForm.qrCode, envelopeId, createdUserId, AllocationStatusEnum.IlkKayit);
 
       this.manualEntryModalVisible.set(false);
     } catch (err) {

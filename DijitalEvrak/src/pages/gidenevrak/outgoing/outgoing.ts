@@ -17,6 +17,7 @@ import { OutgoingDocumentService } from '../../../services/outgoingdocument';
 import { OutgoingDocumentModel } from '../../../models/outgoingdocument.model';
 import { OutgoingDocumentAllocation } from '../../../services/outgoingdocumentallocation';
 import { OutgoingDocumentAllocationModel } from '../../../models/outgoingdocumentallocation.model';
+import { AllocationStatusEnum, AllocationStatusLabels } from '../../../models/allocationstatus.model';
 import { ZimmetStateService } from '../../../services/zimmet-state-service';
 import { Department, DepartmentModel } from '../../../services/department';
 import { ExternalInstitution, ExternalInstitutionModel } from '../../../services/external-institution';
@@ -202,6 +203,31 @@ export default class Outgoing {
   readonly zimmetHistoryDoc = signal<OutgoingDocumentModel | null>(null);
   readonly zimmetHistory = signal<OutgoingDocumentAllocationModel[]>([]);
   readonly activeZimmet = computed(() => this.zimmetHistory().find(h => h.isActive) ?? null);
+  readonly allocationStatusLabels: Record<number, string> = AllocationStatusLabels;
+  readonly AllocationStatus = AllocationStatusEnum;
+
+  // Zaman çizelgesindeki nokta ikonu ve renk sınıfı zimmet durumuna göre değişir.
+  readonly allocationStatusIcons: Record<number, string> = {
+    [AllocationStatusEnum.IlkKayit]: 'post_add',
+    [AllocationStatusEnum.Devir]: 'swap_horiz',
+    [AllocationStatusEnum.Teslim]: 'handshake',
+    [AllocationStatusEnum.Arsiv]: 'inventory_2'
+  };
+
+  readonly allocationStatusClass: Record<number, string> = {
+    [AllocationStatusEnum.IlkKayit]: 'is-ilkkayit',
+    [AllocationStatusEnum.Devir]: 'is-devir',
+    [AllocationStatusEnum.Teslim]: 'is-teslim',
+    [AllocationStatusEnum.Arsiv]: 'is-arsiv'
+  };
+
+  initials(fullName?: string | null): string {
+    const parts = (fullName ?? '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '?';
+    const first = parts[0].charAt(0);
+    const last = parts.length > 1 ? parts[parts.length - 1].charAt(0) : '';
+    return `${first}${last}`.toLocaleUpperCase('tr');
+  }
 
   openZimmetHistory(item: OutgoingDocumentModel): void {
     this.zimmetHistoryDoc.set(item);

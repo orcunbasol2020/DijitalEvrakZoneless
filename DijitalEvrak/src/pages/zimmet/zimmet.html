@@ -168,7 +168,7 @@
                         class="zimmet-actions-row text-end d-flex justify-content-end gap-3">
 
                         <button class="btn btn-outline-success px-5"
-                            (click)="saveZimmet('3')"
+                            (click)="saveZimmet(AllocationStatus.Teslim)"
                             [disabled]="saving() || zimmetType === 'self' || !personControl.value">
                             <span
                                 class="material-symbols-outlined me-1 mb-1 mt-1">
@@ -178,7 +178,7 @@
                         </button>
 
                         <button class="btn btn-primary px-5"
-                            (click)="saveZimmet('2')"
+                            (click)="saveZimmet(AllocationStatus.Devir)"
                             [disabled]="saving() || (zimmetType === 'other' && !personControl.value)">
 
                             <span class="spinner-border spinner-border-sm me-1"

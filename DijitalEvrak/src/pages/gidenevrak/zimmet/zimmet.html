@@ -137,7 +137,7 @@
                             [class.btn-primary]="mode() === 'self'"
                             [class.btn-outline-secondary]="mode() !== 'self'"
                             (click)="setMode('self')">
-                            Devir Al
+                            Teslim Al
                         </button>
                         <button type="button" class="btn btn-sm"
                             [class.btn-primary]="mode() === 'internal'"
@@ -211,9 +211,22 @@
                     <span class="material-symbols-outlined" style="font-size: 18px;">arrow_back</span>
                     Geri
                 </button>
-                <button class="btn btn-primary d-flex align-items-center gap-1" (click)="addZimmet()">
-                    <span class="material-symbols-outlined" style="font-size: 18px;">hand_package</span>
-                    Zimmetle
+                <!-- Mod değişince ikon/metin DOM'da yeniden oluşturulur ki belirme animasyonu tekrar oynasın. -->
+                <button class="btn btn-primary zimmet-submit-btn" [attr.data-mode]="mode()" (click)="addZimmet()">
+                    @switch (mode()) {
+                        @case ('self') {
+                            <span class="zimmet-submit-icon material-symbols-outlined">download</span>
+                            <span class="zimmet-submit-text">Teslim Al</span>
+                        }
+                        @case ('external') {
+                            <span class="zimmet-submit-icon material-symbols-outlined">local_shipping</span>
+                            <span class="zimmet-submit-text">Teslim Et</span>
+                        }
+                        @default {
+                            <span class="zimmet-submit-icon material-symbols-outlined">article_person</span>
+                            <span class="zimmet-submit-text">Zimmetle</span>
+                        }
+                    }
                 </button>
             </div>
         </div>

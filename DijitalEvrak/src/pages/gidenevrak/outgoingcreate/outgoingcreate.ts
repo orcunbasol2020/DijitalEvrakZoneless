@@ -25,6 +25,7 @@ import { DocumentTypeEnum, DocumentTypeLabels } from '../../../models/documentty
 import { actionRequiredOptions } from '../../../models/actionrequired.model';
 import { RoleService } from '../../../services/role-service';
 import { OutgoingDocumentAllocation } from '../../../services/outgoingdocumentallocation';
+import { AllocationStatusEnum } from '../../../models/allocationstatus.model';
 import { firstValueFrom } from 'rxjs';
 
 @Component({
@@ -375,7 +376,8 @@ export default class Outgoingcreate {
           outgoingDocumentId,
           userId,
           createdUserId: userId,
-          status: '2',
+          // Kayıtla birlikte oluşan ilk zimmet; devir değil ilk kayıt olarak işaretlenir.
+          status: AllocationStatusEnum.IlkKayit,
           userType: 1
         })
       );

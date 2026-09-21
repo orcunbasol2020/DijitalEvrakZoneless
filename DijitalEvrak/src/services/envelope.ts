@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpService } from './http';
 import { firstValueFrom } from 'rxjs';
-import { EnvelopeModel } from '../models/envelope.model';
+import { EnvelopeModel, EnvelopeStatus } from '../models/envelope.model';
 
 @Injectable({ providedIn: 'root' })
 export class EnvelopeService {
@@ -67,6 +67,15 @@ async getEnvelopeByNo(envelopeNo: string): Promise<EnvelopeModel | null> {
     return this.httpService.post<EnvelopeModel>(
       `${this.baseUrl}Create`,
       model
+    );
+  }
+
+  // UPDATE STATUS: zarfın durumunu değiştirir (Yeni -> Evrak Birimde -> Teslim Edildi).
+  // Zarf içindeki evraklar teslim alınıp / zimmetlenip / teslim edilince çağrılır.
+  updateEnvelopeStatus(id: string, status: EnvelopeStatus) {
+    return this.httpService.post<void>(
+      `${this.baseUrl}UpdateStatus`,
+      { id, status }
     );
   }
 

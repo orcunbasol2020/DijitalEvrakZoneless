@@ -9,6 +9,7 @@ import { ZimmetStateService } from '../../../services/zimmet-state-service';
 import { OutgoingDocumentService } from '../../../services/outgoingdocument';
 import { OutgoingDocumentModel, OutgoingDocumentStatus, OutgoingDocumentStatusBadgeClass } from '../../../models/outgoingdocument.model';
 import { OutgoingDocumentAllocation } from '../../../services/outgoingdocumentallocation';
+import { AllocationStatusEnum } from '../../../models/allocationstatus.model';
 import { ExternalInstitutionModel } from '../../../services/external-institution';
 import { DepartmentModel } from '../../../services/department';
 import { ExternalUserService, ExternalUserModel, initialExternalUser } from '../../../services/external-user';
@@ -275,7 +276,7 @@ export default class Outgoingzimmet implements OnInit {
       outgoingDocumentId: doc.id,
       userId: this.selectedPersonId()!,
       createdUserId,
-      status: '2',
+      status: AllocationStatusEnum.Devir,
       userType: this.mode() === 'internal' ? 1 : 2
     }).subscribe({
       next: () => {

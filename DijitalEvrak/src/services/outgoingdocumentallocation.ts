@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpService } from './http';
 import { OutgoingDocumentAllocationModel } from '../models/outgoingdocumentallocation.model';
+import { AllocationStatusEnum } from '../models/allocationstatus.model';
 
 @Injectable({ providedIn: 'root' })
 export class OutgoingDocumentAllocation {
@@ -38,16 +39,18 @@ export class OutgoingDocumentAllocation {
   }
 
   // Yeni outgoing document allocation oluşturma
+  // status: AllocationStatusEnum (1 İlk Kayıt, 2 Devir, 3 Teslim, 4 Arşiv);
+  // backend bugüne kadar string olarak kabul ettiği için tel üzerinde string gönderilir.
   createAllocation(allocation: {
     outgoingDocumentId: string;
     userId: string;
     createdUserId: string;
-    status: string;
+    status: AllocationStatusEnum;
     userType: number;
   }) {
     return this.httpService.post(
       `${this.baseUrl}/Create`,
-      allocation
+      { ...allocation, status: String(allocation.status) }
     );
   }
 

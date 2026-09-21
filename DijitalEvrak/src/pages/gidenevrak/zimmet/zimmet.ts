@@ -11,7 +11,7 @@ import { IncomingDocumentPreRegisterModel } from '../../../models/incoming-docum
 import { IncomingDocumentService } from '../../../services/incomingdocument';
 import { Common } from '../../../services/common';
 import { forkJoin } from 'rxjs';
-import { EnvelopeModel } from '../../../models/envelope.model';
+import { EnvelopeModel, envelopeStatusForZimmetMode } from '../../../models/envelope.model';
 import { ExternalInstitution, ExternalInstitutionModel } from '../../../services/external-institution';
 import { ExternalUserService, ExternalUserModel, initialExternalUser } from '../../../services/external-user';
 import { UserModel } from '../../users/users';
@@ -31,6 +31,7 @@ type PersonListItem = { id: string; name: string; surname: string; identityNo?: 
     QRCodeComponent
   ],
   templateUrl: './zimmet.html',
+  styleUrls: ['./zimmet.css'],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -427,6 +428,10 @@ export default class Zimmet implements OnInit {
 
     const userType = this.mode() === 'external' ? 2 : 1;
 
+    // reset() zarf bilgisini temizlediği için zarf durumu güncellemesi için önceden saklanır.
+    const envelopeId = this.currentItem?.type === 'envelope' ? this.previewEnvelope?.id ?? null : null;
+    const envelopeStatus = envelopeStatusForZimmetMode(this.mode());
+
     const requests = this.documents.map(doc => {
       const model: IncomingDocumentPreRegisterModel = {
         id: "",
@@ -456,6 +461,12 @@ export default class Zimmet implements OnInit {
         if (successCount > 0) {
           this.#toast.showToast('Başarılı', `${successCount} evrak zimmetlendi`, 'info');
 
+          // Evraklar zimmetlendiyse zarfın durumu da moda göre güncellenir
+          // (Teslim Al / Zimmetle: Evrak Birimde, Teslim Et: Teslim Edildi).
+          if (envelopeId) {
+            this.updateEnvelopeStatus(envelopeId, envelopeStatus);
+          }
+
           // TEMİZLEME
           this.reset();
           this.cdr.detectChanges();
@@ -467,6 +478,16 @@ export default class Zimmet implements OnInit {
       },
       error: () => {
         this.#toast.showToast('Hata', 'Kayıtlar oluşturulamadı', 'error');
+      }
+    });
+  }
+
+  // Zarf durumu güncellenemezse zimmetler zaten kaydedilmiş olduğundan yalnızca uyarı verilir.
+  private updateEnvelopeStatus(envelopeId: string, status: ReturnType<typeof envelopeStatusForZimmetMode>) {
+    this.envelopeService.updateEnvelopeStatus(envelopeId, status).subscribe({
+      error: (err) => {
+        console.error('Zarf durumu güncellenemedi:', err);
+        this.#toast.showToast('Uyarı', 'Evraklar zimmetlendi ancak zarf durumu güncellenemedi', 'warning');
       }
     });
   }

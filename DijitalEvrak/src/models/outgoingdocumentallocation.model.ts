@@ -1,3 +1,5 @@
+import { AllocationStatusEnum } from './allocationstatus.model';
+
 export interface OutgoingDocumentAllocationModel {
   id: string;                     // Allocation kaydı ID (Guid)
   outgoingDocumentId: string;     // Giden evrak ID (Guid)
@@ -5,7 +7,7 @@ export interface OutgoingDocumentAllocationModel {
   fullName: string;               // Teslim alan kişi Ad Soyad, backend'ten geliyor
   createdUserId: string;          // Teslim eden kullanıcı ID (Guid)
   createdFullName: string;        // Teslim eden kullanıcı Ad Soyad, backend'ten geliyor
-  status: number;                 // Allocation durumu
+  status: AllocationStatusEnum;   // Allocation durumu (1 İlk Kayıt, 2 Devir, 3 Teslim, 4 Arşiv)
   isActive: boolean;              // Aktif allocation mı
   createdDate: string;            // Oluşturulma tarihi
   updateDate?: string;            // Güncellenme tarihi (opsiyonel)

@@ -1,9 +1,11 @@
+import { AllocationStatusEnum } from './allocationstatus.model';
+
 export interface DocumentAllocationModel {
   id: string;                     // Zimmet kaydı ID (Guid)
   incomingDocumentId: string;     // Evrak ID (Guid)
   userId: string;                 // Kullanıcı ID (Guid)
   fullName: string;               // Kullanıcı Ad Soyad, backend’ten geliyor
-  status: number;                 // Zimmet durumu
+  status: AllocationStatusEnum;   // Zimmet durumu (1 İlk Kayıt, 2 Devir, 3 Teslim, 4 Arşiv)
   isActive: boolean;              // Aktif zimmet mi
   isPreRegistered: boolean;       // Ön kayıt bilgisi
   isAllocated: boolean;           // Zimmetleme yapıldı mı

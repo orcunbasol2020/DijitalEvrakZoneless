@@ -9,6 +9,7 @@ import { Common } from '../../services/common';
 import { IncomingDocumentService } from '../../services/incomingdocument';
 import { AllocationFlowComponent } from '../dynamics/allocation-flow/allocation-flow';
 import { DocumentAllocationModel } from '../../models/documentallocation.model';
+import { AllocationStatusEnum } from '../../models/allocationstatus.model';
 import { httpResource } from '@angular/common/http';
 import { UserModel } from '../users/users';
 import { SimpleAutocompleteComponent } from '../simpleautocomplete/simpleautocomplete';
@@ -32,6 +33,8 @@ import { actionRequiredLabel, actionRequiredBadgeClass } from '../../models/acti
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export default class Zimmet implements OnInit, OnDestroy {
+  // Şablondaki Zimmetle / Teslim Et butonları için.
+  readonly AllocationStatus = AllocationStatusEnum;
 
   // === QR READER FIX ===
   private buffer: string = '';
@@ -190,7 +193,7 @@ export default class Zimmet implements OnInit, OnDestroy {
       });
   }
 
-  private Zimmetle(documentNumber: string, userId: string, createdUserId: string, status: string) {
+  private Zimmetle(documentNumber: string, userId: string, createdUserId: string, status: AllocationStatusEnum) {
     const documentId = this.currentDocumentNo();
     if (!documentId) {
       console.error("Belge numarası bulunamadı");
@@ -261,7 +264,7 @@ export default class Zimmet implements OnInit, OnDestroy {
     this.id = null;
   }
 
-  saveZimmet(status: string) {
+  saveZimmet(status: AllocationStatusEnum) {
     const user = this.user();
     if (!user?.id) {
       console.error("Kullanıcı bulunamadı");

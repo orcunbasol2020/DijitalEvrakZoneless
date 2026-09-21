@@ -6,12 +6,13 @@ import { FlexiToastService } from 'flexi-toast';
 import { EnvelopeDocumentService } from '../../../services/envelopedocument';
 import { forkJoin } from 'rxjs';
 import { ZimmetStateService } from '../../../services/zimmet-state-service';
-import { EnvelopeModel } from '../../../models/envelope.model';
+import { EnvelopeModel, envelopeStatusForZimmetMode } from '../../../models/envelope.model';
 import { EnvelopeService } from '../../../services/envelope';
 import { ExternalInstitution, ExternalInstitutionModel } from '../../../services/external-institution';
 import { ExternalUserService, ExternalUserModel, initialExternalUser } from '../../../services/external-user';
 import { OutgoingDocumentAllocation } from '../../../services/outgoingdocumentallocation';
 import { OutgoingDocumentAllocationModel } from '../../../models/outgoingdocumentallocation.model';
+import { AllocationStatusEnum } from '../../../models/allocationstatus.model';
 import { Common } from '../../../services/common';
 import { httpResource } from '@angular/common/http';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
@@ -365,7 +366,7 @@ addZimmet() {
       outgoingDocumentId: doc.documentId,
       userId: this.selectedPersonId()!,
       createdUserId,
-      status: '2',
+      status: AllocationStatusEnum.Devir,
       userType
     })
   );
@@ -385,8 +386,18 @@ addZimmet() {
       this.delivered.set(true);
 
       this.selectedDocuments = [];
-      this.loadDocuments(this.state.getEnvelopeId()!);
+      const envelopeId = this.state.getEnvelopeId()!;
+      this.loadDocuments(envelopeId);
       this.refreshWetSignedInfo(docsToProcess[0].documentId);
+
+      // Zarfın durumu da moda göre güncellenir
+      // (Teslim Al / Zimmetle: Evrak Birimde, Teslim Et: Teslim Edildi).
+      this.envelopeService.updateEnvelopeStatus(envelopeId, envelopeStatusForZimmetMode(this.mode())).subscribe({
+        error: (err) => {
+          console.error('Zarf durumu güncellenemedi:', err);
+          this.toast.showToast('Uyarı', 'Evraklar teslim edildi ancak zarf durumu güncellenemedi', 'warning');
+        }
+      });
     },
     error: () => {
       this.toast.showToast('Hata', 'Teslim işlemi başarısız', 'error');
