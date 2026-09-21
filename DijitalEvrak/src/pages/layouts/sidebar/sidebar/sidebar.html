@@ -1,0 +1,72 @@
+<div id="sidebar-wrapper">
+
+  <div class="sidebar-brand d-flex align-items-center justify-content-between">
+    <a routerLink="/" class="d-flex gap-3 logo mt-1">
+      <img src="assets/images/logo.png" width="190" height="60" />
+    </a>
+  </div>
+
+  <div class="sidebar-search">
+    <div class="position-relative">
+      <input
+        type="text"
+        class="form-control sidebar-search-input"
+        [(ngModel)]="search"
+        placeholder="arama ..."
+      />
+
+      <span class="material-symbols-outlined sidebar-search-icon">
+        search
+      </span>
+    </div>
+  </div>
+
+  <ul class="nav-menu">
+
+    @for (item of visibleItems(navigations() | searchMenu: search()); track item.title ?? item.category) {
+
+      @if (item.category) {
+        <li class="nav-category" (click)="toggleCategory(item.category)">
+          <span>{{ item.category }}</span>
+          <span class="material-symbols-outlined nav-category-chevron">
+            {{ isCategoryCollapsed(item.category) ? 'chevron_right' : 'expand_more' }}
+          </span>
+        </li>
+      } @else {
+        <li class="nav-item">
+          <a [routerLink]="item.url"
+             routerLinkActive="active"
+             [routerLinkActiveOptions]="{ exact: true }"
+             class="nav-link">
+
+            <span class="nav-icon material-symbols-outlined">
+              {{ item.icon }}
+            </span>
+
+            <span>{{ item.title }}</span>
+
+          </a>
+        </li>
+      }
+
+    }
+
+  </ul>
+
+  <div class="sidebar-sticky-menu">
+
+    <a routerLink="/settings" class="sticky-menu-item" title="Ayarlar" flexiTooltip="right">
+      <span class="material-symbols-outlined">settings</span>
+    </a>
+
+    <a routerLink="/support" class="sticky-menu-item" title="Destek" flexiTooltip="right">
+      <span class="material-symbols-outlined">support_agent</span>
+    </a>
+
+    <a (click)="logout()" class="sticky-menu-item" title="Çıkış Yap" flexiTooltip="right">
+      <span class="material-symbols-outlined">logout</span>
+    </a>
+
+  </div>
+
+</div>

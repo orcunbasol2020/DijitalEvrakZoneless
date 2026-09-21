@@ -1,0 +1,464 @@
+<app-generic pageTitle="Giden Evrak Teslim Al"
+    [breadcrumbs]="[{title: 'Giden Evrak Teslim Al', url: 'onkayit', icon:''}]">
+</app-generic>
+<div class="row">
+    <!-- SOL PANEL: QR okutma + okutulan evraklar -->
+    <div class="col-lg-6 col-12">
+        <div class="card zm-card">
+            <div class="card-header dashboard-header d-flex align-items-center">
+                <span class="material-symbols-outlined me-2 text-info">approval_delegation</span>
+                <h5 class="card-title mb-0 fw-semibold">Giden Evrak Teslim Al</h5>
+            </div>
+
+            <div class="card-body zm-body">
+                <!-- QR okutma bloğu (Zarf Etiketi ekranındaki ile aynı dil) -->
+                <div class="zm-scan-hero" [class.is-active]="qrActive" [class.is-loading]="loading">
+                    <div class="zm-scan-wrap">
+                        <span class="material-symbols-outlined zm-scan-icon">qr_code_2</span>
+                        <input
+                            #qrInput
+                            type="text"
+                            class="zm-scan-input"
+                            placeholder="Zarf ya da evrak QR kodunu okutun veya numarayı yazıp Enter'a basın"
+                            (keydown)="onQrKeydown($event)"
+                            (focus)="qrActive = true"
+                            (blur)="qrActive = false"
+                            autocomplete="off">
+                        <span class="zm-scan-status" [class.is-active]="qrActive && !loading" [class.is-loading]="loading">
+                            <span class="spinner-border spinner-border-sm" *ngIf="loading"></span>
+                            <span class="zm-ready-dot" *ngIf="qrActive && !loading"></span>
+                            {{ loading ? 'Aranıyor' : (qrActive ? 'Okumaya Hazır' : 'Pasif') }}
+                        </span>
+                    </div>
+                    <div class="zm-scan-hint">
+                        Zarf okutulursa içindeki tüm evraklar listelenir; evrak numarası okutulursa listeye tek tek eklenir.
+                    </div>
+                </div>
+
+                <!-- Okutulan zarfın özeti -->
+                <div class="zm-envelope" *ngIf="previewEnvelope as env">
+                    <div class="zm-envelope-icon">
+                        <span class="material-symbols-outlined">mail</span>
+                    </div>
+                    <div class="zm-envelope-body">
+                        <div class="zm-envelope-no">{{ env.envelopeNo }}</div>
+                        <div class="zm-envelope-meta" *ngIf="env.externalInstitutionName || env.unitName">
+                            <span *ngIf="env.externalInstitutionName">{{ env.externalInstitutionName }}</span>
+                            <span class="zm-envelope-sep" *ngIf="env.externalInstitutionName && env.unitName">·</span>
+                            <span *ngIf="env.unitName">{{ env.unitName }}</span>
+                        </div>
+                    </div>
+                    <span class="envelope-status-pill {{ envelopeStatusClass }}" *ngIf="env.status != null">
+                        <span class="envelope-status-dot"></span>
+                        {{ envelopeStatusLabel }}
+                    </span>
+                    <button type="button" class="zm-icon-btn" title="Zarf etiketini göster"
+                        (click)="envelopeLabelVisible = true">
+                        <span class="material-symbols-outlined">visibility</span>
+                    </button>
+                </div>
+
+                <!-- Boş / yükleniyor durumları -->
+                <div class="zm-empty" *ngIf="documents.length === 0 && loading">
+                    <div class="zm-empty-icon">
+                        <div class="spinner-border text-primary"></div>
+                    </div>
+                    <div class="zm-empty-title">Aranıyor...</div>
+                    <div class="zm-empty-text">Okutulan numaraya ait kayıtlar getiriliyor.</div>
+                </div>
+
+                <div class="zm-empty" *ngIf="documents.length === 0 && !loading">
+                    <div class="zm-empty-icon">
+                        <span class="material-symbols-outlined">qr_code_scanner</span>
+                    </div>
+                    <div class="zm-empty-title">Henüz evrak okutulmadı</div>
+                    <div class="zm-empty-text">
+                        Zarf veya evrak üzerindeki QR kodu okutun. Okutulan evraklar burada listelenir,
+                        ardından sağ panelden zimmetleyebilirsiniz.
+                    </div>
+                </div>
+
+                <!-- Evrak listesi -->
+                <ng-container *ngIf="documents.length > 0">
+                    <div class="zm-list-toolbar">
+                        <div class="zm-list-title">{{ getCaptionTitle() }}</div>
+                        <div class="zm-list-tools">
+                            <div class="zm-search">
+                                <span class="material-symbols-outlined">search</span>
+                                <input type="text" placeholder="Belge no ile ara" [(ngModel)]="searchTerm" />
+                            </div>
+                            <button type="button" class="zm-sort" [class.is-active]="sortField === 'qrCode'"
+                                title="Belge numarasına göre sırala" (click)="toggleSort('qrCode')">
+                                Belge No
+                                <span class="material-symbols-outlined" *ngIf="sortField === 'qrCode'">
+                                    {{ sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+                                </span>
+                            </button>
+                            <button type="button" class="zm-sort" [class.is-active]="sortField === 'createdDate'"
+                                title="Eklenme tarihine göre sırala" (click)="toggleSort('createdDate')">
+                                Tarih
+                                <span class="material-symbols-outlined" *ngIf="sortField === 'createdDate'">
+                                    {{ sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="zm-doc-list">
+                        <div class="zm-doc" *ngFor="let doc of filteredDocuments">
+                            <div class="zm-doc-icon">
+                                <span class="material-symbols-outlined">description</span>
+                            </div>
+                            <div class="zm-doc-body">
+                                <div class="zm-doc-no">{{ doc.qrCode }}</div>
+                            </div>
+                            <div class="zm-doc-meta">
+                                <span class="material-symbols-outlined">schedule</span>
+                                {{ doc.createdDate | date:'dd.MM.yyyy HH:mm' }}
+                            </div>
+                            <button type="button" class="zm-doc-remove" title="Listeden çıkar"
+                                *ngIf="currentItem?.type === 'document'"
+                                (click)="removeDocument(doc.qrCode)">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <div class="zm-list-none" *ngIf="filteredDocuments.length === 0">
+                            <span class="material-symbols-outlined">search_off</span>
+                            Arama sonucuna uygun belge bulunamadı
+                        </div>
+                    </div>
+                </ng-container>
+            </div>
+        </div>
+    </div>
+
+    <!-- SAĞ PANEL: Zimmetle -->
+    <div class="col-lg-6 col-12">
+        <div class="card zm-card d-flex flex-column">
+            <div class="card-header dashboard-header d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <span class="material-symbols-outlined me-2 text-info">person_check</span>
+                    <h5 class="card-title mb-0 fw-semibold">Zimmetle</h5>
+                </div>
+                <button type="button" class="zm-pill-btn"
+                    *ngIf="documents.length > 0 && mode() === 'external' && selectedInstitutionId()"
+                    (click)="openQuickAddModal()">
+                    <span class="material-symbols-outlined">person_add</span>
+                    <span>Personel Ekle</span>
+                </button>
+            </div>
+
+            <!-- Henüz evrak yokken: nasıl çalıştığını anlatan adımlar -->
+            <div class="card-body zm-body" *ngIf="documents.length === 0">
+                <div class="zm-steps">
+                    <div class="zm-step">
+                        <span class="zm-step-no">1</span>
+                        <div class="zm-step-body">
+                            <div class="zm-step-title">QR kodu okutun</div>
+                            <div class="zm-step-text">Zarf ya da evrak üzerindeki QR kodu okuyucuyla okutun. Okuyucu yoksa numarayı sol paneldeki alana yazıp Enter'a basın.</div>
+                        </div>
+                    </div>
+                    <div class="zm-step">
+                        <span class="zm-step-no">2</span>
+                        <div class="zm-step-body">
+                            <div class="zm-step-title">Teslim türünü seçin</div>
+                            <div class="zm-step-text">Evrakları kendi üzerinize alın, bir iç kullanıcıya zimmetleyin ya da dış kurum personeline teslim edin.</div>
+                        </div>
+                    </div>
+                    <div class="zm-step">
+                        <span class="zm-step-no">3</span>
+                        <div class="zm-step-body">
+                            <div class="zm-step-title">Onaylayın</div>
+                            <div class="zm-step-text">Alt kısımdaki özeti kontrol edip tek tuşla tüm evrakları zimmetleyin. Zarf durumu otomatik güncellenir.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <ng-container *ngIf="documents.length > 0">
+                <div class="card-body zm-body">
+                    <!-- Teslim türü -->
+                    <div class="zm-modes" role="group" aria-label="Teslim türü">
+                        <button type="button" class="zm-mode" [class.is-active]="mode() === 'self'" (click)="setMode('self')">
+                            <span class="material-symbols-outlined">download</span>
+                            <span class="zm-mode-label">Teslim Al</span>
+                            <span class="zm-mode-sub">Kendime</span>
+                        </button>
+                        <button type="button" class="zm-mode" [class.is-active]="mode() === 'internal'" (click)="setMode('internal')">
+                            <span class="material-symbols-outlined">person</span>
+                            <span class="zm-mode-label">Zimmetle</span>
+                            <span class="zm-mode-sub">İç kullanıcı</span>
+                        </button>
+                        <button type="button" class="zm-mode" [class.is-active]="mode() === 'external'" (click)="setMode('external')">
+                            <span class="material-symbols-outlined">local_shipping</span>
+                            <span class="zm-mode-label">Teslim Et</span>
+                            <span class="zm-mode-sub">Dış kurum</span>
+                        </button>
+                    </div>
+
+                    <!-- Teslim Al: oturum açan kullanıcı -->
+                    <div class="zm-person zm-person-self is-selected" *ngIf="mode() === 'self'">
+                        <span class="zm-avatar">{{ selfInitials }}</span>
+                        <div class="zm-person-info">
+                            <div class="zm-person-name">{{ user()?.name }} {{ user()?.surname }}</div>
+                            <div class="zm-person-meta">Evraklar sizin üzerinize zimmetlenecek</div>
+                        </div>
+                        <span class="material-symbols-outlined zm-person-check">check_circle</span>
+                    </div>
+
+                    <!-- İç kullanıcı: liste yerine yazdıkça gelen autocomplete -->
+                    <ng-container *ngIf="mode() === 'internal'">
+                        <div class="zm-field">
+                            <label class="zm-field-label">Kullanıcı</label>
+                            <app-simple-autocomplete
+                                [control]="internalUserControl"
+                                [options]="internalUserOptions()"
+                                [minChars]="2"
+                                placeholder="Ad ya da soyad yazarak arayın...">
+                            </app-simple-autocomplete>
+                            <div class="zm-field-hint" *ngIf="!selectedInternalUser()">
+                                En az 2 karakter yazınca eşleşen kullanıcılar listelenir.
+                            </div>
+                        </div>
+
+                        <div class="zm-person zm-person-self is-selected" *ngIf="selectedInternalUser() as p; else internalEmpty">
+                            <span class="zm-avatar">{{ initials(p) }}</span>
+                            <div class="zm-person-info">
+                                <div class="zm-person-name">{{ p.name }} {{ p.surname }}</div>
+                                <div class="zm-person-meta">{{ p.identityNo || p.email || 'Evraklar bu kullanıcıya zimmetlenecek' }}</div>
+                            </div>
+                            <button type="button" class="zm-icon-btn" title="Seçimi kaldır" (click)="clearInternalUser()">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <ng-template #internalEmpty>
+                            <div class="zm-empty zm-empty-sm">
+                                <div class="zm-empty-icon">
+                                    <span class="material-symbols-outlined">person_search</span>
+                                </div>
+                                <div class="zm-empty-title">Kullanıcı seçilmedi</div>
+                                <div class="zm-empty-text">Yukarıdaki alana ad ya da soyad yazarak kullanıcıyı bulun ve seçin.</div>
+                            </div>
+                        </ng-template>
+                    </ng-container>
+
+                    <!-- Dış kurum seçimi -->
+                    <div class="zm-field" *ngIf="mode() === 'external'">
+                        <label class="zm-field-label">Kurum</label>
+                        <app-simple-autocomplete
+                            [control]="institutionControl"
+                            [options]="institutionOptions()"
+                            placeholder="Kurum adıyla arayın...">
+                        </app-simple-autocomplete>
+                        <div class="zm-field-hint" *ngIf="selectedInstitutionId() && selectedInstitutionId() === previewEnvelope?.externalInstitutionId">
+                            Zarfın alıcı bilgisinden otomatik seçildi; gerekirse değiştirebilirsiniz.
+                        </div>
+                    </div>
+
+                    <!-- Personel arama (dış kurum) -->
+                    <div class="zm-search zm-search-block" *ngIf="mode() === 'external' && currentPersonList().length > 5">
+                        <span class="material-symbols-outlined">search</span>
+                        <input type="text" placeholder="Ad, soyad ya da kimlik no ile ara"
+                            [ngModel]="personSearch()" (ngModelChange)="personSearch.set($event)">
+                    </div>
+
+                    <!-- Personel listesi (dış kurum) -->
+                    <div class="zm-persons" *ngIf="mode() === 'external' && selectedInstitutionId()">
+                        <button type="button" class="zm-person" *ngFor="let p of filteredPersonList()"
+                            [class.is-selected]="selectedPersonId() === p.id"
+                            (click)="selectPerson(p.id)">
+                            <span class="zm-avatar">{{ initials(p) }}</span>
+                            <div class="zm-person-info">
+                                <div class="zm-person-name">{{ p.name }} {{ p.surname }}</div>
+                                <div class="zm-person-meta">{{ p.identityNo || p.email || '-' }}</div>
+                            </div>
+                            <span class="material-symbols-outlined zm-person-check">
+                                {{ selectedPersonId() === p.id ? 'check_circle' : 'radio_button_unchecked' }}
+                            </span>
+                        </button>
+
+                        <div class="zm-empty zm-empty-sm" *ngIf="!filteredPersonList().length">
+                            <div class="zm-empty-icon">
+                                <span class="material-symbols-outlined">person_search</span>
+                            </div>
+                            <div class="zm-empty-title">Personel bulunamadı</div>
+                            <div class="zm-empty-text">
+                                {{ personSearch().trim()
+                                    ? 'Aramaya uygun personel yok.'
+                                    : 'Bu kurum için tanımlı personel yok. Sağ üstteki "Personel Ekle" ile hızlıca ekleyebilirsiniz.' }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="zm-empty zm-empty-sm" *ngIf="mode() === 'external' && !selectedInstitutionId()">
+                        <div class="zm-empty-icon">
+                            <span class="material-symbols-outlined">domain</span>
+                        </div>
+                        <div class="zm-empty-title">Önce kurum seçin</div>
+                        <div class="zm-empty-text">Kurum seçildiğinde o kuruma kayıtlı personel burada listelenir.</div>
+                    </div>
+                </div>
+
+                <!-- Özet + aksiyonlar -->
+                <div class="card-footer zm-footer mt-auto">
+                    <div class="zm-summary" [class.is-ready]="selectedTargetLabel()">
+                        <span class="zm-summary-docs">
+                            <span class="material-symbols-outlined">description</span>
+                            {{ documents.length }} evrak
+                        </span>
+                        <span class="material-symbols-outlined zm-summary-arrow">arrow_forward</span>
+                        <span class="zm-summary-target">
+                            {{ selectedTargetLabel() || 'Kişi seçilmedi' }}
+                        </span>
+                    </div>
+                    <div class="zm-footer-actions">
+                        <button type="button" class="btn btn-light zm-back-btn" (click)="reset()">
+                            <span class="material-symbols-outlined">restart_alt</span>
+                            Temizle
+                        </button>
+                        <!-- Mod değişince ikon/metin DOM'da yeniden oluşturulur ki belirme animasyonu tekrar oynasın. -->
+                        <button type="button" class="btn btn-primary zimmet-submit-btn" [attr.data-mode]="mode()"
+                            [disabled]="!selectedPersonId() || documents.length === 0 || saving()" (click)="addZimmet()">
+                            @if (saving()) {
+                                <span class="spinner-border spinner-border-sm zimmet-submit-icon"></span>
+                                <span class="zimmet-submit-text">Kaydediliyor</span>
+                            } @else {
+                            @switch (mode()) {
+                                @case ('self') {
+                                    <span class="zimmet-submit-icon material-symbols-outlined">download</span>
+                                    <span class="zimmet-submit-text">Teslim Al</span>
+                                }
+                                @case ('external') {
+                                    <span class="zimmet-submit-icon material-symbols-outlined">local_shipping</span>
+                                    <span class="zimmet-submit-text">Teslim Et</span>
+                                }
+                                @default {
+                                    <span class="zimmet-submit-icon material-symbols-outlined">article_person</span>
+                                    <span class="zimmet-submit-text">Zimmetle</span>
+                                }
+                            }
+                            }
+                        </button>
+                    </div>
+                </div>
+            </ng-container>
+        </div>
+    </div>
+</div>
+
+<!-- Zarf Etiketi Popup -->
+<div class="modal-overlay" *ngIf="envelopeLabelVisible" (click)="envelopeLabelVisible = false">
+    <div class="modal-box zm-label-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h5 class="d-flex align-items-center mb-0">
+                <span class="material-symbols-outlined me-2 text-info">mail</span>
+                Zarf Etiketi
+            </h5>
+            <button type="button" class="zm-icon-btn" title="Kapat" (click)="envelopeLabelVisible = false">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <div class="modal-body zm-label-body d-flex justify-content-center" *ngIf="previewEnvelope as envelope">
+            <div class="envelope-label envelope-label-no-accent">
+                <div class="label-box sender-box">
+                    <div class="label-title">Gönderen</div>
+                    <div class="label-content">
+                        {{ user()?.departmentName }}
+                    </div>
+                    <div class="ministry-row">
+                        <div class="ministry">
+                            T.C. DIŞİŞLERİ BAKANLIĞI
+                        </div>
+                        <div class="label-contentPostCode">
+                            06520
+                        </div>
+                    </div>
+                </div>
+
+                <!-- QR -->
+                <div class="qr-section">
+                    <qrcode [qrdata]="envelope.envelopeNo"
+                        [width]="100"
+                        [errorCorrectionLevel]="'H'"></qrcode>
+                </div>
+
+                <!-- NUMARA -->
+                <div class="label-number">
+                    {{ envelope.envelopeNo }}
+                </div>
+
+                <!-- ALICI -->
+                <div class="label-box receiver-box">
+                    <div class="label-title">Alıcı</div>
+                    <div class="label-External">
+                        {{ envelope.externalInstitutionName || '-' }}
+                    </div>
+                    <div class="labelDepartment">
+                        {{ envelope.unitName }}
+                    </div>
+                    <div class="labelAddress">
+                        {{ envelope.address || '-' }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" (click)="envelopeLabelVisible = false">Kapat</button>
+        </div>
+    </div>
+</div>
+
+<!-- Hızlı Personel Ekle Popup -->
+<div class="modal-overlay" *ngIf="quickAddModalVisible()" (click)="closeQuickAddModal()">
+    <div class="modal-box zm-quick-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h5 class="d-flex align-items-center mb-0">
+                <span class="material-symbols-outlined me-2 text-info">person_add</span>
+                Personel Ekle
+            </h5>
+            <button type="button" class="zm-icon-btn" title="Kapat" [disabled]="quickAddSaving()" (click)="closeQuickAddModal()">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <div class="modal-body zm-quick-form">
+            <div class="zm-quick-institution" *ngIf="selectedInstitutionName() as instName">
+                <span class="material-symbols-outlined">domain</span>
+                <span>{{ instName }}</span>
+            </div>
+            <div class="row g-3">
+                <div class="col-6">
+                    <label class="zm-field-label">Ad</label>
+                    <input type="text" class="form-control" [(ngModel)]="quickAddForm.name" />
+                </div>
+                <div class="col-6">
+                    <label class="zm-field-label">Soyad</label>
+                    <input type="text" class="form-control" [(ngModel)]="quickAddForm.surname" />
+                </div>
+                <div class="col-12">
+                    <label class="zm-field-label">E-posta</label>
+                    <input type="email" class="form-control" [(ngModel)]="quickAddForm.email" />
+                </div>
+                <div class="col-7">
+                    <label class="zm-field-label">Kimlik / Pasaport No</label>
+                    <input type="text" class="form-control" [(ngModel)]="quickAddForm.identityNo" />
+                </div>
+                <div class="col-5">
+                    <label class="zm-field-label">Kullanıcı Türü</label>
+                    <select class="form-select" [(ngModel)]="quickAddForm.userType">
+                        <option [ngValue]="1">Standart</option>
+                        <option [ngValue]="2">Yetkili</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" [disabled]="quickAddSaving()" (click)="closeQuickAddModal()">İptal</button>
+            <button class="btn btn-primary" [disabled]="quickAddSaving()" (click)="saveQuickAddPerson()">
+                @if (quickAddSaving()) {
+                    <span class="spinner-border spinner-border-sm me-1"></span>
+                }
+                Kaydet
+            </button>
+        </div>
+    </div>
+</div>

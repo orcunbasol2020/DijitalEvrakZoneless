@@ -1,8 +1,8 @@
 <!-- Header/Navbar -->
 <nav class="navbar navbar-expand-lg navbar-light bg-white fixed-top shadow-sm">
     <div class="container-fluid">
-        <button class="btn d-md-none" id="sidebarToggle">
-            <span class="material-symbols-outlined">menu</span>
+        <button class="btn" id="sidebarToggle" type="button" title="Menüyü Aç/Kapat" (click)="toggleSidebar()">
+            <span class="material-symbols-outlined sidebar-toggle-icon" [class.is-collapsed]="sidebarCollapsed()">menu_open</span>
         </button>
         <!-- Bread Crumb -->
         <div class="breadcrumb-container position-relative d-none d-md-block"
@@ -12,13 +12,65 @@
             </nav>
         </div>
         <!-- Search Bar -->
-        <!--             <div class="search-container d-none d-md-block mx-auto">
-                <div class="position-relative">
-                    <input type="text" class="form-control search-input" placeholder="Search...">
-                    <span class="material-symbols-outlined search-icon">search</span>
+<div class="ms-auto d-flex align-items-center gap-3">
+
+    <!-- search -->
+    <div class="search-container">
+        <div class="position-relative">
+            <input type="text" class="form-control search-input" placeholder="Belge Ara ..."
+                [ngModel]="search()"
+                (ngModelChange)="onSearchInput($event)"
+                (focus)="onSearchInput(search())"
+                (blur)="onSearchBlur()"
+                (keydown)="onSearchKeydown($event)"
+                role="combobox"
+                aria-autocomplete="list"
+                [attr.aria-expanded]="showSearchResults()"
+                autocomplete="off">
+            <span class="material-symbols-outlined search-icon">search</span>
+
+            @if (showSearchResults() && search().trim().length > 0) {
+                <div class="search-autocomplete">
+                    @if (searchResults().length > 0) {
+                        <div class="search-autocomplete-header">
+                            <span class="material-symbols-outlined">description</span>
+                            Arama Sonuçları
+                        </div>
+                        <ul class="search-autocomplete-list">
+                            @for (result of searchResults(); track result.belgeNo; let i = $index) {
+                                <li>
+                                    <a class="search-autocomplete-item"
+                                        [class.active]="i === activeResultIndex()"
+                                        href="javascript:void(0)"
+                                        (mousedown)="selectSearchResult(result)"
+                                        (mouseenter)="activeResultIndex.set(i)">
+                                        <span class="search-autocomplete-icon material-symbols-outlined" [ngClass]="typeIconClasses[result.tur]">{{ typeIcons[result.tur] }}</span>
+                                        <div class="search-autocomplete-main">
+                                            <div class="search-autocomplete-top-row">
+                                                <span class="search-autocomplete-number">{{ result.belgeNo }}</span>
+                                                <span class="search-autocomplete-date">{{ result.tarih }}</span>
+                                            </div>
+                                            <div class="search-autocomplete-bottom-row">
+                                                <span class="search-autocomplete-konu">{{ result.konu }}</span>
+                                                <span class="badge badge-sm" [ngClass]="statusBadgeClasses[result.durum]">{{ statusLabels[result.durum] }}</span>
+                                            </div>
+                                            <span class="search-autocomplete-birim">{{ result.birim }}</span>
+                                        </div>
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    } @else {
+                        <div class="search-autocomplete-empty">
+                            <span class="material-symbols-outlined">search_off</span>
+                            <span>"{{ search() }}" ile eşleşen belge bulunamadı</span>
+                        </div>
+                    }
                 </div>
-            </div> -->
-        <div class="ms-auto d-flex align-items-center">
+            }
+        </div>
+    </div>
+
             <!-- Notification -->
             <div class="dropdown me-3 notification-container">
                 <!-- Notification Button -->
@@ -28,90 +80,235 @@
                     id="notificationDropdown"
                     data-bs-toggle="dropdown"
                     aria-expanded="false"
-                    [title]="'Bekleyen : ' + pendingCount()">
+                    [title]="'Bekleyen : ' + totalNotificationCount()">
 
                     <!-- Bell Icon -->
                     <span class="material-symbols-outlined notification-icon"
-                        [class.notification-icon-active]="pendingCount() > 0">
+                        [class.notification-icon-active]="totalNotificationCount() > 0">
                         notifications
                     </span>
 
                     <!-- Red Dot -->
                     <span class="notification-dot"
-                        [class.hidden]="pendingCount() === 0"></span>
+                        [class.hidden]="totalNotificationCount() === 0"></span>
                 </button>
 
                 <!-- Dropdown Menu -->
                 <ul
                     class="dropdown-menu dropdown-menu-end shadow notification-dropdown"
                     aria-labelledby="notificationDropdown">
-                    <li class="dropdown-header">Bekleyen İşlemleriniz</li>
+                    <li class="dropdown-header">
+                        <span>Bekleyen İşlemleriniz</span>
+                        @if (totalNotificationCount() > 0) {
+                            <span class="notification-header-count">{{ totalNotificationCount() }}</span>
+                        }
+                    </li>
                     <li><hr class="dropdown-divider"></li>
 
-                    <li>
-                        <a class="dropdown-item notification-item" href="#" (click)="goToPendingScanList()">
-                            <div class="notification-icon bg-warning">
-                                <span class="material-symbols-outlined"
-                                    style="font-size:18px;">hourglass_bottom</span>
-                            </div>
-                            <div class="notification-content">
-                                <p class="notification-text">Atananlar</p>
-                                <p class="notification-time"><b>{{
-                                        pendingCount() }}</b> Evrak
-                                    Beklemede</p>
-                            </div>
-                        </a>
-                    </li>
+                    @if (pendingCount() > 0) {
+                        <li>
+                            <a class="dropdown-item notification-item" href="javascript:void(0)"
+                                (click)="goToPendingScanList()">
+                                <div class="notification-icon bg-warning">
+                                    <span class="material-symbols-outlined"
+                                        style="font-size:18px;">hourglass_bottom</span>
+                                </div>
+                                <div class="notification-content">
+                                    <p class="notification-text">Atananlar</p>
+                                    <p class="notification-time"><b>{{
+                                            pendingCount() }}</b> Evrak
+                                        Beklemede</p>
+                                </div>
+                            </a>
+                        </li>
+                    } @else {
+                        <li class="notification-empty">
+                            <span class="material-symbols-outlined">task_alt</span>
+                            <p>Bekleyen atanmış evrakınız bulunmuyor</p>
+                        </li>
+                    }
 
-                    <li>
-                        <a class="dropdown-item notification-item" href="#">
-                            <div class="notification-icon bg-success">
-                                <span class="material-symbols-outlined"
-                                    style="font-size:18px;">hand_package</span>
-                            </div>
-                            <div class="notification-content">
-                                <p class="notification-text">Teslim Edilmeyi
-                                    Bekleyenler</p>
-                                <p class="notification-time"><b>21</b> Belge
-                                    Beklemede</p>
-                            </div>
-                        </a>
-                    </li>
+                    @if (isAdmin() && transferCount() > 0) {
+                        <li>
+                            <a class="dropdown-item notification-item"
+                                routerLink="/zimmetlerim">
+                                <div class="notification-icon bg-primary">
+                                    <span class="material-symbols-outlined"
+                                        style="font-size:18px;">sync_alt</span>
+                                </div>
+                                <div class="notification-content">
+                                    <p class="notification-text">Zimmet Devri
+                                        Yaptıklarım</p>
+                                    <p class="notification-time"><b>{{
+                                            transferCount() }}</b> Evrak
+                                        Devredildi</p>
+                                </div>
+                            </a>
+                        </li>
+                    }
+
+                    @if (transferredToMeCount() > 0) {
+                        <li>
+                            <a class="dropdown-item notification-item"
+                                routerLink="/zimmetlerim">
+                                <div class="notification-icon bg-info">
+                                    <span class="material-symbols-outlined"
+                                        style="font-size:18px;">move_to_inbox</span>
+                                </div>
+                                <div class="notification-content">
+                                    <p class="notification-text">Size Devredilen
+                                        Zimmetler</p>
+                                    <p class="notification-time"><b>{{
+                                            transferredToMeCount() }}</b> Evrak
+                                        Zimmetinizde</p>
+                                </div>
+                            </a>
+                        </li>
+                    }
+
+                    @if (transferCount() > 0) {
+                        <li>
+                            <a class="dropdown-item notification-item"
+                                routerLink="/zimmetlerim">
+                                <div class="notification-icon bg-secondary">
+                                    <span class="material-symbols-outlined"
+                                        style="font-size:18px;">outbound</span>
+                                </div>
+                                <div class="notification-content">
+                                    <p class="notification-text">Devrettiğiniz
+                                        Zimmetler</p>
+                                    <p class="notification-time"><b>{{
+                                            transferCount() }}</b> Evrak
+                                        Devredildi</p>
+                                </div>
+                            </a>
+                        </li>
+                    }
                 </ul>
             </div>
 
             <!-- User Dropdown -->
             <div class="dropdown">
                 <a
-                    class="d-flex align-items-center text-decoration-none dropdown-toggle"
+                    class="d-flex align-items-center text-decoration-none dropdown-toggle user-toggle-btn"
                     style="color: var(--text-color);" href="#" id="userDropdown"
                     role="button" data-bs-toggle="dropdown"
                     aria-expanded="false">
-                    <div class="avatar">
-                        <img [src]="userAvatar()" alt="User Avatar" />
+                    <div class="avatar user-toggle-avatar">
+                        @if (userAvatar(); as avatar) {
+                            <img [src]="avatar" alt="User Avatar" />
+                        } @else {
+                            <span class="avatar-fallback">
+                                <span class="material-symbols-outlined">person</span>
+                            </span>
+                        }
                     </div>
-                    <div class="d-flex flex-direction-column pl-2">
+                    <div class="d-flex flex-column ps-2">
                         <span
                             class="d-none d-md-inline small-text">{{user()?.name}}
                             {{user()?.surname}}</span>
                         <span class="d-none d-md-inline user-department"
-                            title="{{user()?.departmentName}}">{{user()?.departmentShortName}}</span>
+                            title="{{user()?.departmentName}}">{{ user()?.departmentShortName }}
+                            @if (isAdmin()) {
+                                <span class="badge badge-soft-warning badge-sm ms-1"
+                                    title="Yönetici">
+                                    <span class="material-symbols-outlined"
+                                        style="font-size: 12px; vertical-align: -1px;">shield_person</span>
+                                    Yönetici
+                                </span>
+                            }
+                            @if (isBirimEvrakSorumlusu()) {
+                                <span class="badge badge-soft-info badge-sm ms-1"
+                                    title="Birim Evrak Sorumlusu">
+                                    <span class="material-symbols-outlined"
+                                        style="font-size: 12px; vertical-align: -1px;">badge</span>
+                                    Birim Evrak Sorumlusu
+                                </span>
+                            }
+                        </span>
                     </div>
                 </a>
-                <ul class="dropdown-menu dropdown-menu-end shadow"
+                <ul class="dropdown-menu dropdown-menu-end shadow user-dropdown-menu"
                     aria-labelledby="userDropdown">
-                    <li><a class="dropdown-item small-text"
-                            routerLink="/users/profile"
-                            routerLinkActive="active"><span
-                                class="material-symbols-outlined me-2">account_circle</span>Yetkiler</a></li>
-                    <li><a class="dropdown-item small-text" href="#"><span
-                                class="material-symbols-outlined me-2">settings</span>Ayarlar</a></li>
-                    <li>
-                        <hr class="dropdown-divider">
+                    <li class="user-dropdown-header">
+                        <div class="user-dropdown-avatar">
+                            @if (userAvatar(); as avatar) {
+                                <img [src]="avatar" alt="User Avatar" />
+                            } @else {
+                                <span class="avatar-fallback">
+                                    <span class="material-symbols-outlined">person</span>
+                                </span>
+                            }
+                        </div>
+                        <div class="user-dropdown-identity">
+                            <span class="user-dropdown-name">{{user()?.name}} {{user()?.surname}}</span>
+                            <span class="user-dropdown-dept" title="{{user()?.departmentName}}">
+                                {{ user()?.departmentName }}
+                                @if (isAdmin()) {
+                                    <span class="badge badge-soft-warning badge-sm ms-1" title="Yönetici">
+                                        <span class="material-symbols-outlined"
+                                            style="font-size: 12px; vertical-align: -1px;">shield_person</span>
+                                        Yönetici
+                                    </span>
+                                }
+                                @if (isBirimEvrakSorumlusu()) {
+                                    <span class="badge badge-soft-info badge-sm ms-1" title="Birim Evrak Sorumlusu">
+                                        <span class="material-symbols-outlined"
+                                            style="font-size: 12px; vertical-align: -1px;">badge</span>
+                                        Birim Evrak Sorumlusu
+                                    </span>
+                                }
+                            </span>
+                        </div>
                     </li>
-                    <li><a class="dropdown-item small-text"
-                            routerLink="/login"><span
-                                class="material-symbols-outlined me-2">logout</span>Çıkış</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    @if (!roleService.has('Birim Evrak Sorumlusu')) {
+                        <li>
+                            <a class="dropdown-item user-dropdown-item" routerLink="/users/profile" routerLinkActive="active">
+                                <span class="user-dropdown-icon user-dropdown-icon-primary">
+                                    <span class="material-symbols-outlined">account_circle</span>
+                                </span>
+                                <span class="user-dropdown-item-text">
+                                    <span class="user-dropdown-item-title">Yetkiler</span>
+                                    <span class="user-dropdown-item-sub">Rol ve izinlerinizi görüntüleyin</span>
+                                </span>
+                            </a>
+                        </li>
+                    }
+                    <li>
+                        <a class="dropdown-item user-dropdown-item" routerLink="/zimmetlerim" routerLinkActive="active">
+                            <span class="user-dropdown-icon user-dropdown-icon-info">
+                                <span class="material-symbols-outlined">assignment_ind</span>
+                            </span>
+                            <span class="user-dropdown-item-text">
+                                <span class="user-dropdown-item-title">Zimmetlerim</span>
+                                <span class="user-dropdown-item-sub">Üzerinizdeki evrakları yönetin</span>
+                            </span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item user-dropdown-item" routerLink="/settings" routerLinkActive="active">
+                            <span class="user-dropdown-icon user-dropdown-icon-secondary">
+                                <span class="material-symbols-outlined">settings</span>
+                            </span>
+                            <span class="user-dropdown-item-text">
+                                <span class="user-dropdown-item-title">Ayarlar</span>
+                                <span class="user-dropdown-item-sub">Hesap ve görünüm tercihleri</span>
+                            </span>
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item user-dropdown-item user-dropdown-item-danger" (click)="logout()">
+                            <span class="user-dropdown-icon user-dropdown-icon-danger">
+                                <span class="material-symbols-outlined">logout</span>
+                            </span>
+                            <span class="user-dropdown-item-text">
+                                <span class="user-dropdown-item-title">Çıkış</span>
+                                <span class="user-dropdown-item-sub">Oturumu sonlandırın</span>
+                            </span>
+                        </a>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -120,76 +317,8 @@
 
 <div class="d-flex" id="wrapper">
     <!-- Sidebar -->
-    <div id="sidebar-wrapper">
-        <!-- Brand -->
-        <div
-            class="sidebar-brand d-flex align-items-center justify-content-between">
-            <a href="#" class="d-flex gap-3 logo mt-1">
-                <img src="assets/images/logo.png" width="190" height="60"
-                    alt="Logo"
-                    style="margin-left: 10px;margin-top: 2px;" />
-            </a>
-            <button class="btn-close-sidebar d-md-none">
-                <span class="material-symbols-outlined">close</span>
-            </button>
-        </div>
+    <app-sidebar></app-sidebar>
 
-        <!-- Sidebar Search -->
-        <div class="sidebar-search">
-            <div class="position-relative">
-                <input type="text" class="form-control sidebar-search-input"
-                    [(ngModel)]="search"
-                    placeholder="arama ...">
-                <span
-                    class="material-symbols-outlined sidebar-search-icon">search</span>
-            </div>
-        </div>
-
-        <!-- Navigation Menu -->
-        <ul class="nav-menu">
-            @for (item of navigations() | searchMenu:search(); track item.title
-            ?? item.category) {
-            @if (item.category) {
-            <li class="nav-category">{{ item.category }}</li>
-            <li class="nav-item">
-                <a [routerLink]="item.url" routerLinkActive="active"
-                    [routerLinkActiveOptions]="{exact:true}"
-                    class="nav-link">
-                    <div class="nav-icon-text">
-                        <span class="nav-icon material-symbols-outlined">{{
-                            item.icon }}</span>
-                        <span>{{ item.title }}</span>
-                    </div>
-                </a>
-            </li>
-            } @else {
-            <li class="nav-item">
-                <a [routerLink]="item.url" routerLinkActive="active"
-                    [routerLinkActiveOptions]="{exact:true}"
-                    class="nav-link">
-                    <div class="nav-icon-text">
-                        <span class="nav-icon material-symbols-outlined">{{
-                            item.icon }}</span>
-                        <span>{{ item.title }}</span>
-                    </div>
-                </a>
-            </li>
-            }}
-
-        </ul>
-
-        <div class="sidebar-sticky-menu">
-            <a href="#" class="sticky-menu-item" title="ayarlar">
-                <span class="material-symbols-outlined">settings</span>
-            </a>
-            <a href="#" class="sticky-menu-item" title="yardım">
-                <span class="material-symbols-outlined">help</span>
-            </a>
-            <a routerLink="/login" class="sticky-menu-item" title="çıkış">
-                <span class="material-symbols-outlined">logout</span>
-            </a>
-        </div>
-    </div>
     <!-- Main Content Area -->
     <div id="page-content-wrapper">
         <!-- Main Content Container -->
@@ -213,7 +342,7 @@
             v1.0</span>
     </div>
     <div class="footer-right">
-        <a href="#" class="footer-link">Destek</a>
-        <a href="#" class="footer-link">Dokümanlar</a>
+        <a routerLink="/support" routerLinkActive="active" class="footer-link">Destek</a>
+        <a routerLink="/documents" routerLinkActive="active" class="footer-link">Dokümanlar</a>
     </div>
 </footer>

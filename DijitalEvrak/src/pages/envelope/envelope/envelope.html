@@ -1,0 +1,133 @@
+<app-generic pageTitle="Zarflar"
+  [breadcrumbs]="[{ title: 'Zarflar', url: 'envelopes', icon: '' }]">
+</app-generic>
+
+<div class="envelope-grid" [class.show-filters]="showFilters">
+  <flexi-grid
+    [data]="data()"
+    [loading]="loading()"
+    language="tr"
+    [showCaption]="true"
+    captionTitle="Zarflar"
+    [showExportExcelBtn]="true"
+    exportExcelFileName="etiketler"
+    [filterable]="true"
+    (onRefresh)="result.reload()">
+
+    <ng-template flexiGridCaptionCommandTemplate>
+      <flexi-button
+        btnIcon="add_box"
+        btnColor="dark"
+        title="Zarf Ekle"
+        flexiTooltip
+        (click)="goToCreate()">
+      </flexi-button>
+      <flexi-button
+        btnIcon="filter_alt"
+        btnColor="light"
+        title="Filtre Aç/Kapat"
+        flexiTooltip
+        (click)="showFilters = !showFilters">
+      </flexi-button>
+    </ng-template>
+
+    <flexi-grid-column field="envelopeNo" title="Etiket No" width="80px">
+      <ng-template flexiGridCellTemplate let-item>
+        <span class="envelope-no">{{ item.envelopeNo }}</span>
+      </ng-template>
+    </flexi-grid-column>
+    <!-- Birim Evrak Sorumlusu yalnızca kendi biriminin zarflarını gördüğünden "Ekleyen" sütunu gereksiz -->
+    <flexi-grid-column field="departmentName" title="Ekleyen" width="150px" [visible]="!isBirimEvrakSorumlusu()">
+      <ng-template flexiGridCellTemplate let-item>
+        <span class="envelope-cell-icon">
+          <span class="material-symbols-outlined">apartment</span>
+          {{ item.departmentName }}
+        </span>
+      </ng-template>
+    </flexi-grid-column>
+    <flexi-grid-column field="externalInstitutionName" title="Gideceği Yer" width="150px">
+      <ng-template flexiGridCellTemplate let-item>
+        <span class="envelope-cell-icon">
+          <span class="material-symbols-outlined">domain</span>
+          {{ item.externalInstitutionName || '-' }}
+        </span>
+      </ng-template>
+    </flexi-grid-column>
+    <flexi-grid-column field="documentCount" title="Evrak Sayısı" width="60px" textAlign="center">
+      <ng-template flexiGridCellTemplate let-item>
+        <span class="envelope-count-pill" [class.is-empty]="!item.documentCount">{{ item.documentCount }}</span>
+      </ng-template>
+    </flexi-grid-column>
+    <flexi-grid-column field="createdDate" title="Kayıt Tarihi" width="80px">
+      <ng-template flexiGridCellTemplate let-item>
+        <span class="envelope-date">
+          <span>{{ item.createdDate | date:'dd.MM.yyyy' }}</span>
+          <small>{{ item.createdDate | date:'HH:mm' }}</small>
+        </span>
+      </ng-template>
+    </flexi-grid-column>
+    <flexi-grid-column field="statusLabel" title="Durum" width="120px" textAlign="left" [resizable]="false">
+      <ng-template flexiGridCellTemplate let-item>
+        <span class="envelope-status-pill {{ statusBadgeClassMap[item.status] || '' }}">
+          <span class="envelope-status-dot"></span>
+          {{ item.statusLabel }}
+        </span>
+      </ng-template>
+    </flexi-grid-column>
+    @if (!isBirimEvrakSorumlusu()) {
+      <flexi-grid-column title="Zimmetle" textAlign="center" width="100px">
+        <ng-template flexiGridCellTemplate let-item>
+          @if (item.documentCount > 0) {
+            @if (item.status === EnvelopeStatus.TeslimEdildi) {
+              <flexi-button
+                btnIcon="task_alt"
+                title="Teslim Edildi"
+                btnColor="success"
+                (click)="goToGidenZimmet(item.id)">
+              </flexi-button>
+            } @else if (isGidenEvrakUser() && item.departmentId !== ownDepartmentId()) {
+              <flexi-button
+                btnIcon="approval_delegation"
+                title="Teslim Al"
+                btnColor="indigo"
+                (click)="goToGidenZimmet(item.id)">
+              </flexi-button>
+            } @else {
+              <flexi-button
+                btnIcon="hand_package"
+                title="Zarfı Teslim Et"
+                btnColor="primary"
+                (click)="goToGidenZimmet(item.id)">
+              </flexi-button>
+            }
+          }
+        </ng-template>
+      </flexi-grid-column>
+    }
+        <flexi-grid-column title="Detaya Git" textAlign="center" width="50px">
+      <ng-template flexiGridCellTemplate let-item>
+        <flexi-button
+          *ngIf="item.status !== EnvelopeStatus.TeslimEdildi"
+          btnIcon="expand_circle_right"
+          title="Zarf Detayına Git"
+          btnColor="info"
+          (click)="goToDetail(item.id)">
+        </flexi-button>
+      </ng-template>
+    </flexi-grid-column>
+        <flexi-grid-column textAlign="center" width="50px">
+      <ng-template flexiGridCellTemplate let-item>
+        <flexi-button
+          *ngIf="item.status !== EnvelopeStatus.TeslimEdildi"
+          btnIcon="delete"
+          title="Sil"
+          btnColor="warning"
+          (click)="deleteEnvelope(item.id)">
+        </flexi-button>
+      </ng-template>
+    </flexi-grid-column>
+
+    
+
+  </flexi-grid>
+</div>

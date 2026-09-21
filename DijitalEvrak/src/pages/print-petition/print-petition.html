@@ -1,4 +1,4 @@
-<div class="a4-page" id="print-area">
+<div class="a4-page" id="print-area-dilekce">
 
   <!-- ===== KURUM ÜST BANDI ===== -->
   <div class="header-band">
@@ -41,15 +41,17 @@
     <strong>“Dışişleri Bakanlığı → Dilekçe Sorgulama”</strong>
     bölümünden takip edebilirsiniz.
   </div>
+    <div class="mt-3">
+    Bu belge evrak takip sistemi tarafından otomatik olarak oluşturulmuştur.
+  </div>
   <!-- ===== BARKOD ALANI ===== -->
-  <div class="barcode-container">
+  <div class="barcode-container mt-1">
     <div class="qr-wrapper">
       <qrcode
         [qrdata]="applicationNo!"
         [width]="100"
         [errorCorrectionLevel]="'H'">
       </qrcode>
-
       <div class="qr-text">
         {{ applicationNo }}
       </div>
@@ -57,8 +59,6 @@
   </div>
 
   <!-- ===== FOOTER ===== -->
-  <div class="footer">
-    Bu belge evrak takip sistemi tarafından otomatik olarak oluşturulmuştur.
-  </div>
+
 
 </div>

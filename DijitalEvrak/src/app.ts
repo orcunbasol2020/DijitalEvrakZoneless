@@ -8,4 +8,11 @@ import { RouterOutlet } from '@angular/router';
   encapsulation: ViewEncapsulation.None,
   changeDetection : ChangeDetectionStrategy.OnPush
 })
-export default class App {}
+export default class App {
+  constructor() {
+    if (localStorage.getItem('theme') === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      document.documentElement.setAttribute('data-bs-theme', 'dark');
+    }
+  }
+}

@@ -1,12 +1,22 @@
 import { Injectable } from '@angular/core';
+import { navigations, NavigationModel } from '../navigation';
 
 @Injectable({ providedIn: 'root' })
 export class RoleService {
 
   get roles(): string[] {
-    const user = localStorage.getItem("user");
-    if (!user) return [];
-    return JSON.parse(user).roles || [];
+    const user = localStorage.getItem("user") ?? sessionStorage.getItem("user");
+
+    if (!user) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(user);
+      return Array.isArray(parsed.roles) ? parsed.roles : [];
+    } catch {
+      return [];
+    }
   }
 
   has(role: string): boolean {
@@ -14,6 +24,35 @@ export class RoleService {
   }
 
   hasAny(roles: string[]): boolean {
-    return roles.some(r => this.roles.includes(r));
+    const current = this.roles;
+    return roles.some(r => current.includes(r));
+  }
+
+  getMenu(): NavigationModel[] {
+    const result: NavigationModel[] = [];
+
+    let pendingCategory: string | null = null;
+
+    for (const nav of navigations) {
+
+      if (nav.category) {
+        pendingCategory = nav.category;
+        continue;
+      }
+
+      const isVisible = (!nav.roles?.length || this.hasAny(nav.roles))
+        && !(nav.excludeRoles?.length && this.hasAny(nav.excludeRoles));
+
+      if (!isVisible) continue;
+
+      if (pendingCategory) {
+        result.push({ category: pendingCategory });
+        pendingCategory = null;
+      }
+
+      result.push(nav);
+    }
+
+    return result;
   }
 }

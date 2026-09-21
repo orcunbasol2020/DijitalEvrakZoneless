@@ -1,0 +1,238 @@
+<app-generic pageTitle="Gelen Evraklar"
+  [breadcrumbs]="[{title: 'Gelen Evraklar', url: 'scanlist', icon: ''}]">
+</app-generic>
+
+<div [class.show-filters]="showFilters">
+  <flexi-grid
+    [data]="scanListData()"
+    [loading]="loading()"
+    [showCaption]="true"
+    captionTitle="Gelen Evraklar"
+    [showExportExcelBtn]="true"
+    exportExcelFileName="TaranmisEvrakListesi"
+    [filterable]="true"
+    language="tr"
+    (onRefresh)="onOcrFilterChange()">
+
+    <ng-template flexiGridCaptionCommandTemplate>
+      <span class="ocr-title">OCR :</span>
+      <div class="ocr-tab-container">
+        <button
+          class="ocr-tab"
+          [class.active]="selectedOcrFilter === 'all'"
+          (click)="setOcrFilter('all')">
+          Tümü
+        </button>
+        <button
+          class="ocr-tab"
+          [class.active]="selectedOcrFilter === 'completed'"
+          (click)="setOcrFilter('completed')">
+          Tamamlanan
+        </button>
+        <button
+          class="ocr-tab"
+          [class.active]="selectedOcrFilter === 'pending'"
+          (click)="setOcrFilter('pending')">
+          Bekleyen
+        </button>
+        <button
+          class="ocr-tab"
+          [class.active]="selectedOcrFilter === 'error'"
+          (click)="setOcrFilter('error')">
+          Hatalı
+        </button>
+      </div>
+      <div class="publish-toggle">
+        <span class="publish-label ms-2">İşlem Bekleyenlerim : </span>
+        <button
+          class="publish-chip"
+          [class.active]="showPending"
+          (click)="togglePending()">
+          <span class="material-symbols-outlined">
+            {{ showPending ? 'person_shield' : 'person_shield' }}
+          </span>
+        </button>
+        <div class="toggle-separator"></div>
+        <span class="publish-label">Yayınlananlar : </span>
+        <button
+          class="publish-chip"
+          [class.active]="showPublished"
+          (click)="togglePublished()">
+          <span class="material-symbols-outlined">
+            {{ showPublished ? 'visibility' : 'visibility_off' }}
+          </span>
+        </button>
+      </div>
+      <flexi-button
+        btnIcon="filter_alt"
+        btnColor="light"
+        title="Filtre Aç/Kapat"
+        flexiTooltip
+        (click)="showFilters = !showFilters">
+      </flexi-button>
+      <flexi-button
+        routerLink="/scanlist/create"
+        btnIcon="upload_file"
+        btnColor="dark"
+        title="Taranmış Evrak Yükle"
+        flexiTooltip>
+      </flexi-button>
+    </ng-template>
+    <flexi-grid-column field="qrCode" title="Belge No" />
+    <flexi-grid-column field="documentName" title="Dosya Adı" />
+    <flexi-grid-column title="Belge Tarihi" width="100px">
+      <ng-template flexiGridCellTemplate let-item>
+        {{ item.documentDate | date:'dd.MM.yyyy' }}
+      </ng-template>
+    </flexi-grid-column>
+    <flexi-grid-column
+      field="currentAssignmentUser"
+      width="120px"
+      title="Atanan Personel"
+      filterType="select"
+      [filterData]="personFilter()">
+    </flexi-grid-column>
+    <flexi-grid-column
+      field="durum"
+      title="Yayınlanma"
+      width="100px"
+      textAlign="center">
+      <ng-template flexiGridCellTemplate let-item>
+        <span
+          class="material-symbols-outlined"
+          style="font-size: 1.35rem; vertical-align: middle;"
+          [ngStyle]="{
+        'color': item.status === 6 ? '#94a3b8' : 
+                 (item.status === 10 ? '#22c55e' : '#94a3b8') 
+      }"
+          [title]="
+        item.status === 6 ? 'Yayınlanma Sırasında' : 
+        item.status === 10 ? 'Yayınlandı' : 'Beklemede'
+      ">
+          {{
+          item.status === 6 ? 'hourglass_bottom' :
+          item.status === 10 ? 'check_circle' : ''
+          }}
+        </span>
+      </ng-template>
+    </flexi-grid-column>
+    <!-- OCR DURUM İKONU -->
+    <flexi-grid-column
+      field="durum"
+      title="OCR"
+      width="80px"
+      textAlign="center">
+      <ng-template flexiGridCellTemplate let-item>
+        <span
+          class="material-symbols-outlined"
+          style="font-size: 1.35rem; vertical-align: middle;"
+          [ngStyle]="{
+            'color': item.ocrStatus === 1 ? '#22c55e' :
+                     (item.ocrStatus === 2 ? '#ef4444' : '#94a3b8') 
+          }">
+
+          {{
+          item.ocrStatus === 1
+          ? 'check_circle'
+          : item.ocrStatus === 2
+          ? 'error'
+          : 'hourglass_bottom'
+          }}
+        </span>
+      </ng-template>
+    </flexi-grid-column>
+    <flexi-grid-column title="İşleme Al" textAlign="center" width="90px"
+      field="assignmentStatus">
+      <ng-template flexiGridCellTemplate let-item>
+        <flexi-button
+          *ngIf="item.documentName"
+          [btnIcon]="
+        item.currentAssignmentUserId === currentUserId
+          ? 'motion_play'
+          : item.currentAssignmentUserId
+            ? 'key'
+            : 'expand_circle_right'
+      "
+          [title]="
+  item.status === 1 || item.status === 2 || item.status === 4
+    ? (item.currentAssignmentUserId === currentUserId
+        ? 'İşleme Devam Et'
+        : item.currentAssignmentUserId
+          ? 'Atama Yapılmış'
+          : 'İşleme Al')
+    : 'Belge Detayına Git'
+"
+          [btnColor]="
+  item.status === 1 || item.status === 2 || item.status === 4
+    ? (item.currentAssignmentUserId === currentUserId
+        ? 'secondary'
+        : item.currentAssignmentUserId
+          ? 'light'
+          : 'primary')
+    : 'dark'
+"
+          (click)="
+  item.status === 1 || item.status === 2 || item.status === 4
+    ? (item.currentAssignmentUserId === currentUserId
+        ? goToDetail(item.id)
+        : item.currentAssignmentUserId
+          ? openPersonModal(item.id)
+          : goToDetail(item.id))
+    : goToDetail(item.id)
+">
+        </flexi-button>
+      </ng-template>
+    </flexi-grid-column>
+    <flexi-grid-column title="Takip" textAlign="center" width="55px">
+      <ng-template flexiGridCellTemplate let-item>
+        <flexi-button
+          btnIcon="conversion_path"
+          title="Süreçler"
+          btnColor="info"
+          (click)="goToProcess(item.id)">
+        </flexi-button>
+      </ng-template>
+    </flexi-grid-column>
+    <flexi-grid-column title="Zimmet" textAlign="center" width="65px">
+      <ng-template flexiGridCellTemplate let-item>
+        <flexi-button
+          btnIcon="article_person"
+          title="Zimmetleme"
+          btnColor="light"
+          (click)="goToZimmet(item.id)">
+        </flexi-button>
+      </ng-template>
+    </flexi-grid-column>
+    <flexi-grid-column textAlign="center" width="50px">
+      <ng-template flexiGridCellTemplate let-item>
+        <flexi-button
+          btnIcon="delete"
+          title="Taranmış Evrakı Sil"
+          btnColor="warning"
+          (click)="delete(item.id)">
+        </flexi-button>
+      </ng-template>
+    </flexi-grid-column>
+  </flexi-grid>
+</div>
+
+<div *ngIf="modalVisible" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h5>Atanacak Personel</h5>
+      <span class="material-symbols-outlined close-btn"
+        (click)="closePersonModal()">close</span>
+    </div>
+    <div class="modal-body">
+      <select id="personSelect" class="form-select"
+        [(ngModel)]="selectedPerson">
+        <option *ngFor="let p of personList" [ngValue]="p">{{ p.name }}</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary"
+        (click)="closePersonModal()">İptal</button>
+      <button class="btn btn-primary" (click)="savePerson()">Kaydet</button>
+    </div>
+  </div>
+</div>

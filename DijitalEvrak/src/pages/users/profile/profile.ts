@@ -7,6 +7,9 @@ import { httpResource } from '@angular/common/http';
 import { FlexiGridModule } from 'flexi-grid';
 import { FormsModule } from '@angular/forms';
 import { NgStyle } from '@angular/common';
+import { RouterLink } from '@angular/router';
+import { RoleService } from '../../../services/role-service';
+import { getUserAvatar } from '../../../services/user-avatar';
 
 export interface RoleModel {
   id?: string;
@@ -15,6 +18,7 @@ export interface RoleModel {
   isDeleted: boolean;
   createdDate: string;
   updateDate: string;
+  hasRole?: boolean;
 }
 
 @Component({
@@ -22,7 +26,8 @@ export interface RoleModel {
     GenericModel,
     FlexiGridModule,
     FormsModule,
-    NgStyle
+    NgStyle,
+    RouterLink
   ],
   templateUrl: './profile.html',
   encapsulation: ViewEncapsulation.None,
@@ -34,25 +39,18 @@ export default class Profile {
   readonly navigations = computed(() => navigations);
   readonly user = computed(() => this.#common.user());
   readonly #common = inject(Common);
+  readonly #roleService = inject(RoleService);
 
   readonly result = httpResource<RoleModel[]>(() => "api/Roles/GetAll", {});
-  readonly data = computed(() => this.result.value() ?? []);
+  readonly data = computed(() =>
+    (this.result.value() ?? []).map(r => ({ ...r, hasRole: this.#roleService.has(r.name) }))
+  );
   readonly loading = computed(() => this.result.isLoading());
+  readonly activeRoleCount = computed(() => this.data().filter(r => r.hasRole).length);
 
   showFilters = false;
 
-  readonly userAvatar = computed(() => {
-    const name = this.user()?.name ?? '';
-
-    switch (name) {
-      case 'Bülent':
-        return 'assets/images/personel/bulent.jpg';
-      case 'Tahsin':
-        return 'assets/images/personel/tahsin.jpg';
-      default:
-        return 'assets/images/personel/oral.jpg';
-    }
-  });
+  readonly userAvatar = computed(() => getUserAvatar(this.user(), 'assets/images/personel/oral.jpg'));
   readonly title = 'Kullanıcı Profili';
 
   constructor() {

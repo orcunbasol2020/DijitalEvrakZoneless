@@ -1,55 +1,174 @@
-<app-generic pageTitle="Kulanıcı Ekle" [breadcrumbs]="[
-  {title: 'Kullanıcılar', url: '/users', icon: ''},
-  {title: 'Ekle', url: '/users/create', icon: 'add'}
-  ]">
+<app-generic pageTitle="Kulanıcı Ekle" [breadcrumbs]="breadcrumbs()">
 </app-generic>
 
 <div class="row">
-    <div class="col-md-6 col-12">
+    <div class="col-md-7 col-12">
         <div class="card">
-            <div class="card-header">
-                <h4>{{title()}}</h4>
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <span class="material-symbols-outlined me-2 text-secondary">{{ isEdit() ? 'edit' : 'person_add' }}</span>
+                    <h4 class="mb-0">{{ title() }}</h4>
+                </div>
+                @if (isEdit() && !loadingUser() && (data().createDate || data().updateDate)) {
+                    <div class="text-muted small text-end">
+                        @if (data().createDate) {
+                            <div>Oluşturulma: {{ data().createDate | date:'dd.MM.yyyy HH:mm' }}</div>
+                        }
+                        @if (data().updateDate) {
+                            <div>Son Güncelleme: {{ data().updateDate | date:'dd.MM.yyyy HH:mm' }}</div>
+                        }
+                    </div>
+                }
             </div>
             <div class="card-body">
-                <form #form="ngForm" autocomplete="off" (ngSubmit)="save(form)">
-                    <div class="form-group d-flex justify-content-between">
-                        <label class="form-check-label" for="checked">Silindi mi?</label>
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" role="switch" id="checked"
-                                [(ngModel)]="data().isDeleted" name="isDeleted">
+
+                @if (loadingUser()) {
+                    <div class="d-flex align-items-center justify-content-center py-5">
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                        <span class="text-muted">Kullanıcı bilgileri yükleniyor...</span>
+                    </div>
+                } @else {
+                    <form #form="ngForm" autocomplete="off" (ngSubmit)="save(form)">
+
+                        @if (formError()) {
+                            <div class="alert alert-danger d-flex align-items-center gap-2">
+                                <span class="material-symbols-outlined">error</span>
+                                <span>{{ formError() }}</span>
+                            </div>
+                        }
+
+                        <div class="row">
+                            <div class="form-group col-md-6 mt-2">
+                                <label>Ad <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control"
+                                    [(ngModel)]="data().name" name="name" required #name="ngModel"
+                                    [class.is-invalid]="name.invalid && name.touched">
+                                @if (name.invalid && name.touched) {
+                                    <div class="invalid-feedback">Ad zorunludur</div>
+                                }
+                            </div>
+
+                            <div class="form-group col-md-6 mt-2">
+                                <label>Soyad <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control"
+                                    [(ngModel)]="data().surname" name="surname" required #surname="ngModel"
+                                    [class.is-invalid]="surname.invalid && surname.touched">
+                                @if (surname.invalid && surname.touched) {
+                                    <div class="invalid-feedback">Soyad zorunludur</div>
+                                }
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="form-group mt-2">
-                        <label>Ad</label>
-                        <input type="text" class="form-control" [(ngModel)]="data().name" name="name">
-                    </div>
+                        <div class="row">
+                            <div class="form-group col-md-6 mt-2">
+                                <label>Kullanıcı Adı <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control"
+                                    [(ngModel)]="data().userName" name="userName" required #userName="ngModel"
+                                    (ngModelChange)="userNameError.set(null)"
+                                    [class.is-invalid]="(userName.invalid && userName.touched) || userNameError()">
+                                @if (userName.invalid && userName.touched) {
+                                    <div class="invalid-feedback">Kullanıcı adı zorunludur</div>
+                                } @else if (userNameError()) {
+                                    <div class="invalid-feedback">{{ userNameError() }}</div>
+                                }
+                            </div>
 
-                    <div class="form-group mt-2">
-                        <label>Soyad</label>
-                        <input type="text" class="form-control" [(ngModel)]="data().surname" name="surname">
-                    </div>
+                            <div class="form-group col-md-6 mt-2">
+                                <label>Mail Adresi <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control"
+                                    [(ngModel)]="data().email" name="email" required email #email="ngModel"
+                                    (ngModelChange)="emailError.set(null)"
+                                    [class.is-invalid]="(email.invalid && email.touched) || emailError()">
+                                @if (email.invalid && email.touched) {
+                                    <div class="invalid-feedback">Geçerli bir mail adresi giriniz</div>
+                                } @else if (emailError()) {
+                                    <div class="invalid-feedback">{{ emailError() }}</div>
+                                }
+                            </div>
+                        </div>
 
-                    <div class="form-group mt-2">
-                        <label>Kullanıcı Adı</label>
-                        <input type="text" class="form-control" [(ngModel)]="data().userName" name="userName">
-                    </div>
+                        <hr class="my-4">
 
-                    <div class="form-group mt-2">
-                        <label>Mail Adresi</label>
-                        <input type="email" class="form-control" [(ngModel)]="data().email" name="email">
-                    </div>
+                        <div class="form-group mt-2">
+                            <label>Birim <span class="text-danger">*</span></label>
+                            <app-simple-autocomplete [control]="departmentControl" [options]="departments()"
+                                placeholder="Birim seçiniz"></app-simple-autocomplete>
+                            @if (departmentControl.invalid && departmentControl.touched) {
+                                <div class="text-danger small mt-1">Birim seçimi zorunludur</div>
+                            }
+                        </div>
 
-                    <div class="form-group mt-2">
-                        <label>Şifre</label>
-                        <input type="password" class="form-control"  name="password">
-                    </div>
+                        @if (!isEdit()) {
+                            <div class="form-group mt-2">
+                                <label>Şifre <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control"
+                                    [(ngModel)]="password" name="password" required minlength="6" #passwordField="ngModel"
+                                    [class.is-invalid]="passwordField.invalid && passwordField.touched">
+                                @if (passwordField.invalid && passwordField.touched) {
+                                    <div class="invalid-feedback">Şifre en az 6 karakter olmalıdır</div>
+                                }
+                            </div>
+                        }
 
-                    <div class="form-group mt-2 d-flex justify-content-end">
-                        <button type="submit" class="btn btn-primary">{{btnName()}}</button>
-                    </div>
-                </form>
+                        <div class="form-group d-flex align-items-center justify-content-between mt-3">
+                            <label class="form-check-label mb-0" for="isActive">Kullanıcı aktif mi?</label>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" role="switch" id="isActive"
+                                    [(ngModel)]="data().isActive" name="isActive">
+                            </div>
+                        </div>
+
+                        <div class="form-group mt-4 d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-secondary" [disabled]="saving()" (click)="cancel()">Vazgeç</button>
+                            <button type="submit" class="btn btn-primary" [disabled]="saving()">
+                                @if (saving()) {
+                                    <span class="spinner-border spinner-border-sm me-1"></span>
+                                }
+                                {{ btnName() }}
+                            </button>
+                        </div>
+                    </form>
+                }
             </div>
         </div>
     </div>
+
+    @if (isEdit()) {
+        <div class="col-md-5 col-12">
+            <div class="card">
+                <div class="card-header d-flex align-items-center">
+                    <span class="material-symbols-outlined me-2 text-secondary">security</span>
+                    <h4 class="mb-0">Roller</h4>
+                </div>
+                <div class="card-body">
+                    @if (loadingUser()) {
+                        <div class="d-flex align-items-center justify-content-center py-4">
+                            <span class="spinner-border spinner-border-sm"></span>
+                        </div>
+                    } @else if (assignableRoles().length) {
+                        <div class="d-flex flex-column gap-2">
+                            @for (role of assignableRoles(); track role.id) {
+                                <div class="form-check form-switch d-flex align-items-center justify-content-between mb-0">
+                                    <label class="form-check-label" [for]="'role-' + role.id">{{ role.name }}</label>
+                                    <input class="form-check-input" type="checkbox" role="switch" [id]="'role-' + role.id"
+                                        [checked]="isRoleSelected(role.id!)"
+                                        (change)="toggleRole(role.id!, $any($event.target).checked)">
+                                </div>
+                            }
+                        </div>
+                        <div class="d-flex justify-content-end mt-3">
+                            <button type="button" class="btn btn-primary" [disabled]="savingRoles()" (click)="saveRoles()">
+                                @if (savingRoles()) {
+                                    <span class="spinner-border spinner-border-sm me-1"></span>
+                                }
+                                Rolleri Kaydet
+                            </button>
+                        </div>
+                    } @else {
+                        <span class="text-muted small">Tanımlı rol bulunamadı</span>
+                    }
+                </div>
+            </div>
+        </div>
+    }
 </div>

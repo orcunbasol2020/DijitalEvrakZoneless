@@ -34,7 +34,7 @@
                     <span class="material-symbols-outlined qr-icon"
                         style="cursor: pointer;" (click)="onQrScanned('')"
                         title="QR Kod Beklenmektedir.">
-                        qr_code_scanner
+                        barcode_reader
                     </span>
                 </div>
 
@@ -56,22 +56,22 @@
 
             </div>
             <div class="container-fluid" *ngIf="detailsVisible()">
-<ng-container *ngIf="docStatus() === 1; else completedMsg">
-  <div class="process-title mt-4 mb-4 text-muted">
-    Evrak Daha Önce Kaydedilmiş
-  </div>
-</ng-container>
+                <ng-container *ngIf="docStatus() === 1; else completedMsg">
+                    <div class="process-title mt-4 mb-4 text-muted">
+                        Evrak Daha Önce Kaydedilmiş
+                    </div>
+                </ng-container>
 
-<ng-template #completedMsg>
-  <div class="process-title mt-4 mb-4 text-success">
-    Ön Kayıt ve Zimmetleme Tamamlandı
-  </div>
-</ng-template>
+                <ng-template #completedMsg>
+                    <div class="process-title mt-4 mb-4 text-success">
+                        Ön Kayıt ve Zimmetleme Tamamlandı
+                    </div>
+                </ng-template>
 
                 <div class="row process-wrapper">
                     <!-- ÖN KAYIT -->
                     <div
-                        class="col-md-4 d-flex justify-content-center align-items-stretch" >
+                        class="col-md-4 d-flex justify-content-center align-items-stretch">
                         <div class="card process-card">
                             <div class="card-header process-header pre-header">
                                 <span
@@ -79,13 +79,15 @@
                                 Ön Kayıt
                             </div>
                             <div class="card-body process-body">
-                                <div  class="text-center">
+                                <div class="text-center">
 
-                                    <div class="user-name" *ngIf="allocations()">
+                                    <div class="user-name"
+                                        *ngIf="allocations()">
                                         {{ allocations()?.fullName }}
                                     </div>
 
-                                    <div class="user-date" *ngIf="allocations()">
+                                    <div class="user-date"
+                                        *ngIf="allocations()">
                                         {{
                                         allocations()?.createdDate
                                         ? (allocations()?.createdDate |

@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, ViewEncapsulation } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 @Component({
-  imports: [],
+  imports: [RouterLink],
   templateUrl: './on-kayit-dashboard.html',
   selector: 'app-on-kayit-dashboard',
   standalone: true,

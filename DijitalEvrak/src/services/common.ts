@@ -17,4 +17,10 @@ export class Common {
     }
     this.data.set([val, ...data]);
   }
+
+  logout(): void {
+    localStorage.removeItem("user");
+    sessionStorage.removeItem("user");
+    this.user.set(undefined);
+  }
 }

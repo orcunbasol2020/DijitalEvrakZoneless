@@ -17,6 +17,7 @@ import { IncomingDocumentService } from '../../services/incomingdocument';
 import { IncomingDocumentModel } from '../../models/incoming-document/incoming-document.model';
 import { DocumentAssignmentService } from '../../services/documentassignment';
 import { Common } from '../../services/common';
+import { RoleService } from '../../services/role-service';
 import { identity } from 'rxjs';
 
 @Component({
@@ -37,6 +38,7 @@ export default class Scanlist {
   selectedOcrFilter = 'completed';
   private assignmentService = inject(DocumentAssignmentService);
   readonly #common = inject(Common);
+  readonly #roleService = inject(RoleService);
   readonly user = computed(() => this.#common.user());
   readonly scanListData = signal<IncomingDocumentModel[]>([]);
   readonly documentsResourceSig = signal<any>(null);
@@ -103,12 +105,19 @@ export default class Scanlist {
     return this.user()?.id;
   }
 
+  // Yönetici hiçbir filtre göndermez (tüm kayıtları görür); diğer kullanıcılar
+  // kendi departmentId'siyle sınırlanır, böylece aynı birimdeki herkesin
+  // oluşturduğu evrakları görür (sadece kendi oluşturduklarını değil).
+  private get departmentFilterId(): string | undefined {
+    return this.#roleService.has('Yönetici') ? undefined : this.user()?.departmentId;
+  }
+
   private setupDocumentsEffect(): void {
     effect(() => {
       const res = this.documentsResourceSig();
       if (!res || res.isLoading?.()) return;
 
-      const docs = res.value?.();
+      const docs = res.value?.() ?? [];
 
       if (!docs || docs.length === 0) {
         if (!this.emptyToastShown) {
@@ -140,7 +149,7 @@ export default class Scanlist {
   }
   private loadDocuments(): void {
     this.documentsResourceSig.set(
-      this.incomingDocumentService.getIncomingDocumentsByStatus(this.selectedOcrFilter)
+      this.incomingDocumentService.getIncomingDocumentsByStatus(this.selectedOcrFilter, this.departmentFilterId)
     );
   }
 
@@ -151,7 +160,7 @@ export default class Scanlist {
     this.emptyToastShown = false;
 
     this.documentsResourceSig.set(
-      this.incomingDocumentService.getIncomingDocumentsByStatus(this.selectedOcrFilter)
+      this.incomingDocumentService.getIncomingDocumentsByStatus(this.selectedOcrFilter, this.departmentFilterId)
     );
   }
 
@@ -249,7 +258,7 @@ export default class Scanlist {
         this.incomingDocumentService.deleteIncomingDocument(id).subscribe(() => {
           // ✅ silme sonrası da resource yenile
           this.documentsResourceSig.set(
-            this.incomingDocumentService.getIncomingDocumentsByStatus(this.selectedOcrFilter)
+            this.incomingDocumentService.getIncomingDocumentsByStatus(this.selectedOcrFilter, this.departmentFilterId)
           );
         });
       }
@@ -269,7 +278,7 @@ export default class Scanlist {
       this.onOcrFilterChange();
     }
 
-    this.incomingDocumentService.getAllIncomingDocuments().subscribe({
+    this.incomingDocumentService.getAllIncomingDocuments(this.departmentFilterId).subscribe({
       next: (docs) => {
         if (!docs || !docs.length) {
           this.scanListData.set([]);
@@ -300,7 +309,7 @@ export default class Scanlist {
       this.onOcrFilterChange();
     }
 
-    this.incomingDocumentService.getAllIncomingDocuments().subscribe({
+    this.incomingDocumentService.getAllIncomingDocuments(this.departmentFilterId).subscribe({
       next: (docs) => {
         if (!docs || !docs.length) {
           this.scanListData.set([]);

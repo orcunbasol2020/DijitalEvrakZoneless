@@ -1,0 +1,1028 @@
+
+/* Kart / popup başlıklarındaki sade ikon butonu (ör. etiket önizleme, kapat) */
+.header-icon-btn {
+    border: 0;
+    background: transparent;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    flex: 0 0 auto;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.header-icon-btn:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.header-icon-btn .material-symbols-outlined {
+    font-size: 20px;
+}
+
+[data-theme="dark"] .header-icon-btn {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .header-icon-btn:hover {
+    background: rgba(148, 163, 184, 0.12);
+    color: #e2e8f0;
+}
+
+/* Başlıktaki "Önizleme" çağrı butonu: gradient, hafif parlama, hover'da yükselme */
+/* Soft mavi hap buton; hover'da dolgu koyulaşır, animasyon yok */
+.preview-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px 6px 10px;
+    border: 1px solid rgba(3, 105, 161, 0.18);
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #0369a1;
+    background: #e0f2fe;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.preview-cta .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.preview-cta:hover {
+    background: #0ea5e9;
+    border-color: #0ea5e9;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+}
+
+/* ---- Zarf Bilgileri özeti: hero + bilgi kartçıkları ---- */
+.zarf-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Hero: her iki panelde de açık mavi-turkuaz gradient, beyaz metin */
+.zarf-hero {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 45%, #22d3ee 100%);
+    border: 1px solid transparent;
+    color: #fff;
+    box-shadow: 0 8px 22px rgba(14, 165, 233, 0.22);
+    position: relative;
+}
+
+.zarf-hero-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    color: #fff;
+    flex: 0 0 auto;
+}
+
+.zarf-hero-icon .material-symbols-outlined {
+    font-size: 21px;
+}
+
+.zarf-hero-text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.zarf-hero-no {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Füme zemin üzerinde durum rozetinin arka planı yarı saydam olsun */
+.zarf-hero-meta .envelope-status-pill {
+    position: relative;
+    isolation: isolate;
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.zarf-hero-meta .envelope-status-pill::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: inherit;
+    opacity: 0.7;
+    z-index: -1;
+}
+
+.zarf-hero-meta .envelope-status-pill.envelope-status-yeni,
+.zarf-hero-meta .envelope-status-pill.envelope-status-birimde,
+.zarf-hero-meta .envelope-status-pill.envelope-status-teslim,
+.zarf-hero-meta .envelope-status-pill.envelope-status-devir {
+    background: transparent;
+}
+
+.zarf-hero-meta .envelope-status-pill.envelope-status-yeni::before    { background: linear-gradient(135deg, #e0f2fe, #bae6fd); }
+.zarf-hero-meta .envelope-status-pill.envelope-status-birimde::before { background: linear-gradient(135deg, #fef3c7, #fde68a); }
+.zarf-hero-meta .envelope-status-pill.envelope-status-teslim::before  { background: linear-gradient(135deg, #dcfce7, #bbf7d0); }
+.zarf-hero-meta .envelope-status-pill.envelope-status-devir::before   { background: linear-gradient(135deg, #ede9fe, #ddd6fe); }
+
+/* Sağda yan yana: durum rozeti, ardından tarih chip'i */
+.zarf-hero-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    position: relative;
+}
+
+.zarf-hero-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    white-space: nowrap;
+}
+
+.zarf-hero-chip .material-symbols-outlined {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.zarf-hero-chip .material-symbols-outlined {
+    font-size: 15px;
+}
+
+.zarf-tiles {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.zarf-tile {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid #e7eaf0;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    transition: box-shadow 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.zarf-tile:hover {
+    border-color: #d5dbe5;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+    transform: translateY(-1px);
+}
+
+.zarf-tile.is-editing {
+    border-color: #93c5fd;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.zarf-tile-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+}
+
+.zarf-tile-icon .material-symbols-outlined {
+    font-size: 20px;
+}
+
+/* Tek vurgu rengi (soft mavi) + nötr gri; sayfa genelinde renk sayısı düşük kalsın */
+.zarf-tile-icon.tint-blue   { background: #e0f2fe; color: #0369a1; }
+.zarf-tile-icon.tint-violet { background: #f1f5f9; color: #64748b; }
+.zarf-tile-icon.tint-amber  { background: #f1f5f9; color: #64748b; }
+
+.zarf-tile-body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.zarf-tile-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: #94a3b8;
+    margin-bottom: 3px;
+}
+
+.zarf-tile-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.zarf-tile-value-multiline {
+    white-space: pre-line;
+}
+
+.zarf-tile-input {
+    margin-top: 2px;
+}
+
+.zarf-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 4px;
+}
+
+.zarf-actions-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-right: auto;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.zarf-actions-hint .material-symbols-outlined {
+    font-size: 16px;
+}
+
+/* ---- Evrak Ekle paneli: QR okutma hero'su + evrak kartçıkları ---- */
+.zarf-count-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #0369a1;
+    background: #e0f2fe;
+    border: 1px solid rgba(3, 105, 161, 0.2);
+}
+
+.zarf-count-chip .material-symbols-outlined {
+    font-size: 15px;
+}
+
+/* Etiket numarası bloğu: gradient yerine sade, koyu lacivert-gri düz zemin */
+.no-hero {
+    background: linear-gradient(135deg, #334155 0%, #475569 50%, #64748b 100%);
+    box-shadow: 0 6px 18px rgba(71, 85, 105, 0.22);
+}
+
+.no-hero .zarf-hero-icon {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.18);
+}
+
+.no-hero .zarf-hero-chip {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* QR okutma bloğu; okuma aktifken ince yeşil çerçeve */
+.scan-hero {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.scan-hero.is-active {
+    box-shadow: 0 8px 22px rgba(14, 165, 233, 0.22), 0 0 0 3px rgba(134, 239, 172, 0.55);
+}
+
+
+/* Durum chip'i: beyaz okutma kutusunun sağ ucunda; pasifken gri, aktifken açık yeşil */
+.scan-status-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
+    white-space: nowrap;
+    flex: 0 0 auto;
+}
+
+.scan-status-chip.is-active {
+    background: #dcfce7;
+    border-color: #86efac;
+    color: #15803d;
+}
+
+.scan-input-status {
+    position: absolute;
+    right: 8px;
+    pointer-events: none;
+}
+
+.scan-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.scan-input-icon {
+    position: absolute;
+    left: 14px;
+    font-size: 22px;
+    color: #94a3b8;
+    pointer-events: none;
+    transition: color 0.15s ease;
+}
+
+.scan-input-wrap:focus-within .scan-input-icon {
+    color: #0ea5e9;
+}
+
+.scan-input {
+    width: 100%;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    padding: 12px 130px 12px 46px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #0f172a;
+    background: #fff;
+    box-shadow: 0 4px 14px rgba(3, 105, 161, 0.22);
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.scan-input::placeholder {
+    color: #94a3b8;
+    font-weight: 400;
+}
+
+.scan-input:focus {
+    border-color: #bae6fd;
+    box-shadow: 0 4px 14px rgba(3, 105, 161, 0.22), 0 0 0 4px rgba(255, 255, 255, 0.35);
+}
+
+.scan-hero-hint {
+    font-size: 11.5px;
+    color: rgba(255, 255, 255, 0.8);
+    position: relative;
+}
+
+.doc-tile {
+    align-items: center;
+    cursor: pointer;
+}
+
+.doc-tile-no {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+}
+
+.doc-tile-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 0 0 auto;
+}
+
+.doc-tile-view {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #cbd5e1;
+    transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.doc-tile-view .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.doc-tile:hover .doc-tile-view {
+    color: #0ea5e9;
+    background: #e0f2fe;
+}
+
+.doc-tile-remove {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #cbd5e1;
+    transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.doc-tile-remove .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.doc-tile:hover .doc-tile-remove {
+    color: #94a3b8;
+}
+
+.doc-tile-remove:hover {
+    color: #dc2626 !important;
+    background: #fee2e2;
+    border-color: #fecaca;
+}
+
+.doc-tile-remove:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.zarf-tile-icon.tint-cyan { background: #f1f5f9; color: #64748b; }
+
+/* Boş durumlar */
+.zarf-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 36px 16px;
+    border-radius: 12px;
+    border: 1px dashed #d5dbe5;
+    background: #fbfcfe;
+}
+
+.zarf-empty-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #e0f2fe;
+    color: #0369a1;
+    margin-bottom: 12px;
+}
+
+.zarf-empty-icon .material-symbols-outlined {
+    font-size: 30px;
+}
+
+.zarf-empty-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 4px;
+}
+
+.zarf-empty-text {
+    font-size: 12.5px;
+    color: #64748b;
+    max-width: 320px;
+}
+
+/* Koyu tema */
+[data-theme="dark"] .zarf-count-chip {
+    background: rgba(14, 165, 233, 0.18);
+    color: #7dd3fc;
+    border-color: rgba(14, 165, 233, 0.35);
+}
+
+[data-theme="dark"] .zarf-tile-icon.tint-cyan {
+    background: rgba(148, 163, 184, 0.14);
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .doc-tile:hover .doc-tile-view {
+    background: rgba(14, 165, 233, 0.18);
+}
+
+[data-theme="dark"] .doc-tile-remove:hover {
+    background: rgba(220, 38, 38, 0.18);
+    border-color: rgba(220, 38, 38, 0.35);
+}
+
+[data-theme="dark"] .zarf-empty {
+    background: rgba(148, 163, 184, 0.05);
+    border-color: rgba(148, 163, 184, 0.25);
+}
+
+[data-theme="dark"] .zarf-empty-icon {
+    background: rgba(14, 165, 233, 0.18);
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .zarf-empty-title {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .zarf-empty-text {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .zarf-tile {
+    background: rgba(148, 163, 184, 0.06);
+    border-color: rgba(148, 163, 184, 0.18);
+}
+
+[data-theme="dark"] .zarf-tile:hover {
+    border-color: rgba(148, 163, 184, 0.32);
+}
+
+[data-theme="dark"] .zarf-tile-value {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .zarf-tile-icon.tint-blue   { background: rgba(14, 165, 233, 0.18); color: #7dd3fc; }
+[data-theme="dark"] .zarf-tile-icon.tint-violet,
+[data-theme="dark"] .zarf-tile-icon.tint-amber  { background: rgba(148, 163, 184, 0.14); color: #cbd5e1; }
+
+/* Hero gradient'i koyu temada da aynı kalır; yalnızca gölge hafifler */
+[data-theme="dark"] .zarf-hero {
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .scan-input {
+    background: #111827;
+    border-color: rgba(148, 163, 184, 0.25);
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .scan-status-chip {
+    background: rgba(148, 163, 184, 0.12);
+    border-color: rgba(148, 163, 184, 0.25);
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .scan-status-chip.is-active {
+    background: rgba(34, 197, 94, 0.18);
+    border-color: rgba(34, 197, 94, 0.35);
+    color: #86efac;
+}
+
+[data-theme="dark"] .scan-hero-hint {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .preview-cta {
+    background: rgba(14, 165, 233, 0.18);
+    border-color: rgba(14, 165, 233, 0.35);
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .preview-cta:hover {
+    background: #0ea5e9;
+    color: #fff;
+}
+
+[data-theme="dark"] .zarf-actions-hint {
+    color: #94a3b8;
+}
+
+/* Etiket önizleme popup'ı: etiket genişliğine göre boyutlanır */
+.label-preview-modal {
+    width: auto;
+    min-width: 460px;
+    max-width: 95vw;
+}
+
+.label-preview-modal .modal-body {
+    padding: 28px;
+    background: linear-gradient(160deg, #f8fafc 0%, #eef4fc 100%);
+}
+
+/* Etiket, popup içinde kağıt gibi hafifçe havada dursun */
+.label-preview-modal .envelope-label {
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14), 0 1px 3px rgba(15, 23, 42, 0.06);
+    border-radius: 4px;
+}
+
+[data-theme="dark"] .label-preview-modal {
+    background: #1a2030;
+}
+
+[data-theme="dark"] .label-preview-modal .modal-body {
+    background: linear-gradient(160deg, #111827 0%, #1e293b 100%);
+}
+
+.table-container {
+    max-height: 520px; /* istediğin yükseklik */
+    overflow-y: auto;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+}
+
+/* Scrollbar’ı soft yapabiliriz (opsiyonel) */
+.table-container::-webkit-scrollbar {
+    width: 7px;
+}
+
+.table-container::-webkit-scrollbar-track {
+    background: #eef3f5;
+    border-radius: 3px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+    background: #c9dae0;
+    border-radius: 3px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+    background: #9fc2cf;
+}/* Tablo ana gövde */
+
+
+.premium-table {
+    border-radius: 8px;
+    overflow: hidden;
+    width: 100%;
+    border: none;
+    box-shadow: 0 2px 6px rgba(168, 177, 179, 0.08);
+}
+
+/* Tablo başlığı */
+.premium-table thead th {
+    background: #e9eff2 !important; /* soft pastel mavi */
+    color: #333 !important;
+    font-weight: 500;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    text-align: left;
+}
+
+/* Satır hover efekti */
+.premium-table tbody tr:hover {
+    background-color: rgba(37, 184, 252, 0.08) !important; /* soft mavi hover */
+    transition: background-color 0.3s;
+    cursor: pointer;
+}
+
+/* Satır hover üzerindeki td’leri de etkiler */
+.premium-table tbody tr:hover td {
+    background-color: rgba(178, 214, 223, 0.08) !important;
+}
+
+/* Evrak satırı tıklanabilir: soluk bilgi ikonu hover'da belirginleşir */
+.doc-row-icon {
+    font-size: 16px;
+    color: #cbd5e1;
+    transition: color 0.15s ease;
+}
+
+.premium-table tbody tr.doc-row-clickable:hover .doc-row-icon {
+    color: #0ea5e9;
+}
+
+/* ---- Evrak Bilgisi popup: sade, tek kolon başlık + konu + etiket/değer listesi ---- */
+.doc-detail-modal {
+    width: 600px;
+    max-width: calc(100vw - 32px);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
+}
+
+.doc-detail-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 22px 24px 16px;
+}
+
+.doc-detail-header-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+    color: #0369a1;
+    flex: 0 0 auto;
+}
+
+.doc-detail-header-icon .material-symbols-outlined {
+    font-size: 22px;
+}
+
+.doc-detail-header-text {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.doc-detail-title {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: #64748b;
+}
+
+.doc-detail-no {
+    font-size: 17px;
+    font-weight: 700;
+    color: #0f172a;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.01em;
+}
+
+.doc-detail-close {
+    border: 0;
+    background: transparent;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    flex: 0 0 auto;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.doc-detail-close:hover {
+    background: #f1f5f9;
+    color: #334155;
+}
+
+.doc-detail-close .material-symbols-outlined {
+    font-size: 20px;
+}
+
+.doc-detail-body {
+    padding: 0 24px 24px;
+    min-height: 340px;
+    max-height: 76vh;
+    overflow-y: auto;
+}
+
+/* Yükleniyor / bulunamadı durumları */
+.doc-detail-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 48px 0;
+    color: #64748b;
+    font-size: 13px;
+}
+
+.doc-detail-state .material-symbols-outlined {
+    font-size: 20px;
+}
+
+/* Konu + durum/tür/tarih özeti */
+.doc-detail-hero {
+    padding: 16px 18px;
+    border-radius: 12px;
+    background: #f8fafc;
+    border: 1px solid #eef2f7;
+}
+
+.doc-detail-subject {
+    font-size: 14.5px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: #1e293b;
+    overflow-wrap: anywhere;
+}
+
+.doc-detail-subject.is-empty {
+    color: #94a3b8;
+    font-weight: 500;
+    font-style: italic;
+}
+
+/* Durum / tür / tarih etiketleri: başlığın sağ üstünde, kapat butonunun solunda */
+.doc-detail-chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 6px;
+    flex: 0 1 auto;
+    max-width: 55%;
+}
+
+.doc-detail-status,
+.doc-detail-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+.doc-detail-status {
+    /* Renkler status-tier-* sınıflarından gelir (styles.css) */
+    border: 1px solid transparent;
+}
+
+.doc-detail-chip {
+    background: #fff;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+}
+
+.doc-detail-chip .material-symbols-outlined {
+    font-size: 14px;
+    color: #94a3b8;
+}
+
+/* Etiket / değer listesi: kutu yok, ince ayraçlar */
+.doc-detail-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 28px;
+    margin: 16px 0 0;
+}
+
+.doc-detail-item {
+    padding: 12px 0;
+    border-bottom: 1px solid #f1f5f9;
+    min-width: 0;
+}
+
+.doc-detail-item:nth-last-child(-n + 2) {
+    border-bottom: 0;
+}
+
+.doc-detail-item dt {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: #94a3b8;
+    margin-bottom: 3px;
+}
+
+.doc-detail-item dd {
+    margin: 0;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #1e293b;
+    overflow-wrap: anywhere;
+}
+
+/* Düzenleme formu: iki kolon, konu ve nereye tam genişlik */
+.doc-detail-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 16px;
+}
+
+.doc-detail-field {
+    min-width: 0;
+}
+
+.doc-detail-field-full {
+    grid-column: 1 / -1;
+}
+
+.doc-detail-field label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: #64748b;
+    margin-bottom: 4px;
+}
+
+.doc-detail-field .form-control,
+.doc-detail-field .form-select {
+    border-radius: 10px;
+    font-size: 13px;
+}
+
+.doc-detail-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.doc-detail-actions .btn {
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 16px;
+}
+
+.doc-detail-close:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+/* Koyu tema */
+[data-theme="dark"] .doc-detail-field label {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .doc-detail-modal {
+    background: #1a2030;
+}
+
+[data-theme="dark"] .doc-detail-header-icon {
+    background: rgba(14, 165, 233, 0.18);
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .doc-detail-title {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .doc-detail-no {
+    color: #f1f5f9;
+}
+
+[data-theme="dark"] .doc-detail-close:hover {
+    background: rgba(148, 163, 184, 0.12);
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .doc-detail-hero {
+    background: rgba(148, 163, 184, 0.06);
+    border-color: rgba(148, 163, 184, 0.16);
+}
+
+[data-theme="dark"] .doc-detail-subject {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .doc-detail-chip {
+    background: rgba(148, 163, 184, 0.1);
+    color: #cbd5e1;
+    border-color: rgba(148, 163, 184, 0.22);
+}
+
+[data-theme="dark"] .doc-detail-item {
+    border-bottom-color: rgba(148, 163, 184, 0.12);
+}
+
+[data-theme="dark"] .doc-detail-item dd {
+    color: #e2e8f0;
+}
+
+/* Buton */
+.premium-btn {
+    border: 0.5px solid #74c3d4; /* ince border, soft renk */
+    padding: 4px 16px;
+    border-radius: 8px;
+    background: transparent; /* arka plan kaldırıldı */
+    color: #74c3d4; /* border rengi ile uyumlu */
+    font-weight: 500;
+    transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s, color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.premium-btn:hover {
+    transform: translateY(-2px);
+    background: linear-gradient(90deg,#ff2600, #fe547c);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    color: aliceblue;
+        border: 0.5px solid #adbec6; /* ince border, soft renk */
+}
+
+.premium-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Spinner beyaz */
+.spinner-border.text-white {
+    border-top-color: white;
+}

@@ -4,7 +4,7 @@ import { Common } from '../services/common';
 import { UserModel } from '../pages/users/users';
 
 export const authGuard: CanActivateFn = (route, state) => {
-  const res = localStorage.getItem("user");
+  const res = localStorage.getItem("user") ?? sessionStorage.getItem("user");
   const router = inject(Router);
   const common = inject(Common);
 

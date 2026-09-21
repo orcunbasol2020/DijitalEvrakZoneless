@@ -6,6 +6,7 @@ import { RoleService } from '../../services/role-service';
 import { AdminDashboard } from './admin-dashboard/admin-dashboard';
 import GelenEvrakDashboard from './gelen-evrak-dashboard/gelen-evrak-dashboard';
 import OnKayitDashboard from './on-kayit-dashboard/on-kayit-dashboard';
+import BirimDashboard from './birim-dashboard/birim-dashboard';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -14,6 +15,7 @@ import { CommonModule } from '@angular/common';
     AdminDashboard,
     GelenEvrakDashboard,
     OnKayitDashboard,
+    BirimDashboard,
     CommonModule
   ],
   templateUrl: './home.html',

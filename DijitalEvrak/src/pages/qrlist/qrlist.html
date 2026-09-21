@@ -1,59 +1,55 @@
 <app-generic
   pageTitle="QR List"
-  [breadcrumbs]="[{title: 'QR List', url: 'qrlist', icon:''}]" />
+  [breadcrumbs]="[{title: 'QR List', url: 'qrlist', icon:''}]">
+</app-generic>
 
 <div class="row">
-  <div class="col-md-9 col-12">
+  <div class="col-md-12 col-12">
     <div class="card">
-      <div class="card-header"
-        style="display: flex; justify-content: space-between; align-items: center;">
+
+      <div class="card-header d-flex justify-content-between align-items-center">
         <h4>QR List</h4>
-        <div style="display: flex; gap: 10px; align-items: center;">
-          <select class="form-select" style="width:100px;"
-            [(ngModel)]="selectedCount"
-            (change)="updateDocuments(selectedCount)">
-            <option *ngFor="let count of counts" [value]="count">{{ count
-              }}</option>
-          </select>
-          <button class="btn btn-primary" (click)="printQrList()"
-            style="padding: 0.25rem 0.5rem; font-size: 1.2rem;width:60px">
-            <span class="material-symbols-outlined">print</span>
-          </button>
+
+        <div class="d-flex gap-2 flex-wrap">
+
+<div class="qr-link-btn-container">
+  <button 
+    *ngFor="let count of counts"
+    class="qr-link-btn"
+    [class.selected]="count === selectedCount"
+    (click)="updateDocuments(count)">
+    {{count}}
+  </button>
+</div>
+
+<button
+  class="btn btn-gradient-print"
+  (click)="printQrList()" title="Çıktı Al">
+  <span class="material-symbols-outlined">print</span>
+</button>
+
         </div>
       </div>
 
-      <print-preview
-        *ngIf="previewOpen"
-        [data]="previewData"
-        [isQrList]="true"
-        (closed)="previewOpen = false">
-      </print-preview>
+      <div class="card-body">
 
-      <div id="qr-container" style="display: flex; flex-wrap: wrap; gap: 22px;">
-        @for (doc of documents;track doc) {
-        <div style="text-align:center;">
-          <qrcode #qrElem [qrdata]="doc" [width]="100"
-            [errorCorrectionLevel]="'H'"></qrcode>
+        <div class="qr-placeholder-grid">
 
-          <div style="font-size: 10px;">{{ doc }}</div>
+          <div *ngFor="let doc of documents" class="qr-placeholder-item">
+            <div class="qr-placeholder-box">QR</div>
+            <div class="qr-placeholder-text">{{doc}}</div>
+          </div>
+
         </div>
-        }
-      </div>
-      <hr
-        style="margin-top:20px; margin-bottom:10px;margin-left:8px;margin-right:8px;">
 
-      <div style="
-    margin-bottom:12px; 
-    display:flex; 
-    justify-content:flex-end;
-    padding-right:15px; 
-    font-size: 12px;
-    color:#333;
-">
-        <span>Toplam: {{ selectedCount }}</span>
       </div>
+
+<hr class="qr-footer-hr">
+
+<div class="qr-footer-info small mb-3">
+  Toplam: {{documents.length}}
+</div>
 
     </div>
   </div>
 </div>
-

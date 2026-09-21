@@ -1,0 +1,296 @@
+<app-generic pageTitle="Dijitalleştirme ve Atlas Aktarım Takip"
+    [breadcrumbs]="[{title: 'Dijitalleştirme Takip', url: 'dijitallestirme-takip', icon:''}]" />
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <h1 class="page-title d-flex align-items-center">Dijitalleştirme ve Atlas Aktarım Takip</h1>
+    <div class="d-flex header-actions">
+        <button class="btn btn-sm btn-outline-info" (click)="refresh()" [disabled]="loading()">
+            <span class="material-symbols-outlined" [class.spin]="loading()" title="Güncel Verileri Getir">refresh</span>
+        </button>
+    </div>
+</div>
+
+<!-- Özet Kartlar -->
+<div class="row g-3 mb-4">
+    <div class="col-md-6 col-lg-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="card-subtitle text-muted">Toplam Belge</h6>
+                        <h4 class="card-title mt-2">{{ stats().total }}</h4>
+                    </div>
+                    <div class="stat-icon stat-icon-pro bg-gradient-info">
+                        <span class="material-symbols-outlined" style="font-size: 22px;">description</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="card-subtitle text-muted">Atlas'a Aktarıldı</h6>
+                        <h4 class="card-title mt-2 text-success">{{ stats().completed }}</h4>
+                    </div>
+                    <div class="stat-icon stat-icon-pro bg-gradient-success">
+                        <span class="material-symbols-outlined" style="font-size: 22px;">cloud_done</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="card-subtitle text-muted">Devam Ediyor</h6>
+                        <h4 class="card-title mt-2 text-warning">{{ stats().processing }}</h4>
+                    </div>
+                    <div class="stat-icon stat-icon-pro bg-gradient-warning">
+                        <span class="material-symbols-outlined" style="font-size: 22px;">sync</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="card-subtitle text-muted">Hatalı</h6>
+                        <h4 class="card-title mt-2 text-danger">{{ stats().error }}</h4>
+                    </div>
+                    <div class="stat-icon stat-icon-pro bg-gradient-danger">
+                        <span class="material-symbols-outlined" style="font-size: 22px;">error</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtre Alanı -->
+<div class="card mb-3 shadow-sm">
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+
+            <div class="col-md-3">
+                <label class="form-label">Belge Adı</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white">
+                        <span class="material-symbols-outlined" style="font-size: 18px;">search</span>
+                    </span>
+                    <input type="text" class="form-control" placeholder="Belge adında ara..."
+                        [ngModel]="searchText()" (ngModelChange)="onSearchTextChange($event)">
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Durum</label>
+                <select class="form-select" [ngModel]="statusFilter()" (ngModelChange)="onStatusFilterChange($event)">
+                    <option [ngValue]="'all'">Hepsi</option>
+                    <option [ngValue]="'completed'">Atlas'a Aktarıldı</option>
+                    <option [ngValue]="'processing'">Devam Ediyor</option>
+                    <option [ngValue]="'error'">Hatalı</option>
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Belge Türü</label>
+                <select class="form-select" [ngModel]="typeFilter()" (ngModelChange)="onTypeFilterChange($event)">
+                    <option [ngValue]="'all'">Hepsi</option>
+                    <option *ngFor="let type of documentTypes" [ngValue]="type">{{ type }}</option>
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label">Tarama Tarihi</label>
+                <input type="date" class="form-control"
+                    [ngModel]="dateFilter()" (ngModelChange)="onDateFilterChange($event)">
+            </div>
+
+            <div class="col-md-1">
+                <button class="btn btn-outline-secondary w-100" title="Filtreleri Temizle"
+                    [disabled]="!hasActiveFilters()" (click)="resetFilters()">
+                    <span class="material-symbols-outlined">filter_alt_off</span>
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Takip Listesi -->
+<div class="card premium-card orders-card">
+    <div class="card-header dashboard-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0 fw-semibold">Belge Süreç Listesi</h5>
+        <span class="text-muted small">{{ filteredData().length }} / {{ stats().total }} kayıt gösteriliyor</span>
+    </div>
+
+    <div class="card-body p-0 position-relative">
+
+        <div *ngIf="loading()" class="d-flex justify-content-center align-items-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Yükleniyor...</span>
+            </div>
+        </div>
+
+        <div class="table-responsive" *ngIf="!loading()">
+            <table class="table table-hover mb-0 align-middle zimmet-table">
+                <thead class="table-light" style="font-size: 0.75rem;">
+                    <tr>
+                        <th class="sortable-th" (click)="toggleSort('documentName')">
+                            Belge Adı
+                            <span class="material-symbols-outlined sort-icon" [class.active]="sortColumn() === 'documentName'">{{ sortIcon('documentName') }}</span>
+                        </th>
+                        <th class="sortable-th" (click)="toggleSort('documentType')">
+                            Belge Türü
+                            <span class="material-symbols-outlined sort-icon" [class.active]="sortColumn() === 'documentType'">{{ sortIcon('documentType') }}</span>
+                        </th>
+                        <th class="sortable-th" (click)="toggleSort('pageCount')">
+                            Sayfa
+                            <span class="material-symbols-outlined sort-icon" [class.active]="sortColumn() === 'pageCount'">{{ sortIcon('pageCount') }}</span>
+                        </th>
+                        <th>Süreç</th>
+                        <th class="sortable-th" (click)="toggleSort('status')">
+                            Genel Durum
+                            <span class="material-symbols-outlined sort-icon" [class.active]="sortColumn() === 'status'">{{ sortIcon('status') }}</span>
+                        </th>
+                        <th class="text-end">İşlem</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <ng-container *ngFor="let item of pagedData()">
+                        <tr class="clickable-row" (click)="toggleDetail(item.id)">
+                            <td>
+                                <span class="material-symbols-outlined align-middle me-1 text-muted" style="font-size: 18px;">picture_as_pdf</span>
+                                {{ item.documentName }}
+                            </td>
+                            <td>{{ item.documentType }}</td>
+                            <td>{{ item.pageCount }}</td>
+                            <td>
+                                <div class="pipeline-stepper">
+                                    <ng-container *ngFor="let step of steps; let last = last">
+                                        <span class="pipeline-step" [ngClass]="'step-' + item.steps[step.key].status" [title]="step.label + ': ' + item.steps[step.key].status">
+                                            <span class="material-symbols-outlined" [class.spin]="item.steps[step.key].status === 'processing'">
+                                                {{ stepIconByStatus[item.steps[step.key].status] }}
+                                            </span>
+                                        </span>
+                                        <span class="pipeline-connector" *ngIf="!last" [class.filled]="item.steps[step.key].status === 'completed'"></span>
+                                    </ng-container>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge rounded-pill" [ngClass]="statusBadgeStyle[overallStatus(item)]">
+                                    <span class="material-symbols-outlined align-middle" [class.spin]="overallStatus(item) === 'processing'">
+                                        {{ overallStatus(item) === 'completed' ? 'cloud_done' : (overallStatus(item) === 'error' ? 'error' : 'sync') }}
+                                    </span>
+                                    {{ statusLabelMap[overallStatus(item)] }}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-secondary" (click)="toggleDetail(item.id); $event.stopPropagation()">
+                                    <span class="material-symbols-outlined align-middle" style="font-size: 16px;">
+                                        {{ expandedId() === item.id ? 'expand_less' : 'expand_more' }}
+                                    </span>
+                                    Detay
+                                </button>
+                            </td>
+                        </tr>
+
+                        <tr *ngIf="expandedId() === item.id" class="detail-row">
+                            <td colspan="6" class="bg-light">
+                                <div class="p-3">
+                                    <div *ngIf="item.atlasReferenceNo" class="mb-3 small text-muted">
+                                        <span class="material-symbols-outlined align-middle" style="font-size: 16px;">tag</span>
+                                        Atlas EBYS Referans No: <span class="fw-semibold">{{ item.atlasReferenceNo }}</span>
+                                    </div>
+
+                                    <div class="row g-3">
+                                        <div class="col-md-3" *ngFor="let step of steps">
+                                            <div class="d-flex align-items-start gap-2">
+                                                <span class="material-symbols-outlined"
+                                                    [class.text-success]="item.steps[step.key].status === 'completed'"
+                                                    [class.text-warning]="item.steps[step.key].status === 'processing'"
+                                                    [class.text-danger]="item.steps[step.key].status === 'error'"
+                                                    [class.text-muted]="item.steps[step.key].status === 'pending'"
+                                                    [class.spin]="item.steps[step.key].status === 'processing'">
+                                                    {{ stepIconByStatus[item.steps[step.key].status] }}
+                                                </span>
+                                                <div>
+                                                    <div class="fw-semibold">{{ step.label }}</div>
+                                                    <div class="text-muted small" *ngIf="item.steps[step.key].date">{{ item.steps[step.key].date }}</div>
+                                                    <div class="text-muted small" *ngIf="item.steps[step.key].note">{{ item.steps[step.key].note }}</div>
+                                                    <button *ngIf="item.steps[step.key].status === 'error'"
+                                                        class="btn btn-sm btn-outline-danger mt-1"
+                                                        (click)="retryStep(item, step.key)">
+                                                        <span class="material-symbols-outlined align-middle" style="font-size: 16px;">restart_alt</span>
+                                                        Yeniden Dene
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </ng-container>
+
+                    <tr *ngIf="filteredData().length === 0">
+                        <td colspan="6" class="text-center text-muted py-5">
+                            <span class="material-symbols-outlined d-block mb-2" style="font-size: 32px;">search_off</span>
+                            Filtre kriterlerine uygun belge bulunamadı.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2"
+        *ngIf="!loading() && filteredData().length">
+        <div class="text-muted small">
+            Toplam {{ filteredData().length }} kayıttan {{ pageRangeStart() }}-{{ pageRangeEnd() }} arası gösteriliyor
+        </div>
+
+        <nav *ngIf="totalPages() > 1">
+            <ul class="pagination pagination-sm mb-0">
+                <li class="page-item" [class.disabled]="currentPage() === 1">
+                    <button class="page-link" (click)="goToPage(currentPage() - 1)">
+                        <span class="material-symbols-outlined" style="font-size: 16px;">chevron_left</span>
+                    </button>
+                </li>
+                <li class="page-item" *ngIf="pageNumbers()[0] > 1">
+                    <button class="page-link" (click)="goToPage(1)">1</button>
+                </li>
+                <li class="page-item disabled" *ngIf="pageNumbers()[0] > 2">
+                    <span class="page-link">…</span>
+                </li>
+                <li class="page-item" *ngFor="let p of pageNumbers()" [class.active]="p === currentPage()">
+                    <button class="page-link" (click)="goToPage(p)">{{ p }}</button>
+                </li>
+                <li class="page-item disabled" *ngIf="pageNumbers()[pageNumbers().length - 1] < totalPages() - 1">
+                    <span class="page-link">…</span>
+                </li>
+                <li class="page-item" *ngIf="pageNumbers()[pageNumbers().length - 1] < totalPages()">
+                    <button class="page-link" (click)="goToPage(totalPages())">{{ totalPages() }}</button>
+                </li>
+                <li class="page-item" [class.disabled]="currentPage() === totalPages()">
+                    <button class="page-link" (click)="goToPage(currentPage() + 1)">
+                        <span class="material-symbols-outlined" style="font-size: 16px;">chevron_right</span>
+                    </button>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</div>

@@ -23,7 +23,6 @@ export class ErrorService {
         break;
 
       case 404:
-        this.toast.showToast("Servise Ulaşılamadı", "Servis adresini kontrol ediniz.", "error");
         break;
 
       case 408:

@@ -5,6 +5,8 @@ import { IncomingDocumentPreRegisterModel } from '../models/incoming-document/in
 import { IncomingDocumentTodayStats } from '../models/dashboard/IncomingDocumentTodayStats.model';
 import { firstValueFrom } from 'rxjs';
 import { IncomingDocumentLast30DaysStats } from '../models/dashboard/IncomingDocument30DaysStats.model';
+import { IncomingDocumentPendingScanStats } from '../models/dashboard/IncomingDocumentPendingScanStats.model';
+import { IncomingDocumentOcrQueueStats } from '../models/dashboard/IncomingDocumentOcrQueueStats.model';
 
 @Injectable({ providedIn: 'root' })
 export class IncomingDocumentService {
@@ -14,17 +16,17 @@ export class IncomingDocumentService {
 
   // 📌 Detay ekranı için seçili incoming document
   private selectedIncomingDocumentId = signal<string | null>(null);
-  setSelectedIncomingDocument(id: string) { 
-    this.selectedIncomingDocumentId.set(id); 
+  setSelectedIncomingDocument(id: string) {
+    this.selectedIncomingDocumentId.set(id);
   }
-  clearSelectedIncomingDocument() { 
-    this.selectedIncomingDocumentId.set(null); 
+  clearSelectedIncomingDocument() {
+    this.selectedIncomingDocumentId.set(null);
   }
-  get currentIncomingDocumentId(): string | null { 
-    return this.selectedIncomingDocumentId(); 
+  get currentIncomingDocumentId(): string | null {
+    return this.selectedIncomingDocumentId();
   }
 
-    //zimmet ekranı icin setlenen documentId
+  //zimmet ekranı icin setlenen documentId
   private zimmetDocumentId = signal<string | null>(null);
   setZimmetIncomingDocument(id: string) { this.zimmetDocumentId.set(id); }
   get currentZimmetDocumentId(): string | null { return this.zimmetDocumentId(); }
@@ -41,7 +43,7 @@ export class IncomingDocumentService {
   get currentIncomingDocumentUpdateType(): string | null {
     return this.incomingDocumentUpdateType();
   }
-    setIncomingDocumentSearchType(type: string) {
+  setIncomingDocumentSearchType(type: string) {
     this.incomingDocumentSearchType.set(type);
   }
   get currentIncomingDocumentSearchType(): string | null {
@@ -49,11 +51,12 @@ export class IncomingDocumentService {
   }
 
   // GET ALL (resource)
-  getAllIncomingDocuments() {
-  return this.httpService.get<IncomingDocumentModel[]>(
-    this.baseUrl + "GetAll"
-  );
-}
+  getAllIncomingDocuments(departmentId?: string) {
+    const query = departmentId ? `?departmentId=${encodeURIComponent(departmentId)}` : '';
+    return this.httpService.get<IncomingDocumentModel[]>(
+      this.baseUrl + "GetAll" + query
+    );
+  }
 
   // GET BY QR CODE
   GetByQrCode(qrCode: string) {
@@ -93,31 +96,36 @@ export class IncomingDocumentService {
   }
 
   // OCR Filtreli liste
-  getIncomingDocumentsByStatus(status: string) {
+  getIncomingDocumentsByStatus(status: string, departmentId?: string) {
+    const departmentQuery = departmentId ? `&departmentId=${encodeURIComponent(departmentId)}` : '';
     return this.httpService.createResource<IncomingDocumentModel[]>(
-      `${this.baseUrl}GetAll?Status=${encodeURIComponent(status)}`
+      `${this.baseUrl}GetAll?Status=${encodeURIComponent(status)}${departmentQuery}`
     );
   }
-
+  getIncomingDocumentsByDirection(documentDirection: string) {
+    return this.httpService.createResource<IncomingDocumentModel[]>(
+      `${this.baseUrl}GetByDirection?documentDirection=${encodeURIComponent(documentDirection)}`
+    );
+  }
   deleteIncomingDocument(id: string) {
     return this.httpService.delete(
       `${this.baseUrl}${encodeURIComponent(id)}`
     );
   }
-  
-    // PDF URL ÜRETİCİ
+
+  // PDF URL ÜRETİCİ
   getPdfUrl(fileName: string): string {
     if (!fileName) return '';
     return `https://localhost:7056/api/ScannedDocuments/GetPdf?fileName=${encodeURIComponent(fileName)}`;
   }
 
   getPendingCount(userId: string) {
-  return this.httpService.get<number>(
-    `${this.baseUrl}GetPendingCount?userId=${encodeURIComponent(userId)}`
-  );
-}
+    return this.httpService.get<number>(
+      `${this.baseUrl}GetPendingCount?userId=${encodeURIComponent(userId)}`
+    );
+  }
 
-    // Bugün gelen evraklar
+  // Bugün gelen evraklar
   private todayStatsSignal = signal<IncomingDocumentTodayStats | null>(null);
 
   get todayStats() {
@@ -140,26 +148,66 @@ export class IncomingDocumentService {
 
   private last30DaysStatsSignal = signal<IncomingDocumentLast30DaysStats | null>(null);
 
-get last30DaysStats() {
-  return this.last30DaysStatsSignal();
-}
-
-async loadLast30DaysStats(): Promise<IncomingDocumentLast30DaysStats | null> {
-  try {
-    const stats$ = this.httpService.get<IncomingDocumentLast30DaysStats>(
-      this.baseUrl + 'GetLast30DaysStats'
-    );
-    const stats = await firstValueFrom(stats$);
-    this.last30DaysStatsSignal.set(stats);
-    return stats;
-  } catch (error) {
-    console.error('Incoming document last 30 days stats load error:', error);
-    return null;
+  get last30DaysStats() {
+    return this.last30DaysStatsSignal();
   }
-}
-}
+
+  async loadLast30DaysStats(): Promise<IncomingDocumentLast30DaysStats | null> {
+    try {
+      const stats$ = this.httpService.get<IncomingDocumentLast30DaysStats>(
+        this.baseUrl + 'GetLast30DaysStats'
+      );
+      const stats = await firstValueFrom(stats$);
+      this.last30DaysStatsSignal.set(stats);
+      return stats;
+    } catch (error) {
+      console.error('Incoming document last 30 days stats load error:', error);
+      return null;
+    }
+  }
 
 
+  private pendingScanStatsSignal = signal<IncomingDocumentPendingScanStats | null>(null);
+
+  get pendingScanStats() {
+    return this.pendingScanStatsSignal();
+  }
+
+  async loadPendingScanStats(): Promise<IncomingDocumentPendingScanStats | null> {
+    try {
+      const stats$ = this.httpService.get<IncomingDocumentPendingScanStats>(
+        this.baseUrl + 'GetPendingScanStats'
+      );
+      const stats = await firstValueFrom(stats$);
+      this.pendingScanStatsSignal.set(stats);
+      return stats;
+    } catch (error) {
+      console.error('Pending scan stats load error:', error);
+      return null;
+    }
+  }
+
+  private ocrQueueStatsSignal = signal<IncomingDocumentOcrQueueStats | null>(null);
+
+  get ocrQueueStats() {
+    return this.ocrQueueStatsSignal();
+  }
+
+  async loadOcrQueueStats(): Promise<IncomingDocumentOcrQueueStats | null> {
+    try {
+      const stats$ = this.httpService.get<IncomingDocumentOcrQueueStats>(
+        this.baseUrl + 'GetOcrQueueStats'
+      );
+      const stats = await firstValueFrom(stats$);
+      this.ocrQueueStatsSignal.set(stats);
+      return stats;
+    } catch (error) {
+      console.error('OCR queue stats load error:', error);
+      return null;
+    }
+  }
+
+}
 
 export interface PreRegisterResponse {
   id: string;

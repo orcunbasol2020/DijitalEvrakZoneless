@@ -1,0 +1,495 @@
+<app-generic pageTitle="Teslim Et"
+    [breadcrumbs]="[{title: 'Zarflar', url: 'envelope', icon:''}, {title: 'Teslim Et', url: '', icon:''}]">
+</app-generic>
+
+<div class="row">
+    <!-- SOL PANEL: zarf özeti + zarftaki evraklar -->
+    <div class="col-lg-6 col-12">
+        <div class="card zm-card">
+            <div class="card-header dashboard-header d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <span class="material-symbols-outlined me-2 text-info">inventory_2</span>
+                    <h5 class="card-title mb-0 fw-semibold">Zarf İçindeki Evraklar</h5>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="gz-count-chip" *ngIf="documents().length">
+                        <span class="material-symbols-outlined">description</span>
+                        {{ documents().length }} evrak
+                    </span>
+                    <button type="button" class="zm-pill-btn" title="Zarf etiketini göster"
+                        *ngIf="previewEnvelope()" (click)="envelopeLabelVisible.set(true)">
+                        <span class="material-symbols-outlined">visibility</span>
+                        <span>Etiket</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="card-body zm-body">
+                <!-- Zarf özeti (Zarf Etiketi ekranındaki numara bloğu ile aynı dil) -->
+                <div class="gz-hero" *ngIf="previewEnvelope() as env">
+                    <div class="gz-hero-icon">
+                        <span class="material-symbols-outlined">mail</span>
+                    </div>
+                    <div class="gz-hero-text">
+                        <div class="gz-hero-no">{{ env.envelopeNo || '-' }}</div>
+                        <div class="gz-hero-meta" *ngIf="externalName() || env.unitName">
+                            <span *ngIf="externalName()">{{ externalName() }}</span>
+                            <span class="gz-hero-sep" *ngIf="externalName() && env.unitName">·</span>
+                            <span *ngIf="env.unitName">{{ env.unitName }}</span>
+                        </div>
+                    </div>
+                    <div class="gz-hero-side">
+                        <span class="envelope-status-pill {{ envelopeStatusClass }}">
+                            <span class="envelope-status-dot"></span>
+                            {{ envelopeStatusLabel }}
+                        </span>
+                        <span class="gz-hero-chip" *ngIf="env.createdDate">
+                            <span class="material-symbols-outlined">event</span>
+                            {{ env.createdDate | date:'dd.MM.yyyy' }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Yükleniyor -->
+                <div class="zm-empty" *ngIf="loading()">
+                    <div class="zm-empty-icon">
+                        <div class="spinner-border text-primary"></div>
+                    </div>
+                    <div class="zm-empty-title">Yükleniyor...</div>
+                    <div class="zm-empty-text">Zarftaki evraklar getiriliyor.</div>
+                </div>
+
+                <!-- Boş -->
+                <div class="zm-empty" *ngIf="!loading() && !documents().length">
+                    <div class="zm-empty-icon">
+                        <span class="material-symbols-outlined">inbox</span>
+                    </div>
+                    <div class="zm-empty-title">Gösterilecek evrak yok</div>
+                    <div class="zm-empty-text">Bu zarfa henüz evrak eklenmemiş. Zarf Etiketi ekranından evrak ekleyebilirsiniz.</div>
+                </div>
+
+                <!-- Evrak listesi -->
+                <ng-container *ngIf="!loading() && documents().length">
+                    <div class="zm-list-toolbar">
+                        <div class="zm-list-title">Zarf İçindeki Belgeler</div>
+                        <div class="zm-list-tools">
+                            <div class="zm-search">
+                                <span class="material-symbols-outlined">search</span>
+                                <input type="text" placeholder="Belge no ile ara" [(ngModel)]="searchTerm" />
+                            </div>
+                            <button type="button" class="zm-sort" [class.is-active]="sortField === 'qrCode'"
+                                title="Belge numarasına göre sırala" (click)="toggleSort('qrCode')">
+                                Belge No
+                                <span class="material-symbols-outlined" *ngIf="sortField === 'qrCode'">
+                                    {{ sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+                                </span>
+                            </button>
+                            <button type="button" class="zm-sort" [class.is-active]="sortField === 'createdDate'"
+                                title="Eklenme tarihine göre sırala" (click)="toggleSort('createdDate')">
+                                Tarih
+                                <span class="material-symbols-outlined" *ngIf="sortField === 'createdDate'">
+                                    {{ sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="zm-doc-list">
+                        <div class="zm-doc" *ngFor="let doc of filteredDocuments">
+                            <div class="zm-doc-icon">
+                                <span class="material-symbols-outlined">description</span>
+                            </div>
+                            <div class="zm-doc-body">
+                                <div class="zm-doc-no">{{ doc.qrCode }}</div>
+                            </div>
+                            <div class="zm-doc-meta">
+                                <span class="material-symbols-outlined">schedule</span>
+                                {{ doc.createdDate | date:'dd.MM.yyyy HH:mm' }}
+                            </div>
+                        </div>
+                        <div class="zm-list-none" *ngIf="filteredDocuments.length === 0">
+                            <span class="material-symbols-outlined">search_off</span>
+                            Arama sonucuna uygun belge bulunamadı
+                        </div>
+                    </div>
+                </ng-container>
+            </div>
+        </div>
+    </div>
+
+    <!-- SAĞ PANEL: Teslim Et -->
+    <div class="col-lg-6 col-12">
+        <div class="card zm-card d-flex flex-column">
+            <div class="card-header dashboard-header d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <span class="material-symbols-outlined me-2 text-info">person_check</span>
+                    <h5 class="card-title mb-0 fw-semibold">{{ delivered() ? 'Teslim Bilgisi' : 'Teslim Et' }}</h5>
+                </div>
+                <button type="button" class="zm-pill-btn"
+                    *ngIf="!delivered() && mode() === 'external' && selectedInstitutionId()"
+                    (click)="openQuickAddModal()">
+                    <span class="material-symbols-outlined">person_add</span>
+                    <span>Personel Ekle</span>
+                </button>
+            </div>
+
+            <!-- TESLİM EDİLDİ -->
+            <ng-container *ngIf="delivered()">
+                <div class="card-body zm-body">
+                    <div class="gz-done-hero">
+                        <div class="gz-done-icon">
+                            <span class="material-symbols-outlined">task_alt</span>
+                        </div>
+                        <div class="gz-done-text">
+                            <div class="gz-done-title">Evraklar teslim edildi</div>
+                            <div class="gz-done-sub">
+                                {{ documents().length }} evrak
+                                <ng-container *ngIf="deliveredDate()"> · {{ deliveredDate() | date:'dd.MM.yyyy HH:mm' }}</ng-container>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="gz-tiles">
+                        <div class="gz-tile">
+                            <div class="gz-tile-icon tint-blue">
+                                <span class="material-symbols-outlined">person_check</span>
+                            </div>
+                            <div class="gz-tile-body">
+                                <div class="gz-tile-label">TESLİM ALAN</div>
+                                <div class="gz-tile-value">{{ deliveredPersonName() || '-' }}</div>
+                                <div class="gz-tile-meta" *ngIf="externalName()">{{ externalName() }}</div>
+                            </div>
+                        </div>
+
+                        <div class="gz-tile" *ngIf="deliveredByPersonName()">
+                            <div class="gz-tile-icon">
+                                <span class="material-symbols-outlined">outgoing_mail</span>
+                            </div>
+                            <div class="gz-tile-body">
+                                <div class="gz-tile-label">TESLİM EDEN</div>
+                                <div class="gz-tile-value">{{ deliveredByPersonName() }}</div>
+                                <div class="gz-tile-meta" *ngIf="deliveredJustNow() && user()?.departmentName">{{ user()?.departmentName }}</div>
+                            </div>
+                        </div>
+
+                        <div class="gz-tile">
+                            <div class="gz-tile-icon">
+                                <span class="material-symbols-outlined">event</span>
+                            </div>
+                            <div class="gz-tile-body">
+                                <div class="gz-tile-label">TESLİM TARİHİ</div>
+                                <div class="gz-tile-value">{{ deliveredDate() ? (deliveredDate() | date:'dd.MM.yyyy HH:mm') : '-' }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Islak imzalı belge -->
+                    <div class="gz-section">
+                        <div class="gz-section-title">Islak İmzalı Belge</div>
+
+                        <div class="gz-file" *ngIf="wetSignedFileName(); else noWetSigned">
+                            <div class="gz-tile-icon tint-green">
+                                <span class="material-symbols-outlined">verified</span>
+                            </div>
+                            <div class="gz-file-body">
+                                <div class="gz-file-name" [title]="wetSignedFileName()!">{{ wetSignedFileName() }}</div>
+                                <div class="gz-file-meta">
+                                    <span class="material-symbols-outlined">calendar_today</span>
+                                    {{ wetSignedUploadDate() | date:'dd.MM.yyyy HH:mm' }}
+                                    <span *ngIf="wetSignedUploadedBy()"> · {{ wetSignedUploadedBy() }}</span>
+                                </div>
+                            </div>
+                            <div class="gz-file-actions">
+                                <button type="button" class="zm-icon-btn" title="İndir" (click)="downloadWetSignedDocument()">
+                                    <span class="material-symbols-outlined">download</span>
+                                </button>
+                                <label class="zm-icon-btn mb-0" title="Değiştir" [class.is-disabled]="wetSignedUploading()">
+                                    <span class="spinner-border spinner-border-sm" *ngIf="wetSignedUploading()"></span>
+                                    <span class="material-symbols-outlined" *ngIf="!wetSignedUploading()">sync</span>
+                                    <input type="file" hidden accept=".pdf,.jpg,.jpeg,.png,.tif,.tiff"
+                                        [disabled]="wetSignedUploading()" (change)="onWetSignedFileSelected($event)">
+                                </label>
+                            </div>
+                        </div>
+
+                        <ng-template #noWetSigned>
+                            <label class="gz-upload mb-0" [class.is-disabled]="wetSignedUploading()">
+                                <div class="gz-upload-icon">
+                                    <span class="spinner-border spinner-border-sm" *ngIf="wetSignedUploading()"></span>
+                                    <span class="material-symbols-outlined" *ngIf="!wetSignedUploading()">upload_file</span>
+                                </div>
+                                <div class="gz-upload-text">
+                                    <div class="gz-upload-title">{{ wetSignedUploading() ? 'Yükleniyor...' : 'Taranmış belgeyi yükle' }}</div>
+                                    <div class="gz-upload-hint">PDF, JPG, PNG veya TIFF · en fazla 20 MB</div>
+                                </div>
+                                <input type="file" hidden accept=".pdf,.jpg,.jpeg,.png,.tif,.tiff"
+                                    [disabled]="wetSignedUploading()" (change)="onWetSignedFileSelected($event)">
+                            </label>
+                        </ng-template>
+                    </div>
+                </div>
+
+                <div class="card-footer zm-footer mt-auto">
+                    <div class="zm-footer-actions">
+                        <button type="button" class="btn btn-light zm-back-btn" (click)="reset()">
+                            <span class="material-symbols-outlined">arrow_back</span>
+                            {{ backButtonLabel }}
+                        </button>
+                    </div>
+                </div>
+            </ng-container>
+
+            <!-- TESLİM SEÇİMİ -->
+            <ng-container *ngIf="!delivered()">
+                <div class="card-body zm-body">
+                    <!-- Teslim türü -->
+                    <div class="zm-modes" role="group" aria-label="Teslim türü">
+                        <button type="button" class="zm-mode" [class.is-active]="mode() === 'self'" (click)="setMode('self')">
+                            <span class="material-symbols-outlined">download</span>
+                            <span class="zm-mode-label">Teslim Al</span>
+                            <span class="zm-mode-sub">Kendime</span>
+                        </button>
+                        <button type="button" class="zm-mode" [class.is-active]="mode() === 'internal'" (click)="setMode('internal')">
+                            <span class="material-symbols-outlined">person</span>
+                            <span class="zm-mode-label">Zimmetle</span>
+                            <span class="zm-mode-sub">İç kullanıcı</span>
+                        </button>
+                        <button type="button" class="zm-mode" [class.is-active]="mode() === 'external'" (click)="setMode('external')">
+                            <span class="material-symbols-outlined">local_shipping</span>
+                            <span class="zm-mode-label">Teslim Et</span>
+                            <span class="zm-mode-sub">Dış kurum</span>
+                        </button>
+                    </div>
+
+                    <!-- Teslim Al: oturum açan kullanıcı -->
+                    <div class="zm-person zm-person-self is-selected" *ngIf="mode() === 'self'">
+                        <span class="zm-avatar">{{ selfInitials }}</span>
+                        <div class="zm-person-info">
+                            <div class="zm-person-name">{{ user()?.name }} {{ user()?.surname }}</div>
+                            <div class="zm-person-meta">Evrak zimmeti üzerinize alınacak</div>
+                        </div>
+                        <span class="material-symbols-outlined zm-person-check">check_circle</span>
+                    </div>
+
+                    <!-- Dış kurum seçimi -->
+                    <div class="zm-field" *ngIf="mode() === 'external'">
+                        <label class="zm-field-label">Kurum</label>
+                        <app-simple-autocomplete
+                            [control]="institutionControl"
+                            [options]="institutionOptions()"
+                            placeholder="Kurum adıyla arayın...">
+                        </app-simple-autocomplete>
+                        <div class="zm-field-hint" *ngIf="selectedInstitutionId() && selectedInstitutionId() === externalInstitutionId()">
+                            Zarfın alıcı bilgisinden otomatik seçildi; gerekirse değiştirebilirsiniz.
+                        </div>
+                    </div>
+
+                    <!-- Personel arama -->
+                    <div class="zm-search zm-search-block" *ngIf="mode() !== 'self' && currentPersonList().length > 5">
+                        <span class="material-symbols-outlined">search</span>
+                        <input type="text" placeholder="Ad, soyad ya da kimlik no ile ara"
+                            [ngModel]="personSearch()" (ngModelChange)="personSearch.set($event)">
+                    </div>
+
+                    <!-- Personel listesi -->
+                    <div class="zm-persons" *ngIf="mode() === 'internal' || (mode() === 'external' && selectedInstitutionId())">
+                        <button type="button" class="zm-person" *ngFor="let p of filteredPersonList()"
+                            [class.is-selected]="selectedPersonId() === p.id"
+                            (click)="selectPerson(p.id)">
+                            <span class="zm-avatar">{{ initials(p) }}</span>
+                            <div class="zm-person-info">
+                                <div class="zm-person-name">{{ p.name }} {{ p.surname }}</div>
+                                <div class="zm-person-meta">{{ p.identityNo || p.email || '-' }}</div>
+                            </div>
+                            <span class="material-symbols-outlined zm-person-check">
+                                {{ selectedPersonId() === p.id ? 'check_circle' : 'radio_button_unchecked' }}
+                            </span>
+                        </button>
+
+                        <div class="zm-empty zm-empty-sm" *ngIf="!filteredPersonList().length">
+                            <div class="zm-empty-icon">
+                                <span class="material-symbols-outlined">person_search</span>
+                            </div>
+                            <div class="zm-empty-title">{{ mode() === 'internal' ? 'Kullanıcı bulunamadı' : 'Personel bulunamadı' }}</div>
+                            <div class="zm-empty-text">
+                                {{ personSearch().trim()
+                                    ? 'Aramaya uygun kayıt yok.'
+                                    : (mode() === 'internal'
+                                        ? 'Aktif iç kullanıcı bulunamadı.'
+                                        : 'Bu kurum için tanımlı personel yok. Sağ üstteki "Personel Ekle" ile hızlıca ekleyebilirsiniz.') }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="zm-empty zm-empty-sm" *ngIf="mode() === 'external' && !selectedInstitutionId()">
+                        <div class="zm-empty-icon">
+                            <span class="material-symbols-outlined">domain</span>
+                        </div>
+                        <div class="zm-empty-title">Önce kurum seçin</div>
+                        <div class="zm-empty-text">Kurum seçildiğinde o kuruma kayıtlı personel burada listelenir.</div>
+                    </div>
+                </div>
+
+                <!-- Özet + aksiyonlar -->
+                <div class="card-footer zm-footer mt-auto">
+                    <div class="zm-summary" [class.is-ready]="selectedTargetLabel()">
+                        <span class="zm-summary-docs">
+                            <span class="material-symbols-outlined">description</span>
+                            {{ documents().length }} evrak
+                        </span>
+                        <span class="material-symbols-outlined zm-summary-arrow">arrow_forward</span>
+                        <span class="zm-summary-target">
+                            {{ selectedTargetLabel() || 'Kişi seçilmedi' }}
+                        </span>
+                    </div>
+                    <div class="zm-footer-actions">
+                        <button type="button" class="btn btn-light zm-back-btn" [disabled]="saving()" (click)="reset()">
+                            <span class="material-symbols-outlined">arrow_back</span>
+                            Geri
+                        </button>
+                        <!-- Mod değişince ikon/metin DOM'da yeniden oluşturulur ki belirme animasyonu tekrar oynasın. -->
+                        <button type="button" class="btn btn-primary zimmet-submit-btn" [attr.data-mode]="mode()"
+                            [disabled]="!selectedPersonId() || !documents().length || saving()" (click)="addZimmet()">
+                            @if (saving()) {
+                                <span class="spinner-border spinner-border-sm zimmet-submit-icon"></span>
+                                <span class="zimmet-submit-text">Kaydediliyor</span>
+                            } @else {
+                                @switch (mode()) {
+                                    @case ('self') {
+                                        <span class="zimmet-submit-icon material-symbols-outlined">download</span>
+                                        <span class="zimmet-submit-text">Teslim Al</span>
+                                    }
+                                    @case ('external') {
+                                        <span class="zimmet-submit-icon material-symbols-outlined">local_shipping</span>
+                                        <span class="zimmet-submit-text">Teslim Et</span>
+                                    }
+                                    @default {
+                                        <span class="zimmet-submit-icon material-symbols-outlined">article_person</span>
+                                        <span class="zimmet-submit-text">Zimmetle</span>
+                                    }
+                                }
+                            }
+                        </button>
+                    </div>
+                </div>
+            </ng-container>
+        </div>
+    </div>
+</div>
+
+<!-- Zarf Etiketi Popup -->
+<div class="modal-overlay" *ngIf="envelopeLabelVisible()" (click)="envelopeLabelVisible.set(false)">
+    <div class="modal-box zm-label-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h5 class="d-flex align-items-center mb-0">
+                <span class="material-symbols-outlined me-2 text-info">mail</span>
+                Zarf Etiketi
+            </h5>
+            <button type="button" class="zm-icon-btn" title="Kapat" (click)="envelopeLabelVisible.set(false)">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <div class="modal-body zm-label-body d-flex justify-content-center" *ngIf="previewEnvelope() as envelope">
+            <div class="envelope-label envelope-label-no-accent">
+                <div class="label-box sender-box">
+                    <div class="label-title">Gönderen</div>
+                    <div class="label-content">
+                        {{ user()?.departmentName }}
+                    </div>
+                    <div class="ministry-row">
+                        <div class="ministry">
+                            T.C. DIŞİŞLERİ BAKANLIĞI
+                        </div>
+                        <div class="label-contentPostCode">
+                            06520
+                        </div>
+                    </div>
+                </div>
+
+                <!-- QR -->
+                <div class="qr-section">
+                    <qrcode [qrdata]="envelope.envelopeNo"
+                        [width]="100"
+                        [errorCorrectionLevel]="'H'"></qrcode>
+                </div>
+
+                <!-- NUMARA -->
+                <div class="label-number">
+                    {{ envelope.envelopeNo }}
+                </div>
+
+                <!-- ALICI -->
+                <div class="label-box receiver-box">
+                    <div class="label-title">Alıcı</div>
+                    <div class="label-External">
+                        {{ externalName() || '-' }}
+                    </div>
+                    <div class="labelDepartment">
+                        {{ envelope.unitName }}
+                    </div>
+                    <div class="labelAddress">
+                        {{ envelope.address || '-' }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" (click)="envelopeLabelVisible.set(false)">Kapat</button>
+        </div>
+    </div>
+</div>
+
+<!-- Hızlı Personel Ekle Popup -->
+<div class="modal-overlay" *ngIf="quickAddModalVisible()" (click)="closeQuickAddModal()">
+    <div class="modal-box zm-quick-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h5 class="d-flex align-items-center mb-0">
+                <span class="material-symbols-outlined me-2 text-info">person_add</span>
+                Personel Ekle
+            </h5>
+            <button type="button" class="zm-icon-btn" title="Kapat" [disabled]="quickAddSaving()" (click)="closeQuickAddModal()">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <div class="modal-body zm-quick-form">
+            <div class="zm-quick-institution" *ngIf="selectedInstitutionName() as instName">
+                <span class="material-symbols-outlined">domain</span>
+                <span>{{ instName }}</span>
+            </div>
+            <div class="row g-3">
+                <div class="col-6">
+                    <label class="zm-field-label">Ad</label>
+                    <input type="text" class="form-control" [(ngModel)]="quickAddForm.name" />
+                </div>
+                <div class="col-6">
+                    <label class="zm-field-label">Soyad</label>
+                    <input type="text" class="form-control" [(ngModel)]="quickAddForm.surname" />
+                </div>
+                <div class="col-12">
+                    <label class="zm-field-label">E-posta</label>
+                    <input type="email" class="form-control" [(ngModel)]="quickAddForm.email" />
+                </div>
+                <div class="col-7">
+                    <label class="zm-field-label">Kimlik / Pasaport No</label>
+                    <input type="text" class="form-control" [(ngModel)]="quickAddForm.identityNo" />
+                </div>
+                <div class="col-5">
+                    <label class="zm-field-label">Kullanıcı Türü</label>
+                    <select class="form-select" [(ngModel)]="quickAddForm.userType">
+                        <option [ngValue]="1">Standart</option>
+                        <option [ngValue]="2">Yetkili</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" [disabled]="quickAddSaving()" (click)="closeQuickAddModal()">İptal</button>
+            <button class="btn btn-primary" [disabled]="quickAddSaving()" (click)="saveQuickAddPerson()">
+                @if (quickAddSaving()) {
+                    <span class="spinner-border spinner-border-sm me-1"></span>
+                }
+                Kaydet
+            </button>
+        </div>
+    </div>
+</div>

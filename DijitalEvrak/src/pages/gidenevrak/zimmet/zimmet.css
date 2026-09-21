@@ -1,0 +1,1177 @@
+/* ============================================================
+   Giden Evrak Teslim Al (zimmet) sayfası
+   Görsel dil: Zarf Etiketi (ticket) ekranıyla aynı — gradient QR okutma
+   bloğu, kartçık listeleri, soft mavi vurgu + nötr gri.
+   Sınıflar bilinçli olarak "zm-" öneki taşır; styles.css'teki
+   person-list / zimmet-* setlerinden bağımsızdır.
+   ============================================================ */
+
+/* Kartlar: sabit yükseklik yerine min-height; içerik uzarsa sayfa kaydırılır */
+.zm-card {
+    min-height: calc(100vh - 130px);
+    border-radius: 14px;
+}
+
+.zm-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* ---- Başlık butonları ---- */
+.zm-pill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px 6px 10px;
+    border: 1px solid rgba(3, 105, 161, 0.18);
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #0369a1;
+    background: #e0f2fe;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.zm-pill-btn .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.zm-pill-btn:hover {
+    background: #0ea5e9;
+    border-color: #0ea5e9;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+}
+
+.zm-icon-btn {
+    border: 0;
+    background: transparent;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    flex: 0 0 auto;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.zm-icon-btn:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.zm-icon-btn .material-symbols-outlined {
+    font-size: 20px;
+}
+
+/* ---- QR okutma bloğu ---- */
+.zm-scan-hero {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 18px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 45%, #22d3ee 100%);
+    color: #fff;
+    box-shadow: 0 8px 22px rgba(14, 165, 233, 0.22);
+    transition: box-shadow 0.2s ease;
+}
+
+.zm-scan-hero.is-active {
+    box-shadow: 0 8px 22px rgba(14, 165, 233, 0.22), 0 0 0 3px rgba(134, 239, 172, 0.55);
+}
+
+.zm-scan-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.zm-scan-icon {
+    position: absolute;
+    left: 14px;
+    font-size: 22px;
+    color: #94a3b8;
+    pointer-events: none;
+    transition: color 0.15s ease;
+}
+
+.zm-scan-wrap:focus-within .zm-scan-icon {
+    color: #0ea5e9;
+}
+
+.zm-scan-input {
+    width: 100%;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    padding: 12px 140px 12px 46px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #0f172a;
+    background: #fff;
+    box-shadow: 0 4px 14px rgba(3, 105, 161, 0.22);
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.zm-scan-input::placeholder {
+    color: #94a3b8;
+    font-weight: 400;
+}
+
+.zm-scan-input:focus {
+    border-color: #bae6fd;
+    box-shadow: 0 4px 14px rgba(3, 105, 161, 0.22), 0 0 0 4px rgba(255, 255, 255, 0.35);
+}
+
+/* Okuma durumu chip'i: pasif gri, aktif yeşil, aranıyor mavi */
+.zm-scan-status {
+    position: absolute;
+    right: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.zm-scan-status.is-active {
+    background: #dcfce7;
+    border-color: #86efac;
+    color: #15803d;
+}
+
+.zm-scan-status.is-loading {
+    background: #e0f2fe;
+    border-color: #bae6fd;
+    color: #0369a1;
+}
+
+.zm-scan-status .spinner-border {
+    width: 12px;
+    height: 12px;
+    border-width: 2px;
+}
+
+.zm-ready-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5);
+    animation: zm-pulse 1.4s ease-out infinite;
+}
+
+@keyframes zm-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
+    70%  { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+.zm-scan-hint {
+    font-size: 11.5px;
+    color: rgba(255, 255, 255, 0.82);
+}
+
+/* ---- Okutulan zarf özeti ---- */
+.zm-envelope {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #f8fafc;
+    border: 1px solid #e7eaf0;
+}
+
+.zm-envelope-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #e0f2fe;
+    color: #0369a1;
+    flex: 0 0 auto;
+}
+
+.zm-envelope-icon .material-symbols-outlined {
+    font-size: 20px;
+}
+
+.zm-envelope-body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.zm-envelope-no {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: #1e293b;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+}
+
+.zm-envelope-meta {
+    font-size: 12px;
+    color: #64748b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.zm-envelope-sep {
+    margin: 0 5px;
+    color: #cbd5e1;
+}
+
+/* ---- Boş durumlar ---- */
+.zm-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 36px 16px;
+    border-radius: 12px;
+    border: 1px dashed #d5dbe5;
+    background: #fbfcfe;
+}
+
+.zm-empty-sm {
+    padding: 24px 16px;
+}
+
+.zm-empty-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #e0f2fe;
+    color: #0369a1;
+    margin-bottom: 12px;
+}
+
+.zm-empty-sm .zm-empty-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+}
+
+.zm-empty-icon .material-symbols-outlined {
+    font-size: 30px;
+}
+
+.zm-empty-sm .zm-empty-icon .material-symbols-outlined {
+    font-size: 24px;
+}
+
+.zm-empty-icon .spinner-border {
+    width: 26px;
+    height: 26px;
+    border-width: 3px;
+}
+
+.zm-empty-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 4px;
+}
+
+.zm-empty-text {
+    font-size: 12.5px;
+    color: #64748b;
+    max-width: 340px;
+}
+
+/* ---- Evrak listesi ---- */
+.zm-list-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.zm-list-title {
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #64748b;
+    text-transform: none;
+}
+
+.zm-list-tools {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.zm-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.zm-search .material-symbols-outlined {
+    position: absolute;
+    left: 10px;
+    font-size: 18px;
+    color: #94a3b8;
+    pointer-events: none;
+}
+
+.zm-search input {
+    width: 190px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 6px 10px 6px 34px;
+    font-size: 12.5px;
+    color: #0f172a;
+    background: #fff;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.zm-search input:focus {
+    border-color: #7dd3fc;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+}
+
+.zm-search-block {
+    width: 100%;
+}
+
+.zm-search-block input {
+    width: 100%;
+    padding: 9px 12px 9px 36px;
+    font-size: 13px;
+}
+
+.zm-sort {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.zm-sort .material-symbols-outlined {
+    font-size: 15px;
+}
+
+.zm-sort:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.zm-sort.is-active {
+    background: #e0f2fe;
+    border-color: rgba(3, 105, 161, 0.2);
+    color: #0369a1;
+}
+
+.zm-doc-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.zm-doc {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid #e7eaf0;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    transition: box-shadow 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+    animation: zm-fade-in 0.25s ease;
+}
+
+.zm-doc:hover {
+    border-color: #d5dbe5;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+    transform: translateY(-1px);
+}
+
+.zm-doc-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f5f9;
+    color: #64748b;
+    flex: 0 0 auto;
+}
+
+.zm-doc-icon .material-symbols-outlined {
+    font-size: 19px;
+}
+
+.zm-doc-body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.zm-doc-no {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+}
+
+/* Tarih: kartın sağında, sabit genişlikli sütun gibi hizalı */
+.zm-doc-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex: 0 0 auto;
+    font-size: 12px;
+    color: #94a3b8;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.zm-doc-meta .material-symbols-outlined {
+    font-size: 14px;
+}
+
+.zm-doc-remove {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #cbd5e1;
+    cursor: pointer;
+    flex: 0 0 auto;
+    transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.zm-doc-remove .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.zm-doc-remove:hover {
+    color: #dc2626;
+    background: #fee2e2;
+    border-color: #fecaca;
+}
+
+.zm-list-none {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 20px;
+    font-size: 12.5px;
+    color: #94a3b8;
+}
+
+.zm-list-none .material-symbols-outlined {
+    font-size: 18px;
+}
+
+/* ---- Sağ panel: adım rehberi ---- */
+.zm-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 6px 2px;
+}
+
+.zm-step {
+    display: flex;
+    gap: 14px;
+    padding: 14px 12px;
+    border-radius: 12px;
+    position: relative;
+    transition: background-color 0.15s ease;
+}
+
+.zm-step:hover {
+    background: #f8fafc;
+}
+
+/* Adımlar arasındaki ince bağlantı çizgisi */
+.zm-step:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    left: 27px;
+    top: 46px;
+    bottom: -6px;
+    width: 2px;
+    background: linear-gradient(180deg, #bae6fd, transparent);
+}
+
+.zm-step-no {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: #0369a1;
+    background: #e0f2fe;
+    border: 1px solid rgba(3, 105, 161, 0.2);
+    flex: 0 0 auto;
+}
+
+.zm-step-body {
+    min-width: 0;
+    padding-top: 4px;
+}
+
+.zm-step-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 3px;
+}
+
+.zm-step-text {
+    font-size: 12.5px;
+    color: #64748b;
+    line-height: 1.5;
+}
+
+/* ---- Teslim türü: segment seçici ---- */
+.zm-modes {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    padding: 4px;
+    border-radius: 14px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+}
+
+.zm-mode {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 10px 6px 8px;
+    border: 1px solid transparent;
+    border-radius: 11px;
+    background: transparent;
+    color: #64748b;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.zm-mode .material-symbols-outlined {
+    font-size: 22px;
+}
+
+.zm-mode-label {
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.zm-mode-sub {
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+.zm-mode:hover {
+    color: #0f172a;
+    background: rgba(255, 255, 255, 0.6);
+}
+
+.zm-mode.is-active {
+    background: #fff;
+    color: #0369a1;
+    border-color: #e2e8f0;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.zm-mode.is-active .zm-mode-sub {
+    color: #0ea5e9;
+}
+
+/* ---- Form alanı ---- */
+.zm-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.zm-field-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #94a3b8;
+    margin-bottom: 4px;
+}
+
+.zm-field-hint {
+    font-size: 11.5px;
+    color: #94a3b8;
+}
+
+/* ---- Personel listesi ---- */
+.zm-persons {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.zm-person {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid #e7eaf0;
+    background: #fff;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.zm-person:hover {
+    border-color: #bae6fd;
+    background: #f8fcff;
+}
+
+.zm-person.is-selected {
+    border-color: #7dd3fc;
+    background: #f0f9ff;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+}
+
+.zm-person-self {
+    cursor: default;
+}
+
+.zm-avatar {
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #0369a1;
+    background: #e0f2fe;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.zm-person.is-selected .zm-avatar {
+    color: #fff;
+    background: linear-gradient(135deg, #0284c7, #22d3ee);
+}
+
+.zm-person-info {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.zm-person-name {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.zm-person-meta {
+    font-size: 11.5px;
+    color: #94a3b8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.zm-person-check {
+    flex: 0 0 auto;
+    font-size: 22px;
+    color: #cbd5e1;
+    transition: color 0.15s ease;
+}
+
+.zm-person.is-selected .zm-person-check {
+    color: #0ea5e9;
+}
+
+/* ---- Alt özet + aksiyonlar ---- */
+.zm-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    background: #fff;
+    border-top: 1px solid #eef2f7;
+    padding: 12px 16px;
+    border-radius: 0 0 14px 14px;
+}
+
+.zm-summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    font-size: 12.5px;
+    color: #94a3b8;
+}
+
+.zm-summary-docs {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-weight: 700;
+    color: #475569;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    white-space: nowrap;
+}
+
+.zm-summary-docs .material-symbols-outlined {
+    font-size: 15px;
+}
+
+.zm-summary-arrow {
+    font-size: 18px;
+    color: #cbd5e1;
+}
+
+.zm-summary-target {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.zm-summary.is-ready .zm-summary-target {
+    color: #0369a1;
+}
+
+.zm-summary.is-ready .zm-summary-arrow {
+    color: #0ea5e9;
+}
+
+.zm-footer-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.zm-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.zm-back-btn .material-symbols-outlined {
+    font-size: 18px;
+}
+
+/* ---- Popup'lar ---- */
+.zm-label-modal {
+    width: auto;
+    min-width: 460px;
+    max-width: 95vw;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.zm-label-body {
+    padding: 28px;
+    background: linear-gradient(160deg, #f8fafc 0%, #eef4fc 100%);
+}
+
+.zm-label-body .envelope-label {
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14), 0 1px 3px rgba(15, 23, 42, 0.06);
+    border-radius: 4px;
+}
+
+.zm-quick-modal {
+    width: 480px;
+    max-width: calc(100vw - 32px);
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.zm-quick-form {
+    padding: 1.25rem 1.5rem;
+}
+
+.zm-quick-form .form-control,
+.zm-quick-form .form-select {
+    border-radius: 10px;
+    font-size: 13px;
+}
+
+.zm-quick-institution {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    align-self: flex-start;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #0369a1;
+    background: #e0f2fe;
+    border: 1px solid rgba(3, 105, 161, 0.2);
+}
+
+.zm-quick-institution .material-symbols-outlined {
+    font-size: 16px;
+}
+
+@keyframes zm-fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- Zimmetle / Teslim Al / Teslim Et butonu: hover geçiş animasyonu ----
+   Buton hover'da hafifçe yükselir, parlama şeridi soldan sağa geçer ve ikon
+   moda göre farklı bir hareket yapar (indirme büyür, kargo sağa, zimmet sallanır). */
+.zimmet-submit-btn {
+    position: relative;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 10px;
+    font-weight: 600;
+    padding: 0.45rem 1.1rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.zimmet-submit-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -75%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+    transform: skewX(-20deg);
+    transition: left 0.5s ease;
+    pointer-events: none;
+}
+
+.zimmet-submit-btn:hover::before {
+    left: 125%;
+}
+
+.zimmet-submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(13, 110, 253, 0.32);
+}
+
+.zimmet-submit-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 3px 8px rgba(13, 110, 253, 0.25);
+}
+
+.zimmet-submit-icon {
+    font-size: 18px;
+    display: inline-block;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.zimmet-submit-text {
+    display: inline-block;
+    transition: letter-spacing 0.2s ease;
+}
+
+.zimmet-submit-btn:hover .zimmet-submit-text {
+    letter-spacing: 0.02em;
+}
+
+/* Teslim Al: ikon yerinde hafifçe büyür (dikey kayma yok) */
+.zimmet-submit-btn[data-mode="self"]:hover .zimmet-submit-icon {
+    transform: scale(1.15);
+}
+
+/* Teslim Et: kargo aracı sağa doğru yola çıkar */
+.zimmet-submit-btn[data-mode="external"]:hover .zimmet-submit-icon {
+    transform: translateX(4px);
+}
+
+/* Zimmetle: ikon hafifçe büyür ve sallanır */
+.zimmet-submit-btn[data-mode="internal"]:hover .zimmet-submit-icon {
+    animation: zimmet-submit-wiggle 0.5s ease;
+    transform: scale(1.15);
+}
+
+@keyframes zimmet-submit-wiggle {
+    0% { transform: scale(1) rotate(0deg); }
+    30% { transform: scale(1.2) rotate(-8deg); }
+    60% { transform: scale(1.2) rotate(8deg); }
+    100% { transform: scale(1.15) rotate(0deg); }
+}
+
+/* Mod değişince (şablonda @switch ile yeniden oluşturulan) ikon ve metin yumuşak belirir */
+.zimmet-submit-icon,
+.zimmet-submit-text {
+    animation: zimmet-submit-fade-in 0.25s ease;
+}
+
+@keyframes zimmet-submit-fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .zimmet-submit-btn,
+    .zimmet-submit-btn::before,
+    .zimmet-submit-icon,
+    .zimmet-submit-text,
+    .zm-doc,
+    .zm-ready-dot {
+        transition: none;
+        animation: none;
+    }
+}
+
+/* ---- Dar ekran ---- */
+@media (max-width: 991.98px) {
+    .zm-card {
+        min-height: 0;
+        margin-bottom: 16px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .zm-scan-input {
+        padding-right: 46px;
+    }
+
+    .zm-scan-status {
+        display: none;
+    }
+
+    .zm-search input {
+        width: 140px;
+    }
+
+    .zm-mode-sub {
+        display: none;
+    }
+}
+
+/* ============================================================
+   Koyu tema
+   ============================================================ */
+[data-theme="dark"] .zm-pill-btn,
+[data-theme="dark"] .zm-quick-institution {
+    background: rgba(14, 165, 233, 0.18);
+    border-color: rgba(14, 165, 233, 0.35);
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .zm-pill-btn:hover {
+    background: #0ea5e9;
+    color: #fff;
+}
+
+[data-theme="dark"] .zm-icon-btn:hover {
+    background: rgba(148, 163, 184, 0.12);
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .zm-scan-hero {
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .zm-scan-input {
+    background: #111827;
+    border-color: rgba(148, 163, 184, 0.25);
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .zm-scan-status {
+    background: rgba(148, 163, 184, 0.12);
+    border-color: rgba(148, 163, 184, 0.25);
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .zm-scan-status.is-active {
+    background: rgba(34, 197, 94, 0.18);
+    border-color: rgba(34, 197, 94, 0.35);
+    color: #86efac;
+}
+
+[data-theme="dark"] .zm-scan-status.is-loading {
+    background: rgba(14, 165, 233, 0.18);
+    border-color: rgba(14, 165, 233, 0.35);
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .zm-envelope,
+[data-theme="dark"] .zm-doc,
+[data-theme="dark"] .zm-person {
+    background: rgba(148, 163, 184, 0.06);
+    border-color: rgba(148, 163, 184, 0.18);
+}
+
+[data-theme="dark"] .zm-doc:hover,
+[data-theme="dark"] .zm-person:hover {
+    border-color: rgba(148, 163, 184, 0.32);
+    background: rgba(148, 163, 184, 0.1);
+}
+
+[data-theme="dark"] .zm-person.is-selected {
+    background: rgba(14, 165, 233, 0.14);
+    border-color: rgba(14, 165, 233, 0.45);
+}
+
+[data-theme="dark"] .zm-envelope-icon,
+[data-theme="dark"] .zm-empty-icon,
+[data-theme="dark"] .zm-step-no,
+[data-theme="dark"] .zm-avatar {
+    background: rgba(14, 165, 233, 0.18);
+    border-color: rgba(14, 165, 233, 0.35);
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .zm-doc-icon {
+    background: rgba(148, 163, 184, 0.14);
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .zm-envelope-no,
+[data-theme="dark"] .zm-doc-no,
+[data-theme="dark"] .zm-person-name,
+[data-theme="dark"] .zm-empty-title,
+[data-theme="dark"] .zm-step-title {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .zm-envelope-meta,
+[data-theme="dark"] .zm-field-hint,
+[data-theme="dark"] .zm-empty-text,
+[data-theme="dark"] .zm-step-text,
+[data-theme="dark"] .zm-list-title {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .zm-empty {
+    background: rgba(148, 163, 184, 0.05);
+    border-color: rgba(148, 163, 184, 0.25);
+}
+
+[data-theme="dark"] .zm-step:hover {
+    background: rgba(148, 163, 184, 0.06);
+}
+
+[data-theme="dark"] .zm-search input,
+[data-theme="dark"] .zm-sort {
+    background: #111827;
+    border-color: rgba(148, 163, 184, 0.25);
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .zm-sort:hover {
+    background: rgba(148, 163, 184, 0.12);
+}
+
+[data-theme="dark"] .zm-sort.is-active {
+    background: rgba(14, 165, 233, 0.18);
+    border-color: rgba(14, 165, 233, 0.35);
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .zm-doc-remove:hover {
+    background: rgba(220, 38, 38, 0.18);
+    border-color: rgba(220, 38, 38, 0.35);
+}
+
+[data-theme="dark"] .zm-modes {
+    background: rgba(148, 163, 184, 0.08);
+    border-color: rgba(148, 163, 184, 0.18);
+}
+
+[data-theme="dark"] .zm-mode {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .zm-mode:hover {
+    background: rgba(148, 163, 184, 0.1);
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .zm-mode.is-active {
+    background: #1e293b;
+    border-color: rgba(14, 165, 233, 0.35);
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .zm-footer {
+    background: rgba(255, 255, 255, 0.02);
+    border-top-color: rgba(148, 163, 184, 0.16);
+}
+
+[data-theme="dark"] .zm-summary-docs {
+    background: rgba(148, 163, 184, 0.12);
+    border-color: rgba(148, 163, 184, 0.25);
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .zm-summary.is-ready .zm-summary-target {
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .zm-label-modal,
+[data-theme="dark"] .zm-quick-modal {
+    background: #1a2030;
+}
+
+[data-theme="dark"] .zm-label-body {
+    background: linear-gradient(160deg, #111827 0%, #1e293b 100%);
+}

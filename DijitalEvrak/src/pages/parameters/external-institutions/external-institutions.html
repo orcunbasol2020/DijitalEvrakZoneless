@@ -1,0 +1,139 @@
+<app-generic pageTitle="Dış Kurumlar"
+  [breadcrumbs]="[{ title: 'Dış Kurumlar', url: 'externalinstitution', icon: '' }]">
+</app-generic>
+
+<div [class.show-filters]="showFilters">
+  <flexi-grid
+    [data]="data()"
+    [loading]="loading()"
+    language="tr"
+    [showCaption]="true"
+    captionTitle="Dış Kurumlar"
+    [showExportExcelBtn]="true"
+    exportExcelFileName="externalInstitution"
+    [filterable]="true"
+    (onRefresh)="result.reload()">
+    <ng-template flexiGridCaptionCommandTemplate>
+
+      <!-- Filtre Aç/Kapa butonu -->
+      <flexi-button
+        btnIcon="filter_alt"
+        btnColor="light"
+        title="Filtre Aç/Kapat"
+        flexiTooltip
+        (click)="showFilters = !showFilters">
+      </flexi-button>
+
+      <flexi-button
+        (click)="openCreateModal()"
+        btnIcon="add"
+        btnColor="primary"
+        title="Kurum Ekle"
+        flexiTooltip />
+    </ng-template>
+
+    <flexi-grid-column field="name" title="Adı" />
+    <flexi-grid-column field="type" title="Tür" width="100px">
+      <ng-template flexiGridCellTemplate let-item>
+        {{ typeMap[+item.type] || '-' }}
+      </ng-template>
+    </flexi-grid-column>
+    <flexi-grid-column field="address" title="Adres" />
+    <flexi-grid-column field="parentId" title="Bağlı Olduğu Kurum" width="180px">
+      <ng-template flexiGridCellTemplate let-item>
+        {{ parentName(item.parentId) }}
+      </ng-template>
+    </flexi-grid-column>
+
+    <flexi-grid-column field="isDeleted" title="Silindi" textAlign="center"
+      filterType="boolean" [booleanData]="['Silindi', 'Silinmedi']"
+      width="90px">
+      <ng-template flexiGridCellTemplate let-item>
+        <div class="d-flex justify-content-center">
+          <span
+            class="material-symbols-outlined"
+            style="font-size: 1.35rem;"
+            [ngStyle]="{ color: item.isDeleted ? '#e53935' : '#4CAF50' }">
+            {{ item.isDeleted ? 'cancel' : 'check_circle' }}
+          </span>
+        </div>
+      </ng-template>
+    </flexi-grid-column>
+
+    <ng-template flexiGridColumnCommandTemplate let-item width="90px">
+      <flexi-button
+        (click)="openEditModal(item)"
+        btnIcon="edit"
+        btnColor="info"
+        title="Güncelle"
+        flexiTooltip />
+
+      <flexi-button
+        (click)="delete(item)"
+        btnIcon="delete"
+        btnColor="warning"
+        title="Sil"
+        flexiTooltip />
+    </ng-template>
+  </flexi-grid>
+</div>
+
+<!-- Ekle / Düzenle Modal -->
+@if (modalVisible()) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal-box" style="width: 420px;" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h5 class="d-flex align-items-center mb-0">
+          <span class="material-symbols-outlined me-2 text-secondary">apartment</span>
+          {{ editingId() ? 'Kurumu Güncelle' : 'Yeni Kurum Ekle' }}
+        </h5>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Kurum Adı</label>
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Örn. Dışişleri Bakanlığı"
+            [(ngModel)]="form.name" />
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Tür</label>
+          <select class="form-select" [(ngModel)]="form.type">
+            <option [ngValue]="1">Misyon</option>
+            <option [ngValue]="2">Kurum</option>
+            <option [ngValue]="3">Şahıs</option>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Adres</label>
+          <textarea
+            class="form-control"
+            rows="2"
+            [(ngModel)]="form.address"></textarea>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Bağlı Olduğu Kurum</label>
+          <select class="form-select" [(ngModel)]="form.parentId">
+            <option [ngValue]="null">Yok</option>
+            <option *ngFor="let p of parentOptions()" [ngValue]="p.id">
+              {{ p.name }}
+            </option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" [disabled]="saving()" (click)="closeModal()">İptal</button>
+        <button class="btn btn-primary" [disabled]="saving()" (click)="save()">
+          @if (saving()) {
+            <span class="spinner-border spinner-border-sm me-1"></span>
+          }
+          Kaydet
+        </button>
+      </div>
+    </div>
+  </div>
+}
