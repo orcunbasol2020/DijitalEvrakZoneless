@@ -1,72 +1,122 @@
-<div id="sidebar-wrapper">
+<aside id="sidebar-wrapper">
 
-  <div class="sidebar-brand d-flex align-items-center justify-content-between">
-    <a routerLink="/" class="d-flex gap-3 logo mt-1">
-      <img src="assets/images/logo.png" width="190" height="60" />
+  <div class="sb-brand">
+    <a routerLink="/" class="sb-logo" title="Kontrol Paneli"
+       (mouseenter)="showMiniTooltip($event, 'Dijital Evrak Takip Sistemi')"
+       (mouseleave)="hideMiniTooltip()">
+      <img class="sb-logo-mark" src="assets/images/dijital-evrak-mark.png" width="242" height="174" alt="" />
+      <span class="sb-logo-text">
+        <span class="sb-logo-title">DİJİTAL EVRAK</span>
+        <span class="sb-logo-subtitle" aria-label="Takip Sistemi">
+          @for (ch of subtitleChars; track $index) {
+            <span aria-hidden="true">{{ ch }}</span>
+          }
+        </span>
+      </span>
     </a>
   </div>
 
-  <div class="sidebar-search">
-    <div class="position-relative">
-      <input
-        type="text"
-        class="form-control sidebar-search-input"
-        [(ngModel)]="search"
-        placeholder="arama ..."
-      />
-
-      <span class="material-symbols-outlined sidebar-search-icon">
-        search
-      </span>
-    </div>
+  <div class="sb-search">
+    <span class="material-symbols-outlined sb-search-icon">search</span>
+    <input
+      type="text"
+      class="sb-search-input"
+      [ngModel]="search()"
+      (ngModelChange)="search.set($event)"
+      placeholder="Menüde ara"
+      aria-label="Menüde ara"
+    />
+    @if (search()) {
+      <button type="button" class="sb-search-clear" (click)="search.set('')" aria-label="Aramayı temizle">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    }
   </div>
 
-  <ul class="nav-menu">
+  <nav class="sb-nav" aria-label="Ana menü">
 
-    @for (item of visibleItems(navigations() | searchMenu: search()); track item.title ?? item.category) {
+    @for (group of groups(); track group.category ?? '__root') {
+      <div class="sb-group" [class.is-collapsed]="isGroupCollapsed(group)">
 
-      @if (item.category) {
-        <li class="nav-category" (click)="toggleCategory(item.category)">
-          <span>{{ item.category }}</span>
-          <span class="material-symbols-outlined nav-category-chevron">
-            {{ isCategoryCollapsed(item.category) ? 'chevron_right' : 'expand_more' }}
-          </span>
-        </li>
-      } @else {
-        <li class="nav-item">
-          <a [routerLink]="item.url"
-             routerLinkActive="active"
-             [routerLinkActiveOptions]="{ exact: true }"
-             class="nav-link">
+        @if (group.category) {
+          <button type="button"
+                  class="sb-category"
+                  (click)="toggleCategory(group.category)"
+                  [attr.aria-expanded]="!isGroupCollapsed(group)">
+            <span class="sb-category-label">{{ group.label }}</span>
+            <span class="sb-category-line"></span>
+            <span class="material-symbols-outlined sb-category-chevron">expand_more</span>
+          </button>
+        }
 
-            <span class="nav-icon material-symbols-outlined">
-              {{ item.icon }}
-            </span>
+        <div class="sb-group-body">
+          <ul class="sb-menu">
+            @for (item of group.items; track item.url) {
+              <li>
+                <a [routerLink]="item.url"
+                   routerLinkActive="active"
+                   [routerLinkActiveOptions]="{ exact: true }"
+                   class="sb-link"
+                   (mouseenter)="showMiniTooltip($event, item.title)"
+                   (mouseleave)="hideMiniTooltip()">
+                  <span class="sb-icon material-symbols-outlined">{{ item.icon }}</span>
+                  <span class="sb-label">{{ item.title }}</span>
+                  @if (badgeFor(item); as count) {
+                    <span class="sb-badge">{{ count }}</span>
+                  }
+                </a>
+              </li>
+            }
+          </ul>
+        </div>
 
-            <span>{{ item.title }}</span>
-
-          </a>
-        </li>
-      }
-
+      </div>
+    } @empty {
+      <div class="sb-empty">
+        <span class="material-symbols-outlined">search_off</span>
+        <span>"{{ search() }}" ile eşleşen menü yok</span>
+      </div>
     }
 
-  </ul>
+  </nav>
 
-  <div class="sidebar-sticky-menu">
-
-    <a routerLink="/settings" class="sticky-menu-item" title="Ayarlar" flexiTooltip="right">
-      <span class="material-symbols-outlined">settings</span>
+  <div class="sb-footer">
+    <a class="sb-user"
+       routerLink="/settings"
+       (mouseenter)="showMiniTooltip($event, userFullName())"
+       (mouseleave)="hideMiniTooltip()">
+      <span class="sb-avatar">
+        @if (userAvatar(); as avatar) {
+          <img [src]="avatar" alt="" />
+        } @else {
+          <span class="sb-avatar-initials">{{ userInitials() }}</span>
+        }
+      </span>
+      <span class="sb-user-info">
+        <span class="sb-user-name">{{ userFullName() }}</span>
+        <span class="sb-user-meta" [title]="user()?.departmentName">
+          @if (user()?.departmentShortName) {
+            <span>{{ user()?.departmentShortName }}</span>
+          }
+          @if (userRoleLabel()) {
+            <span class="sb-user-role" [class.is-admin]="isAdmin()">{{ userRoleLabel() }}</span>
+          }
+        </span>
+      </span>
     </a>
 
-    <a routerLink="/support" class="sticky-menu-item" title="Destek" flexiTooltip="right">
-      <span class="material-symbols-outlined">support_agent</span>
-    </a>
-
-    <a (click)="logout()" class="sticky-menu-item" title="Çıkış Yap" flexiTooltip="right">
+    <button type="button"
+            class="sb-logout"
+            (click)="logout()"
+            aria-label="Çıkış Yap"
+            (mouseenter)="showMiniTooltip($event, 'Çıkış Yap')"
+            (mouseleave)="hideMiniTooltip()">
       <span class="material-symbols-outlined">logout</span>
-    </a>
-
+    </button>
   </div>
 
-</div>
+  @if (miniTooltip(); as tip) {
+    <div class="sb-mini-tooltip" [style.top.px]="tip.top">{{ tip.text }}</div>
+  }
+
+</aside>

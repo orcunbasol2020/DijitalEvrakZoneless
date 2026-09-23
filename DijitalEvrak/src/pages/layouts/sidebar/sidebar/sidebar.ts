@@ -1,17 +1,28 @@
-import { Component, inject, signal, computed, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, signal, computed, ChangeDetectionStrategy, ViewEncapsulation, input } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { RoleService } from '../../../../services/role-service';
 import { SearchMenuPipe } from '../../../../pipes/search-menu-pipe';
 import { NavigationModel } from '../../../../navigation';
 import { Common } from '../../../../services/common';
-import { FlexiTooltipDirective } from 'flexi-tooltip';
+import { getUserAvatar } from '../../../../services/user-avatar';
+
+interface NavGroup {
+  category: string | null;
+  /** Kategori adının Türkçe kurallarına göre büyük harfli hali (CSS text-transform "i" harfini bozar). */
+  label: string;
+  items: NavigationModel[];
+}
+
+interface MiniTooltip {
+  text: string;
+  top: number;
+}
 
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, RouterLinkActive, SearchMenuPipe, FlexiTooltipDirective],
+  imports: [FormsModule, RouterLink, RouterLinkActive],
   templateUrl: './sidebar.html',
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -21,10 +32,57 @@ export class Sidebar {
   private roleService = inject(RoleService);
   private common = inject(Common);
   private router = inject(Router);
+  private readonly searchPipe = new SearchMenuPipe();
+
+  /** Header'daki bildirim sayacıyla aynı kaynak; "Gelen Evraklar" menüsünün yanında rozet olarak gösterilir. */
+  readonly pendingCount = input<number>(0);
+
+  /** "Takip Sistemi" harf harf dağıtılarak "DİJİTAL EVRAK" başlığıyla aynı genişliğe yayılır. */
+  readonly subtitleChars = 'Takip Sistemi'.split('');
 
   search = signal<string>("");
+  readonly isSearching = computed(() => this.search().trim().length > 0);
 
   navigations = computed(() => this.roleService.getMenu());
+
+  readonly user = computed(() => this.common.user());
+  readonly userAvatar = computed(() => getUserAvatar(this.user()));
+  readonly userFullName = computed(() => `${this.user()?.name ?? ''} ${this.user()?.surname ?? ''}`.trim());
+  readonly userInitials = computed(() => {
+    const u = this.user();
+    const first = (u?.name ?? '').trim().charAt(0);
+    const last = (u?.surname ?? '').trim().charAt(0);
+    return `${first}${last}`.toLocaleUpperCase('tr') || '?';
+  });
+  readonly isAdmin = computed(() => this.roleService.has('Yönetici'));
+  readonly isBirimEvrakSorumlusu = computed(() => this.roleService.has('Birim Evrak Sorumlusu'));
+  readonly userRoleLabel = computed(() => {
+    if (this.isAdmin()) return 'Yönetici';
+    if (this.isBirimEvrakSorumlusu()) return 'Birim Evrak Sorumlusu';
+    return this.roleService.roles[0] ?? '';
+  });
+
+  /** Menü öğeleri kategori bazında gruplanır; arama varken filtre uygulanır. */
+  readonly groups = computed<NavGroup[]>(() => {
+    const items = this.searchPipe.transform(this.navigations(), this.search());
+    const groups: NavGroup[] = [];
+    let current: NavGroup | null = null;
+
+    for (const item of items) {
+      if (item.category) {
+        current = { category: item.category, label: item.category.toLocaleUpperCase('tr'), items: [] };
+        groups.push(current);
+        continue;
+      }
+      if (!current) {
+        current = { category: null, label: '', items: [] };
+        groups.push(current);
+      }
+      current.items.push(item);
+    }
+
+    return groups;
+  });
 
   private static readonly DEFAULT_OPEN_CATEGORY = 'Gelen Evrak';
 
@@ -46,7 +104,14 @@ export class Sidebar {
     return this.collapsedCategories().has(category);
   }
 
+  /** Arama yapılırken tüm gruplar açık gösterilir ki sonuçlar gizli kalmasın. */
+  isGroupCollapsed(group: NavGroup): boolean {
+    return !!group.category && !this.isSearching() && this.isCategoryCollapsed(group.category);
+  }
+
   toggleCategory(category: string): void {
+    if (this.isSearching()) return;
+
     if (this.expandAllByDefault) {
       this.collapsedCategories.update(current => {
         const next = new Set(current);
@@ -68,20 +133,23 @@ export class Sidebar {
     });
   }
 
-  visibleItems(items: NavigationModel[]): NavigationModel[] {
-    const result: NavigationModel[] = [];
-    let currentCollapsed = false;
+  badgeFor(item: NavigationModel): number {
+    return item.url === '/scanlist' ? this.pendingCount() : 0;
+  }
 
-    for (const item of items) {
-      if (item.category) {
-        currentCollapsed = this.isCategoryCollapsed(item.category);
-        result.push(item);
-      } else if (!currentCollapsed) {
-        result.push(item);
-      }
-    }
+  // ----- Mini (yalnız ikon) mod tooltip'i -----
+  // Sidebar overflow-y:auto olduğundan içeride absolute tooltip kırpılır;
+  // bunun yerine position:fixed tek bir tooltip elemanı kullanılır.
+  readonly miniTooltip = signal<MiniTooltip | null>(null);
 
-    return result;
+  showMiniTooltip(event: MouseEvent, text: string | undefined): void {
+    if (!text || !document.body.classList.contains('sb-mini')) return;
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    this.miniTooltip.set({ text, top: rect.top + rect.height / 2 });
+  }
+
+  hideMiniTooltip(): void {
+    this.miniTooltip.set(null);
   }
 
   logout(): void {

@@ -151,6 +151,8 @@ export default class Layouts {
   );
 
   constructor() {
+    this.restoreSidebarMode();
+
     const userId = this.user()?.id;
 
     if (userId) {
@@ -175,9 +177,38 @@ logout(): void {
   this.router.navigateByUrl('/login');
 }
 
+/**
+ * Masaüstünde sol menü tamamen gizlenmek yerine yalnız ikon (mini) moduna daralır;
+ * mobilde ise eskisi gibi off-canvas olarak açılıp kapanır.
+ */
 toggleSidebar(): void {
   this.sidebarCollapsed.update(collapsed => !collapsed);
-  document.body.classList.toggle('sb-toggled', this.sidebarCollapsed());
+
+  if (Layouts.isMobileViewport()) {
+    document.body.classList.toggle('sb-toggled', this.sidebarCollapsed());
+    return;
+  }
+
+  document.body.classList.toggle('sb-mini', this.sidebarCollapsed());
+  try {
+    localStorage.setItem(Layouts.SIDEBAR_MINI_KEY, this.sidebarCollapsed() ? '1' : '0');
+  } catch { /* localStorage kapalıysa tercih kaydedilmez */ }
+}
+
+private static readonly SIDEBAR_MINI_KEY = 'sidebar-mini';
+
+private static isMobileViewport(): boolean {
+  return window.matchMedia('(max-width: 768px)').matches;
+}
+
+private restoreSidebarMode(): void {
+  if (Layouts.isMobileViewport()) return;
+  let mini = false;
+  try {
+    mini = localStorage.getItem(Layouts.SIDEBAR_MINI_KEY) === '1';
+  } catch { /* localStorage kapalıysa varsayılan (geniş) mod */ }
+  this.sidebarCollapsed.set(mini);
+  document.body.classList.toggle('sb-mini', mini);
 }
 
 public goToPendingScanList() {

@@ -16,11 +16,19 @@
     --bg-light: #f8f9fa;
     --bg-lightBlue: #c9ebf3;
     --sidebar-width: 260px;
+    --sidebar-mini-width: 72px;
     --sidebar-bg: #0f172a;
+    --sidebar-bg-bottom: #0b1222;
     --sidebar-darker: #1d2740;
     --sidebar-even-darker: #1c2a36;
-    --sidebar-hover: #303a51;
-    --sidebar-text: #bdc3c7;
+    --sidebar-surface: rgba(255, 255, 255, 0.05);
+    --sidebar-border: rgba(255, 255, 255, 0.08);
+    --sidebar-hover: rgba(255, 255, 255, 0.06);
+    --sidebar-active-bg: rgba(67, 97, 238, 0.22);
+    --sidebar-accent: #8aa4ff;
+    --sidebar-text: #aeb6c6;
+    --sidebar-text-strong: #f1f5f9;
+    --sidebar-category: rgba(226, 232, 240, 0.45);
     --sidebar-active: #ffffff;
 
     --breadcrumb-text-color: #4a5568;
@@ -59,9 +67,10 @@
     --bg-light: #2d3748;
 
     --sidebar-bg: #171923;
+    --sidebar-bg-bottom: #0f1117;
     --sidebar-darker: #0d1117;
     --sidebar-even-darker: #06090f;
-    --sidebar-hover: #2d3748;
+    --sidebar-hover: rgba(255, 255, 255, 0.06);
 
     /* Dark mod için ek renkler */
     --input-border: #4a5568;
@@ -116,7 +125,7 @@ a {
     height: var(--header-height);
     padding: 0 1rem;
     z-index: 1030;
-    left: 260px;
+    left: var(--sidebar-width);
     right: 0;
     position: fixed;
     transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -173,174 +182,606 @@ a {
     object-fit: cover;
 }
 
-/* Sidebar */
+/* ==========================================================================
+   Sol Menü (Sidebar)
+   Yapı: marka → arama → kaydırılabilir menü → kullanıcı kartı.
+   Masaüstünde body.sb-mini ile yalnız ikon moduna daralır (72px),
+   mobilde body.sb-toggled ile off-canvas açılır.
+   ========================================================================== */
 #sidebar-wrapper {
-    text-align: left;
-    min-height: 100vh;
-    width: var(--sidebar-width);
-    background-color: var(--sidebar-bg);
-    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    will-change: transform;
     position: fixed;
-    z-index: 11020;
-    overflow-y: auto;
-    height: 100vh;
-    color: var(--sidebar-text);
     top: 0;
     bottom: 0;
     left: 0;
+    width: var(--sidebar-width);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, var(--sidebar-bg) 0%, var(--sidebar-bg-bottom) 100%);
+    color: var(--sidebar-text);
+    border-right: 1px solid var(--sidebar-border);
+    text-align: left;
+    z-index: 11020;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Modern scrollbar for sidebar */
-#sidebar-wrapper::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-
-#sidebar-wrapper::-webkit-scrollbar-track {
-    background: transparent;
-    border-radius: 10px;
-    margin: 10px 0;
-}
-
-#sidebar-wrapper::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
-    transition: all 0.3s ease;
-}
-
-#sidebar-wrapper::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
-}
-
-/* For Firefox */
-#sidebar-wrapper {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
-}
-
-/* Only show scrollbar when hovering */
-#sidebar-wrapper {
-    overflow-y: auto;
-}
-
-[data-theme="dark"] #sidebar-wrapper::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
-}
-
-[data-theme="dark"] #sidebar-wrapper::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.25);
-}
-
-.sidebar-brand {
-    padding: 1rem;
-    background-color: var(--sidebar-bg);
+/* --- Marka --- */
+.sb-brand {
+    flex-shrink: 0;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: calc(0.75rem + 5px) 0.75rem calc(0.625rem + 5px) calc(0.75rem + 5px);
+    border-bottom: 1px solid var(--sidebar-border);
 }
 
-.btn-close-sidebar {
+.sb-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    min-width: 0;
+    color: inherit;
+    text-decoration: none;
+}
+
+.sb-logo:hover {
+    color: inherit;
+}
+
+/* Amblemin dış zemini şeffaf; koyu menüde lacivert şekilleri ayırmak için hafif gölge */
+.sb-logo-mark {
+    flex-shrink: 0;
+    width: 86px;
+    height: auto;
+    display: block;
+    filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.45));
+    transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sb-logo-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.sb-logo-text > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sb-logo-title {
+    color: var(--sidebar-text-strong);
+    font-size: 0.875rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+/* Harfler başlığın genişliğine eşit aralıklarla dağıtılır (tipografik lockup) */
+.sb-logo-subtitle {
+    display: flex;
+    justify-content: space-between;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.6875rem;
+    font-weight: 500;
+}
+
+.sb-logo-subtitle > span {
+    white-space: pre;
+}
+
+/* --- Menü araması --- */
+.sb-search {
+    position: relative;
+    flex-shrink: 0;
+    padding: 0.75rem 1rem;
+}
+
+.sb-search-icon {
+    position: absolute;
+    left: calc(1rem + 10px);
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.4);
+    pointer-events: none;
+}
+
+.sb-search-input {
+    width: 100%;
+    height: 36px;
+    background-color: var(--sidebar-surface);
+    border: 1px solid transparent;
+    border-radius: 10px;
+    color: #fff;
+    padding: 0 2rem 0 2.25rem;
+    font-size: 0.8125rem;
+    transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sb-search-input:focus {
+    outline: none;
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(109, 141, 255, 0.5);
+    box-shadow: 0 0 0 3px rgba(109, 141, 255, 0.15);
+}
+
+.sb-search-input::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.sb-search-clear {
+    position: absolute;
+    right: calc(1rem + 6px);
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    padding: 2px;
+    border: 0;
+    border-radius: 50%;
     background: transparent;
-    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.sb-search-clear .material-symbols-outlined {
+    font-size: 16px;
+}
+
+.sb-search-clear:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+/* --- Menü --- */
+.sb-nav {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0.25rem 0.75rem 1rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.sb-nav::-webkit-scrollbar {
+    width: 5px;
+}
+
+.sb-nav::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sb-nav::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+}
+
+.sb-nav::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.25);
+}
+
+.sb-group {
+    margin-top: 0.25rem;
+}
+
+.sb-category {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.875rem 0.5rem 0.375rem;
+    border: 0;
+    background: transparent;
+    color: var(--sidebar-category);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-align: left;
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s;
+}
+
+.sb-category:hover {
+    color: rgba(226, 232, 240, 0.8);
+}
+
+.sb-category-label {
+    white-space: nowrap;
+}
+
+.sb-category-line {
+    flex: 1 1 auto;
+    height: 1px;
+    background-color: var(--sidebar-border);
+}
+
+.sb-category-chevron {
+    font-size: 16px;
+    opacity: 0;
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s;
+}
+
+.sb-category:hover .sb-category-chevron,
+.sb-group.is-collapsed .sb-category-chevron {
+    opacity: 0.7;
+}
+
+.sb-group.is-collapsed .sb-category-chevron {
+    transform: rotate(-90deg);
+}
+
+/* Kategori aç/kapa animasyonu: grid satır yüksekliği 1fr ↔ 0fr */
+.sb-group-body {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sb-group.is-collapsed .sb-group-body {
+    grid-template-rows: 0fr;
+}
+
+.sb-menu {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.sb-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    height: 38px;
+    padding: 0 0.625rem 0 0.75rem;
+    border-radius: 10px;
     color: var(--sidebar-text);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    white-space: nowrap;
+    text-decoration: none;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.sb-link:hover {
+    background-color: var(--sidebar-hover);
+    color: var(--sidebar-text-strong);
+}
+
+.sb-link.active {
+    background-color: var(--sidebar-active-bg);
+    color: var(--sidebar-active);
+}
+
+/* Aktif öğe: sidebar'ın sol kenarına yaslı kısa vurgu çubuğu */
+.sb-link.active::before {
+    content: '';
+    position: absolute;
+    left: -0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 18px;
+    border-radius: 0 3px 3px 0;
+    background-color: var(--sidebar-accent);
+}
+
+.sb-icon {
+    flex-shrink: 0;
+    width: 22px;
+    display: flex;
+    justify-content: center;
+    font-size: 20px;
+    color: rgba(255, 255, 255, 0.55);
+    transition: color 0.15s;
+}
+
+.sb-link:hover .sb-icon {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.sb-link.active .sb-icon {
+    color: var(--sidebar-accent);
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.sb-label {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sb-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background-color: #f59e0b;
+    color: #1a1300;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.sb-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 2rem 1rem;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.8125rem;
+    text-align: center;
+}
+
+.sb-empty .material-symbols-outlined {
+    font-size: 28px;
+}
+
+/* --- Kullanıcı kartı --- */
+.sb-footer {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border-top: 1px solid var(--sidebar-border);
+    background-color: rgba(0, 0, 0, 0.18);
+}
+
+.sb-user {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.375rem;
+    border-radius: 10px;
+    color: inherit;
+    text-decoration: none;
+    transition: background-color 0.15s;
+}
+
+.sb-user:hover {
+    background-color: var(--sidebar-hover);
+    color: inherit;
+}
+
+.sb-avatar {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
-    cursor: pointer;
-    transition: color 0.2s;
+    background: linear-gradient(135deg, #4361ee, #7c3aed);
+    box-shadow: 0 0 0 2px rgba(109, 141, 255, 0.35);
 }
 
-.btn-close-sidebar:hover {
-    color: var(--sidebar-active);
+.sb-avatar img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
-@media (min-width: 768px) {
-    .btn-close-sidebar {
-        display: none;
-    }
+.sb-avatar-initials {
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
 }
 
-.sidebar-brand .logo {
+.sb-user-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.25;
+}
+
+.sb-user-name {
+    color: var(--sidebar-text-strong);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sb-user-meta {
     display: flex;
     align-items: center;
-    text-decoration: none;
-    color: white;
+    gap: 0.375rem;
+    font-size: 0.6875rem;
+    color: rgba(255, 255, 255, 0.5);
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.sb-user-meta > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sb-user-role {
+    flex-shrink: 0;
+    padding: 1px 6px;
+    border-radius: 6px;
+    background-color: rgba(6, 182, 212, 0.18);
+    color: #67e8f9;
     font-weight: 600;
 }
 
-.logo-icon {
-    height: 30px;
-    margin-right: 10px;
+.sb-user-role.is-admin {
+    background-color: rgba(245, 158, 11, 0.18);
+    color: #fbbf24;
 }
 
-.user-profile {
-    padding: 1rem;
-    background-color: var(--sidebar-bg);
+.sb-logout {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
     display: flex;
     align-items: center;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    justify-content: center;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.55);
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
 }
 
-.user-info {
-    display: flex;
-    flex-direction: column;
+.sb-logout .material-symbols-outlined {
+    font-size: 20px;
 }
 
-.user-name {
-    color: white;
+.sb-logout:hover {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+}
+
+/* --- Mini mod tooltip'i (position:fixed; sidebar overflow'undan etkilenmez) --- */
+.sb-mini-tooltip {
+    position: fixed;
+    left: calc(var(--sidebar-width) + 10px);
+    transform: translateY(-50%);
+    padding: 6px 10px;
+    border-radius: 8px;
+    background-color: #1e293b;
+    color: #fff;
+    font-size: 0.75rem;
     font-weight: 500;
-    font-size: var(--font-size-base);
+    white-space: nowrap;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    z-index: 12000;
+    pointer-events: none;
 }
 
-.location-year {
-    display: flex;
-    justify-content: space-between;
-    padding: 0.75rem 1rem;
-    color: var(--sidebar-text);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    font-size: var(--font-size-base);
+.sb-mini-tooltip::before {
+    content: '';
+    position: absolute;
+    left: -5px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 5px solid transparent;
+    border-left: 0;
+    border-right-color: #1e293b;
 }
 
-.nav-menu {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-     text-align: left;
+/* --- Mini (yalnız ikon) mod: masaüstü --- */
+@media (min-width: 769px) {
+    body.sb-mini {
+        --sidebar-width: var(--sidebar-mini-width);
+    }
+
+    body.sb-mini .sb-brand {
+        padding: 0.75rem 0.5rem;
+        justify-content: center;
+    }
+
+    body.sb-mini .sb-logo {
+        width: auto;
+    }
+
+    body.sb-mini .sb-logo-mark {
+        width: 52px;
+    }
+
+    body.sb-mini .sb-logo-text {
+        display: none;
+    }
+
+    body.sb-mini .sb-search {
+        display: none;
+    }
+
+    body.sb-mini .sb-nav {
+        padding: 0.5rem 0.75rem 1rem;
+    }
+
+    body.sb-mini .sb-category {
+        padding: 0.5rem 0;
+        justify-content: center;
+        pointer-events: none;
+    }
+
+    body.sb-mini .sb-category-label,
+    body.sb-mini .sb-category-chevron {
+        display: none;
+    }
+
+    body.sb-mini .sb-category-line {
+        flex: 0 0 24px;
+    }
+
+    /* Mini modda kapalı kategoriler de görünür; aksi halde öğelere ulaşılamaz */
+    body.sb-mini .sb-group.is-collapsed .sb-group-body {
+        grid-template-rows: 1fr;
+    }
+
+    body.sb-mini .sb-link {
+        justify-content: center;
+        padding: 0;
+        height: 40px;
+    }
+
+    body.sb-mini .sb-label {
+        display: none;
+    }
+
+    body.sb-mini .sb-badge {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        min-width: 16px;
+        height: 16px;
+        padding: 0 4px;
+        font-size: 0.625rem;
+    }
+
+    body.sb-mini .sb-footer {
+        flex-direction: column;
+        gap: 0.375rem;
+        padding: 0.625rem 0.5rem;
+    }
+
+    body.sb-mini .sb-user {
+        padding: 0.25rem;
+        justify-content: center;
+    }
+
+    body.sb-mini .sb-user-info {
+        display: none;
+    }
+
+    body.sb-mini .sb-avatar {
+        width: 34px;
+        height: 34px;
+    }
 }
 
-.nav-item {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        text-align: left;
-}
-
+/* Sekme butonları (nav-pills) ve sayfa başlıklarındaki ikonlar eski genel
+   sidebar kurallarından miras aldıkları düzeni korur. */
 .nav-link {
-    color: var(--sidebar-text);
-    text-decoration: none;
-    padding: 0.75rem 1rem;
     display: flex;
     align-items: center;
-    justify-content: flex-start; /* <-- düzeltme */
-    gap: 10px; /* icon + text arası düzgün boşluk */
+    gap: 10px;
     transition: all 0.2s;
-}
-
-.nav-link:hover {
-    background-color: var(--sidebar-hover);
-    color: var(--sidebar-active);
-}
-
-.nav-link.active {
-    background-color: var(--sidebar-hover);
-    color: var(--sidebar-active);
-}
-
-.nav-icon-text {
-    display: flex;
-    align-items: center;
 }
 
 .nav-icon {
@@ -350,71 +791,12 @@ a {
     justify-content: center;
 }
 
-/* Submenu styles */
-.submenu {
-    list-style: none;
-    padding: 0;
-    background-color: var(--sidebar-darker);
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height var(--animation-speed) ease;
-}
-
-.submenu.show {
-    max-height: 500px;
-    /* Large enough to accommodate all potential submenus */
-}
-
-.submenu .nav-link {
-    padding-left: 3rem;
-}
-
-/* Sub-submenu styles */
-.sub-submenu {
-    list-style: none;
-    padding: 0;
-    background-color: var(--sidebar-even-darker);
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height var(--animation-speed) ease;
-}
-
-.sub-submenu.show {
-    max-height: 300px;
-}
-
-.sub-submenu .nav-link {
-    padding-left: 4.5rem;
-}
-
-.chevron-icon {
-    transition: transform var(--animation-speed) ease;
-}
-
-.chevron-icon.rotated {
-    transform: rotate(90deg);
-}
-
-/* Animation for menu items */
-.nav-link::before {
-    display: none;
-}
-
 .spinner-text {
     font-size: 15px !important;
     color: #a7f0ff;
 }
 .spinner-border{
    color: #a7f0ff;
-}
-
-/* Active state for main menu items */
-.nav-link.active {
-    background-color: var(--sidebar-hover);
-    color: var(--sidebar-active);
-    border-left: 3px solid var(--primary-color);
-    padding-left: calc(1rem - 3px);
-    /* Adjust padding to account for the border */
 }
 
 /* Main Content */
@@ -461,28 +843,12 @@ a {
     margin-right: 15px;
 }
 
-/* Toggle Sidebar */
-body.sb-toggled #sidebar-wrapper {
-    transform: translateX(calc(-1 * var(--sidebar-width)));
-}
-
-body.sb-toggled #page-content-wrapper {
-    margin-left: 0;
-    width: 100%;
-}
-
-body.sb-toggled .navbar {
-    left: 0;
-}
-
-body.sb-toggled .fixed-footer {
-    left: 0;
-}
-
-/* Responsive */
+/* Toggle Sidebar — mobil: off-canvas (body.sb-toggled ile açılır).
+   Masaüstünde daraltma body.sb-mini ile yapılır (bkz. Sol Menü bölümü). */
 @media (max-width: 768px) {
     #sidebar-wrapper {
         transform: translateX(calc(-1 * var(--sidebar-width)));
+        will-change: transform;
     }
 
     #page-content-wrapper {
@@ -500,6 +866,7 @@ body.sb-toggled .fixed-footer {
 
     body.sb-toggled #sidebar-wrapper {
         transform: translateX(0);
+        box-shadow: 8px 0 32px rgba(0, 0, 0, 0.35);
     }
 }
 
@@ -545,23 +912,6 @@ h6 {
     font-size: 0.6rem;
 }
 
-/* Smooth scrollbar for sidebar */
-#sidebar-wrapper::-webkit-scrollbar {
-    width: 5px;
-}
-
-#sidebar-wrapper::-webkit-scrollbar-track {
-    background: var(--sidebar-bg);
-}
-
-#sidebar-wrapper::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
-}
-
-#sidebar-wrapper::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-}
 
 .breadcrumb-item+.breadcrumb-item::before {
     content: ">";
@@ -602,9 +952,6 @@ h6 {
     transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-body.sb-toggled .fixed-footer {
-    left: 0;
-}
 
 .footer-left {
     display: flex;
@@ -933,24 +1280,6 @@ body.sb-toggled .fixed-footer {
     background-color: #fbfdff;
 }
 
-.submenu .nav-link.active {
-    background-color: var(--sidebar-hover);
-    color: var(--sidebar-active);
-    border-left: 3px solid var(--primary-color);
-    padding-left: calc(3rem - 3px);
-    /* Adjust padding to account for the border */
-}
-
-.sub-submenu .nav-link.active {
-    padding-left: calc(4.5rem - 3px);
-    /* Adjust padding for sub-submenu items */
-}
-
-/* Parent menu highlighting when child is active */
-.nav-item.has-active-submenu>.nav-link {
-    color: var(--sidebar-active);
-    background-color: rgba(255, 255, 255, 0.05);
-}
 
 .detail-card {
     background-color: white;
@@ -2677,22 +3006,6 @@ app-allocation-card:nth-child(even) .zt-row:hover {
     }
 }
 
-.nav-category {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    margin: 1.25rem 1rem 0.5rem 1rem;
-    letter-spacing: 0.5px;
-    cursor: pointer;
-    user-select: none;
-}
-
-.nav-category-chevron {
-    font-size: 16px;
-}
 
 .badge {
     font-size: 0.65rem;
@@ -2701,47 +3014,6 @@ app-allocation-card:nth-child(even) .zt-row:hover {
     border-radius: 10px;
 }
 
-/* Sticky Footer Menu */
-.sidebar-sticky-menu {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: var(--sidebar-width);
-    height: 56px;
-    background-color: var(--sidebar-darker);
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    z-index: 1025;
-}
-
-.sticky-menu-item {
-    color: var(--sidebar-text);
-    width: 42px;
-    height: 42px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: all 0.2s;
-    cursor: pointer;
-}
-
-.sticky-menu-item:hover {
-    background-color: var(--sidebar-hover);
-    color: var(--sidebar-active);
-}
-
-/* Sidebar nav-menu için alt boşluk ekleyin ki sticky menu içeriği kapatmasın */
-.nav-menu {
-    padding-bottom: 60px;
-}
-
-/* Collapsed layout uyumluluğu */
-body.layout-collapsed .sidebar-sticky-menu {
-    width: var(--sidebar-width);
-}
 
 /* Content Scroll Top Button */
 .content-scroll-top {
@@ -2977,55 +3249,6 @@ body.layout-collapsed .sidebar-sticky-menu {
     color: var(--text-color) !important;
 }
 
-/* Sidebar Search */
-.sidebar-search {
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.sidebar-search .position-relative {
-    position: relative;
-}
-
-.sidebar-search-input {
-    background-color: rgba(255, 255, 255, 0.1);
-    border: none;
-    border-radius: 20px;
-    color: white;
-    padding: 0.5rem 1rem 0.5rem 2.5rem;
-    font-size: 0.8rem;
-    width: 100%;
-    transition: background-color 0.2s ease;
-}
-
-.sidebar-search-input:focus {
-    background-color: rgba(255, 255, 255, 0.15);
-    color: white;
-    outline: none;
-    box-shadow: none;
-}
-
-.sidebar-search-input::placeholder {
-    color: rgba(255, 255, 255, 0.486)
-}
-
-.sidebar-search-icon {
-    position: absolute;
-    left: 1rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 18px;
-    pointer-events: none;
-}
-
-[data-theme="dark"] .sidebar-search-input {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
-[data-theme="dark"] .sidebar-search-input:focus {
-    background-color: rgba(255, 255, 255, 0.15);
-}
 
 /* Code example styling */
 .code-example {
