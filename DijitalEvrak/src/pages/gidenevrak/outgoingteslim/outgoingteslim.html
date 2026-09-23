@@ -1,0 +1,249 @@
+<app-generic pageTitle="Teslim Bilgisi"
+    [breadcrumbs]="[{title: 'Giden Evraklar', url: 'gidenevrak/outgoing', icon:''}, {title: 'Teslim Bilgisi', url: '', icon:''}]">
+</app-generic>
+
+<div class="outgoingzimmet-page">
+<div class="row">
+    <!-- SOL PANEL: evrak bilgisi -->
+    <div class="col-md-6 col-12">
+        <div class="card page-wrapper">
+            <div class="card-header ot-header">
+                <div class="ot-header-icon">
+                    <span class="material-symbols-outlined">description</span>
+                </div>
+                <div class="ot-header-text">
+                    <div class="ot-header-title">Evrak Bilgisi</div>
+                    <div class="ot-header-sub">Belge numarası, durumu ve künye bilgileri</div>
+                </div>
+            </div>
+            <div class="card-body">
+
+                <div *ngIf="loading()" class="d-flex justify-content-center align-items-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Yükleniyor...</span>
+                    </div>
+                </div>
+
+                <div *ngIf="!loading() && document() as doc">
+                    <!-- Evrak özeti (Teslim Bilgisi ekranındaki zarf bloğu ile aynı dil) -->
+                    <div class="gz-hero mb-3">
+                        <div class="gz-hero-icon">
+                            <span class="material-symbols-outlined">qr_code_2</span>
+                        </div>
+                        <div class="gz-hero-text">
+                            <div class="gz-hero-no">{{ doc.qrCode || '-' }}</div>
+                        </div>
+                        <div class="gz-hero-side">
+                            <span class="envelope-status-pill {{ statusPillClassMap[doc.status] || '' }}">
+                                <span class="envelope-status-dot"></span>
+                                {{ statusLabelMap[doc.status] || '-' }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Evrak bilgileri: sağ paneldeki bilgi kartçıklarıyla aynı dil -->
+                    <div class="gz-section">
+                        <div class="gz-section-title">BELGE BİLGİLERİ</div>
+
+                        <div class="ot-grid">
+                            <div class="gz-tile">
+                                <div class="gz-tile-icon tint-smoke">
+                                    <span class="material-symbols-outlined">article</span>
+                                </div>
+                                <div class="gz-tile-body">
+                                    <div class="gz-tile-label">EVRAK TÜRÜ</div>
+                                    <div class="gz-tile-value">{{ documentTypeLabelMap[doc.type ?? -1] || '-' }}</div>
+                                </div>
+                            </div>
+
+                            <div class="gz-tile">
+                                <div class="gz-tile-icon tint-smoke">
+                                    <span class="material-symbols-outlined">sync_alt</span>
+                                </div>
+                                <div class="gz-tile-body">
+                                    <div class="gz-tile-label">KAYNAK</div>
+                                    <div class="gz-tile-value">{{ sourceLabelMap[doc.source ?? -1] || '-' }}</div>
+                                </div>
+                            </div>
+
+                            <div class="gz-tile" [class.ot-span-2]="!doc.originalDocumentNumber">
+                                <div class="gz-tile-icon tint-amber">
+                                    <span class="material-symbols-outlined">calendar_month</span>
+                                </div>
+                                <div class="gz-tile-body">
+                                    <div class="gz-tile-label">BELGE TARİHİ</div>
+                                    <div class="gz-tile-value">{{ (doc.documentDate || doc.createdDate) ? ((doc.documentDate || doc.createdDate) | date:'dd.MM.yyyy') : '-' }}</div>
+                                </div>
+                            </div>
+
+                            <div class="gz-tile" *ngIf="doc.originalDocumentNumber">
+                                <div class="gz-tile-icon">
+                                    <span class="material-symbols-outlined">tag</span>
+                                </div>
+                                <div class="gz-tile-body">
+                                    <div class="gz-tile-label">ORİJİNAL BELGE NO</div>
+                                    <div class="gz-tile-value">{{ doc.originalDocumentNumber }}</div>
+                                </div>
+                            </div>
+
+                            <div class="gz-tile ot-span-2" *ngIf="doc.subject">
+                                <div class="gz-tile-icon tint-smoke">
+                                    <span class="material-symbols-outlined">subject</span>
+                                </div>
+                                <div class="gz-tile-body">
+                                    <div class="gz-tile-label">KONU</div>
+                                    <div class="gz-tile-value ot-clamp" [title]="doc.subject">{{ doc.subject }}</div>
+                                </div>
+                            </div>
+
+                            <div class="gz-tile ot-span-2" *ngIf="senderDepartmentName()">
+                                <div class="gz-tile-icon tint-teal">
+                                    <span class="material-symbols-outlined">call_made</span>
+                                </div>
+                                <div class="gz-tile-body">
+                                    <div class="gz-tile-label">GÖNDEREN BİRİM</div>
+                                    <div class="gz-tile-value ot-clamp" [title]="senderDepartmentName()!">{{ senderDepartmentName() }}</div>
+                                </div>
+                            </div>
+
+                            <div class="gz-tile ot-span-2" *ngIf="receiverInstitutionName()">
+                                <div class="gz-tile-icon tint-green">
+                                    <span class="material-symbols-outlined">call_received</span>
+                                </div>
+                                <div class="gz-tile-body">
+                                    <div class="gz-tile-label">ALAN BİRİM</div>
+                                    <div class="gz-tile-value ot-clamp" [title]="receiverInstitutionName()!">{{ receiverInstitutionName() }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center text-muted py-5" *ngIf="!loading() && !document()">
+                    <span class="material-symbols-outlined d-block mb-2" style="font-size: 32px;">inbox</span>
+                    Evrak bulunamadı
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SAĞ PANEL: Teslim Bilgisi (salt okunur) -->
+    <div class="col-md-6 col-12">
+        <div class="card page-wrapper d-flex flex-column">
+            <div class="card-header ot-header">
+                <div class="ot-header-icon"
+                    [class.is-success]="!infoLoading() && delivered()"
+                    [class.is-muted]="!infoLoading() && !delivered()">
+                    <span class="material-symbols-outlined">{{ !infoLoading() && !delivered() ? 'pending_actions' : 'person_check' }}</span>
+                </div>
+                <div class="ot-header-text">
+                    <div class="ot-header-title">Teslim Bilgisi</div>
+                    <div class="ot-header-sub">
+                        {{ infoLoading() ? 'Zimmet kaydı getiriliyor' : (delivered() ? (deliveredIsExternal() ? 'Dış kuruma teslim kaydı' : 'Aktif zimmet kaydı') : 'Henüz zimmet kaydı yok') }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Evrak ve zimmet kaydı gelene kadar tek spinner -->
+            <div class="card-body zm-body" *ngIf="infoLoading()">
+                <div class="zm-empty">
+                    <div class="zm-empty-icon">
+                        <div class="spinner-border text-primary"></div>
+                    </div>
+                    <div class="zm-empty-title">Yükleniyor...</div>
+                    <div class="zm-empty-text">Teslim bilgileri getiriliyor.</div>
+                </div>
+            </div>
+
+            <!-- TESLİM EDİLDİ / ZİMMETLENDİ -->
+            <ng-container *ngIf="!infoLoading() && delivered()">
+                <div class="card-body zm-body">
+                    <div class="gz-done-hero">
+                        <div class="gz-done-icon">
+                            <span class="material-symbols-outlined">task_alt</span>
+                        </div>
+                        <div class="gz-done-text">
+                            <div class="gz-done-title">{{ deliveredIsExternal() ? 'Evrak teslim edildi' : 'Evrak zimmetlendi' }}</div>
+                            <div class="gz-done-sub">
+                                {{ document()?.qrCode || 'Evrak' }}
+                                <ng-container *ngIf="deliveredDate()"> · {{ deliveredDate() | date:'dd.MM.yyyy HH:mm' }}</ng-container>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="gz-tiles">
+                        <div class="gz-tile">
+                            <div class="gz-tile-icon tint-blue">
+                                <span class="material-symbols-outlined">person_check</span>
+                            </div>
+                            <div class="gz-tile-body">
+                                <div class="gz-tile-label">{{ deliveredIsExternal() ? 'TESLİM ALAN' : 'ZİMMETLİ' }}</div>
+                                <div class="gz-tile-value">{{ deliveredPersonName() || '-' }}</div>
+                                <div class="gz-tile-meta" *ngIf="deliveredIsExternal() && receiverInstitutionName()">{{ receiverInstitutionName() }}</div>
+                            </div>
+                        </div>
+
+                        <div class="gz-tile">
+                            <div class="gz-tile-icon">
+                                <span class="material-symbols-outlined">outgoing_mail</span>
+                            </div>
+                            <div class="gz-tile-body">
+                                <div class="gz-tile-label">{{ deliveredIsExternal() ? 'TESLİM EDEN' : 'ZİMMETİ YAPAN' }}</div>
+                                <div class="gz-tile-value">{{ deliveredByPersonName() || '-' }}</div>
+                            </div>
+                        </div>
+
+                        <div class="gz-tile">
+                            <div class="gz-tile-icon">
+                                <span class="material-symbols-outlined">event</span>
+                            </div>
+                            <div class="gz-tile-body">
+                                <div class="gz-tile-label">{{ deliveredIsExternal() ? 'TESLİM TARİHİ' : 'ZİMMET TARİHİ' }}</div>
+                                <div class="gz-tile-value">{{ deliveredDate() ? (deliveredDate() | date:'dd.MM.yyyy HH:mm') : '-' }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-footer zm-footer mt-auto">
+                    <div class="zm-footer-actions">
+                        <button type="button" class="btn btn-light zm-back-btn" (click)="goBack()">
+                            <span class="material-symbols-outlined">arrow_back</span>
+                            Giden Evraklara Dön
+                        </button>
+                    </div>
+                </div>
+            </ng-container>
+
+            <!-- HENÜZ ZİMMETLENMEDİ: bu ekranda işlem yapılmaz, zimmetleme ekranına yönlendirilir -->
+            <ng-container *ngIf="!infoLoading() && !delivered()">
+                <div class="card-body zm-body">
+                    <div class="zm-empty">
+                        <div class="zm-empty-icon">
+                            <span class="material-symbols-outlined">pending_actions</span>
+                        </div>
+                        <div class="zm-empty-title">Evrak henüz zimmetlenmedi</div>
+                        <div class="zm-empty-text">
+                            Bu ekran yalnızca zimmetlenmiş / teslim edilmiş evrakların bilgilerini gösterir.
+                            Zimmetleme işlemi için zimmetleme ekranını kullanın.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-footer zm-footer mt-auto">
+                    <div class="zm-footer-actions">
+                        <button type="button" class="btn btn-light zm-back-btn" (click)="goBack()">
+                            <span class="material-symbols-outlined">arrow_back</span>
+                            Giden Evraklara Dön
+                        </button>
+                        <button type="button" class="btn btn-primary zimmet-submit-btn" *ngIf="document()" (click)="goToZimmet()">
+                            <span class="zimmet-submit-icon material-symbols-outlined">article_person</span>
+                            <span class="zimmet-submit-text">Zimmetleme Ekranına Git</span>
+                        </button>
+                    </div>
+                </div>
+            </ng-container>
+        </div>
+    </div>
+</div>
+</div>

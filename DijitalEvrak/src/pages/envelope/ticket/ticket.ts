@@ -712,8 +712,9 @@ export default class Ticket implements OnInit {
       return;
     }
 
-    if (this.externalInstitutionControl.value) {
-      this.model.externalInstitutionId = this.externalInstitutionControl.value.id;
+    const selectedInstitution = this.externalInstitutionControl.value;
+    if (selectedInstitution) {
+      this.model.externalInstitutionId = selectedInstitution.id;
     }
     this.model.createdByUserId = userId;
     this.model.departmentId = this.user()?.departmentId;
@@ -722,8 +723,18 @@ export default class Ticket implements OnInit {
     this.envelopeService.createEnvelope(this.model as EnvelopeModel).subscribe({
       next: (res: EnvelopeModel) => {
         if (res) {
-          this.previewEnvelope = res;
-          this.selectedEnvelope = res;
+          // Kayıt sonrası sol panel, Zarflar listesinden "Detaya Git" ile
+          // gelinmiş gibi zarf özeti (görüntüleme) moduna geçer. Create yanıtı
+          // kurum adını ve durumu join'lemeden dönebildiği için özet için
+          // formda seçilen kurum adı ve "Yeni Kayıt" durumu yerel olarak tamamlanır.
+          const created: EnvelopeModel = {
+            ...res,
+            externalInstitutionName: res.externalInstitutionName || selectedInstitution?.name,
+            status: res.status ?? EnvelopeStatus.Yeni
+          };
+          this.previewEnvelope = created;
+          this.selectedEnvelope = created;
+          this.isViewMode = true;
           this.cdr.markForCheck();
           this.focusQrInputSoon();
           this.#toast.showToast('Bilgi', 'Etiket Oluşturuldu', 'success');

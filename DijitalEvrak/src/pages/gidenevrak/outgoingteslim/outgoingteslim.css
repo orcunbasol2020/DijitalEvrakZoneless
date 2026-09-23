@@ -1,0 +1,158 @@
+/* ============================================================
+   Giden Evrak Teslim Bilgisi (outgoingteslim) sayfası.
+   Görsel dil Teslim Bilgisi (gidenzimmet.css) ile aynı; gz-* sınıfları
+   oradan gelir. Bu dosya yalnızca sol paneldeki evrak bilgisi ızgarasına
+   ("ot-" öneki) özgü parçaları tanımlar.
+   ============================================================ */
+
+/* ---- Kart başlıkları: renkli ikon çipi + başlık + alt satır ---- */
+.ot-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    border-bottom: 1px solid #e7eaf0;
+    border-radius: 14px 14px 0 0;
+}
+
+.ot-header-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    color: #fff;
+    background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 55%, #22d3ee 100%);
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.28);
+}
+
+.ot-header-icon .material-symbols-outlined {
+    font-size: 21px;
+}
+
+.ot-header-icon.is-success {
+    background: linear-gradient(135deg, #15803d 0%, #16a34a 55%, #4ade80 100%);
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.28);
+}
+
+.ot-header-icon.is-muted {
+    background: linear-gradient(135deg, #475569 0%, #64748b 55%, #94a3b8 100%);
+    box-shadow: 0 4px 12px rgba(71, 85, 105, 0.24);
+}
+
+.ot-header-text {
+    min-width: 0;
+}
+
+.ot-header-title {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: #0f172a;
+    line-height: 1.2;
+}
+
+.ot-header-sub {
+    margin-top: 2px;
+    font-size: 11.5px;
+    color: #64748b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ---- Evrak bilgileri: iki sütunlu kartçık ızgarası ---- */
+.ot-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.ot-grid .gz-tile.ot-span-2 {
+    grid-column: 1 / -1;
+}
+
+.ot-grid .gz-tile {
+    padding: 11px 13px;
+}
+
+.ot-grid .gz-tile-icon {
+    width: 36px;
+    height: 36px;
+}
+
+.ot-grid .gz-tile-value {
+    font-size: 13.5px;
+}
+
+/* Uzun metinler (konu, birim adı) kartçığı taşırmasın */
+.ot-grid .gz-tile-value.ot-clamp {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Ek ikon renkleri (gidenzimmet.css'te mavi ve yeşil var) */
+.gz-tile-icon.tint-smoke  { background: #e2e8f0; color: #334155; }
+.gz-tile-icon.tint-amber  { background: #fef3c7; color: #b45309; }
+.gz-tile-icon.tint-violet { background: #ede9fe; color: #6d28d9; }
+.gz-tile-icon.tint-rose   { background: #ffe4e6; color: #be123c; }
+.gz-tile-icon.tint-teal   { background: #ccfbf1; color: #0f766e; }
+
+/* ---- Dar ekran ---- */
+@media (max-width: 575.98px) {
+    .ot-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================================
+   Koyu tema
+   ============================================================ */
+[data-theme="dark"] .ot-header {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.02) 100%);
+    border-bottom-color: rgba(148, 163, 184, 0.16);
+}
+
+[data-theme="dark"] .ot-header-icon,
+[data-theme="dark"] .ot-header-icon.is-success,
+[data-theme="dark"] .ot-header-icon.is-muted {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .ot-header-title {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .ot-header-sub {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .gz-tile-icon.tint-smoke {
+    background: rgba(148, 163, 184, 0.2);
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .gz-tile-icon.tint-amber {
+    background: rgba(245, 158, 11, 0.18);
+    color: #fcd34d;
+}
+
+[data-theme="dark"] .gz-tile-icon.tint-violet {
+    background: rgba(139, 92, 246, 0.18);
+    color: #c4b5fd;
+}
+
+[data-theme="dark"] .gz-tile-icon.tint-rose {
+    background: rgba(244, 63, 94, 0.18);
+    color: #fda4af;
+}
+
+[data-theme="dark"] .gz-tile-icon.tint-teal {
+    background: rgba(20, 184, 166, 0.18);
+    color: #5eead4;
+}

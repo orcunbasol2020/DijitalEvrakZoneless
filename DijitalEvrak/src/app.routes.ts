@@ -139,6 +139,10 @@ export const routes: Routes = [
                 loadComponent: () => import('./pages/gidenevrak/outgoingzimmet/outgoingzimmet')
             },
             {
+                path: 'gidenevrak/outgoingteslim',
+                loadComponent: () => import('./pages/gidenevrak/outgoingteslim/outgoingteslim')
+            },
+            {
                 path: 'envelope',
                 loadComponent: () => import('./pages/envelope/envelope/envelope'),
                 canActivate: [roleGuard],

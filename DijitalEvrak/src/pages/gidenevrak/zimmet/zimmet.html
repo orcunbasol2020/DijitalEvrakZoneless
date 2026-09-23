@@ -12,8 +12,30 @@
 
             <div class="card-body zm-body">
                 <!-- QR okutma bloğu (Zarf Etiketi ekranındaki ile aynı dil) -->
-                <div class="zm-scan-hero" [class.is-active]="qrActive" [class.is-loading]="loading">
-                    <div class="zm-scan-wrap">
+                <!-- Zarf bulununca blok tek satıra daralır (kapan/aç); okuyucu daraltılmışken de
+                     çalışır çünkü tuşlar pencere düzeyinde tampona alınır. -->
+                <div class="zm-scan-hero" [class.is-active]="qrActive" [class.is-loading]="loading"
+                    [class.is-collapsed]="scanCollapsed">
+
+                    <!-- Daraltılmış görünüm -->
+                    <div class="zm-scan-compact" *ngIf="scanCollapsed">
+                        <span class="material-symbols-outlined zm-scan-compact-icon">qr_code_2</span>
+                        <div class="zm-scan-compact-text">
+                            <div class="zm-scan-compact-title">QR okutma alanı daraltıldı</div>
+                            <div class="zm-scan-compact-sub">Okuyucu pasif; yeni bir kod okutmak için alanı açın.</div>
+                        </div>
+                        <span class="zm-scan-status zm-scan-status-inline" [class.is-loading]="loading">
+                            <span class="spinner-border spinner-border-sm" *ngIf="loading"></span>
+                            {{ loading ? 'Aranıyor' : 'Pasif' }}
+                        </span>
+                        <button type="button" class="zm-scan-toggle" title="Okutma alanını aç" (click)="expandScan()">
+                            <span class="material-symbols-outlined">expand_more</span>
+                            Aç
+                        </button>
+                    </div>
+
+                    <!-- Açık görünüm -->
+                    <div class="zm-scan-wrap" [hidden]="scanCollapsed">
                         <span class="material-symbols-outlined zm-scan-icon">qr_code_2</span>
                         <input
                             #qrInput
@@ -30,8 +52,15 @@
                             {{ loading ? 'Aranıyor' : (qrActive ? 'Okumaya Hazır' : 'Pasif') }}
                         </span>
                     </div>
-                    <div class="zm-scan-hint">
-                        Zarf okutulursa içindeki tüm evraklar listelenir; evrak numarası okutulursa listeye tek tek eklenir.
+                    <div class="zm-scan-hint-row" [hidden]="scanCollapsed">
+                        <div class="zm-scan-hint">
+                            Zarf okutulursa içindeki tüm evraklar listelenir; evrak numarası okutulursa listeye tek tek eklenir.
+                        </div>
+                        <button type="button" class="zm-scan-toggle" title="Okutma alanını daralt"
+                            *ngIf="documents.length > 0" (click)="collapseScan()">
+                            <span class="material-symbols-outlined">expand_less</span>
+                            Daralt
+                        </button>
                     </div>
                 </div>
 

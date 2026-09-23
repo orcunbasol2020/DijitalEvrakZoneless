@@ -12,7 +12,6 @@ import { Router } from '@angular/router';
 import GenericModel from '../../../../components/generic-model/generic-model';
 import { CommonModule } from '@angular/common';
 import { FlexiToastService } from 'flexi-toast';
-import { IncomingDocumentService } from '../../../services/incomingdocument';
 import { OutgoingDocumentService } from '../../../services/outgoingdocument';
 import { OutgoingDocumentModel } from '../../../models/outgoingdocument.model';
 import { OutgoingDocumentAllocation } from '../../../services/outgoingdocumentallocation';
@@ -43,12 +42,7 @@ export default class Outgoing {
   readonly documentsResourceSig = signal<any>(null);
   readonly #toast = inject(FlexiToastService);
   private readonly router = inject(Router);
-  // NOT: "Süreçler" satır aksiyonu hâlâ IncomingDocumentService üzerinden
-  // çalışıyor; OutgoingDocuments artık ayrı bir tablo/servis olduğu için bu
-  // id'lerle doğru şekilde eşleşmeyebilir. Giden evrağa özel bir süreç ekranı
-  // netleşene kadar davranışı değiştirilmedi. "Zimmet" aksiyonu ise artık
-  // /gidenevrak/outgoingzimmet üzerinden OutgoingDocumentAllocations'a gidiyor.
-  private readonly incomingDocumentService = inject(IncomingDocumentService);
+  // "Zimmet" aksiyonu /gidenevrak/outgoingzimmet üzerinden OutgoingDocumentAllocations'a gidiyor.
   private readonly outgoingDocumentService = inject(OutgoingDocumentService);
   private readonly allocationService = inject(OutgoingDocumentAllocation);
   private readonly zimmetState = inject(ZimmetStateService);
@@ -184,42 +178,57 @@ export default class Outgoing {
     this.showFilters = !this.showFilters;
   }
 
-  goToProcess(id: string) {
-    this.incomingDocumentService.setSelectedIncomingDocument(id);
-    this.router.navigate(['/surecler']);
-  }
-
+  // Evrak zaten zimmetlenmiş / teslim edilmişse salt okunur Teslim Bilgisi
+  // ekranı, değilse Zimmetleme ekranı açılır.
   goToZimmet(id: string) {
     this.zimmetState.setOutgoingDocumentId(id);
-    this.router.navigate(['/gidenevrak/outgoingzimmet']);
+
+    this.allocationService.getActiveByDocumentId(id).subscribe({
+      next: (allocation) => {
+        this.router.navigate([allocation?.isActive ? '/gidenevrak/outgoingteslim' : '/gidenevrak/outgoingzimmet']);
+      },
+      error: () => this.router.navigate(['/gidenevrak/outgoingzimmet'])
+    });
   }
 
-  // ---- Zimmet Geçmişi popup (Birim Evrak Sorumlusu) ----
-  // Birim Evrak Sorumlusu zimmetleme ekranına gidemediği için evrakın mevcut ve
-  // geçmiş zimmetlerini salt okunur bir popup'ta görür.
+  // ---- Zimmet Geçmişi popup (tüm roller) ----
+  // Evrakın mevcut ve geçmiş zimmetleri salt okunur bir popup'ta gösterilir.
+  // Birim Evrak Sorumlusu zimmetleme ekranına gidemediği için onun tek erişimi budur.
 
   readonly zimmetHistoryVisible = signal(false);
   readonly zimmetHistoryLoading = signal(false);
   readonly zimmetHistoryDoc = signal<OutgoingDocumentModel | null>(null);
   readonly zimmetHistory = signal<OutgoingDocumentAllocationModel[]>([]);
   readonly activeZimmet = computed(() => this.zimmetHistory().find(h => h.isActive) ?? null);
+  // Hareketler bölümü açılır/kapanır; popup her açılışta açık başlar.
+  readonly zimmetHistoryExpanded = signal(true);
   readonly allocationStatusLabels: Record<number, string> = AllocationStatusLabels;
-  readonly AllocationStatus = AllocationStatusEnum;
 
   // Zaman çizelgesindeki nokta ikonu ve renk sınıfı zimmet durumuna göre değişir.
   readonly allocationStatusIcons: Record<number, string> = {
     [AllocationStatusEnum.IlkKayit]: 'post_add',
     [AllocationStatusEnum.Devir]: 'swap_horiz',
     [AllocationStatusEnum.Teslim]: 'handshake',
-    [AllocationStatusEnum.Arsiv]: 'inventory_2'
+    [AllocationStatusEnum.Arsiv]: 'inventory_2',
+    [AllocationStatusEnum.TeslimAlindi]: 'move_to_inbox'
   };
 
   readonly allocationStatusClass: Record<number, string> = {
     [AllocationStatusEnum.IlkKayit]: 'is-ilkkayit',
     [AllocationStatusEnum.Devir]: 'is-devir',
     [AllocationStatusEnum.Teslim]: 'is-teslim',
-    [AllocationStatusEnum.Arsiv]: 'is-arsiv'
+    [AllocationStatusEnum.Arsiv]: 'is-arsiv',
+    [AllocationStatusEnum.TeslimAlindi]: 'is-teslimalindi'
   };
+
+  // "Teslim eden" satırı yalnızca evrakın bir başkasından devralındığı kayıtlarda anlamlıdır:
+  // İlk Kayıt'ta kimseden devralınmaz, Teslim Alındı'da ise kullanıcı evrakı kendi üzerine
+  // aldığı için teslim eden işlemi yapan kişinin kendisidir.
+  showsDeliverer(h: OutgoingDocumentAllocationModel): boolean {
+    return !!h.createdFullName
+      && h.status !== AllocationStatusEnum.IlkKayit
+      && h.status !== AllocationStatusEnum.TeslimAlindi;
+  }
 
   initials(fullName?: string | null): string {
     const parts = (fullName ?? '').trim().split(/\s+/).filter(Boolean);
@@ -232,6 +241,7 @@ export default class Outgoing {
   openZimmetHistory(item: OutgoingDocumentModel): void {
     this.zimmetHistoryDoc.set(item);
     this.zimmetHistory.set([]);
+    this.zimmetHistoryExpanded.set(true);
     this.zimmetHistoryVisible.set(true);
     this.zimmetHistoryLoading.set(true);
 
@@ -257,6 +267,10 @@ export default class Outgoing {
 
   closeZimmetHistory(): void {
     this.zimmetHistoryVisible.set(false);
+  }
+
+  toggleZimmetHistoryExpanded(): void {
+    this.zimmetHistoryExpanded.update(v => !v);
   }
 
   delete(id: string) {

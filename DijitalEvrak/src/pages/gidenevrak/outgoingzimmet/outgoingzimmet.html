@@ -19,22 +19,28 @@
                 </div>
 
                 <div *ngIf="!loading() && document() as doc">
-                    <div class="evrak-lookup-box">
-                        <span class="material-symbols-outlined">qr_code_2</span>
-                        <div class="flex-grow-1 d-flex justify-content-between align-items-center">
-                            <div>
-                                <label class="evrak-lookup-label">BELGE NO</label>
-                                <div class="fw-semibold">{{ doc.qrCode || '-' }}</div>
+                    <!-- Evrak özeti (Teslim Bilgisi ekranındaki zarf bloğu ile aynı dil) -->
+                    <div class="gz-hero mb-3">
+                        <div class="gz-hero-icon">
+                            <span class="material-symbols-outlined">qr_code_2</span>
+                        </div>
+                        <div class="gz-hero-text">
+                            <div class="gz-hero-no">{{ doc.qrCode || '-' }}</div>
+                            <div class="gz-hero-meta">
+                                <span>{{ documentTypeLabelMap[doc.type ?? -1] || 'Evrak' }}</span>
+                                <span class="gz-hero-sep">·</span>
+                                <span>{{ sourceLabelMap[doc.source ?? -1] || '-' }}</span>
                             </div>
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="outgoing-create-meta-badge">
-                                    <span class="material-symbols-outlined" style="font-size: 14px;">database</span>
-                                    {{ sourceLabelMap[doc.source ?? -1] || '-' }}
-                                </span>
-                                <span class="outgoing-create-meta-badge {{ statusBadgeClassMap[doc.status] || '' }}">
-                                    {{ statusLabelMap[doc.status] || '-' }}
-                                </span>
-                            </div>
+                        </div>
+                        <div class="gz-hero-side">
+                            <span class="envelope-status-pill {{ statusPillClassMap[doc.status] || '' }}">
+                                <span class="envelope-status-dot"></span>
+                                {{ statusLabelMap[doc.status] || '-' }}
+                            </span>
+                            <span class="gz-hero-chip" *ngIf="doc.documentDate || doc.createdDate">
+                                <span class="material-symbols-outlined">event</span>
+                                {{ (doc.documentDate || doc.createdDate) | date:'dd.MM.yyyy' }}
+                            </span>
                         </div>
                     </div>
 
@@ -127,38 +133,15 @@
                     <h5 class="card-title mb-0 fw-semibold">Zimmetle</h5>
                 </div>
                 <button type="button" class="btn btn-sm btn-primary d-flex align-items-center gap-1 flex-shrink-0"
-                    *ngIf="!delivered() && mode() === 'external' && selectedInstitutionId()"
+                    *ngIf="mode() === 'external' && selectedInstitutionId()"
                     (click)="openQuickAddModal()">
                     <span class="material-symbols-outlined" style="font-size: 16px;">person_add</span>
                     Personel Ekle
                 </button>
             </div>
 
-            <!-- ZİMMETLENDİ BİLGİSİ -->
-            <div class="card-body" *ngIf="delivered()">
-                <div class="d-flex align-items-center gap-2 mb-3 text-success">
-                    <span class="material-symbols-outlined" style="font-size: 28px;">task_alt</span>
-                    <div class="fw-semibold">Evrak zimmetlendi</div>
-                </div>
-
-                <div class="mb-3">
-                    <div class="text-muted small mb-1">Zimmetli</div>
-                    <div class="fw-semibold">{{ deliveredPersonName() || '-' }}</div>
-                </div>
-
-                <div class="mb-3" *ngIf="deliveredByPersonName()">
-                    <div class="text-muted small mb-1">Zimmeti Yapan</div>
-                    <div class="fw-semibold">{{ deliveredByPersonName() }}</div>
-                </div>
-
-                <div>
-                    <div class="text-muted small mb-1">Zimmet Tarihi</div>
-                    <div class="fw-semibold">{{ deliveredDate() | date:'dd.MM.yyyy HH:mm' }}</div>
-                </div>
-            </div>
-
             <!-- PERSONEL SEÇ -->
-            <div class="card-body d-flex flex-column p-0" *ngIf="!delivered()">
+            <div class="card-body d-flex flex-column p-0">
                 <div class="px-3 pt-3">
                     <div class="btn-group w-100 mb-3" role="group">
                         <button type="button" class="btn btn-sm"
@@ -222,8 +205,9 @@
                     <span class="material-symbols-outlined" style="font-size: 18px;">arrow_back</span>
                     Geri
                 </button>
-                <button class="btn btn-primary d-flex align-items-center gap-1" *ngIf="!delivered()" (click)="addZimmet()">
-                    <span class="material-symbols-outlined" style="font-size: 18px;">hand_package</span>
+                <button class="btn btn-primary d-flex align-items-center gap-1" [disabled]="saving()" (click)="addZimmet()">
+                    <span class="spinner-border spinner-border-sm" *ngIf="saving()"></span>
+                    <span class="material-symbols-outlined" style="font-size: 18px;" *ngIf="!saving()">hand_package</span>
                     Zimmetle
                 </button>
             </div>

@@ -7,7 +7,7 @@ import GenericModel from '../../../../components/generic-model/generic-model';
 import { FlexiToastService } from 'flexi-toast';
 import { ZimmetStateService } from '../../../services/zimmet-state-service';
 import { OutgoingDocumentService } from '../../../services/outgoingdocument';
-import { OutgoingDocumentModel, OutgoingDocumentStatus, OutgoingDocumentStatusBadgeClass } from '../../../models/outgoingdocument.model';
+import { OutgoingDocumentModel, OutgoingDocumentStatus } from '../../../models/outgoingdocument.model';
 import { OutgoingDocumentAllocation } from '../../../services/outgoingdocumentallocation';
 import { AllocationStatusEnum } from '../../../models/allocationstatus.model';
 import { ExternalInstitutionModel } from '../../../services/external-institution';
@@ -29,6 +29,9 @@ type PersonListItem = { id: string; name: string; surname: string; identityNo?: 
     SimpleAutocompleteComponent
   ],
   templateUrl: './outgoingzimmet.html',
+  // Soldaki evrak özeti (koyu hero) Teslim Bilgisi (gidenzimmet) ekranıyla
+  // aynı dili kullanır; zm-* ve gz-* sınıfları oradan gelir.
+  styleUrls: ['../zimmet/zimmet.css', '../gidenzimmet/gidenzimmet.css'],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -52,7 +55,14 @@ export default class Outgoingzimmet implements OnInit {
     [OutgoingDocumentStatus.Iade]: 'İade'
   };
 
-  readonly statusBadgeClassMap: Record<number, string> = OutgoingDocumentStatusBadgeClass;
+  // Evrak özeti (koyu hero) üzerindeki durum rozeti; Teslim Bilgisi ekranındaki
+  // zarf durumu rozetiyle aynı "envelope-status-pill" stilini kullanır.
+  readonly statusPillClassMap: Record<number, string> = {
+    [OutgoingDocumentStatus.Taslak]: '',
+    [OutgoingDocumentStatus.Gonderildi]: 'envelope-status-yeni',
+    [OutgoingDocumentStatus.TeslimEdildi]: 'envelope-status-teslim',
+    [OutgoingDocumentStatus.Iade]: 'envelope-status-iade'
+  };
 
   readonly documentTypeLabelMap: Record<number, string> = {
     1: 'Nota',
@@ -157,13 +167,8 @@ export default class Outgoingzimmet implements OnInit {
   readonly quickAddSaving = signal(false);
   quickAddForm: ExternalUserModel = { ...initialExternalUser };
 
-  // delivered: evrak daha önce ya da az önce zimmetlenmiş mi.
-  // deliveredJustNow: zimmetleme bu oturumda az önce yapıldıysa true.
-  readonly delivered = signal(false);
-  readonly deliveredJustNow = signal(false);
-  readonly deliveredPersonName = signal<string | null>(null);
-  readonly deliveredByPersonName = signal<string | null>(null);
-  readonly deliveredDate = signal<string | Date | null>(null);
+  // Zimmetleme sırasında butonu kilitlemek için.
+  readonly saving = signal(false);
 
   constructor() {
     // Belgenin kurumu (ör. daha önce kayıtlı dış kurum) değiştiğinde arama
@@ -214,24 +219,20 @@ export default class Outgoingzimmet implements OnInit {
     });
   }
 
-  // Evrak daha önce zimmetlenmişse (sayfa yeniden açıldığında da) zimmet
-  // bilgilerini göster.
+  // Evrak daha önce zimmetlenmişse bu ekranda yapılacak işlem yoktur;
+  // Teslim Bilgisi ekranına yönlendirilir.
   private checkAlreadyDelivered(outgoingDocumentId: string): void {
-    if (this.deliveredJustNow()) return;
-
     this.allocationService.getActiveByDocumentId(outgoingDocumentId).subscribe({
       next: (allocation) => {
         if (allocation?.isActive) {
-          this.delivered.set(true);
-          this.deliveredPersonName.set(allocation.fullName ?? null);
-          this.deliveredByPersonName.set(allocation.createdFullName ?? null);
-          this.deliveredDate.set(allocation.createdDate ?? null);
-        } else {
-          this.delivered.set(false);
+          this.goToTeslimInfo();
         }
-      },
-      error: () => this.delivered.set(false)
+      }
     });
+  }
+
+  private goToTeslimInfo(): void {
+    this.router.navigate(['/gidenevrak/outgoingteslim']);
   }
 
   setMode(mode: ZimmetMode): void {
@@ -272,6 +273,9 @@ export default class Outgoingzimmet implements OnInit {
       return;
     }
 
+    if (this.saving()) return;
+    this.saving.set(true);
+
     this.allocationService.createAllocation({
       outgoingDocumentId: doc.id,
       userId: this.selectedPersonId()!,
@@ -280,17 +284,31 @@ export default class Outgoingzimmet implements OnInit {
       userType: this.mode() === 'internal' ? 1 : 2
     }).subscribe({
       next: () => {
-        this.toast.showToast('Başarılı', 'Evrak zimmetlendi', 'info');
-
+        this.saving.set(false);
         const person = this.currentPersonList().find(p => p.id === this.selectedPersonId());
-        this.deliveredPersonName.set(person ? `${person.name} ${person.surname}` : null);
-        const currentUser = this.user();
-        this.deliveredByPersonName.set(currentUser ? `${currentUser.name} ${currentUser.surname}` : null);
-        this.deliveredDate.set(new Date());
-        this.deliveredJustNow.set(true);
-        this.delivered.set(true);
+        const personName = person ? `${person.name} ${person.surname}` : null;
+        const docLabel = doc.qrCode ? `${doc.qrCode} numaralı evrak` : 'Evrak';
+
+        // Sonuç mesajı moda göre: iç kullanıcıya zimmet mi, dış kurum personeline teslim mi.
+        if (this.mode() === 'external') {
+          const institution = this.selectedInstitutionName();
+          const receiver = personName && institution
+            ? `${institution} personeli ${personName} adlı kişiye`
+            : personName ? `${personName} adlı kişiye` : 'dış kuruma';
+          this.toast.showToast('Teslim Edildi', `${docLabel} ${receiver} teslim edildi.`, 'success');
+        } else {
+          this.toast.showToast(
+            'Zimmetlendi',
+            `${docLabel} ${personName ? `${personName} adlı kullanıcıya` : 'seçilen kullanıcıya'} zimmetlendi.`,
+            'success'
+          );
+        }
+
+        // Zimmet bilgileri ayrı ekranda (Teslim Bilgisi) gösterilir.
+        this.goToTeslimInfo();
       },
       error: () => {
+        this.saving.set(false);
         this.toast.showToast('Hata', 'Zimmetleme başarısız', 'error');
       }
     });

@@ -7,6 +7,7 @@ import {
   effect,
   inject
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import GenericModel from '../../../../components/generic-model/generic-model';
 import { CommonModule } from '@angular/common';
@@ -54,6 +55,7 @@ export default class Outgoingcreate {
   private readonly allocationService = inject(OutgoingDocumentAllocation);
 
   readonly saving = signal(false);
+  // Güncelleme modunda evrak kaydının kendisi sunucudan çekilirken true.
   readonly loading = signal(false);
   // null: yeni kayıt oluşturuluyor, dolu: bu id'li kayıt güncelleniyor.
   readonly editingId = signal<string | null>(null);
@@ -62,7 +64,51 @@ export default class Outgoingcreate {
   readonly documentStatus = signal<number | null>(null);
   readonly departments = signal<DepartmentModel[]>([]);
   readonly externalInstitutions = signal<ExternalInstitutionModel[]>([]);
-  languages: (LanguageModel & { id: string })[] = [];
+  readonly languages = signal<(LanguageModel & { id: string })[]>([]);
+
+  // Seçenek listeleri ayrı ayrı yüklenir; her biri için yükleniyor/hata durumu
+  // tutulur ki ilgili alan hazır olana kadar pasif görünsün ve hata olduğunda
+  // kullanıcı "Tekrar dene" ile yalnızca başarısız olanları yeniden çekebilsin.
+  readonly departmentsLoading = signal(true);
+  readonly externalInstitutionsLoading = signal(true);
+  readonly languagesLoading = signal(true);
+  readonly departmentsError = signal(false);
+  readonly externalInstitutionsError = signal(false);
+  readonly languagesError = signal(false);
+
+  // Güncellenen kaydın kendisi; "Nereden"/"Nereye"/"Dil" alanlarını dolduran
+  // effect'ler bu sinyal ile ilgili liste sinyalini birlikte izler.
+  private readonly editItem = signal<OutgoingDocumentModel | null>(null);
+
+  // "Nereden"/"Nereye" alanları: kayıt VE ilgili liste gelene kadar yükleniyor kabul edilir.
+  readonly departmentFieldLoading = computed(() => this.loading() || this.departmentsLoading());
+  readonly externalInstitutionFieldLoading = computed(() => this.loading() || this.externalInstitutionsLoading());
+  readonly languageFieldLoading = computed(() => this.loading() || this.languagesLoading());
+
+  readonly lookupsLoading = computed(() =>
+    this.departmentsLoading() || this.externalInstitutionsLoading() || this.languagesLoading()
+  );
+
+  readonly lookupsError = computed(() =>
+    this.departmentsError() || this.externalInstitutionsError() || this.languagesError()
+  );
+
+  readonly failedLookupNames = computed(() => {
+    const names: string[] = [];
+    if (this.departmentsError()) names.push('Birimler');
+    if (this.externalInstitutionsError()) names.push('Dış kurumlar');
+    if (this.languagesError()) names.push('Diller');
+    return names;
+  });
+
+  // Kayıt ile zorunlu listeler (birim/kurum) gelmeden Kaydet/Güncelle pasif
+  // kalır; aksi halde kullanıcı alanlar boşken "zorunlu alan" uyarısıyla
+  // karşılaşıyordu. Dil isteğe bağlı olduğundan onun yüklenememesi kaydı engellemez.
+  readonly formReady = computed(() =>
+    !this.loading()
+    && !this.departmentsLoading() && !this.externalInstitutionsLoading()
+    && !this.departmentsError() && !this.externalInstitutionsError()
+  );
 
   // Kurum adı -> id eşlemesi; "Nereye" alanında alt kurumların üst kurumla
   // ilişkisini göstermek için kullanılır.
@@ -84,12 +130,26 @@ export default class Outgoingcreate {
       .sort((a, b) => a.name.localeCompare(b.name, 'tr'));
   });
 
-  private pendingEditDepartmentId: string | null = null;
-  private pendingEditInstitutionId: string | null = null;
-  private pendingEditLanguageId: string | null = null;
+  // Güncellemede kayıttaki birim/kurum/dil, ilgili liste geldikten sonra bir kez
+  // control'e yazılır. Bir kez uygulandıktan sonra kullanıcının seçimi liste
+  // yeniden yüklense bile (ör. "Tekrar dene") üzerine yazılmaz.
+  private editDepartmentApplied = false;
+  private editInstitutionApplied = false;
+  private editLanguageApplied = false;
   readonly departmentControl = new FormControl<DepartmentModel | null>(null);
   readonly externalInstitutionControl = new FormControl<{ id: string; name: string } | null>(null);
   readonly languageControl = new FormControl<LanguageModel | null>(null);
+
+  // Sağdaki yardım panelindeki canlı "Evrak yolu" özeti için seçili birim/kurum
+  // adları; FormControl değerleri sinyale çevrilerek OnPush görünümde izlenir.
+  private readonly selectedDepartment = toSignal(this.departmentControl.valueChanges, {
+    initialValue: this.departmentControl.value
+  });
+  private readonly selectedInstitution = toSignal(this.externalInstitutionControl.valueChanges, {
+    initialValue: this.externalInstitutionControl.value
+  });
+  readonly selectedDepartmentName = computed(() => this.selectedDepartment()?.name ?? '');
+  readonly selectedInstitutionName = computed(() => this.selectedInstitution()?.name ?? '');
 
   model = {
     qrCode: '',
@@ -161,11 +221,69 @@ export default class Outgoingcreate {
       const own = departments.find(d => d.id === departmentId);
       if (own) this.departmentControl.setValue(own);
     });
+
+    // Yeni kayıtta dil varsayılan olarak Türkçe gelir.
+    effect(() => {
+      const languages = this.languages();
+      if (this.editingId() || languages.length === 0 || this.languageControl.value) return;
+      const turkish = languages.find(l => l.name?.trim().toLocaleLowerCase('tr') === 'türkçe');
+      if (turkish) this.languageControl.setValue(turkish);
+    });
+
+    // Güncellemede "Nereden"/"Nereye"/"Dil" alanları: evrak kaydı ile ilgili
+    // seçenek listesi hangi sırayla gelirse gelsin, ikisi de hazır olduğunda
+    // alan doldurulur. (Önceki sürümde kayıt listeden önce geldiğinde bekleyen
+    // id boşa düşüyor ve alanlar bazen boş kalıyordu.)
+    effect(() => {
+      const item = this.editItem();
+      const departments = this.departments();
+      if (!item || this.departmentsLoading() || this.editDepartmentApplied) return;
+      this.editDepartmentApplied = true;
+      if (!item.departmentId) return;
+
+      const dept = departments.find(d => d.id === item.departmentId);
+      if (dept) {
+        this.departmentControl.setValue(dept);
+      } else {
+        this.#toast.showToast('Uyarı', 'Kayıttaki gönderen birim listede bulunamadı, lütfen yeniden seçiniz', 'warning');
+      }
+    });
+
+    effect(() => {
+      const item = this.editItem();
+      const options = this.externalInstitutionOptions();
+      if (!item || this.externalInstitutionsLoading() || this.editInstitutionApplied) return;
+      this.editInstitutionApplied = true;
+      if (!item.externalInstitutonId) return;
+
+      const inst = options.find(i => i.id === item.externalInstitutonId);
+      if (inst) {
+        this.externalInstitutionControl.setValue(inst);
+      } else {
+        this.#toast.showToast('Uyarı', 'Kayıttaki alıcı kurum listede bulunamadı, lütfen yeniden seçiniz', 'warning');
+      }
+    });
+
+    effect(() => {
+      const item = this.editItem();
+      const languages = this.languages();
+      if (!item || this.languagesLoading() || this.editLanguageApplied) return;
+      this.editLanguageApplied = true;
+      if (!item.languageId) return;
+
+      const lang = languages.find(l => l.id === item.languageId);
+      if (lang) this.languageControl.setValue(lang);
+    });
   }
 
   private loadForEdit(id: string): void {
     this.editingId.set(id);
     this.loading.set(true);
+    this.editItem.set(null);
+    this.editDepartmentApplied = false;
+    this.editInstitutionApplied = false;
+    this.editLanguageApplied = false;
+
     this.outgoingDocumentService.getById(id).subscribe({
       next: (item) => this.applyItem(item),
       error: (err) => {
@@ -178,7 +296,6 @@ export default class Outgoingcreate {
   }
 
   private applyItem(item: OutgoingDocumentModel): void {
-    this.loading.set(false);
     this.documentSource.set(item.source ?? null);
     this.documentStatus.set(item.status ?? null);
     this.model = {
@@ -191,82 +308,68 @@ export default class Outgoingcreate {
       urgencyDegree: item.urgencyDegree ?? UrgencyDegreeEnum.Normal,
       actionRequired: item.actionRequired ?? true
     };
-    this.pendingEditDepartmentId = item.departmentId ?? null;
-    this.pendingEditInstitutionId = item.externalInstitutonId ?? null;
-    this.pendingEditLanguageId = item.languageId ?? null;
-    this.applyPendingEditDepartment();
-    this.applyPendingEditInstitution();
-    this.applyPendingEditLanguage();
+    // Sinyal yazımı, constructor'daki effect'lerin alanları doldurmasını tetikler.
+    this.editItem.set(item);
+    this.loading.set(false);
   }
 
   private loadDepartments(): void {
+    this.departmentsLoading.set(true);
+    this.departmentsError.set(false);
     this.departmentService.getDepartments().subscribe({
       next: (res) => {
         this.departments.set(res);
-        this.applyPendingEditDepartment();
+        this.departmentsLoading.set(false);
       },
       error: (err) => {
         console.error(err);
+        this.departmentsError.set(true);
+        this.departmentsLoading.set(false);
         this.#toast.showToast('Hata', 'Birimler yüklenemedi', 'error');
       }
     });
   }
 
   private loadExternalInstitutions(): void {
+    this.externalInstitutionsLoading.set(true);
+    this.externalInstitutionsError.set(false);
     this.externalInstitutionService.getExternalInstitutions().subscribe({
       next: (res) => {
         this.externalInstitutions.set(res);
-        this.applyPendingEditInstitution();
+        this.externalInstitutionsLoading.set(false);
       },
       error: (err) => {
         console.error(err);
+        this.externalInstitutionsError.set(true);
+        this.externalInstitutionsLoading.set(false);
         this.#toast.showToast('Hata', 'Dış kurumlar yüklenemedi', 'error');
       }
     });
   }
 
   private loadLanguages(): void {
+    this.languagesLoading.set(true);
+    this.languagesError.set(false);
     this.languageService.getLanguages().subscribe({
       next: (res) => {
-        this.languages = res.filter((l): l is LanguageModel & { id: string } => !!l.id);
-
-        if (this.pendingEditLanguageId) {
-          this.applyPendingEditLanguage();
-        } else if (!this.editingId()) {
-          this.applyDefaultLanguage();
-        }
+        this.languages.set(res.filter((l): l is LanguageModel & { id: string } => !!l.id));
+        this.languagesLoading.set(false);
       },
       error: (err) => {
         console.error(err);
+        this.languagesError.set(true);
+        this.languagesLoading.set(false);
         this.#toast.showToast('Hata', 'Diller yüklenemedi', 'error');
       }
     });
   }
 
-  private applyPendingEditDepartment(): void {
-    if (!this.pendingEditDepartmentId) return;
-    const dept = this.departments().find(d => d.id === this.pendingEditDepartmentId);
-    if (dept) this.departmentControl.setValue(dept);
-    this.pendingEditDepartmentId = null;
-  }
-
-  private applyPendingEditInstitution(): void {
-    if (!this.pendingEditInstitutionId) return;
-    const inst = this.externalInstitutionOptions().find(i => i.id === this.pendingEditInstitutionId);
-    if (inst) this.externalInstitutionControl.setValue(inst);
-    this.pendingEditInstitutionId = null;
-  }
-
-  private applyPendingEditLanguage(): void {
-    if (!this.pendingEditLanguageId) return;
-    const lang = this.languages.find(l => l.id === this.pendingEditLanguageId);
-    if (lang) this.languageControl.setValue(lang);
-    this.pendingEditLanguageId = null;
-  }
-
-  private applyDefaultLanguage(): void {
-    const turkish = this.languages.find(l => l.name?.trim().toLocaleLowerCase('tr') === 'türkçe');
-    if (turkish) this.languageControl.setValue(turkish);
+  // Yalnızca yüklenemeyen listeleri yeniden çeker; başarılı olanlar ve
+  // kullanıcının o ana kadar yaptığı seçimler korunur.
+  retryFailedLookups(): void {
+    if (this.departmentsError()) this.loadDepartments();
+    if (this.externalInstitutionsError()) this.loadExternalInstitutions();
+    if (this.languagesError()) this.loadLanguages();
   }
 
   cancel(): void {
@@ -274,6 +377,12 @@ export default class Outgoingcreate {
   }
 
   save(): void {
+    // Buton zaten pasif; klavye/çift tık gibi yollarla gelen çağrılara karşı ek güvence.
+    if (!this.formReady()) {
+      this.#toast.showToast('Uyarı', 'Form bilgileri henüz yüklenmedi, lütfen bekleyiniz', 'warning');
+      return;
+    }
+
     if (!this.model.qrCode.trim()) {
       this.#toast.showToast('Uyarı', 'Belge numarası zorunludur', 'warning');
       return;

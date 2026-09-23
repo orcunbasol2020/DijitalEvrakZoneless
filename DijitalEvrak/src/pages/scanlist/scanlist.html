@@ -2,7 +2,7 @@
   [breadcrumbs]="[{title: 'Gelen Evraklar', url: 'scanlist', icon: ''}]">
 </app-generic>
 
-<div [class.show-filters]="showFilters">
+<div class="scanlist-grid" [class.show-filters]="showFilters">
   <flexi-grid
     [data]="scanListData()"
     [loading]="loading()"

@@ -53,9 +53,12 @@
         </span>
       </ng-template>
     </flexi-grid-column>
-    <flexi-grid-column field="documentCount" title="Evrak Sayısı" width="60px" textAlign="center">
+    <flexi-grid-column field="documentCount" title="Evrak Sayısı" width="80px" textAlign="left">
       <ng-template flexiGridCellTemplate let-item>
-        <span class="envelope-count-pill" [class.is-empty]="!item.documentCount">{{ item.documentCount }}</span>
+        <span class="envelope-count-pill" [class.is-empty]="!item.documentCount">
+          <span class="material-symbols-outlined">{{ item.documentCount ? 'description' : 'draft' }}</span>
+          <span class="envelope-count-value">{{ item.documentCount }}</span>
+        </span>
       </ng-template>
     </flexi-grid-column>
     <flexi-grid-column field="createdDate" title="Kayıt Tarihi" width="80px">
@@ -66,45 +69,56 @@
         </span>
       </ng-template>
     </flexi-grid-column>
-    <flexi-grid-column field="statusLabel" title="Durum" width="120px" textAlign="left" [resizable]="false">
+    <flexi-grid-column field="statusLabel" title="Durum" width="140px" textAlign="left" [resizable]="false">
       <ng-template flexiGridCellTemplate let-item>
         <span class="envelope-status-pill {{ statusBadgeClassMap[item.status] || '' }}">
-          <span class="envelope-status-dot"></span>
-          {{ item.statusLabel }}
+          <span class="envelope-status-icon">
+            <span class="material-symbols-outlined">{{ statusIconMap[item.status] || 'radio_button_unchecked' }}</span>
+          </span>
+          <span class="envelope-status-text">{{ item.statusLabel }}</span>
         </span>
       </ng-template>
     </flexi-grid-column>
     @if (!isBirimEvrakSorumlusu()) {
-      <flexi-grid-column title="Zimmetle" textAlign="center" width="100px">
+      <flexi-grid-column title="Zimmet" textAlign="center" width="60px">
         <ng-template flexiGridCellTemplate let-item>
           @if (item.documentCount > 0) {
             @if (item.status === EnvelopeStatus.TeslimEdildi) {
+              <!-- Teslim edilmiş zarf: salt okunur Teslim Bilgisi ekranı açılır. -->
               <flexi-button
-                btnIcon="task_alt"
-                title="Teslim Edildi"
+                btnIcon="fact_check"
+                title="Teslim Bilgisini Göster"
                 btnColor="success"
                 (click)="goToGidenZimmet(item.id)">
+              </flexi-button>
+            } @else if (item.status === EnvelopeStatus.EvrakBirimde) {
+              <!-- Zarf Giden Evrak birimine alınmış; sıradaki adım dış kuruma teslim. -->
+              <flexi-button
+                btnIcon="local_shipping"
+                title="Teslim Et"
+                btnColor="primary"
+                (click)="goToZimmetScan(item.envelopeNo, 'external')">
               </flexi-button>
             } @else if (isGidenEvrakUser() && item.departmentId !== ownDepartmentId()) {
               <flexi-button
                 btnIcon="approval_delegation"
                 title="Teslim Al"
                 btnColor="indigo"
-                (click)="goToGidenZimmet(item.id)">
+                (click)="goToZimmetScan(item.envelopeNo, 'self')">
               </flexi-button>
             } @else {
               <flexi-button
                 btnIcon="hand_package"
                 title="Zarfı Teslim Et"
                 btnColor="primary"
-                (click)="goToGidenZimmet(item.id)">
+                (click)="goToZimmetScan(item.envelopeNo, 'external')">
               </flexi-button>
             }
           }
         </ng-template>
       </flexi-grid-column>
     }
-        <flexi-grid-column title="Detaya Git" textAlign="center" width="50px">
+        <flexi-grid-column title="Detay" textAlign="center" width="50px">
       <ng-template flexiGridCellTemplate let-item>
         <flexi-button
           *ngIf="item.status !== EnvelopeStatus.TeslimEdildi"
@@ -117,8 +131,9 @@
     </flexi-grid-column>
         <flexi-grid-column textAlign="center" width="50px">
       <ng-template flexiGridCellTemplate let-item>
+        <!-- Yalnızca henüz işlem görmemiş (Yeni Kayıt) zarf silinebilir. -->
         <flexi-button
-          *ngIf="item.status !== EnvelopeStatus.TeslimEdildi"
+          *ngIf="item.status === EnvelopeStatus.Yeni"
           btnIcon="delete"
           title="Sil"
           btnColor="warning"

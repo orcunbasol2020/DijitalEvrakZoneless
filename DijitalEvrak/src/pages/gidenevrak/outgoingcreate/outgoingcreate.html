@@ -17,18 +17,44 @@
 
       @if (editingId()) {
         <div class="outgoing-create-meta">
-          <span class="outgoing-create-meta-badge">
-            <span class="material-symbols-outlined" style="font-size: 14px;">database</span>
-            {{ sourceLabelMap[documentSource() ?? -1] || 'Bilinmiyor' }}
-          </span>
-          <span class="outgoing-create-meta-badge {{ statusBadgeClassMap[documentStatus() ?? -1] || '' }}">
-            {{ statusLabelMap[documentStatus() ?? -1] || 'Bilinmiyor' }}
-          </span>
+          @if (loading()) {
+            <span class="outgoing-create-meta-badge">
+              <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              Kayıt yükleniyor
+            </span>
+          } @else {
+            <span class="outgoing-create-meta-badge">
+              <span class="material-symbols-outlined" style="font-size: 14px;">database</span>
+              {{ sourceLabelMap[documentSource() ?? -1] || 'Bilinmiyor' }}
+            </span>
+            <span class="outgoing-create-meta-badge {{ statusBadgeClassMap[documentStatus() ?? -1] || '' }}">
+              {{ statusLabelMap[documentStatus() ?? -1] || 'Bilinmiyor' }}
+            </span>
+          }
         </div>
       }
     </div>
 
-    <div class="outgoing-doc-form">
+    <!-- Kayıt veya seçenek listeleri sunucudan gelirken başlığın altında ince bir ilerleme şeridi akar. -->
+    @if (loading() || lookupsLoading()) {
+      <div class="outgoing-create-progress" role="progressbar" aria-label="Yükleniyor"></div>
+    }
+
+    @if (lookupsError()) {
+      <div class="outgoing-create-alert">
+        <span class="material-symbols-outlined">error</span>
+        <div class="outgoing-create-alert-text">
+          <strong>{{ failedLookupNames().join(', ') }}</strong> yüklenemedi.
+          Listeler gelmeden {{ editingId() ? 'güncelleme' : 'kayıt' }} yapılamaz.
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-danger" (click)="retryFailedLookups()">
+          <span class="material-symbols-outlined align-middle me-1" style="font-size: 16px;">refresh</span>
+          Tekrar dene
+        </button>
+      </div>
+    }
+
+    <div class="outgoing-doc-form" [class.is-loading]="loading()">
       <div class="row">
         <div class="col-6">
           <label class="form-label">Belge Numarası</label>
@@ -88,7 +114,9 @@
           <label class="form-label">Dil</label>
           <app-simple-autocomplete
             [control]="languageControl"
-            [options]="languages"
+            [options]="languages()"
+            [loading]="languageFieldLoading()"
+            loadingText="Diller yükleniyor..."
             placeholder="Dil seçiniz">
           </app-simple-autocomplete>
         </div>
@@ -106,6 +134,8 @@
             <app-simple-autocomplete
               [control]="departmentControl"
               [options]="departments()"
+              [loading]="departmentFieldLoading()"
+              loadingText="Birimler yükleniyor..."
               placeholder="Birim seçiniz">
             </app-simple-autocomplete>
           </div>
@@ -117,6 +147,8 @@
             <app-simple-autocomplete
               [control]="externalInstitutionControl"
               [options]="externalInstitutionOptions()"
+              [loading]="externalInstitutionFieldLoading()"
+              loadingText="Kurumlar yükleniyor..."
               placeholder="Kurum seçiniz">
             </app-simple-autocomplete>
           </div>
@@ -126,27 +158,101 @@
 
     <div class="outgoing-create-footer">
       <button class="btn btn-secondary" [disabled]="saving()" (click)="cancel()">İptal</button>
-      <button class="btn btn-primary" [disabled]="saving()" (click)="save()">
-        @if (saving()) {
+      <button class="btn btn-primary" [disabled]="saving() || !formReady()" (click)="save()"
+        [title]="formReady() ? '' : 'Form bilgileri yüklenene kadar bekleyiniz'">
+        @if (saving() || (!formReady() && !lookupsError())) {
           <span class="spinner-border spinner-border-sm me-1"></span>
         }
-        {{ editingId() ? 'Güncelle' : 'Kaydet' }}
+        @if (saving()) {
+          {{ editingId() ? 'Güncelleniyor...' : 'Kaydediliyor...' }}
+        } @else if (!formReady() && !lookupsError()) {
+          Yükleniyor...
+        } @else {
+          {{ editingId() ? 'Güncelle' : 'Kaydet' }}
+        }
       </button>
     </div>
   </div>
 
   <aside class="outgoing-create-help">
+    <!-- Formdaki seçime göre canlı güncellenen evrak yolu özeti -->
+    <div class="outgoing-help-route">
+      <div class="outgoing-help-route-node" [class.is-empty]="!selectedDepartmentName()">
+        <span class="outgoing-help-route-dot">
+          <span class="material-symbols-outlined">call_made</span>
+        </span>
+        <div class="outgoing-help-route-text">
+          <small>Nereden</small>
+          <strong>{{ selectedDepartmentName() || 'Birim henüz seçilmedi' }}</strong>
+        </div>
+      </div>
+
+      <div class="outgoing-help-route-line"></div>
+
+      <div class="outgoing-help-route-node" [class.is-empty]="!selectedInstitutionName()">
+        <span class="outgoing-help-route-dot">
+          <span class="material-symbols-outlined">call_received</span>
+        </span>
+        <div class="outgoing-help-route-text">
+          <small>Nereye</small>
+          <strong>{{ selectedInstitutionName() || 'Kurum henüz seçilmedi' }}</strong>
+        </div>
+      </div>
+    </div>
+
     <div class="outgoing-create-help-title">
       <span class="material-symbols-outlined">tips_and_updates</span>
-      Yardım
+      Alanlar hakkında
     </div>
-    <ul>
-      <li><strong>Belge Numarası</strong>, evrağın QR kodundaki veya üzerindeki takip numarasıdır.</li>
-      <li><strong>Orijinal Belge No</strong> alanı, evrağın gönderen kurumdaki kendi referans numarasıdır; bilinmiyorsa boş bırakılabilir.</li>
-      <li><strong>Nereden</strong>, evrağı gönderen kendi birimimiz; <strong>Nereye</strong> ise evrağın teslim edileceği dış kurumdur.</li>
-      <li>Bir alt kuruma bağlı kurumlar <strong>Nereye</strong> listesinde "Üst Kurum / Alt Kurum" şeklinde gösterilir.</li>
-      <li><strong>Nereden</strong> / <strong>Nereye</strong> / <strong>Dil</strong> alanlarında arama kutusuna yazmaya başlamanız yeterlidir, büyük/küçük harf farkı gözetilmez.</li>
-      <li><strong>Gizlilik</strong> ve <strong>İvedilik Derecesi</strong>, evrak listesinde ilgili sütunlarda rozet olarak gösterilir.</li>
+
+    <ul class="outgoing-help-list">
+      <li>
+        <span class="outgoing-help-icon"><span class="material-symbols-outlined">qr_code_2</span></span>
+        <div>
+          <strong>Belge Numarası</strong>
+          <span>Evrağın QR kodundaki veya üzerindeki takip numarası.</span>
+        </div>
+      </li>
+      <li>
+        <span class="outgoing-help-icon"><span class="material-symbols-outlined">tag</span></span>
+        <div>
+          <strong>Orijinal Belge No</strong>
+          <span>Gönderen kurumun kendi referans numarası. Bilinmiyorsa boş bırakılabilir.</span>
+        </div>
+      </li>
+      <li>
+        <span class="outgoing-help-icon"><span class="material-symbols-outlined">swap_horiz</span></span>
+        <div>
+          <strong>Nereden / Nereye</strong>
+          <span>Nereden, evrağı gönderen kendi birimimiz. Nereye, evrağın teslim edileceği dış kurum.</span>
+        </div>
+      </li>
+      <li>
+        <span class="outgoing-help-icon"><span class="material-symbols-outlined">account_tree</span></span>
+        <div>
+          <strong>Alt kurumlar</strong>
+          <span>Bir üst kuruma bağlı kurumlar listede "Üst Kurum / Alt Kurum" şeklinde görünür.</span>
+        </div>
+      </li>
+      <li>
+        <span class="outgoing-help-icon"><span class="material-symbols-outlined">search</span></span>
+        <div>
+          <strong>Hızlı arama</strong>
+          <span>Birim, kurum ve dil kutularına yazmaya başlamanız yeterli. Büyük/küçük harf fark etmez.</span>
+        </div>
+      </li>
+      <li>
+        <span class="outgoing-help-icon"><span class="material-symbols-outlined">verified_user</span></span>
+        <div>
+          <strong>Gizlilik ve İvedilik</strong>
+          <span>Evrak listesinde ilgili sütunlarda rozet olarak gösterilir.</span>
+        </div>
+      </li>
     </ul>
+
+    <div class="outgoing-help-note">
+      <span class="material-symbols-outlined">info</span>
+      <span>Belge Numarası, Belge Tarihi, Nereden ve Nereye alanları zorunludur.</span>
+    </div>
   </aside>
 </div>

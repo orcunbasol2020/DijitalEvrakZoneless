@@ -44,7 +44,7 @@
         {{ item.documentDate | date:'dd.MM.yyyy' }}
       </ng-template>
     </flexi-grid-column>
-    <flexi-grid-column field="securityDegreeLabel" title="Giz. Der." textAlign="center" width="90px"
+    <flexi-grid-column field="securityDegreeLabel" title="Gizlilik Der." textAlign="center" width="110px"
       filterType="select" [filterData]="securityDegreeFilterData()">
       <ng-template flexiGridCellTemplate let-item>
         <span class="degree-badge-circle {{ securityDegreeBadgeClassMap[item.securityDegree] || 'degree-tier-1' }}"
@@ -80,27 +80,18 @@
         {{ item.externalInstitutionName }}
       </ng-template>
     </flexi-grid-column>
-   <flexi-grid-column title="Takip" textAlign="center" width="81px" [filterable]="false" [sortable]="false">
-      <ng-template flexiGridCellTemplate let-item>
-        <flexi-button
-          btnIcon="conversion_path"
-          title="Süreçler"
-          btnColor="info"
-          (click)="goToProcess(item.id)">
-        </flexi-button>
-      </ng-template>
-    </flexi-grid-column>
     <flexi-grid-column title="Zimmet" textAlign="center" width="96px" [visible]="!isBirimEvrakSorumlusu()" [filterable]="false" [sortable]="false">
       <ng-template flexiGridCellTemplate let-item>
         <flexi-button
           btnIcon="article_person"
           title="Zimmetleme"
-          btnColor="light"
+          btnColor="primary"
           (click)="goToZimmet(item.id)">
         </flexi-button>
       </ng-template>
     </flexi-grid-column>
-    <flexi-grid-column title="Zimmet" textAlign="center" width="96px" [visible]="isBirimEvrakSorumlusu()" [filterable]="false" [sortable]="false">
+    <!-- Zimmet geçmişi tüm roller için görünür; Birim Evrak Sorumlusu zimmetleme ekranına gidemediğinden tek erişimi budur. -->
+    <flexi-grid-column title="Geçmiş" textAlign="center" width="70px" [filterable]="false" [sortable]="false">
       <ng-template flexiGridCellTemplate let-item>
         <flexi-button
           btnIcon="history"
@@ -116,7 +107,7 @@
           *ngIf="item.source === 1"
           btnIcon="expand_circle_right"
           title="Giden Evrakı Güncelle"
-          btnColor="primary"
+          btnColor="info"
           (click)="goToEdit(item)">
         </flexi-button>
       </ng-template>
@@ -134,25 +125,31 @@
   </flexi-grid>
 </div>
 
-<!-- Zimmet Geçmişi Popup (Birim Evrak Sorumlusu: evrakın mevcut ve geçmiş zimmetleri) -->
+<!-- Zimmet Geçmişi Popup (tüm roller: evrakın mevcut ve geçmiş zimmetleri) -->
 @if (zimmetHistoryVisible()) {
   <div class="modal-overlay" (click)="closeZimmetHistory()">
     <div class="modal-box zh-modal" (click)="$event.stopPropagation()">
       <!-- Başlık -->
       <div class="zh-header">
-        <div class="zh-header-icon">
-          <span class="material-symbols-outlined">history</span>
-        </div>
-        <div class="zh-header-text">
+        <!-- Üst satır: küçük başlık solda, kapat sağda -->
+        <div class="zh-header-top">
           <div class="zh-title">Zimmet Geçmişi</div>
-          <div class="zh-doc-no">{{ zimmetHistoryDoc()?.qrCode }}</div>
+          <button type="button" class="zh-close" title="Kapat" (click)="closeZimmetHistory()">
+            <span class="material-symbols-outlined">close</span>
+          </button>
         </div>
-        @if (!zimmetHistoryLoading() && zimmetHistory().length) {
-          <span class="zh-count">{{ zimmetHistory().length }} kayıt</span>
-        }
-        <button type="button" class="zh-close" title="Kapat" (click)="closeZimmetHistory()">
-          <span class="material-symbols-outlined">close</span>
-        </button>
+        <!-- Alt satır: ikon + evrak numarası + kayıt sayısı -->
+        <div class="zh-header-main">
+          <div class="zh-header-icon">
+            <span class="material-symbols-outlined">history</span>
+          </div>
+          <div class="zh-header-text">
+            <div class="zh-doc-no">{{ zimmetHistoryDoc()?.qrCode }}</div>
+          </div>
+          @if (!zimmetHistoryLoading() && zimmetHistory().length) {
+            <span class="zh-count">{{ zimmetHistory().length }} kayıt</span>
+          }
+        </div>
       </div>
 
       <!-- Aktif zimmet özeti -->
@@ -166,20 +163,17 @@
                 Aktif Zimmet
               </div>
               <div class="zh-hero-name">{{ a.fullName || '-' }}</div>
-              <div class="zh-hero-meta">
+            </div>
+            <div class="zh-hero-side">
+              <span class="zh-status-chip {{ allocationStatusClass[a.status] || '' }}">
+                <span class="material-symbols-outlined">{{ allocationStatusIcons[a.status] || 'label' }}</span>
+                {{ allocationStatusLabels[a.status] || '-' }}
+              </span>
+              <span class="zh-date">
                 <span class="material-symbols-outlined">schedule</span>
                 {{ a.createdDate | date:'dd.MM.yyyy HH:mm' }}
-                @if (a.createdFullName && a.status !== AllocationStatus.IlkKayit) {
-                  <span class="zh-hero-sep">·</span>
-                  <span class="material-symbols-outlined">person</span>
-                  {{ a.createdFullName }}
-                }
-              </div>
+              </span>
             </div>
-            <span class="zh-status-chip {{ allocationStatusClass[a.status] || '' }}">
-              <span class="material-symbols-outlined">{{ allocationStatusIcons[a.status] || 'label' }}</span>
-              {{ allocationStatusLabels[a.status] || '-' }}
-            </span>
           </div>
         } @else if (zimmetHistory().length) {
           <div class="zh-hero is-empty">
@@ -202,10 +196,18 @@
             <span>Zimmet geçmişi yükleniyor</span>
           </div>
         } @else if (zimmetHistory().length) {
-          <div class="zh-section-title">
+          <button
+            type="button"
+            class="zh-section-title zh-section-toggle"
+            [class.is-open]="zimmetHistoryExpanded()"
+            [attr.aria-expanded]="zimmetHistoryExpanded()"
+            [title]="zimmetHistoryExpanded() ? 'Hareketleri gizle' : 'Hareketleri göster'"
+            (click)="toggleZimmetHistoryExpanded()">
             <span class="material-symbols-outlined">timeline</span>
             Hareketler
-          </div>
+            <span class="material-symbols-outlined zh-section-chevron">expand_more</span>
+          </button>
+          @if (zimmetHistoryExpanded()) {
           <div class="zh-timeline">
             @for (h of zimmetHistory(); track h.id) {
               <div class="zh-row" [class.is-active]="h.isActive">
@@ -215,29 +217,29 @@
                 <div class="zh-card">
                   <div class="zh-card-main">
                     <div class="zh-name" [title]="h.fullName">{{ h.fullName || '-' }}</div>
-                    <div class="zh-meta">
-                      <span class="material-symbols-outlined">schedule</span>
-                      {{ h.createdDate | date:'dd.MM.yyyy HH:mm' }}
-                      <!-- İlk kayıtta evrak kimseden devralınmadığı için "Teslim eden" gösterilmez. -->
-                      @if (h.createdFullName && h.status !== AllocationStatus.IlkKayit) {
-                        <span class="zh-hero-sep">·</span>
+                    <!-- İlk Kayıt ve Teslim Alındı durumlarında "Teslim eden" gösterilmez. -->
+                    @if (showsDeliverer(h)) {
+                      <div class="zh-meta">
+                        <span class="material-symbols-outlined">person</span>
                         <span class="zh-meta-by">Teslim eden: <strong>{{ h.createdFullName }}</strong></span>
-                      }
-                    </div>
+                      </div>
+                    }
                   </div>
                   <div class="zh-card-side">
                     <span class="zh-status-chip {{ allocationStatusClass[h.status] || '' }}">
                       <span class="material-symbols-outlined">{{ allocationStatusIcons[h.status] || 'label' }}</span>
                       {{ allocationStatusLabels[h.status] || '-' }}
                     </span>
-                    <span class="zh-state-pill" [class.is-active]="h.isActive">
-                      {{ h.isActive ? 'Aktif' : 'Devredildi' }}
+                    <span class="zh-date">
+                      <span class="material-symbols-outlined">schedule</span>
+                      {{ h.createdDate | date:'dd.MM.yyyy HH:mm' }}
                     </span>
                   </div>
                 </div>
               </div>
             }
           </div>
+          }
         } @else {
           <div class="zh-state is-empty">
             <span class="zh-state-icon">

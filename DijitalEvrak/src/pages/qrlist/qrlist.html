@@ -1,54 +1,91 @@
 <app-generic
-  pageTitle="QR List"
-  [breadcrumbs]="[{title: 'QR List', url: 'qrlist', icon:''}]">
+  pageTitle="QR Oluştur"
+  [breadcrumbs]="[{title: 'QR Oluştur', url: 'qrlist', icon:''}]">
 </app-generic>
 
 <div class="row">
   <div class="col-md-12 col-12">
-    <div class="card">
+    <div class="card qr-card">
 
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h4>QR List</h4>
+      <!-- Başlık: Zarflar listesindeki caption ile aynı dil (gradyan zemin, sol vurgu çubuğu, ikon çipli başlık) -->
+      <div class="card-header qr-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span class="qr-card-title">QR Oluştur</span>
 
-        <div class="d-flex gap-2 flex-wrap">
+        <div class="d-flex gap-2 flex-wrap align-items-center">
 
-<div class="qr-link-btn-container">
-  <button 
-    *ngFor="let count of counts"
-    class="qr-link-btn"
-    [class.selected]="count === selectedCount"
-    (click)="updateDocuments(count)">
-    {{count}}
-  </button>
-</div>
+          <div class="qr-link-btn-container" role="group" aria-label="Etiket adedi">
+            @for (count of counts; track count) {
+              <button
+                type="button"
+                class="qr-link-btn"
+                [class.selected]="count === selectedCount()"
+                [attr.aria-pressed]="count === selectedCount()"
+                (click)="updateDocuments(count)">
+                {{ count }}
+              </button>
+            }
+          </div>
 
-<button
-  class="btn btn-gradient-print"
-  (click)="printQrList()" title="Çıktı Al">
-  <span class="material-symbols-outlined">print</span>
-</button>
+          <button
+            type="button"
+            class="btn btn-gradient-print"
+            (click)="printQrList()"
+            title="Seçilen adette QR etiketini A4 sayfalara yazdırır">
+            <span class="material-symbols-outlined">print</span>
+            Yazdır
+          </button>
 
         </div>
+      </div>
+
+      <!-- Özet: ne basılacağını yazdırmadan önce tek bakışta gösterir. -->
+      <div class="qr-summary">
+        <span class="qr-summary-item">
+          <span class="material-symbols-outlined">tag</span>
+          <span class="qr-summary-label">Toplam</span>
+          <strong>{{ documents().length }}</strong> etiket
+        </span>
+        <span class="qr-summary-item">
+          <span class="material-symbols-outlined">linear_scale</span>
+          <span class="qr-summary-label">Aralık</span>
+          <strong>{{ firstDocument() }}</strong>
+          @if (documents().length > 1) {
+            <span class="qr-summary-sep">–</span>
+            <strong>{{ lastDocument() }}</strong>
+          }
+        </span>
+        <span class="qr-summary-item">
+          <span class="material-symbols-outlined">description</span>
+          <span class="qr-summary-label">Çıktı</span>
+          A4, 4 sütun, yaklaşık <strong>{{ estimatedPages() }}</strong> sayfa
+        </span>
       </div>
 
       <div class="card-body">
 
         <div class="qr-placeholder-grid">
+          @for (doc of previewDocuments(); track doc) {
+            <div class="qr-placeholder-item">
+              <div class="qr-placeholder-box">QR</div>
+              <div class="qr-placeholder-text">{{ doc }}</div>
+            </div>
+          }
+        </div>
 
-          <div *ngFor="let doc of documents" class="qr-placeholder-item">
-            <div class="qr-placeholder-box">QR</div>
-            <div class="qr-placeholder-text">{{doc}}</div>
+        @if (hiddenCount() > 0) {
+          <div class="qr-preview-more">
+            <span class="material-symbols-outlined">more_horiz</span>
+            … ve <strong>{{ hiddenCount() }}</strong> etiket daha
+            (<strong>{{ lastDocument() }}</strong> numarasına kadar)
           </div>
+        }
 
+        <div class="qr-preview-note">
+          <span class="material-symbols-outlined">info</span>
+          Yukarıdaki kutular temsilidir; gerçek QR kodları yazdırma çıktısında oluşturulur.
         </div>
 
       </div>
-
-<hr class="qr-footer-hr">
-
-<div class="qr-footer-info small mb-3">
-  Toplam: {{documents.length}}
-</div>
 
     </div>
   </div>

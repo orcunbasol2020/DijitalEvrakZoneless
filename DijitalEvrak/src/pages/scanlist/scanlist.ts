@@ -105,11 +105,11 @@ export default class Scanlist {
     return this.user()?.id;
   }
 
-  // Yönetici hiçbir filtre göndermez (tüm kayıtları görür); diğer kullanıcılar
-  // kendi departmentId'siyle sınırlanır, böylece aynı birimdeki herkesin
-  // oluşturduğu evrakları görür (sadece kendi oluşturduklarını değil).
+  // Yönetici ve Gelen Evrak rolleri hiçbir filtre göndermez (tüm gelen evrakları
+  // görür); diğer kullanıcılar (ör. Birim Evrak Sorumlusu) kendi departmentId'siyle
+  // sınırlanır, böylece sadece kendi birimlerine ait evrakları görür.
   private get departmentFilterId(): string | undefined {
-    return this.#roleService.has('Yönetici') ? undefined : this.user()?.departmentId;
+    return this.#roleService.hasAny(['Yönetici', 'Gelen Evrak']) ? undefined : this.user()?.departmentId;
   }
 
   private setupDocumentsEffect(): void {

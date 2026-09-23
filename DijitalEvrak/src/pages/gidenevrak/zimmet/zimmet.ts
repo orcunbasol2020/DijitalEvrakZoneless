@@ -1,4 +1,5 @@
-import { AfterViewInit, ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, OnDestroy, OnInit, signal, ViewChild, ViewEncapsulation } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ElementRef, inject, OnDestroy, OnInit, signal, ViewChild, ViewEncapsulation } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import GenericModel from '../../../../components/generic-model/generic-model';
 import { FlexiToastService } from 'flexi-toast';
 import { EnvelopeDocumentService } from '../../../services/envelopedocument';
@@ -9,7 +10,7 @@ import { httpResource } from '@angular/common/http';
 import { ChangeDetectorRef } from '@angular/core';
 import { Common } from '../../../services/common';
 import { firstValueFrom } from 'rxjs';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { EnvelopeModel, EnvelopeStatus, EnvelopeStatusBadgeClass, EnvelopeStatusLabels, envelopeStatusForZimmetMode } from '../../../models/envelope.model';
 import { ZimmetStateService } from '../../../services/zimmet-state-service';
 import { OutgoingDocumentService } from '../../../services/outgoingdocument';
@@ -55,6 +56,8 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
   private externalInstitutionService = inject(ExternalInstitution);
   private zimmetState = inject(ZimmetStateService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  private destroyRef = inject(DestroyRef);
   private cdr = inject(ChangeDetectorRef);
   readonly #common = inject(Common);
   readonly user = computed(() => this.#common.user());
@@ -67,6 +70,32 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
   }
   ngAfterViewInit(): void {
     this.focusQrInputSoon();
+
+    // Zarflar listesinden "Teslim Al / Teslim Et" ile gelindiğinde etiket numarası
+    // ?envelopeNo= ile, istenen sekme ?mode= (self | internal | external) ile
+    // taşınır; sekme seçilip zarf elle okutulmuş gibi otomatik aranır. Sekme,
+    // zarf okutulmadan önce seçilir ki "Teslim Et" modunda zarfın alıcı kurumu
+    // otomatik gelsin. Paramlar ardından URL'den silinir; böylece zimmetleme
+    // sonrası sayfa yenilenince aynı zarf yeniden yüklenmez.
+    this.route.queryParamMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(params => {
+        const envelopeNo = params.get('envelopeNo')?.trim();
+        if (!envelopeNo) return;
+
+        this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: { envelopeNo: null, mode: null },
+          queryParamsHandling: 'merge',
+          replaceUrl: true
+        });
+
+        const mode = params.get('mode');
+        if (mode === 'self' || mode === 'internal' || mode === 'external') {
+          this.setMode(mode);
+        }
+        this.onQrScanned(envelopeNo);
+      });
   }
   ngOnDestroy(): void {
     window.removeEventListener('keydown', this.keydownHandler);
@@ -77,6 +106,12 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     const target = e.target as HTMLElement | null;
     const tag = target?.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable) return;
+
+    // Okutma alanı daraltılmışken okuyucu pasiftir; tuşlar tampona alınmaz.
+    if (this.scanCollapsed) {
+      this.buffer = '';
+      return;
+    }
 
     if (!this.detailsVisible()) {
       if (e.key === 'Enter') {
@@ -90,6 +125,28 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
 
   private focusQrInputSoon() {
     setTimeout(() => this.qrInput?.nativeElement.focus());
+  }
+
+  // Zarf bulunup evrakları listelendiğinde QR okutma bloğu tek satıra daralır;
+  // böylece liste ve zarf özeti için yer açılır. Daraltılmışken okuyucu pasiftir
+  // (handleKeydown tuşları yoksayar); kullanıcı "Aç" ile açınca yeniden aktif olur.
+  scanCollapsed = false;
+
+  collapseScan(): void {
+    if (this.scanCollapsed) return;
+    this.scanCollapsed = true;
+    this.buffer = '';
+    // Gizlenen alandaki odak kalmasın; "Okumaya Hazır" chip'i de pasife dönsün.
+    this.qrInput?.nativeElement.blur();
+    this.qrActive = false;
+    this.cdr.markForCheck();
+  }
+
+  expandScan(): void {
+    if (!this.scanCollapsed) return;
+    this.scanCollapsed = false;
+    this.cdr.markForCheck();
+    this.focusQrInputSoon();
   }
 
   // QR alanına yazıp / okutup Enter'a basılınca çalışır; alan temizlenip odak korunur.
@@ -155,6 +212,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     if (this.documents.length === 0) {
       this.currentItem = null;
       this.alertVisible = true;
+      this.scanCollapsed = false;
       this.focusQrInputSoon();
     }
   }
@@ -453,7 +511,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
         }
 
         // Teslim edilmiş zarf üzerinde yeniden zimmetleme yapılamaz; kullanıcı
-        // teslim bilgilerinin gösterildiği Teslim Et ekranına yönlendirilir.
+        // salt okunur Teslim Bilgisi ekranına yönlendirilir.
         // Oradaki "Geri" butonu bu okutma ekranına döner.
         if (envelope.status === EnvelopeStatus.TeslimEdildi) {
           this.documents = [];
@@ -466,6 +524,15 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
         }
 
         this.previewEnvelope = envelope;
+
+        // Zarf daha önce "Teslim Al" ile alınmışsa (Evrak Birimde) bir sonraki
+        // doğal adım dış kuruma teslimdir; varsayılan Teslim Al sekmesi yerine
+        // Teslim Et otomatik seçilir. Kullanıcı okutmadan önce başka bir sekmeyi
+        // bilerek seçmişse (ya da ?mode= ile gelmişse) o seçim korunur.
+        if (envelope.status === EnvelopeStatus.EvrakBirimde && this.mode() === 'self') {
+          this.setMode('external');
+        }
+
         this.applyEnvelopeInstitution();
 
         // GetByNo, GetById gibi kurum adını (externalInstitutionName) join'lemeden
@@ -487,6 +554,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
         if (docs.length > 0) {
           this.documents = docs;
           this.alertVisible = false;
+          this.collapseScan();
         } else {
           this.documents = [];
           this.showToast('Bilgi', 'Zarf içinde evrak yok.', 'warning');
@@ -565,6 +633,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     this.envelopeLabelVisible = false;
     this.searchTerm = '';
     this.searchVisible = false;
+    this.scanCollapsed = false;
     this.mode.set('self');
     this.selectedPersonId.set(this.user()?.id ?? null);
     this.selectedInstitutionId.set(null);
@@ -599,9 +668,24 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
 
     const userType = this.mode() === 'external' ? 2 : 1;
 
-    // reset() zarf bilgisini temizlediği için zarf durumu güncellemesi için önceden saklanır.
+    // Dış kuruma teslimde (Teslim Et) evrak artık birimden çıktığı için zimmet
+    // kaydı Teslim olarak yazılır; kullanıcının kendi üzerine aldığı (Teslim Al)
+    // evraklar Teslim Alındı, birim içi zimmetleme (Zimmetle) ise Devir'dir.
+    const allocationStatus = this.mode() === 'external'
+      ? AllocationStatusEnum.Teslim
+      : this.mode() === 'self'
+        ? AllocationStatusEnum.TeslimAlindi
+        : AllocationStatusEnum.Devir;
+
+    // reset() zarf ve seçim bilgisini temizlediği için zarf durumu güncellemesi ve
+    // sonuç mesajı için gereken bilgiler önceden saklanır.
     const envelopeId = this.currentItem?.type === 'envelope' ? this.previewEnvelope?.id ?? null : null;
+    const envelopeNo = envelopeId ? this.previewEnvelope?.envelopeNo ?? null : null;
     const envelopeStatus = envelopeStatusForZimmetMode(this.mode());
+    const mode = this.mode();
+    const targetPerson = this.currentPersonList().find(x => x.id === personId);
+    const targetName = targetPerson ? `${targetPerson.name} ${targetPerson.surname}` : null;
+    const institutionName = mode === 'external' ? this.selectedInstitutionName() : null;
 
     this.saving.set(true);
     this.cdr.markForCheck();
@@ -622,7 +706,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
           outgoingDocumentId,
           userId: personId,
           createdUserId,
-          status: AllocationStatusEnum.Devir,
+          status: allocationStatus,
           userType
         });
         successCount++;
@@ -637,7 +721,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     if (failedCodes.length > 0) {
       this.#toast.showToast(
         'Uyarı',
-        `${failedCodes.length} evrak zimmetlenemedi: ${failedCodes.join(', ')}`,
+        `${failedCodes.length} evrak işlenemedi (${failedCodes.join(', ')}). Bu evraklar için işlemi yeniden deneyin.`,
         'warning'
       );
     }
@@ -647,7 +731,9 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
-    this.#toast.showToast('Başarılı', `${successCount} evrak zimmetlendi`, 'info');
+    // Sonuç mesajı moda göre: ne yapıldı, kime yapıldı, zarf hangi duruma geçti.
+    const { title, message } = this.buildSuccessMessage(mode, successCount, targetName, institutionName, envelopeNo);
+    this.#toast.showToast(title, message, 'success');
 
     // Evraklar zimmetlendiyse zarfın durumu da moda göre güncellenir
     // (Teslim Al / Zimmetle: Evrak Birimde, Teslim Et: Teslim Edildi).
@@ -658,6 +744,48 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     // TEMİZLEME
     this.reset();
     this.cdr.detectChanges();
+  }
+
+  // Kayıt sonrası toast: "Teslim Al" -> üzerinize alındı, "Zimmetle" -> kullanıcıya
+  // zimmetlendi, "Teslim Et" -> dış kurum personeline teslim edildi. Zarf okutulduysa
+  // zarfın geçtiği yeni durum da eklenir.
+  private buildSuccessMessage(
+    mode: ZimmetMode,
+    count: number,
+    targetName: string | null,
+    institutionName: string | null,
+    envelopeNo: string | null
+  ): { title: string; message: string } {
+    const docs = count === 1 ? '1 evrak' : `${count} evrak`;
+    const envelopeSuffix = (statusLabel: string) =>
+      envelopeNo ? ` ${envelopeNo} numaralı zarf "${statusLabel}" durumuna geçti.` : '';
+
+    switch (mode) {
+      case 'self':
+        return {
+          title: 'Teslim Alındı',
+          message: `${docs} üzerinize teslim alındı.${envelopeSuffix(EnvelopeStatusLabels[EnvelopeStatus.EvrakBirimde])}`
+        };
+      case 'external': {
+        // Örn. "3 evrak X Kurumu personeli Ali Veli'ye teslim edildi."
+        const receiver = targetName && institutionName
+          ? `${institutionName} personeli ${targetName} adlı kişiye`
+          : targetName
+            ? `${targetName} adlı kişiye`
+            : institutionName
+              ? `${institutionName} kurumuna`
+              : 'dış kuruma';
+        return {
+          title: 'Teslim Edildi',
+          message: `${docs} ${receiver} teslim edildi.${envelopeSuffix(EnvelopeStatusLabels[EnvelopeStatus.TeslimEdildi])}`
+        };
+      }
+      default:
+        return {
+          title: 'Zimmetlendi',
+          message: `${docs} ${targetName ? `${targetName} adlı kullanıcıya` : 'seçilen kullanıcıya'} zimmetlendi.${envelopeSuffix(EnvelopeStatusLabels[EnvelopeStatus.ZimmetDevri])}`
+        };
+    }
   }
 
   // Zarf içeriği EnvelopeDocuments kaydı olarak gelir ve evrakın gerçek id'sini

@@ -6,7 +6,7 @@ import { Injectable, signal } from '@angular/core';
 export class ZimmetStateService {
   private _envelopeId = signal<string | null>(null);
   private _outgoingDocumentId = signal<string | null>(null);
-  // Teslim Et (gidenzimmet) ekranındaki "Geri" butonunun döneceği rota.
+  // Teslim Bilgisi (gidenzimmet) ekranındaki "Geri" butonunun döneceği rota.
   // Boşsa Zarflar listesine dönülür.
   private _returnUrl = signal<string | null>(null);
 

@@ -35,6 +35,14 @@ export const EnvelopeStatusBadgeClass: Record<EnvelopeStatus, string> = {
   [EnvelopeStatus.ZimmetDevri]: 'envelope-status-devir'
 };
 
+// Zarflar listesindeki durum rozetinde gösterilen Material Symbols ikonu.
+export const EnvelopeStatusIcon: Record<EnvelopeStatus, string> = {
+  [EnvelopeStatus.Yeni]: 'mark_email_unread',
+  [EnvelopeStatus.EvrakBirimde]: 'inventory_2',
+  [EnvelopeStatus.TeslimEdildi]: 'task_alt',
+  [EnvelopeStatus.ZimmetDevri]: 'swap_horiz'
+};
+
 export interface EnvelopeModel {
   id: string;
   envelopeNo: string;

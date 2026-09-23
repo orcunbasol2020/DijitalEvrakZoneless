@@ -6,7 +6,7 @@ import { FlexiToastService } from 'flexi-toast';
 import { FormsModule } from '@angular/forms';
 import GenericModel from '../../../../components/generic-model/generic-model';
 import { CommonModule } from '@angular/common';
-import { EnvelopeModel, EnvelopeStatus, EnvelopeStatusBadgeClass, EnvelopeStatusLabels } from '../../../models/envelope.model';
+import { EnvelopeModel, EnvelopeStatus, EnvelopeStatusBadgeClass, EnvelopeStatusIcon, EnvelopeStatusLabels } from '../../../models/envelope.model';
 import { ZimmetStateService } from '../../../services/zimmet-state-service';
 import { EnvelopeService } from '../../../services/envelope';
 import { Common } from '../../../services/common';
@@ -51,6 +51,7 @@ export default class Envelopes {
   // Şablonda enum değerleriyle karşılaştırma yapabilmek için dışa açılıyor.
   readonly EnvelopeStatus = EnvelopeStatus;
   readonly statusBadgeClassMap: Record<number, string> = EnvelopeStatusBadgeClass;
+  readonly statusIconMap: Record<number, string> = EnvelopeStatusIcon;
 
   readonly data = computed(() => {
     const deptMap = this.departmentNameMap();
@@ -92,9 +93,17 @@ export default class Envelopes {
     });
   }
 
+  // Teslim edilmiş zarf: salt okunur Teslim Bilgisi ekranı.
   goToGidenZimmet(envelopeId: string) {
     this.state.setEnvelopeId(envelopeId);
     this.router.navigate(['/gidenzimmet']);
+  }
+
+  // Teslim Al / Teslim Et: QR okutma ekranına gidilir; etiket numarası query param
+  // ile taşınarak zarf orada otomatik aranır ve ilgili sekme (Teslim Al = self,
+  // Teslim Et = external) seçili gelir.
+  goToZimmetScan(envelopeNo: string, mode: 'self' | 'external') {
+    this.router.navigate(['/gidenevrak/zimmet'], { queryParams: { envelopeNo, mode } });
   }
 
   goToDetail(envelopeId: string) {

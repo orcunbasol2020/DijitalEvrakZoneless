@@ -99,7 +99,7 @@ export const navigations: NavigationModel[] = [
         roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Giden Evrak"]
     },
     {
-        title: "Teslim Al",
+        title: "Teslim Al / Zimmetle",
         url: "/gidenevrak/zimmet",
         icon: "approval_delegation",
         roles: ["Gelen Evrak", "Giden Evrak"]

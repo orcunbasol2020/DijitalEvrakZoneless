@@ -1,35 +1,28 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, OnInit, signal, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import GenericModel from '../../../../components/generic-model/generic-model';
 import { FlexiToastService } from 'flexi-toast';
 import { EnvelopeDocumentService } from '../../../services/envelopedocument';
-import { forkJoin } from 'rxjs';
 import { ZimmetStateService } from '../../../services/zimmet-state-service';
-import { EnvelopeModel, EnvelopeStatusBadgeClass, EnvelopeStatusLabels, envelopeStatusForZimmetMode } from '../../../models/envelope.model';
+import { EnvelopeModel, EnvelopeStatus, EnvelopeStatusBadgeClass, EnvelopeStatusLabels } from '../../../models/envelope.model';
 import { EnvelopeService } from '../../../services/envelope';
 import { ExternalInstitution, ExternalInstitutionModel } from '../../../services/external-institution';
-import { ExternalUserService, ExternalUserModel, initialExternalUser } from '../../../services/external-user';
 import { OutgoingDocumentAllocation } from '../../../services/outgoingdocumentallocation';
 import { OutgoingDocumentAllocationModel } from '../../../models/outgoingdocumentallocation.model';
-import { AllocationStatusEnum } from '../../../models/allocationstatus.model';
 import { Common } from '../../../services/common';
-import { httpResource } from '@angular/common/http';
-import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 import { QRCodeComponent } from 'angularx-qrcode';
-import { UserModel } from '../../users/users';
-import { SimpleAutocompleteComponent } from '../../simpleautocomplete/simpleautocomplete';
 
-type ZimmetMode = 'self' | 'internal' | 'external';
-type PersonListItem = { id: string; name: string; surname: string; identityNo?: string; email?: string };
-
+// Teslim Bilgisi ekranı: yalnızca "Teslim Edildi" durumundaki zarflar için
+// açılır ve salt okunurdur. Zarftaki evraklar, teslim alan/eden kişi, teslim
+// tarihi ve ıslak imzalı zimmet formu gösterilir; burada zimmetleme yapılmaz
+// (zimmetleme Giden Evrak Teslim Al ekranında QR okutularak yapılır).
 @Component({
   imports: [
     GenericModel,
     CommonModule,
     FormsModule,
-    ReactiveFormsModule,
-    SimpleAutocompleteComponent,
     QRCodeComponent
   ],
   templateUrl: './gidenzimmet.html',
@@ -43,92 +36,19 @@ export default class Gidenzimmet implements OnInit {
   private externalService = inject(ExternalInstitution);
   private state = inject(ZimmetStateService);
   private envelopeDocumentService = inject(EnvelopeDocumentService);
-  private externalUserService = inject(ExternalUserService);
   private allocationService = inject(OutgoingDocumentAllocation);
   private toast = inject(FlexiToastService);
   private router = inject(Router);
   readonly #common = inject(Common);
   readonly user = computed(() => this.#common.user());
-  readonly selectedPersonId = signal<string | null>(null);
 
-  // ---- Zimmetle paneli: gidenevrak/zimmet ekranıyla aynı mod seçimi ----
-  readonly mode = signal<ZimmetMode>('external');
-  readonly selectedInstitutionId = signal<string | null>(null);
-
-  readonly usersResult = httpResource<UserModel[]>(() => "api/Users/GetAll");
-  readonly internalUserList = computed<PersonListItem[]>(() =>
-    (this.usersResult.value() ?? []).filter((x): x is UserModel & { id: string } => !!x.id && !x.isDeleted && x.isActive)
-  );
-
-  readonly institutionsResult = httpResource<ExternalInstitutionModel[]>(() => "api/ExternalInstitutions/GetAll");
-  readonly institutionList = computed(() =>
-    (this.institutionsResult.value() ?? []).filter(x => !x.isDeleted)
-  );
-
-  // Kurumlar parentId ile hiyerarşik olabildiğinden, autocomplete listesinde
-  // üst kurumun hemen altına alt kurumlar girintili şekilde sıralanır.
-  readonly institutionOptions = computed(() => {
-    const list = this.institutionList();
-    const byParent = new Map<string | null, ExternalInstitutionModel[]>();
-
-    for (const inst of list) {
-      const key = list.some(p => p.id === inst.parentId) ? inst.parentId! : null;
-      if (!byParent.has(key)) byParent.set(key, []);
-      byParent.get(key)!.push(inst);
-    }
-    for (const group of byParent.values()) {
-      group.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
-    }
-
-    const result: { id: string; name: string; level: number }[] = [];
-    const addChildren = (parentId: string | null, level: number) => {
-      for (const inst of byParent.get(parentId) ?? []) {
-        result.push({ id: inst.id, name: inst.name, level });
-        addChildren(inst.id, level + 1);
-      }
-    };
-    addChildren(null, 0);
-
-    return result;
-  });
-  readonly institutionControl = new FormControl<{ id: string, name: string } | null>(null);
-
-  readonly externalUsersResult = httpResource<ExternalUserModel[]>(() => "api/ExternalUsers/GetAll");
-  readonly externalPersonList = computed<PersonListItem[]>(() => {
-    const institutionId = this.selectedInstitutionId();
-    if (!institutionId) return [];
-
-    return (this.externalUsersResult.value() ?? [])
-      .filter(x => !x.isDeleted && x.isActive && x.externalInstitutionId === institutionId);
-  });
-
-  readonly currentPersonList = computed<PersonListItem[]>(() =>
-    this.mode() === 'internal' ? this.internalUserList() : this.externalPersonList()
-  );
-
-  readonly personSearch = signal('');
-  readonly filteredPersonList = computed(() => {
-    const term = this.personSearch().trim().toLocaleLowerCase('tr');
-    const list = this.currentPersonList();
-    if (!term) return list;
-
-    return list.filter(p =>
-      `${p.name} ${p.surname}`.toLocaleLowerCase('tr').includes(term) ||
-      (p.identityNo ?? '').toLocaleLowerCase('tr').includes(term)
-    );
-  });
-
+  readonly previewEnvelope = signal<EnvelopeModel | null>(null);
   readonly documents = signal<any[]>([]);
-  selectedDocuments: any[] = [];
-  externalName = signal<string | null>(null);
-  externalType = signal<number | null>(null);
-  externalInstitutionId = signal<string | null>(null);
-  showFilters = false;
+  readonly externalName = signal<string | null>(null);
   readonly loading = signal(false);
   readonly envelopeLabelVisible = signal(false);
 
   searchTerm = '';
-  searchVisible = false;
   sortField: 'qrCode' | 'createdDate' = 'createdDate';
   sortDirection: 'asc' | 'desc' = 'desc';
 
@@ -157,14 +77,7 @@ export default class Gidenzimmet implements OnInit {
     }
   }
 
-  readonly quickAddModalVisible = signal(false);
-  readonly quickAddSaving = signal(false);
-  quickAddForm: ExternalUserModel = { ...initialExternalUser };
-
-  // Teslim Et butonuna basıldıktan sonra istekler bitene kadar buton kilitlenir.
-  readonly saving = signal(false);
-
-  // Teslim edildi görünümündeki geri butonu: geldiği ekrana göre metin.
+  // Geri butonu: geldiği ekrana göre metin.
   get backButtonLabel(): string {
     return this.state.getReturnUrl() ? 'Okutma Ekranına Dön' : 'Zarflara Dön';
   }
@@ -180,36 +93,19 @@ export default class Gidenzimmet implements OnInit {
     return (status != null && EnvelopeStatusBadgeClass[status]) || '';
   }
 
-  readonly selectedInstitutionName = computed(() => {
-    const id = this.selectedInstitutionId();
-    return id ? this.institutionList().find(x => x.id === id)?.name ?? null : null;
-  });
+  // Zarf "Teslim Edildi" durumunda değilse bu ekranda gösterilecek bilgi yoktur;
+  // kullanıcı teslim işlemi için okutma ekranına yönlendirilir.
+  readonly isDelivered = computed(() => this.previewEnvelope()?.status === EnvelopeStatus.TeslimEdildi);
 
-  // Alt özet şeridinde "3 evrak → Ad Soyad" biçiminde gösterilecek hedef.
-  readonly selectedTargetLabel = computed<string | null>(() => {
-    const id = this.selectedPersonId();
-    if (!id) return null;
-
-    if (this.mode() === 'self') {
-      const u = this.user();
-      return u ? `${u.name} ${u.surname}` : null;
-    }
-
-    const p = this.currentPersonList().find(x => x.id === id);
-    if (!p) return null;
-
-    const fullName = `${p.name} ${p.surname}`;
-    const inst = this.mode() === 'external' ? this.selectedInstitutionName() : null;
-    return inst ? `${fullName} · ${inst}` : fullName;
-  });
-
-  // delivered: bu zarf (daha önce ya da az önce) teslim edilmiş mi.
-  // deliveredJustNow: teslim işlemi bu oturumda az önce yapıldıysa true.
-  readonly delivered = signal(false);
-  readonly deliveredJustNow = signal(false);
+  // Teslim bilgileri, zarftaki ilk evrağın aktif zimmet kaydından okunur
+  // (zarftaki tüm evraklar aynı işlemde aynı kişiye teslim edilir).
   readonly deliveredPersonName = signal<string | null>(null);
   readonly deliveredByPersonName = signal<string | null>(null);
   readonly deliveredDate = signal<string | Date | null>(null);
+  // Sağ panel; zarf, evraklar ve zimmet kaydı üçü de gelene kadar tek bir
+  // yükleme durumunda kalır. Aksi halde zarf gelir gelmez boş kartlar çizilip
+  // ardından spinner ve gerçek bilgiler gösteriliyor, ekran titriyordu.
+  readonly infoLoading = signal(true);
 
   // Islak imzalı belge (taranmış, imzalı zimmet formu) bilgileri
   readonly wetSignedAllocationId = signal<string | null>(null);
@@ -222,83 +118,42 @@ export default class Gidenzimmet implements OnInit {
   // durumu takibinde kullanılan ilk evrağın allocation kaydına bağlanıyor.
   readonly primaryDocumentId = computed(() => this.documents()[0]?.documentId ?? null);
 
-  constructor() {
-    // "Kendim" modundayken seçili kişi her zaman oturum açan kullanıcı olsun.
-    effect(() => {
-      if (this.mode() === 'self') {
-        this.selectedPersonId.set(this.user()?.id ?? null);
-      }
-    });
-
-    // Seçili kurum değiştiğinde arama kutusunda gösterilen seçimi de eşitle.
-    effect(() => {
-      const id = this.selectedInstitutionId();
-      const match = id ? this.institutionOptions().find(o => o.id === id) ?? null : null;
-      if (this.institutionControl.value?.id !== match?.id) {
-        this.institutionControl.setValue(match, { emitEvent: false });
-      }
-    });
-
-    this.institutionControl.valueChanges.subscribe(value => {
-      this.selectInstitution(value?.id ?? null);
-    });
-  }
-
-  setMode(mode: ZimmetMode): void {
-    if (this.mode() === mode) return;
-    this.mode.set(mode);
-    this.selectedPersonId.set(mode === 'self' ? this.user()?.id ?? null : null);
-    this.selectedInstitutionId.set(mode === 'external' ? this.externalInstitutionId() : null);
-    this.personSearch.set('');
-  }
-
-  selectInstitution(id: string | null): void {
-    this.selectedInstitutionId.set(id);
-    this.selectedPersonId.set(null);
-  }
-
-  get selfInitials(): string {
-    const u = this.user();
-    return `${u?.name?.charAt(0) ?? ''}${u?.surname?.charAt(0) ?? ''}`.toLocaleUpperCase('tr');
-  }
-
   ngOnInit(): void {
     const envelopeId = this.state.getEnvelopeId();
 
     if (!envelopeId) {
-      this.toast.showToast('Hata', 'EnvelopeId bulunamadı', 'error');
+      this.toast.showToast('Hata', 'Zarf bilgisi bulunamadı', 'error');
+      this.router.navigate(['/envelope']);
       return;
     }
 
-
     this.envelopeService.getEnvelopeById(envelopeId).subscribe({
       next: (res: EnvelopeModel) => {
-        console.log(res);
-        if (res) {
-          this.previewEnvelope.set(res);
-          this.loadDocuments(envelopeId);
-
-          //giden kurum bilgisi cekiliyor
-          if (res.externalInstitutionId) {
-            console.log("external : " + res.externalInstitutionId)
-            this.externalInstitutionId.set(res.externalInstitutionId);
-            if (this.mode() === 'external') {
-              this.selectedInstitutionId.set(res.externalInstitutionId);
-            }
-            this.externalService.getExternalInstitutionById(res.externalInstitutionId).subscribe({
-              next: (result: ExternalInstitutionModel) => {
-                this.externalName.set(result.name);
-                this.externalType.set(result.type);
-              }
-            });
-          }
+        if (!res) {
+          this.infoLoading.set(false);
+          return;
         }
+
+        this.previewEnvelope.set(res);
+        this.loadDocuments(envelopeId);
+
+        // Alıcı kurum adı GetById'de join'lenmeden gelebiliyor; ayrıca çekiliyor.
+        if (res.externalInstitutionName) {
+          this.externalName.set(res.externalInstitutionName);
+        } else if (res.externalInstitutionId) {
+          this.externalService.getExternalInstitutionById(res.externalInstitutionId).subscribe({
+            next: (result: ExternalInstitutionModel) => this.externalName.set(result.name)
+          });
+        }
+      },
+      error: () => {
+        this.infoLoading.set(false);
+        this.toast.showToast('Hata', 'Zarf bilgisi yüklenemedi', 'error');
       }
     });
-
   }
 
-  async loadDocuments(envelopeId: string) {
+  private async loadDocuments(envelopeId: string) {
     this.loading.set(true);
 
     try {
@@ -306,39 +161,42 @@ export default class Gidenzimmet implements OnInit {
         .getEnvelopeDocumentsByEnvelopeId(envelopeId);
       docs.sort((a, b) => new Date(a.createdDate ?? 0).getTime() - new Date(b.createdDate ?? 0).getTime());
       this.documents.set(docs);
-      this.checkAlreadyDelivered(docs);
+      this.loadDeliveryInfo(docs[0]?.documentId ?? null);
     } catch {
+      this.infoLoading.set(false);
       this.toast.showToast('Hata', 'Evraklar yüklenemedi', 'error');
     } finally {
       this.loading.set(false);
     }
   }
 
-  // Zarf daha önce teslim edilmişse (sayfa yeniden açıldığında da) teslim
-  // bilgilerini göster.
-  private checkAlreadyDelivered(docs: any[]): void {
-    if (this.deliveredJustNow()) return;
-
-    const firstDoc = docs[0];
-    if (!firstDoc?.documentId) {
-      this.delivered.set(false);
+  // İlk evrağın aktif zimmet kaydından teslim alan/eden, tarih ve ıslak imzalı
+  // belge bilgilerini doldurur.
+  private loadDeliveryInfo(documentId: string | null): void {
+    // Teslim edilmemiş zarf ya da evraksız zarf için zimmet kaydı aranmaz.
+    if (!documentId || !this.isDelivered()) {
+      this.applyAllocation(null);
+      this.infoLoading.set(false);
       return;
     }
 
-    this.allocationService.getActiveByDocumentId(firstDoc.documentId).subscribe({
+    this.allocationService.getActiveByDocumentId(documentId).subscribe({
       next: (allocation) => {
-        if (allocation?.isActive) {
-          this.delivered.set(true);
-          this.deliveredPersonName.set(allocation.fullName ?? null);
-          this.deliveredByPersonName.set(allocation.createdFullName ?? null);
-          this.deliveredDate.set(allocation.createdDate ?? null);
-          this.applyWetSignedInfo(allocation);
-        } else {
-          this.delivered.set(false);
-        }
+        this.applyAllocation(allocation?.isActive ? allocation : null);
+        this.infoLoading.set(false);
       },
-      error: () => this.delivered.set(false)
+      error: () => {
+        this.applyAllocation(null);
+        this.infoLoading.set(false);
+      }
     });
+  }
+
+  private applyAllocation(allocation: OutgoingDocumentAllocationModel | null): void {
+    this.deliveredPersonName.set(allocation?.fullName ?? null);
+    this.deliveredByPersonName.set(allocation?.createdFullName ?? null);
+    this.deliveredDate.set(allocation?.createdDate ?? null);
+    this.applyWetSignedInfo(allocation);
   }
 
   // Bir allocation kaydındaki ıslak imzalı belge bilgilerini state'e yansıtır.
@@ -349,9 +207,6 @@ export default class Gidenzimmet implements OnInit {
     this.wetSignedUploadedBy.set(allocation?.wetSignedDocumentUploadedByFullName ?? null);
   }
 
-  // Teslim işlemi bu oturumda az önce yapıldığında checkAlreadyDelivered erken
-  // döndüğü için, allocation id'sini (ve varsa ıslak imzalı belge bilgisini)
-  // almak amacıyla ayrıca çağrılır.
   private refreshWetSignedInfo(documentId: string): void {
     this.allocationService.getActiveByDocumentId(documentId).subscribe({
       next: (allocation) => this.applyWetSignedInfo(allocation),
@@ -359,175 +214,20 @@ export default class Gidenzimmet implements OnInit {
     });
   }
 
-  toggleSelection(doc: any) {
-    const exists = this.selectedDocuments.find(x => x.qrCode === doc.qrCode);
-
-    if (exists) {
-      this.selectedDocuments = this.selectedDocuments.filter(x => x.qrCode !== doc.qrCode);
-    } else {
-      this.selectedDocuments = [...this.selectedDocuments, doc];
-    }
-  }
-
-  selectPerson(id: string): void {
-    this.selectedPersonId.set(this.selectedPersonId() === id ? null : id);
-  }
-
-  initials(p: PersonListItem): string {
-    return `${p.name?.charAt(0) ?? ''}${p.surname?.charAt(0) ?? ''}`.toLocaleUpperCase('tr');
-  }
-
-addZimmet() {
-  if (this.saving()) return;
-
-  if (!this.selectedPersonId()) {
-    this.toast.showToast('Hata', 'Personel seçilmedi', 'error');
-    return;
-  }
-
-  // 👉 Selection varsa onu kullan, yoksa tüm listeyi
-  const docsToProcess = this.selectedDocuments.length > 0
-    ? this.selectedDocuments
-    : this.documents();
-
-  if (docsToProcess.length === 0) {
-    this.toast.showToast('Hata', 'Zimmetlenecek evrak yok', 'error');
-    return;
-  }
-
-  const createdUserId = this.user()?.id;
-  if (!createdUserId) {
-    this.toast.showToast('Hata', 'Kullanıcı bilgisi alınamadı', 'error');
-    return;
-  }
-
-  const userType = this.mode() === 'internal' ? 1 : 2;
-
-  // OutgoingDocumentAllocations.OutgoingDocumentId alanına, EnvelopeDocuments
-  // tablosunun kendi id'si (doc.id) değil, evrakın gerçek DocumentId'si (doc.documentId)
-  // yazılmalı.
-  const requests = docsToProcess.map(doc =>
-    this.allocationService.createAllocation({
-      outgoingDocumentId: doc.documentId,
-      userId: this.selectedPersonId()!,
-      createdUserId,
-      status: AllocationStatusEnum.Devir,
-      userType
-    })
-  );
-
-  this.saving.set(true);
-
-  forkJoin(requests).subscribe({
-    next: () => {
-      this.saving.set(false);
-      this.toast.showToast('Başarılı', 'Evraklar teslim edildi', 'info');
-
-      const person = this.mode() === 'self'
-        ? this.user()
-        : this.currentPersonList().find(p => p.id === this.selectedPersonId());
-      this.deliveredPersonName.set(person ? `${person.name} ${person.surname}` : null);
-      const currentUser = this.user();
-      this.deliveredByPersonName.set(currentUser ? `${currentUser.name} ${currentUser.surname}` : null);
-      this.deliveredDate.set(new Date());
-      this.deliveredJustNow.set(true);
-      this.delivered.set(true);
-
-      this.selectedDocuments = [];
-      const envelopeId = this.state.getEnvelopeId()!;
-      this.loadDocuments(envelopeId);
-      this.refreshWetSignedInfo(docsToProcess[0].documentId);
-
-      // Zarfın durumu da moda göre güncellenir
-      // (Teslim Al / Zimmetle: Evrak Birimde, Teslim Et: Teslim Edildi).
-      this.envelopeService.updateEnvelopeStatus(envelopeId, envelopeStatusForZimmetMode(this.mode())).subscribe({
-        error: (err) => {
-          console.error('Zarf durumu güncellenemedi:', err);
-          this.toast.showToast('Uyarı', 'Evraklar teslim edildi ancak zarf durumu güncellenemedi', 'warning');
-        }
-      });
-    },
-    error: () => {
-      this.saving.set(false);
-      this.toast.showToast('Hata', 'Teslim işlemi başarısız', 'error');
-    }
-  });
-}
-  reset() {
-    this.documents.set([]);
-    this.selectedDocuments = [];
-    this.delivered.set(false);
-    this.deliveredJustNow.set(false);
-    this.deliveredPersonName.set(null);
-    this.deliveredByPersonName.set(null);
-    this.deliveredDate.set(null);
-    this.applyWetSignedInfo(null);
-    this.envelopeLabelVisible.set(false);
-    this.searchVisible = false;
-    this.searchTerm = '';
-    this.mode.set('external');
-    this.selectedInstitutionId.set(this.externalInstitutionId());
-    this.selectedPersonId.set(null);
-    this.personSearch.set('');
-    // Zimmet (QR okutma) ekranından yönlendirilmişse oraya, aksi halde Zarflar listesine dönülür.
+  // Zimmet (QR okutma) ekranından yönlendirilmişse oraya, aksi halde Zarflar listesine dönülür.
+  goBack() {
     const returnUrl = this.state.getReturnUrl() ?? '/envelope';
     this.state.clear();
     this.router.navigate([returnUrl]);
   }
 
-  openQuickAddModal() {
-    this.quickAddForm = { ...initialExternalUser, externalInstitutionId: this.selectedInstitutionId() };
-    this.quickAddModalVisible.set(true);
+  // Teslim edilmemiş bir zarf için: etiket numarası taşınarak okutma ekranı açılır,
+  // zarf orada otomatik aranır.
+  goToZimmetScan() {
+    const envelopeNo = this.previewEnvelope()?.envelopeNo;
+    this.state.clear();
+    this.router.navigate(['/gidenevrak/zimmet'], envelopeNo ? { queryParams: { envelopeNo } } : undefined);
   }
-
-  closeQuickAddModal() {
-    if (this.quickAddSaving()) return;
-    this.quickAddModalVisible.set(false);
-  }
-
-  saveQuickAddPerson() {
-    if (!this.quickAddForm.name?.trim() || !this.quickAddForm.surname?.trim()) {
-      this.toast.showToast('Uyarı', 'Ad ve soyad zorunludur', 'warning');
-      return;
-    }
-
-    if (!this.quickAddForm.email?.trim()) {
-      this.toast.showToast('Uyarı', 'E-posta zorunludur', 'warning');
-      return;
-    }
-
-    if (!this.quickAddForm.externalInstitutionId) {
-      this.toast.showToast('Hata', 'Kurum bilgisi bulunamadı', 'error');
-      return;
-    }
-
-    this.quickAddSaving.set(true);
-
-    const body: Partial<ExternalUserModel> = {
-      name: this.quickAddForm.name,
-      surname: this.quickAddForm.surname,
-      email: this.quickAddForm.email,
-      identityNo: this.quickAddForm.identityNo,
-      userType: this.quickAddForm.userType,
-      externalInstitutionId: this.quickAddForm.externalInstitutionId,
-      isActive: true
-    };
-
-    this.externalUserService.create(body).subscribe({
-      next: () => {
-        this.toast.showToast('Başarılı', 'Personel eklendi', 'success');
-        this.quickAddSaving.set(false);
-        this.quickAddModalVisible.set(false);
-        this.externalUsersResult.reload();
-      },
-      error: () => {
-        this.quickAddSaving.set(false);
-        this.toast.showToast('Hata', 'Personel eklenemedi', 'error');
-      }
-    });
-  }
-
-  readonly previewEnvelope = signal<EnvelopeModel | null>(null);
 
   private static readonly wetSignedAllowedExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.tif', '.tiff'];
   private static readonly wetSignedMaxSizeBytes = 20 * 1024 * 1024;

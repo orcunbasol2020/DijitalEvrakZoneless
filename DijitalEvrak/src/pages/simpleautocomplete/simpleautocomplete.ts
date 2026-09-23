@@ -1,6 +1,7 @@
 import { Component, Input, OnInit, OnChanges, OnDestroy, SimpleChanges, ElementRef, ChangeDetectorRef, inject } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-simple-autocomplete',
@@ -9,17 +10,21 @@ import { CommonModule } from '@angular/common';
 template: `
   <div class="position-relative">
 
-    <input 
+    <input
       type="text"
       class="form-control"
+      [class.autocomplete-loading]="loading"
       [value]="displayValue"
-      [placeholder]="placeholder"
+      [placeholder]="loading ? loadingText : placeholder"
+      [disabled]="loading || disabled"
       (input)="onInput($event)"
       (focus)="open()"
       (keydown)="onKeyDown($event)"
     >
 
-    <ul *ngIf="show"
+    <span *ngIf="loading" class="autocomplete-spinner spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+
+    <ul *ngIf="show && !loading && !disabled"
         class="list-group position-absolute w-100 zindex-dropdown dropdown-anim">
 
       <ng-container *ngIf="filteredOptions.length > 0; else noResult">
@@ -103,6 +108,24 @@ template: `
       margin-right: 4px;
       color: #9aa4b2;
     }
+
+    /* Seçenekler henüz yüklenirken kutu pasif görünür, sağında küçük bir spinner döner. */
+    .form-control.autocomplete-loading {
+      padding-right: 2.25rem;
+      background-color: #f8fafc;
+      color: #94a3b8;
+    }
+
+    .autocomplete-spinner {
+      position: absolute;
+      right: 0.75rem;
+      top: 50%;
+      margin-top: -0.5rem;
+      width: 1rem;
+      height: 1rem;
+      color: #64748b;
+      pointer-events: none;
+    }
   `]
 })
 export class SimpleAutocompleteComponent implements OnInit, OnChanges, OnDestroy {
@@ -113,6 +136,11 @@ export class SimpleAutocompleteComponent implements OnInit, OnChanges, OnDestroy
   /** 0 ise odaklanınca tüm liste açılır; >0 ise liste ancak bu kadar karakter yazılınca görünür
    *  (büyük listeler — ör. tüm kullanıcılar — için "yazınca gelsin" davranışı). */
   @Input() minChars = 0;
+  /** Seçenek listesi (veya ilk değer) henüz sunucudan gelmediyse true: kutu pasifleşir,
+   *  placeholder yerine loadingText gösterilir ve sağda spinner döner. */
+  @Input() loading = false;
+  @Input() loadingText = 'Yükleniyor...';
+  @Input() disabled = false;
 
   filteredOptions: { id: number | string, name: string, level?: number }[] = [];
   show = false;
@@ -134,13 +162,21 @@ export class SimpleAutocompleteComponent implements OnInit, OnChanges, OnDestroy
 
   constructor(private elementRef: ElementRef<HTMLElement>) {}
 
+  private controlSub?: Subscription;
+
   ngOnInit() {
     this.filteredOptions = this.options;
     document.addEventListener('click', this.documentClickListener, true);
+
+    // Üst bileşen control.setValue() ile programatik değer yazdığında (ör. güncelleme
+    // ekranında kayıt yüklenince) zoneless ortamda görünümün yenilenmesi garanti
+    // değildir; valueChanges üzerinden görünümü açıkça işaretliyoruz.
+    this.controlSub = this.control?.valueChanges.subscribe(() => this.cdr.markForCheck());
   }
 
   ngOnDestroy() {
     document.removeEventListener('click', this.documentClickListener, true);
+    this.controlSub?.unsubscribe();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
