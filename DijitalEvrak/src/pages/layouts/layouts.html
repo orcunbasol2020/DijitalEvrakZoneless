@@ -336,13 +336,29 @@
 
 <footer class="fixed-footer">
     <div class="footer-left">
+        <a routerLink="/" class="footer-brand" title="Kontrol Paneli">
+            <img class="footer-brand-mark" src="assets/images/dijital-evrak-mark.png" width="242" height="174" alt="" />
+            <span class="footer-brand-text">
+                <span class="footer-brand-title">DİJİTAL EVRAK</span>
+                <span class="footer-brand-subtitle" aria-label="Takip Sistemi"><span aria-hidden="true">T</span><span aria-hidden="true">A</span><span aria-hidden="true">K</span><span aria-hidden="true">İ</span><span aria-hidden="true">P</span><span aria-hidden="true"> </span><span aria-hidden="true">S</span><span aria-hidden="true">İ</span><span aria-hidden="true">S</span><span aria-hidden="true">T</span><span aria-hidden="true">E</span><span aria-hidden="true">M</span><span aria-hidden="true">İ</span></span>
+            </span>
+        </a>
+        <span class="footer-version" title="Uygulama sürümü">v1.1</span>
     </div>
     <div class="footer-center">
-        <span>&copy; 2026 Dışişleri Bakanlığı - Dijital Evrak Takip Sistemi
-            v1.0</span>
+        <span class="footer-copy">&copy; 2026 T.C. Dışişleri Bakanlığı</span>
+        <span class="footer-dot" aria-hidden="true"></span>
+        <span class="footer-copy-muted">Tüm hakları saklıdır</span>
     </div>
     <div class="footer-right">
-        <a routerLink="/support" routerLinkActive="active" class="footer-link">Destek</a>
-        <a routerLink="/documents" routerLinkActive="active" class="footer-link">Dokümanlar</a>
+        <a routerLink="/support" routerLinkActive="active" class="footer-link">
+            <span class="material-symbols-outlined">support_agent</span>
+            <span>Destek</span>
+        </a>
+        <span class="footer-divider" aria-hidden="true"></span>
+        <a routerLink="/documents" routerLinkActive="active" class="footer-link">
+            <span class="material-symbols-outlined">menu_book</span>
+            <span>Dokümanlar</span>
+        </a>
     </div>
 </footer>

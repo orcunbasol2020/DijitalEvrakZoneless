@@ -5,7 +5,6 @@ import { RoleService } from '../../../../services/role-service';
 import { SearchMenuPipe } from '../../../../pipes/search-menu-pipe';
 import { NavigationModel } from '../../../../navigation';
 import { Common } from '../../../../services/common';
-import { getUserAvatar } from '../../../../services/user-avatar';
 
 interface NavGroup {
   category: string | null;
@@ -46,7 +45,6 @@ export class Sidebar {
   navigations = computed(() => this.roleService.getMenu());
 
   readonly user = computed(() => this.common.user());
-  readonly userAvatar = computed(() => getUserAvatar(this.user()));
   readonly userFullName = computed(() => `${this.user()?.name ?? ''} ${this.user()?.surname ?? ''}`.trim());
   readonly userInitials = computed(() => {
     const u = this.user();
