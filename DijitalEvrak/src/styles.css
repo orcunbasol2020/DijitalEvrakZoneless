@@ -10467,19 +10467,6 @@ body {
         linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(6, 182, 212, 0.07)),
         #fff;
     border: 1px solid rgba(6, 182, 212, 0.32);
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.75),
-        0 1px 2px rgba(6, 182, 212, 0.18),
-        0 3px 8px -2px rgba(6, 182, 212, 0.3);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.envelope-count-pill:hover {
-    transform: translateY(-1px);
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.75),
-        0 2px 4px rgba(6, 182, 212, 0.2),
-        0 6px 14px -3px rgba(6, 182, 212, 0.4);
 }
 
 .envelope-count-pill .material-symbols-outlined {
@@ -10497,17 +10484,11 @@ body {
     color: #94a3b8;
     background: #f8fafc;
     border-color: #e2e8f0;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
 }
 
 .envelope-count-pill.is-empty .material-symbols-outlined {
     color: #cbd5e1;
     font-variation-settings: 'FILL' 0, 'wght' 400;
-}
-
-.envelope-count-pill.is-empty:hover {
-    transform: none;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
 }
 
 /* Kayıt Tarihi: tarih üstte, saat altta küçük ve soluk. */
@@ -10552,18 +10533,23 @@ body {
     transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-/* Zarflar listesi: tüm durum rozetleri aynı genişlikte hizalansın. */
+/* Zarflar listesi: tüm durum rozetleri aynı genişlikte hizalansın; gölge ve hover kaldırma yok. */
 .envelope-grid .envelope-status-pill {
     min-width: 126px;
     justify-content: flex-start;
+    box-shadow: none;
+    transition: none;
 }
 
 .envelope-grid .envelope-status-pill:hover {
-    transform: translateY(-1px);
+    transform: none;
+    box-shadow: none;
+}
+
+.envelope-grid .envelope-status-icon {
     box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.7),
-        0 2px 4px rgba(var(--st-rgb), 0.2),
-        0 6px 14px -3px rgba(var(--st-rgb), 0.38);
+        0 0 0 2px #fff,
+        0 0 0 3px rgba(var(--st-rgb), 0.35);
 }
 
 /* Nokta varyantı (Zarf Etiketi, Zimmet ve Teslim Bilgisi ekranlarındaki
@@ -10716,16 +10702,6 @@ body {
         linear-gradient(135deg, rgba(6, 182, 212, 0.32), rgba(6, 182, 212, 0.12)),
         #1a2030;
     border-color: rgba(34, 211, 238, 0.42);
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.06),
-        0 2px 6px rgba(0, 0, 0, 0.35);
-}
-
-[data-theme="dark"] .envelope-count-pill:hover {
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.06),
-        0 4px 12px rgba(0, 0, 0, 0.45),
-        0 0 0 1px rgba(34, 211, 238, 0.3);
 }
 
 [data-theme="dark"] .envelope-count-pill .material-symbols-outlined {
@@ -10736,7 +10712,6 @@ body {
     background: rgba(148, 163, 184, 0.1);
     color: #64748b;
     border-color: rgba(148, 163, 184, 0.2);
-    box-shadow: none;
 }
 
 [data-theme="dark"] .envelope-count-pill.is-empty .material-symbols-outlined {
@@ -10759,11 +10734,9 @@ body {
         0 0 0 1px rgba(var(--st-rgb), 0.12);
 }
 
+[data-theme="dark"] .envelope-grid .envelope-status-pill,
 [data-theme="dark"] .envelope-grid .envelope-status-pill:hover {
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.06),
-        0 4px 12px rgba(0, 0, 0, 0.45),
-        0 0 0 1px rgba(var(--st-rgb), 0.3);
+    box-shadow: none;
 }
 
 [data-theme="dark"] .envelope-status-icon {
@@ -10771,6 +10744,12 @@ body {
         0 0 0 2px #1a2030,
         0 0 0 3px rgba(var(--st-rgb), 0.5),
         0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .envelope-grid .envelope-status-icon {
+    box-shadow:
+        0 0 0 2px #1a2030,
+        0 0 0 3px rgba(var(--st-rgb), 0.5);
 }
 
 [data-theme="dark"] .envelope-status-yeni { --st-text: #7dd3fc; }

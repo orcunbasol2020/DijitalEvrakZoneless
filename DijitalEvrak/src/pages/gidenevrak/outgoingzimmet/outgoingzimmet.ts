@@ -9,7 +9,10 @@ import { ZimmetStateService } from '../../../services/zimmet-state-service';
 import { OutgoingDocumentService } from '../../../services/outgoingdocument';
 import { OutgoingDocumentModel, OutgoingDocumentStatus } from '../../../models/outgoingdocument.model';
 import { OutgoingDocumentAllocation } from '../../../services/outgoingdocumentallocation';
+import { OutgoingDocumentAllocationModel } from '../../../models/outgoingdocumentallocation.model';
 import { AllocationStatusEnum } from '../../../models/allocationstatus.model';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { ExternalInstitutionModel } from '../../../services/external-institution';
 import { DepartmentModel } from '../../../services/department';
 import { ExternalUserService, ExternalUserModel, initialExternalUser } from '../../../services/external-user';
@@ -17,7 +20,9 @@ import { Common } from '../../../services/common';
 import { UserModel } from '../../users/users';
 import { SimpleAutocompleteComponent } from '../../simpleautocomplete/simpleautocomplete';
 
-type ZimmetMode = 'internal' | 'external';
+// Zarf zimmet ekranıyla (gidenevrak/zimmet) aynı üç mod:
+// self: kendi üzerine alma, internal: iç kullanıcıya zimmet, external: dış kuruma teslim.
+type ZimmetMode = 'self' | 'internal' | 'external';
 type PersonListItem = { id: string; name: string; surname: string; identityNo?: string; email?: string };
 
 @Component({
@@ -29,9 +34,10 @@ type PersonListItem = { id: string; name: string; surname: string; identityNo?: 
     SimpleAutocompleteComponent
   ],
   templateUrl: './outgoingzimmet.html',
-  // Soldaki evrak özeti (koyu hero) Teslim Bilgisi (gidenzimmet) ekranıyla
-  // aynı dili kullanır; zm-* ve gz-* sınıfları oradan gelir.
-  styleUrls: ['../zimmet/zimmet.css', '../gidenzimmet/gidenzimmet.css'],
+  // Soldaki evrak bilgisi paneli Giden Evrak Teslim Bilgisi (outgoingteslim)
+  // ekranıyla birebir aynı yapıdadır; ot-* sınıfları oradan, zm-*/gz-* sınıfları
+  // zarf zimmet ekranlarından gelir.
+  styleUrls: ['../zimmet/zimmet.css', '../gidenzimmet/gidenzimmet.css', '../outgoingteslim/outgoingteslim.css'],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -75,7 +81,13 @@ export default class Outgoingzimmet implements OnInit {
     2: 'Atlas'
   };
 
-  readonly mode = signal<ZimmetMode>('internal');
+  // Evrak bilgisi kartının sağ altındaki dipnot cümlesi.
+  readonly sourceFootnoteMap: Record<number, string> = {
+    1: 'Evrak Takip Sisteminde Oluşturuldu',
+    2: 'Atlas Belge Sisteminden Aktarıldı'
+  };
+
+  readonly mode = signal<ZimmetMode>('self');
   readonly selectedPersonId = signal<string | null>(null);
   readonly personSearch = signal('');
   readonly selectedInstitutionId = signal<string | null>(null);
@@ -84,6 +96,24 @@ export default class Outgoingzimmet implements OnInit {
   readonly internalUserList = computed<PersonListItem[]>(() =>
     (this.usersResult.value() ?? []).filter((x): x is UserModel & { id: string } => !!x.id && !x.isDeleted && x.isActive)
   );
+
+  // İç kullanıcılar doğrudan listelenmez; ad/soyad yazıldıkça autocomplete ile gelir.
+  readonly internalUserControl = new FormControl<{ id: string, name: string } | null>(null);
+  readonly internalUserOptions = computed(() =>
+    this.internalUserList()
+      .map(u => ({ id: u.id, name: `${u.name} ${u.surname}`.trim() }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'tr'))
+  );
+  readonly selectedInternalUser = computed<PersonListItem | null>(() => {
+    const id = this.selectedPersonId();
+    if (this.mode() !== 'internal' || !id) return null;
+    return this.internalUserList().find(x => x.id === id) ?? null;
+  });
+
+  readonly selfInitials = computed(() => {
+    const u = this.user();
+    return `${u?.name?.charAt(0) ?? ''}${u?.surname?.charAt(0) ?? ''}`.toLocaleUpperCase('tr');
+  });
 
   readonly institutionsResult = httpResource<ExternalInstitutionModel[]>(() => "api/ExternalInstitutions/GetAll");
   readonly institutionList = computed(() =>
@@ -163,6 +193,27 @@ export default class Outgoingzimmet implements OnInit {
     return this.institutionList().find(i => i.id === id)?.name ?? null;
   });
 
+  // Alt özet şeridinde "Evrak No → Ad Soyad" biçiminde gösterilecek hedef.
+  readonly selectedTargetLabel = computed<string | null>(() => {
+    const id = this.selectedPersonId();
+    if (!id) return null;
+
+    if (this.mode() === 'self') {
+      const u = this.user();
+      return u ? `${u.name} ${u.surname}` : null;
+    }
+
+    const p = this.currentPersonList().find(x => x.id === id);
+    if (!p) return null;
+
+    const fullName = `${p.name} ${p.surname}`;
+    const inst = this.mode() === 'external' ? this.selectedInstitutionName() : null;
+    return inst ? `${fullName} · ${inst}` : fullName;
+  });
+
+  // Tek personelli kurum için otomatik seçimin hangi kurumda yapıldığını tutar.
+  private autoSelectedInstitutionId: string | null = null;
+
   readonly quickAddModalVisible = signal(false);
   readonly quickAddSaving = signal(false);
   quickAddForm: ExternalUserModel = { ...initialExternalUser };
@@ -171,6 +222,13 @@ export default class Outgoingzimmet implements OnInit {
   readonly saving = signal(false);
 
   constructor() {
+    // "Kendime" modundayken seçili kişi her zaman oturum açan kullanıcı olsun.
+    effect(() => {
+      if (this.mode() === 'self') {
+        this.selectedPersonId.set(this.user()?.id ?? null);
+      }
+    });
+
     // Belgenin kurumu (ör. daha önce kayıtlı dış kurum) değiştiğinde arama
     // kutusunda gösterilen seçimi de eşitle.
     effect(() => {
@@ -181,8 +239,26 @@ export default class Outgoingzimmet implements OnInit {
       }
     });
 
+    // Dış kurumda yalnızca tek personel tanımlıysa o kişi otomatik seçili gelsin;
+    // kullanıcı seçimi bilerek kaldırırsa aynı kurum için yeniden dayatılmaz.
+    effect(() => {
+      const institutionId = this.selectedInstitutionId();
+      const list = this.externalPersonList();
+      if (this.mode() !== 'external' || !institutionId || list.length !== 1) return;
+      if (this.selectedPersonId() || this.autoSelectedInstitutionId === institutionId) return;
+
+      this.autoSelectedInstitutionId = institutionId;
+      this.selectedPersonId.set(list[0].id);
+    });
+
     this.institutionControl.valueChanges.subscribe(value => {
       this.selectInstitution(value?.id ?? null);
+    });
+
+    this.internalUserControl.valueChanges.subscribe(value => {
+      if (this.mode() === 'internal') {
+        this.selectedPersonId.set(value?.id ?? null);
+      }
     });
   }
 
@@ -197,20 +273,20 @@ export default class Outgoingzimmet implements OnInit {
     this.loadDocument(outgoingDocumentId);
   }
 
+  // Evrak ve aktif zimmet kaydı birlikte yüklenir; başlangıç sekmesi ikisi de
+  // geldikten sonra tek seferde belirlenir ki sekme açılışta değişip durmasın.
   loadDocument(id: string): void {
     this.loading.set(true);
 
-    this.outgoingDocumentService.getById(id).subscribe({
-      next: (doc) => {
+    forkJoin({
+      doc: this.outgoingDocumentService.getById(id),
+      // Zimmet sorgusu hata verirse evrak yine açılır; zimmet yok kabul edilir.
+      allocation: this.allocationService.getActiveByDocumentId(id).pipe(catchError(() => of(null)))
+    }).subscribe({
+      next: ({ doc, allocation }) => {
         this.document.set(doc);
+        this.applyInitialMode(doc, allocation?.isActive ? allocation : null);
         this.loading.set(false);
-
-        if (doc.externalInstitutonId) {
-          this.selectedInstitutionId.set(doc.externalInstitutonId);
-          this.mode.set('external');
-        }
-
-        this.checkAlreadyDelivered(id);
       },
       error: () => {
         this.loading.set(false);
@@ -219,16 +295,27 @@ export default class Outgoingzimmet implements OnInit {
     });
   }
 
-  // Evrak daha önce zimmetlenmişse bu ekranda yapılacak işlem yoktur;
-  // Teslim Bilgisi ekranına yönlendirilir.
-  private checkAlreadyDelivered(outgoingDocumentId: string): void {
-    this.allocationService.getActiveByDocumentId(outgoingDocumentId).subscribe({
-      next: (allocation) => {
-        if (allocation?.isActive) {
-          this.goToTeslimInfo();
-        }
-      }
-    });
+  // Aktif zimmet durumuna göre ekranın başlangıç davranışı:
+  // - Teslim Edildi: bu ekranda yapılacak işlem yok, Teslim Bilgisi ekranına yönlendirilir.
+  // - İlk Kayıt: sıradaki adım evrakın teslim alınmasıdır, "Teslim Al" sekmesi açılır.
+  // - Teslim Alındı: sıradaki adım dış kuruma teslimdir, "Teslim Et" sekmesi açılır.
+  // - Devir / zimmet yok: evrakın alıcı kurumu varsa "Teslim Et", yoksa "Teslim Al".
+  private applyInitialMode(doc: OutgoingDocumentModel, allocation: OutgoingDocumentAllocationModel | null): void {
+    // status tel üzerinde string gelebildiğinden sayıya çevrilerek karşılaştırılır.
+    const status = allocation ? Number(allocation.status) : null;
+
+    if (status === AllocationStatusEnum.Teslim) {
+      this.goToTeslimInfo();
+      return;
+    }
+
+    const initialMode: ZimmetMode =
+      status === AllocationStatusEnum.IlkKayit ? 'self'
+      : status === AllocationStatusEnum.TeslimAlindi ? 'external'
+      : doc.externalInstitutonId ? 'external'
+      : 'self';
+
+    this.setMode(initialMode);
   }
 
   private goToTeslimInfo(): void {
@@ -238,13 +325,28 @@ export default class Outgoingzimmet implements OnInit {
   setMode(mode: ZimmetMode): void {
     if (this.mode() === mode) return;
     this.mode.set(mode);
-    this.selectedPersonId.set(null);
+    this.selectedPersonId.set(mode === 'self' ? this.user()?.id ?? null : null);
+    this.selectedInstitutionId.set(null);
     this.personSearch.set('');
+    this.internalUserControl.setValue(null, { emitEvent: false });
+
+    // Evrakın alıcı kurumu belliyse "Dış Kurum" modunda kurum otomatik seçili gelir;
+    // kullanıcı isterse autocomplete'ten başka bir kurum seçebilir.
+    const institutionId = this.document()?.externalInstitutonId;
+    if (mode === 'external' && institutionId) {
+      this.selectInstitution(institutionId);
+    }
   }
 
   selectInstitution(id: string | null): void {
     this.selectedInstitutionId.set(id);
     this.selectedPersonId.set(null);
+    this.autoSelectedInstitutionId = null;
+  }
+
+  clearInternalUser(): void {
+    this.selectedPersonId.set(null);
+    this.internalUserControl.setValue(null, { emitEvent: false });
   }
 
   selectPerson(id: string): void {
@@ -276,41 +378,55 @@ export default class Outgoingzimmet implements OnInit {
     if (this.saving()) return;
     this.saving.set(true);
 
-    this.allocationService.createAllocation({
+    const mode = this.mode();
+
+    // Zarf zimmet ekranıyla aynı kural: dış kuruma teslim (Teslim Et) Teslim,
+    // kendi üzerine alma (Teslim Al) Teslim Alındı, iç kullanıcıya zimmet Devir.
+    const allocationStatus = mode === 'external'
+      ? AllocationStatusEnum.Teslim
+      : mode === 'self'
+        ? AllocationStatusEnum.TeslimAlindi
+        : AllocationStatusEnum.Devir;
+
+    // reallocate() önce evrakın mevcut aktif zimmetini pasife çeker, sonra yeni
+    // kaydı açar; böylece aktif zimmet her zaman tek ve günceldir.
+    this.allocationService.reallocate({
       outgoingDocumentId: doc.id,
       userId: this.selectedPersonId()!,
       createdUserId,
-      status: AllocationStatusEnum.Devir,
-      userType: this.mode() === 'internal' ? 1 : 2
-    }).subscribe({
-      next: () => {
-        this.saving.set(false);
+      status: allocationStatus,
+      userType: mode === 'external' ? 2 : 1
+    }).then(() => {
+      this.saving.set(false);
+      const docLabel = doc.qrCode ? `${doc.qrCode} numaralı evrak` : 'Evrak';
+
+      // Sonuç mesajı moda göre; yalnızca dış kuruma teslimde Teslim Bilgisi ekranı açılır,
+      // diğer modlarda listeye dönülür (evrak yeniden devredilebilir).
+      if (mode === 'external') {
         const person = this.currentPersonList().find(p => p.id === this.selectedPersonId());
         const personName = person ? `${person.name} ${person.surname}` : null;
-        const docLabel = doc.qrCode ? `${doc.qrCode} numaralı evrak` : 'Evrak';
-
-        // Sonuç mesajı moda göre: iç kullanıcıya zimmet mi, dış kurum personeline teslim mi.
-        if (this.mode() === 'external') {
-          const institution = this.selectedInstitutionName();
-          const receiver = personName && institution
-            ? `${institution} personeli ${personName} adlı kişiye`
-            : personName ? `${personName} adlı kişiye` : 'dış kuruma';
-          this.toast.showToast('Teslim Edildi', `${docLabel} ${receiver} teslim edildi.`, 'success');
-        } else {
-          this.toast.showToast(
-            'Zimmetlendi',
-            `${docLabel} ${personName ? `${personName} adlı kullanıcıya` : 'seçilen kullanıcıya'} zimmetlendi.`,
-            'success'
-          );
-        }
-
-        // Zimmet bilgileri ayrı ekranda (Teslim Bilgisi) gösterilir.
+        const institution = this.selectedInstitutionName();
+        const receiver = personName && institution
+          ? `${institution} personeli ${personName} adlı kişiye`
+          : personName ? `${personName} adlı kişiye` : 'dış kuruma';
+        this.toast.showToast('Teslim Edildi', `${docLabel} ${receiver} teslim edildi.`, 'success');
         this.goToTeslimInfo();
-      },
-      error: () => {
-        this.saving.set(false);
-        this.toast.showToast('Hata', 'Zimmetleme başarısız', 'error');
+      } else if (mode === 'self') {
+        this.toast.showToast('Teslim Alındı', `${docLabel} üzerinize teslim alındı.`, 'success');
+        this.reset();
+      } else {
+        const person = this.currentPersonList().find(p => p.id === this.selectedPersonId());
+        const personName = person ? `${person.name} ${person.surname}` : null;
+        this.toast.showToast(
+          'Zimmetlendi',
+          `${docLabel} ${personName ? `${personName} adlı kullanıcıya` : 'seçilen kullanıcıya'} zimmetlendi.`,
+          'success'
+        );
+        this.reset();
       }
+    }).catch(() => {
+      this.saving.set(false);
+      this.toast.showToast('Hata', 'Zimmetleme başarısız', 'error');
     });
   }
 

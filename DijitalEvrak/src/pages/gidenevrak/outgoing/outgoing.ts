@@ -178,14 +178,17 @@ export default class Outgoing {
     this.showFilters = !this.showFilters;
   }
 
-  // Evrak zaten zimmetlenmiş / teslim edilmişse salt okunur Teslim Bilgisi
-  // ekranı, değilse Zimmetleme ekranı açılır.
+  // Yalnızca aktif zimmeti "Teslim Edildi" (3) durumundaki evraklar salt okunur
+  // Teslim Bilgisi ekranına gider; diğer tüm durumlar (İlk Kayıt, Devir, Teslim Alındı,
+  // zimmet yok) Zimmetleme ekranını açar.
   goToZimmet(id: string) {
     this.zimmetState.setOutgoingDocumentId(id);
 
     this.allocationService.getActiveByDocumentId(id).subscribe({
       next: (allocation) => {
-        this.router.navigate([allocation?.isActive ? '/gidenevrak/outgoingteslim' : '/gidenevrak/outgoingzimmet']);
+        // status tel üzerinde string gelebildiğinden sayıya çevrilerek karşılaştırılır.
+        const delivered = !!allocation?.isActive && Number(allocation.status) === AllocationStatusEnum.Teslim;
+        this.router.navigate([delivered ? '/gidenevrak/outgoingteslim' : '/gidenevrak/outgoingzimmet']);
       },
       error: () => this.router.navigate(['/gidenevrak/outgoingzimmet'])
     });

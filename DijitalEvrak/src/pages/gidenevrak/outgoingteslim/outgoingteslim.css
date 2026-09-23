@@ -103,6 +103,22 @@
 .gz-tile-icon.tint-rose   { background: #ffe4e6; color: #be123c; }
 .gz-tile-icon.tint-teal   { background: #ccfbf1; color: #0f766e; }
 
+/* ---- Dipnot: ızgaranın altında sağa yaslı, küçük ve soluk (ör. Kaynak) ---- */
+.ot-footnote {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    margin-top: 10px;
+    padding-right: 5px;
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+.ot-footnote .material-symbols-outlined {
+    font-size: 14px;
+}
+
 /* ---- Dar ekran ---- */
 @media (max-width: 575.98px) {
     .ot-grid {
@@ -130,6 +146,10 @@
 
 [data-theme="dark"] .ot-header-sub {
     color: #94a3b8;
+}
+
+[data-theme="dark"] .ot-footnote {
+    color: #64748b;
 }
 
 [data-theme="dark"] .gz-tile-icon.tint-smoke {
