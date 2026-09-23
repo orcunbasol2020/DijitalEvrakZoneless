@@ -1,5 +1,5 @@
 <div class="overlay">
-  <div class="modal">
+  <div class="modal" [class.is-petition]="isPetition">
     <div class="modal-header">
       <h3>Önizleme</h3>
       <button class="close-btn" (click)="close()">×</button>
@@ -13,9 +13,11 @@
         style="border:none">
       </iframe>
       <printqrlist *ngIf="!pdfBlobUrl && isQrList" [data]="data"></printqrlist>
-      <print-petition *ngIf="!pdfBlobUrl && !isQrList && !isLabel"
-        [data]="data">
-      </print-petition>
+      <!-- Dilekçe: A4 sayfa ekranda küçültülerek gösterilir (bkz. .petition-scale);
+           PDF üretimi sırasında ölçek geçici olarak kaldırılır. -->
+      <div class="petition-scale" *ngIf="isPetition">
+        <print-petition [data]="data"></print-petition>
+      </div>
       <print-envelope-label
         *ngIf="!pdfBlobUrl && isLabel"
         [data]="data">

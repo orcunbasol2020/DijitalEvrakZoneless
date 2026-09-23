@@ -1,345 +1,343 @@
 <app-generic pageTitle="Gelen Evrak Zimmet"
     [breadcrumbs]="[{title: 'Gelen Evrak Zimmet', url: 'zimmet', icon:''}]" />
 
-<div class="row zimmet-page">
-    <div class="col-md-8 col-12">
-        <div class="card" style="min-height: 700px;">
-            <div
-                class="card-header d-flex justify-content-between align-items-center">
-                <h4 class="m-0">Gelen Evrak Zimmet</h4>
-                <button type="button"
-                    class="btn btn-outline-secondary btn-sm d-flex align-items-center"
-                    (click)="backToQrScan()" *ngIf="backButtonVisible()">
-                    <span class="material-symbols-outlined me-1"
-                        style="font-size: 18px;">
-                        qr_code_scanner
-                    </span>
-                    QR Okuma Ekranına Dön
+<div class="row">
+    <!-- SOL PANEL: QR okutma + evrak bilgileri -->
+    <div class="col-lg-6 col-12">
+        <div class="card zm-card d-flex flex-column">
+            <div class="card-header dashboard-header d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <span class="material-symbols-outlined me-2 text-info">assignment_ind</span>
+                    <h5 class="card-title mb-0 fw-semibold">Gelen Evrak Zimmet</h5>
+                </div>
+                <button type="button" class="zm-pill-btn" *ngIf="detailsVisible()" (click)="backToQrScan()">
+                    <span class="material-symbols-outlined">qr_code_scanner</span>
+                    <span>Yeni Okutma</span>
                 </button>
             </div>
 
-            <!-- ALERT -->
-            <div
-                class="alert alert-info d-flex align-items-center justify-content-between mx-5 mt-5"
-                role="alert"
-                *ngIf="alertVisible()">
-                <div
-                    class="qr-icon-wrapper d-flex align-items-center justify-content-center me-3">
-                    <span class="material-symbols-outlined qr-icon"
-                        style="cursor: pointer;"
-                        title="QR bekleniyor">
-                        qr_code_scanner
-                    </span>
-                </div>
+            <div class="card-body zm-body">
+                <!-- QR okutma bloğu (Ön Kayıt / Giden Evrak Teslim Al ekranlarıyla aynı dil) -->
+                <!-- Evrak bulununca blok tek satıra daralır (kapan/aç); daraltılmışken okuyucu pasiftir. -->
+                <div class="zm-scan-hero" [class.is-active]="qrActive" [class.is-loading]="loading()"
+                    [class.is-collapsed]="scanCollapsed">
 
-                <div
-                    class="qr-panel-content position-relative flex-grow-1 pt-3 mb-3">
-                    <h5 class="mb-1 qr-title">QR Kodu Okutunuz</h5>
-                    <p class="mb-0 qr-description">
-                        Zimmetleme ekranına geçmek için belge üzerindeki QR kodu
-                        okutunuz.
-                    </p>
-
-                    <span class="material-symbols-outlined qr-panel-next pb-1">
-                        arrow_forward
-                    </span>
-                </div>
-            </div>
-
-            <!-- BELGE BULUNAMADI / SORGU HATASI -->
-            <div class="alert alert-danger mx-5 mt-3 d-flex align-items-start"
-                role="alert"
-                *ngIf="lookupErrorMessage()">
-                <span class="material-symbols-outlined me-2">error</span>
-                <div class="flex-grow-1">{{ lookupErrorMessage() }}</div>
-                <button type="button"
-                    class="btn-close"
-                    aria-label="Kapat"
-                    (click)="lookupErrorMessage.set(null)"></button>
-            </div>
-
-            <!-- SORGULANIYOR -->
-            <div class="d-flex flex-column align-items-center justify-content-center py-5"
-                *ngIf="loading()">
-                <div class="spinner-border text-primary mb-2" role="status">
-                    <span class="visually-hidden">Yükleniyor...</span>
-                </div>
-                <div class="text-muted">Belge sorgulanıyor...</div>
-            </div>
-
-            <!-- DETAY: Zimmet İşlemi / Zimmet Geçmişi sekmeleri -->
-            @if (detailsVisible()) {
-            <div class="px-3 pt-3">
-                <ul class="nav nav-pills nav-fill" id="zimmetTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active shadow-sm rounded-pill"
-                            id="zimmet-islem-tab"
-                            data-bs-toggle="tab"
-                            data-bs-target="#zimmet-islem-pane"
-                            type="button"
-                            role="tab">
-                            <span class="material-symbols-outlined align-middle me-1"
-                                style="font-size: 16px;">assignment_ind</span>
-                            Zimmet İşlemi
+                    <!-- Daraltılmış görünüm -->
+                    <div class="zm-scan-compact" *ngIf="scanCollapsed">
+                        <span class="material-symbols-outlined zm-scan-compact-icon">qr_code_2</span>
+                        <div class="zm-scan-compact-text">
+                            <div class="zm-scan-compact-title">QR okutma alanı daraltıldı</div>
+                            <div class="zm-scan-compact-sub">Okuyucu pasif; yeni bir evrak okutmak için alanı açın.</div>
+                        </div>
+                        <span class="zm-scan-status zm-scan-status-inline">Pasif</span>
+                        <button type="button" class="zm-scan-toggle" title="Okutma alanını aç" (click)="expandScan()">
+                            <span class="material-symbols-outlined">expand_more</span>
+                            Aç
                         </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link shadow-sm rounded-pill d-flex align-items-center"
-                            id="zimmet-gecmis-tab"
-                            data-bs-toggle="tab"
-                            data-bs-target="#zimmet-gecmis-pane"
-                            type="button"
-                            role="tab">
-                            <span class="material-symbols-outlined align-middle me-1"
-                                style="font-size: 16px;">history</span>
+                    </div>
+
+                    <!-- Açık görünüm -->
+                    <div class="zm-scan-wrap" [hidden]="scanCollapsed">
+                        <span class="material-symbols-outlined zm-scan-icon">qr_code_2</span>
+                        <input
+                            #qrInput
+                            type="text"
+                            class="zm-scan-input"
+                            placeholder="Belge üzerindeki QR kodu okutun veya evrak numarasını yazıp Enter'a basın"
+                            (keydown)="onQrKeydown($event)"
+                            (focus)="qrActive = true"
+                            (blur)="qrActive = false"
+                            autocomplete="off">
+                        <span class="zm-scan-status" [class.is-active]="qrActive && !loading()" [class.is-loading]="loading()">
+                            <span class="spinner-border spinner-border-sm" *ngIf="loading()"></span>
+                            <span class="zm-ready-dot" *ngIf="qrActive && !loading()"></span>
+                            {{ loading() ? 'Aranıyor' : (qrActive ? 'Okumaya Hazır' : 'Pasif') }}
+                        </span>
+                    </div>
+                    <div class="zm-scan-hint-row" [hidden]="scanCollapsed">
+                        <div class="zm-scan-hint">
+                            Evrak bulununca bilgileri burada, zimmet seçenekleri sağ panelde gösterilir.
+                        </div>
+                        <button type="button" class="zm-scan-toggle" title="Okutma alanını daralt"
+                            *ngIf="detailsVisible() && !loading()" (click)="collapseScan()">
+                            <span class="material-symbols-outlined">expand_less</span>
+                            Daralt
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sorgulanıyor -->
+                <div class="zm-empty" *ngIf="loading()">
+                    <div class="zm-empty-icon">
+                        <div class="spinner-border text-primary"></div>
+                    </div>
+                    <div class="zm-empty-title">Aranıyor...</div>
+                    <div class="zm-empty-text">Okutulan numaraya ait evrak sorgulanıyor.</div>
+                </div>
+
+                <!-- Belge bulunamadı / sorgu hatası -->
+                <div class="ok-status is-existing" *ngIf="!loading() && lookupErrorMessage() as msg">
+                    <span class="material-symbols-outlined ok-status-icon">search_off</span>
+                    <div class="ok-status-body">
+                        <div class="ok-status-title">Belge bulunamadı</div>
+                        <div class="ok-status-text">{{ msg }}</div>
+                    </div>
+                    <button type="button" class="zm-icon-btn" title="Kapat" (click)="lookupErrorMessage.set(null)">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+
+                <!-- Boş durum -->
+                <div class="zm-empty" *ngIf="!loading() && !detailsVisible() && !lookupErrorMessage()">
+                    <div class="zm-empty-icon">
+                        <span class="material-symbols-outlined">qr_code_scanner</span>
+                    </div>
+                    <div class="zm-empty-title">Henüz evrak okutulmadı</div>
+                    <div class="zm-empty-text">
+                        Belge üzerindeki QR kodu okutun. Evrak bilgileri ve güncel zimmet sahibi burada,
+                        zimmetleme seçenekleri sağ panelde gösterilir.
+                    </div>
+                </div>
+
+                <!-- Evrak bilgileri / zimmet geçmişi sekmeleri -->
+                <ng-container *ngIf="!loading() && detailsVisible() && documentDetail() as doc">
+                    <div class="iz-tabbar" role="tablist" aria-label="Evrak sekmeleri">
+                        <button type="button" class="iz-tab" role="tab"
+                            [class.is-active]="activeTab() === 'bilgi'" (click)="activeTab.set('bilgi')">
+                            <span class="material-symbols-outlined">description</span>
+                            Evrak Bilgileri
+                        </button>
+                        <button type="button" class="iz-tab" role="tab"
+                            [class.is-active]="activeTab() === 'gecmis'" (click)="activeTab.set('gecmis')">
+                            <span class="material-symbols-outlined">history</span>
                             Zimmet Geçmişi
-                            <span class="badge rounded-pill bg-secondary-subtle text-secondary ms-auto"
-                                *ngIf="allocations().length">{{ allocations().length }}</span>
+                            <span class="iz-count" *ngIf="allocations().length">{{ allocations().length }}</span>
                         </button>
-                    </li>
-                </ul>
-            </div>
+                    </div>
 
-            <div class="tab-content" id="zimmetTabsContent">
-
-                <div class="tab-pane fade show active p-4" id="zimmet-islem-pane" role="tabpanel">
-                    <div style="max-width: 640px;">
-
-                        <div class="zimmet-holder-strip" [class.is-empty]="!activeAllocation()">
-                            <span class="material-symbols-outlined">person_pin_circle</span>
-                            @if (activeAllocation(); as active) {
-                                <span>Güncel zimmet sahibi: <strong>{{ active.fullName }}</strong></span>
-                            } @else {
-                                <span>Bu belge şu anda kimseye zimmetli değil.</span>
-                            }
-                        </div>
-
-                        <div class="zimmet-choice-group">
-                            <label class="zimmet-choice-option"
-                                *ngIf="!isActiveOnCurrentUser()"
-                                [class.selected]="zimmetType === 'self'">
-                                <input type="radio"
-                                    class="visually-hidden"
-                                    value="self"
-                                    name="zimmetType"
-                                    [(ngModel)]="zimmetType">
-                                <span class="zimmet-choice-icon">
-                                    <span class="material-symbols-outlined">person_add</span>
-                                </span>
-                                <span class="zimmet-choice-text">
-                                    <strong>Zimmeti Üzerime Al</strong>
-                                    <small>{{ currentUserName }}</small>
-                                </span>
-                            </label>
-
-                            <label class="zimmet-choice-option"
-                                [class.selected]="zimmetType === 'other'">
-                                <input type="radio"
-                                    class="visually-hidden"
-                                    value="other"
-                                    name="zimmetType"
-                                    [(ngModel)]="zimmetType">
-                                <span class="zimmet-choice-icon">
-                                    <span class="material-symbols-outlined">sync_alt</span>
-                                </span>
-                                <span class="zimmet-choice-text">
-                                    <strong>Zimmeti Devret</strong>
-                                    <small>Başka bir personele aktar</small>
-                                </span>
-                            </label>
-                        </div>
-
-                        <div *ngIf="zimmetType === 'other'"
-                            class="mb-3">
-                            <label class="form-label small text-muted mb-1">Personel</label>
-                            <app-simple-autocomplete
-                                [control]="personControl"
-                                [options]="personOptions()"
-                                placeholder="Personel adıyla arayın...">
-                            </app-simple-autocomplete>
-                            <div class="form-text text-warning"
-                                *ngIf="!personControl.value">
-                                Devam etmek için bir personel seçmelisiniz.
+                    <!-- GEÇMİŞ -->
+                    <ng-container *ngIf="activeTab() === 'gecmis'">
+                        <app-allocation-flow *ngIf="allocations().length" [items]="allocations()"></app-allocation-flow>
+                        <div class="zm-empty zm-empty-sm" *ngIf="!allocations().length">
+                            <div class="zm-empty-icon">
+                                <span class="material-symbols-outlined">history_toggle_off</span>
                             </div>
+                            <div class="zm-empty-title">Zimmet geçmişi yok</div>
+                            <div class="zm-empty-text">Bu evrak için henüz bir zimmet hareketi kaydedilmemiş.</div>
                         </div>
-                    </div>
+                    </ng-container>
 
-                    <div
-                        class="zimmet-actions-row text-end d-flex justify-content-end gap-3">
-
-                        <button class="btn btn-outline-success px-5"
-                            (click)="saveZimmet(AllocationStatus.Teslim)"
-                            [disabled]="saving() || zimmetType === 'self' || !personControl.value">
-                            <span
-                                class="material-symbols-outlined me-1 mb-1 mt-1">
-                                hand_package
+                    <!-- EVRAK BİLGİLERİ -->
+                    <ng-container *ngIf="activeTab() === 'bilgi'">
+                    <div class="ok-doc">
+                        <div class="ok-doc-icon">
+                            <span class="material-symbols-outlined">description</span>
+                        </div>
+                        <div class="ok-doc-body">
+                            <div class="ok-doc-no">{{ scannedDocumentNo() }}</div>
+                            <div class="ok-doc-meta">{{ doc.documentName || 'Evrak numarası' }}</div>
+                        </div>
+                        <div class="ok-checks ok-checks-side">
+                            <span class="iz-badge" [ngClass]="securityDegreeStyle[doc.securityDegree]">
+                                <span class="material-symbols-outlined">shield</span>
+                                {{ securityDegreeMap[doc.securityDegree] || 'Gizlilik yok' }}
                             </span>
-                            Teslim Et
-                        </button>
-
-                        <button class="btn btn-primary px-5"
-                            (click)="saveZimmet(AllocationStatus.Devir)"
-                            [disabled]="saving() || (zimmetType === 'other' && !personControl.value)">
-
-                            <span class="spinner-border spinner-border-sm me-1"
-                                *ngIf="saving()"></span>
-                            {{ zimmetType === 'self'
-                            ? 'Zimmeti Üzerime Al'
-                            : 'Zimmetle' }}
-                        </button>
-
+                            <span class="iz-badge" [ngClass]="actionRequiredBadgeClass(doc.actionRequired)">
+                                <span class="material-symbols-outlined">flag</span>
+                                {{ actionRequiredLabel(doc.actionRequired) }}
+                            </span>
+                        </div>
                     </div>
-                </div>
 
-                <div class="tab-pane fade" id="zimmet-gecmis-pane" role="tabpanel">
-                    <app-allocation-flow
-                        *ngIf="allocations().length"
-                        [items]="allocations()">
-                    </app-allocation-flow>
-                    <div class="text-muted text-center py-5"
-                        *ngIf="!allocations().length">
-                        <span class="material-symbols-outlined d-block mb-2"
-                            style="font-size: 28px;">history_toggle_off</span>
-                        Bu evrak için zimmet geçmişi bulunamadı.
+                    <div class="iz-detail-grid">
+                        <div class="iz-detail iz-detail-wide">
+                            <div class="iz-detail-label"><span class="material-symbols-outlined">subject</span>Konu</div>
+                            <div class="iz-detail-value">{{ doc.subject || '-' }}</div>
+                        </div>
+                        <div class="iz-detail">
+                            <div class="iz-detail-label"><span class="material-symbols-outlined">tag</span>Belge Orijinal No</div>
+                            <div class="iz-detail-value">{{ doc.orginalNo || '-' }}</div>
+                        </div>
+                        <div class="iz-detail">
+                            <div class="iz-detail-label"><span class="material-symbols-outlined">calendar_month</span>Tarih</div>
+                            <div class="iz-detail-value">{{ doc.documentDate ? (doc.documentDate | date:'dd.MM.yyyy') : '-' }}</div>
+                        </div>
+                        <div class="iz-detail">
+                            <div class="iz-detail-label"><span class="material-symbols-outlined">auto_stories</span>Sayfa Sayısı</div>
+                            <div class="iz-detail-value">{{ doc.pageCount ?? '-' }}</div>
+                        </div>
                     </div>
-                </div>
-
+                    </ng-container>
+                </ng-container>
             </div>
-            }
-        </div>
-    </div>
-    <div class="col-md-4 col-12"
-        *ngIf="detailsVisible() && documentDetail() as doc">
-        <div class="card h-100">
-            <div class="card-header dashboard-header d-flex align-items-center">
-                <span class="material-symbols-outlined me-2 text-info">description</span>
-                <h5 class="card-title mb-0 fw-semibold">Evrak Bilgileri</h5>
-            </div>
-            <div class="card-body">
 
-                <!-- QR -->
-                @if (scannedDocumentNo()) {
-                <div class="text-center mb-4 p-3"
-                    style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;">
-                    <qrcode [qrdata]="scannedDocumentNo()!"
-                        [width]="120"
-                        [errorCorrectionLevel]="'H'"></qrcode>
-                    <div class="fw-semibold mt-2"
-                        style="font-size: 16px;">
+            <!-- Özet + aksiyon -->
+            <div class="card-footer zm-footer mt-auto" *ngIf="detailsVisible()">
+                <div class="zm-summary" [class.is-ready]="activeAllocation()">
+                    <span class="zm-summary-docs">
+                        <span class="material-symbols-outlined">description</span>
                         {{ scannedDocumentNo() }}
-                    </div>
+                    </span>
+                    <span class="material-symbols-outlined zm-summary-arrow">arrow_forward</span>
+                    <span class="zm-summary-target">{{ activeAllocation()?.fullName || 'Zimmet yok' }}</span>
+                    <span class="zm-summary-note" *ngIf="activeAllocation()">
+                        (Aktif Zimmet)
+                    </span>
                 </div>
-                }
-
-                <div class="row gy-3">
-
-                    <div class="col-12" *ngIf="doc.documentName">
-                        <div class="text-muted small">Dosya Adı</div>
-                        <div class="fw-semibold">
-                            {{ doc.documentName }}
-                        </div>
-                    </div>
-
-                    <div class="col-12">
-                        <div class="text-muted small">Konu</div>
-                        <div class="fw-semibold">
-                            {{ doc.subject || '-' }}
-                        </div>
-                    </div>
-
-                    <div class="col-6">
-                        <div class="text-muted small">Belge Orijinal No</div>
-                        <div class="fw-semibold">
-                            {{ doc.orginalNo || '-' }}
-                        </div>
-                    </div>
-
-                    <div class="col-6">
-                        <div class="text-muted small">Tarih</div>
-                        <div class="fw-semibold">
-                            {{ doc.documentDate | date:'dd.MM.yyyy' }}
-                        </div>
-                    </div>
-
-                    <div class="col-6">
-                        <div class="text-muted small">Sayfa Sayısı</div>
-                        <div class="fw-semibold">
-                            {{ doc.pageCount ?? '-' }}
-                        </div>
-                    </div>
-
-                    <div class="col-6">
-                        <div class="text-muted small mb-1">Gizlilik Derecesi</div>
-                        <span class="badge rounded-pill px-3 py-2"
-                            [ngClass]="securityDegreeStyle[doc.securityDegree]">
-                            {{ securityDegreeMap[doc.securityDegree] || '-'
-                            }}
-                        </span>
-                    </div>
-
-                    <div class="col-6">
-                        <div class="text-muted small mb-1">Gereği/Bilgi</div>
-                        <span class="badge rounded-pill px-3 py-2"
-                            [ngClass]="actionRequiredBadgeClass(doc.actionRequired)">
-                            {{ actionRequiredLabel(doc.actionRequired) }}
-                        </span>
-                    </div>
-
+                <div class="zm-footer-actions">
+                    <button type="button" class="btn btn-light zm-back-btn" (click)="backToQrScan()">
+                        <span class="material-symbols-outlined">restart_alt</span>
+                        Temizle
+                    </button>
                 </div>
-
             </div>
         </div>
     </div>
-    <!-- SAĞ INFO PANEL -->
-    <div class="col-md-4 col-12" *ngIf="!detailsVisible()">
-        <div class="card info-panel h-100">
 
-            <div class="card-header">
-                <h6 class="m-0">Bilgilendirme</h6>
+    <!-- SAĞ PANEL: Zimmetle -->
+    <div class="col-lg-6 col-12">
+        <div class="card zm-card d-flex flex-column">
+            <div class="card-header dashboard-header d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <span class="material-symbols-outlined me-2 text-info">person_check</span>
+                    <h5 class="card-title mb-0 fw-semibold">Zimmetle</h5>
+                </div>
             </div>
 
-            <div class="card-body">
-                <div class="info-item mt-2">
-                    <span class="material-symbols-outlined sec-icon">
-                        info
-                    </span>
-                    <div>
-                        <strong>QR Okuma</strong>
-                        <p class="mb-0">
-                            Sistem QR kodu okutmanızı beklemektedir.
-                        </p>
+            <!-- Henüz evrak yokken: nasıl çalıştığını anlatan adımlar -->
+            <div class="card-body zm-body" *ngIf="!detailsVisible()">
+                <div class="zm-steps">
+                    <div class="zm-step">
+                        <span class="zm-step-no">1</span>
+                        <div class="zm-step-body">
+                            <div class="zm-step-title">QR kodu okutun</div>
+                            <div class="zm-step-text">Belge üzerindeki QR kodu okuyucuyla okutun. Okuyucu yoksa evrak numarasını sol paneldeki alana yazıp Enter'a basın.</div>
+                        </div>
+                    </div>
+                    <div class="zm-step">
+                        <span class="zm-step-no">2</span>
+                        <div class="zm-step-body">
+                            <div class="zm-step-title">Zimmet türünü seçin</div>
+                            <div class="zm-step-text">Evrakı kendi üzerinize alın ya da başka bir personele devredin. Güncel zimmet sahibi ve geçmiş sol ve sağ panelde görünür.</div>
+                        </div>
+                    </div>
+                    <div class="zm-step">
+                        <span class="zm-step-no">3</span>
+                        <div class="zm-step-body">
+                            <div class="zm-step-title">Onaylayın</div>
+                            <div class="zm-step-text">Alt kısımdaki özeti kontrol edip "Zimmetle" ile devredin ya da "Teslim Et" ile evrakı seçilen personele teslim edin.</div>
+                        </div>
                     </div>
                 </div>
-                <div class="detail-card-hr"></div>
-                <div class="info-item mt-4">
-                    <span class="material-symbols-outlined sec-icon">
-                        keyboard
-                    </span>
-                    <div>
-                        <strong>Manuel Giriş</strong>
-                        <p class="mb-0">
-                            QR kod okuma sırasında sorun yaşıyorsanız, evrak
-                            numarası manuel olarak girerek zimmetleme ekranına
-                            geçiş yapabilirsiniz.
-                        </p>
-                        <div class="qr-wait-cardOther mt-2">
-                            <input type="text"
-                                class="form-control qr-result-input2 mt-2"
-                                placeholder="Evrak numarasını girin"
-                                [ngModel]="manualEntryValue()"
-                                (ngModelChange)="manualEntryValue.set($event)" />
-                            <button class="qr-manual-btn2"
-                                [disabled]="!manualEntryValue().trim()"
-                                (click)="submitManualEntry()">
-                                Zimmetleme Ekranına Geç
+            </div>
+
+            <ng-container *ngIf="detailsVisible()">
+                <div class="card-body zm-body">
+                    <!-- İŞLEM -->
+                    <ng-container>
+                        <!-- Zimmet türü -->
+                        <div class="zm-modes iz-tabs" role="group" aria-label="Zimmet türü" *ngIf="!isActiveOnCurrentUser()">
+                            <button type="button" class="zm-mode" [class.is-active]="zimmetType() === 'self'" (click)="setZimmetType('self')">
+                                <span class="material-symbols-outlined">download</span>
+                                <span class="zm-mode-label">Üzerime Al</span>
+                                <span class="zm-mode-sub">Kendime</span>
+                            </button>
+                            <button type="button" class="zm-mode" [class.is-active]="zimmetType() === 'other'" (click)="setZimmetType('other')">
+                                <span class="material-symbols-outlined">sync_alt</span>
+                                <span class="zm-mode-label">Devret</span>
+                                <span class="zm-mode-sub">Başka personele</span>
                             </button>
                         </div>
 
-                    </div>
+                        <div class="ok-petition-intro" *ngIf="isActiveOnCurrentUser()">
+                            <span class="material-symbols-outlined">info</span>
+                            <div>Evrak zaten sizin üzerinizde. Aşağıdan başka bir personele <strong>devredebilir</strong> ya da <strong>teslim edebilirsiniz</strong>.</div>
+                        </div>
+
+                        <!-- Üzerime Al: oturum açan kullanıcı -->
+                        <div class="zm-person zm-person-self is-selected" *ngIf="zimmetType() === 'self'">
+                            <span class="zm-avatar">{{ initials(currentUserName) }}</span>
+                            <div class="zm-person-info">
+                                <div class="zm-person-name">{{ currentUserName }}</div>
+                                <div class="zm-person-meta">Evrak sizin üzerinize zimmetlenecek</div>
+                            </div>
+                            <span class="material-symbols-outlined zm-person-check">check_circle</span>
+                        </div>
+
+                        <!-- Devret: personel seçimi -->
+                        <ng-container *ngIf="zimmetType() === 'other'">
+                            <div class="zm-field">
+                                <label class="zm-field-label">Personel</label>
+                                <app-simple-autocomplete
+                                    [control]="personControl"
+                                    [options]="personOptions()"
+                                    placeholder="Personel adıyla arayın...">
+                                </app-simple-autocomplete>
+                                <div class="zm-field-hint" *ngIf="!selectedPerson()">
+                                    Devam etmek için bir personel seçmelisiniz.
+                                </div>
+                            </div>
+
+                            <div class="zm-person zm-person-self is-selected" *ngIf="selectedPerson() as p; else personEmpty">
+                                <span class="zm-avatar">{{ initials(p.name) }}</span>
+                                <div class="zm-person-info">
+                                    <div class="zm-person-name">{{ p.name }}</div>
+                                    <div class="zm-person-meta">Evrak bu personele devredilecek</div>
+                                </div>
+                                <button type="button" class="zm-icon-btn" title="Seçimi kaldır" (click)="clearPerson()">
+                                    <span class="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
+                            <ng-template #personEmpty>
+                                <div class="zm-empty zm-empty-sm">
+                                    <div class="zm-empty-icon">
+                                        <span class="material-symbols-outlined">person_search</span>
+                                    </div>
+                                    <div class="zm-empty-title">Personel seçilmedi</div>
+                                    <div class="zm-empty-text">Yukarıdaki alana ad yazarak personeli bulun ve seçin.</div>
+                                </div>
+                            </ng-template>
+                        </ng-container>
+                    </ng-container>
                 </div>
 
-            </div>
-
+                <!-- Özet + aksiyonlar -->
+                <div class="card-footer zm-footer mt-auto">
+                    <div class="zm-summary" [class.is-ready]="targetLabel()">
+                        <span class="zm-summary-docs">
+                            <span class="material-symbols-outlined">description</span>
+                            {{ scannedDocumentNo() }}
+                        </span>
+                        <span class="material-symbols-outlined zm-summary-arrow">arrow_forward</span>
+                        <span class="zm-summary-target">{{ targetLabel() || 'Kişi seçilmedi' }}</span>
+                    </div>
+                    <div class="zm-footer-actions">
+                        <button type="button" class="btn btn-outline-success zm-back-btn"
+                            *ngIf="zimmetType() === 'other'"
+                            [disabled]="saving() || !selectedPerson()"
+                            (click)="saveZimmet(AllocationStatus.Teslim)">
+                            <span class="material-symbols-outlined">hand_package</span>
+                            Teslim Et
+                        </button>
+                        <!-- Tür değişince ikon/metin DOM'da yeniden oluşturulur ki belirme animasyonu tekrar oynasın. -->
+                        <button type="button" class="btn btn-primary zimmet-submit-btn"
+                            [attr.data-mode]="zimmetType() === 'self' ? 'self' : 'internal'"
+                            [disabled]="saving() || (zimmetType() === 'other' && !selectedPerson())"
+                            (click)="saveZimmet(AllocationStatus.Devir)">
+                            @if (saving()) {
+                                <span class="spinner-border spinner-border-sm zimmet-submit-icon"></span>
+                                <span class="zimmet-submit-text">Kaydediliyor</span>
+                            } @else if (zimmetType() === 'self') {
+                                <span class="zimmet-submit-icon material-symbols-outlined">download</span>
+                                <span class="zimmet-submit-text">Zimmeti Üzerime Al</span>
+                            } @else {
+                                <span class="zimmet-submit-icon material-symbols-outlined">article_person</span>
+                                <span class="zimmet-submit-text">Zimmetle</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+            </ng-container>
         </div>
     </div>
 </div>

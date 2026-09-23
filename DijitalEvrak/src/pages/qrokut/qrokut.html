@@ -1,92 +1,131 @@
 <app-generic
-  pageTitle="QR List"
-  [breadcrumbs]="[{title: 'Evrak Kayıt', url: 'qrlist', icon:''}]" />
+  pageTitle="Evrak Kayıt"
+  [breadcrumbs]="[{title: 'Evrak Kayıt', url: 'qrokut', icon:''}]" />
 
 <div class="row">
-  <div class="col-md-9 col-12">
-    <div class="card" style="height: 700px;">
-      <div
-        class="card-header d-flex justify-content-between align-items-center">
-        <h4 class="m-0">Evrak Kayıt</h4>
+  <!-- SOL PANEL: QR okutma -->
+  <div class="col-lg-6 col-12">
+    <div class="card zm-card d-flex flex-column">
+      <div class="card-header dashboard-header d-flex align-items-center">
+        <span class="material-symbols-outlined me-2 text-info">qr_code</span>
+        <h5 class="card-title mb-0 fw-semibold">Evrak Kayıt</h5>
       </div>
-      <!-- ALERT BÖLÜMÜ -->
-      <div
-        class="alert alert-info d-flex align-items-center justify-content-between mx-5 mt-5"
-        role="alert"
-        *ngIf="alertVisible()">
-        <!-- Sol büyük QR icon -->
-        <div
-          class="qr-icon-wrapper d-flex align-items-center justify-content-center me-3">
-          <span class="material-symbols-outlined qr-icon"
-            style="cursor: pointer;" (click)="onQrScanned('')"
-            title="QR Kod Beklenmektedir.">
-            barcode_reader
+
+      <div class="card-body zm-body">
+        <!-- QR okutma bloğu (Ön Kayıt ve Giden Evrak Teslim Al ekranlarıyla aynı dil) -->
+        <div class="zm-scan-hero" [class.is-active]="qrActive" [class.is-loading]="loading()">
+          <div class="zm-scan-wrap">
+            <span class="material-symbols-outlined zm-scan-icon">qr_code_2</span>
+            <input
+              #qrInput
+              type="text"
+              class="zm-scan-input"
+              placeholder="Belge üzerindeki QR kodu okutun veya evrak numarasını yazıp Enter'a basın"
+              (keydown)="onQrKeydown($event)"
+              (focus)="qrActive = true"
+              (blur)="qrActive = false"
+              autocomplete="off">
+            <span class="zm-scan-status" [class.is-active]="qrActive && !loading()" [class.is-loading]="loading()">
+              <span class="spinner-border spinner-border-sm" *ngIf="loading()"></span>
+              <span class="zm-ready-dot" *ngIf="qrActive && !loading()"></span>
+              {{ loading() ? 'Aranıyor' : (qrActive ? 'Okumaya Hazır' : 'Pasif') }}
+            </span>
+          </div>
+          <div class="zm-scan-hint-row">
+            <div class="zm-scan-hint">
+              Okutulan evrak bulunursa doğrudan evrak kayıt ekranına geçilir.
+            </div>
+          </div>
+        </div>
+
+        <!-- Aranıyor -->
+        <div class="zm-empty" *ngIf="loading()">
+          <div class="zm-empty-icon">
+            <div class="spinner-border text-primary"></div>
+          </div>
+          <div class="zm-empty-title">Aranıyor...</div>
+          <div class="zm-empty-text">{{ lastCode() }} numaralı evrak sorgulanıyor.</div>
+        </div>
+
+        <!-- Son okutma sonucu (yönlendirme yapılamadıysa) -->
+        <div class="ok-status is-existing" *ngIf="!loading() && lastResult() as r">
+          <span class="material-symbols-outlined ok-status-icon">
+            {{ r.kind === 'notfound' ? 'search_off' : 'document_scanner' }}
+          </span>
+          <div class="ok-status-body">
+            <div class="ok-status-title">
+              {{ r.kind === 'notfound' ? 'Belge bulunamadı' : 'Belge henüz taranmamış' }}
+            </div>
+            <div class="ok-status-text">
+              {{ r.kind === 'notfound'
+                  ? r.code + ' numarasına ait bir belge bulunamadı. Numarayı kontrol edip yeniden okutun.'
+                  : r.code + ' numaralı belgenin tarama işlemi tamamlandıktan sonra kayıt ekranına geçebilirsiniz.' }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Boş durum -->
+        <div class="zm-empty" *ngIf="!loading() && !lastResult()">
+          <div class="zm-empty-icon">
+            <span class="material-symbols-outlined">qr_code_scanner</span>
+          </div>
+          <div class="zm-empty-title">Henüz evrak okutulmadı</div>
+          <div class="zm-empty-text">
+            Belge üzerindeki QR kodu okutun. Evrak bulunduğunda kayıt ekranına otomatik geçilir.
+          </div>
+        </div>
+      </div>
+
+      <div class="card-footer zm-footer mt-auto" *ngIf="lastResult()">
+        <div class="zm-summary">
+          <span class="zm-summary-docs">
+            <span class="material-symbols-outlined">description</span>
+            {{ lastResult()?.code }}
           </span>
         </div>
-        <!-- Sağ içerik + arrow -->
-        <div
-          class="qr-panel-content position-relative flex-grow-1 pt-3 mb-3">
-          <h5 class="mb-1 qr-title">QR Kodu Okutunuz</h5>
-          <p class="mb-0 qr-description">
-            Belgenin detay ekranına geçmek için QR kodu okutup
-            devam edebilirsiniz.
-          </p>
-          <span class="material-symbols-outlined qr-panel-next pb-1"
-            title="Manuel okut"
-            (click)="onQrScanned('')">
-            arrow_forward
-          </span>
+        <div class="zm-footer-actions">
+          <button type="button" class="btn btn-light zm-back-btn" (click)="reset()">
+            <span class="material-symbols-outlined">restart_alt</span>
+            Temizle
+          </button>
         </div>
       </div>
     </div>
   </div>
-  <!-- SAĞ INFO PANEL -->
-  <div class="col-md-3 col-12">
-    <div class="card info-panel h-100">
 
-      <div class="card-header">
-        <h6 class="m-0">Bilgilendirme</h6>
+  <!-- SAĞ PANEL: nasıl çalışır -->
+  <div class="col-lg-6 col-12">
+    <div class="card zm-card d-flex flex-column">
+      <div class="card-header dashboard-header d-flex align-items-center">
+        <span class="material-symbols-outlined me-2 text-info">help_outline</span>
+        <h5 class="card-title mb-0 fw-semibold">Nasıl Çalışır</h5>
       </div>
 
-      <div class="card-body">
-
-        <div class="info-item mt-2">
-          <span class="material-symbols-outlined sec-icon">
-            info
-          </span>
-          <div>
-            <strong>QR Okuma</strong>
-            <p class="mb-0">
-              Sistem QR kodu okutmanızı beklemektedir.
-            </p>
-          </div>
-        </div>
-
-        <div class="detail-card-hr"></div>
-
-        <div class="info-item mt-4">
-          <span class="material-symbols-outlined sec-icon">
-            keyboard
-          </span>
-          <div>
-            <strong>Manuel Giriş</strong>
-            <p class="mb-0">
-              QR kod okuma sırasında sorun yaşıyorsanız, evrak numarası manuel
-              olarak girerek evrak kayıt ekranına geçiş yapabilirsiniz.
-            </p>
-            <div class="qr-wait-cardOther  mt-2">
-              <input #qrInput type="text" 
-                class="form-control qr-result-input2 mt-2" />
-              <button class="qr-manual-btn2" (click)="redirectEvrakKayit(qrInput.value)">
-                Evrak Kayıt Ekranına Geç
-              </button>
+      <div class="card-body zm-body">
+        <div class="zm-steps">
+          <div class="zm-step">
+            <span class="zm-step-no">1</span>
+            <div class="zm-step-body">
+              <div class="zm-step-title">QR kodu okutun</div>
+              <div class="zm-step-text">Belge üzerindeki QR kodu okuyucuyla okutun. Okuyucu yoksa evrak numarasını sol paneldeki alana yazıp Enter'a basın.</div>
             </div>
-
+          </div>
+          <div class="zm-step">
+            <span class="zm-step-no">2</span>
+            <div class="zm-step-body">
+              <div class="zm-step-title">Evrak doğrulanır</div>
+              <div class="zm-step-text">Evrakın sistemde kayıtlı ve taranmış olması gerekir. Henüz taranmamış evraklar için önce dijitalleştirme tamamlanmalıdır.</div>
+            </div>
+          </div>
+          <div class="zm-step">
+            <span class="zm-step-no">3</span>
+            <div class="zm-step-body">
+              <div class="zm-step-title">Kayıt ekranına geçilir</div>
+              <div class="zm-step-text">Evrak bulunduğunda kayıt ekranı otomatik açılır; evrak bilgilerini girip kaydı tamamlayabilirsiniz.</div>
+            </div>
           </div>
         </div>
-
       </div>
-
     </div>
   </div>
 </div>

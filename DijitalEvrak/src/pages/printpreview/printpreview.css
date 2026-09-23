@@ -62,6 +62,28 @@
   overflow-y: auto !important;
 }
 
+/* === DİLEKÇE ALINDI BELGESİ: daha küçük popup ===
+   Modal içeriğe göre daralır; A4 sayfa ekranda %78 ölçekle gösterilir.
+   Ölçek yalnızca ekran içindir; printPdf() PDF üretirken zoom'u geçici kaldırır. */
+.modal.is-petition {
+  width: auto !important;
+  max-width: min(900px, 95vw) !important;
+}
+
+.modal.is-petition .modal-body {
+  padding: 16px 20px !important;
+  background: #f1f5f9 !important;
+}
+
+.petition-scale {
+  zoom: 0.78;
+}
+
+.petition-scale .a4-page {
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  border-radius: 4px;
+}
+
 /* === PRINT MODE === */
 @media print {
 

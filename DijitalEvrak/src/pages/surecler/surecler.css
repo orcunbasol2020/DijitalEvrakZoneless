@@ -1,0 +1,357 @@
+/* ============================================================
+   Evrak Süreç Akışı sayfası
+   Görsel dil: Ön Kayıt / Zimmet ekranlarıyla aynı. Ortak parçalar
+   gidenevrak/zimmet.css, onkayit.css ve zimmet/zimmet.css'ten gelir;
+   burada yalnızca zaman çizelgesine özgü "sc-" sınıfları var.
+
+   Satır düzeni: [ ikon + işlem adı ] [ kart: tarih + kişiler ]
+   İşlem adı kutunun dışında, soldaki durum ikonunun yanında yazar.
+   ============================================================ */
+
+/* Tüm satırlar tek ızgarada: sol sütun en uzun işlem adına göre daralır,
+   böylece kartlar hizalı kalır ve sabit genişlikten doğan boşluk oluşmaz. */
+.sc-timeline {
+    list-style: none;
+    margin: 0;
+    padding: 4px 0 0 0;
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    column-gap: 14px;
+    row-gap: 10px;
+    align-items: center;
+    position: relative;
+}
+
+/* Düğümleri birbirine bağlayan dikey çizgi (düğüm merkezi: 20px) */
+.sc-timeline::before {
+    content: "";
+    position: absolute;
+    left: 19px;
+    top: 24px;
+    bottom: 24px;
+    width: 2px;
+    background: linear-gradient(180deg, #bae6fd 0%, #e2e8f0 100%);
+}
+
+/* li kutusu ızgaraya karışmaz; sol ve sağ parçalar doğrudan ızgara hücresi olur */
+.sc-item {
+    display: contents;
+}
+
+/* ---- Sol sütun: ikon + işlem adı ---- */
+.sc-step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding-right: 6px;
+    animation: zm-fade-in 0.25s ease;
+}
+
+.sc-node {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f5f9;
+    color: #64748b;
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 1px #e2e8f0;
+    position: relative;
+    z-index: 1;
+}
+
+.sc-node .material-symbols-outlined {
+    font-size: 19px;
+}
+
+.sc-step-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    min-width: 0;
+}
+
+.sc-step-title {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: #1e293b;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+}
+
+/* Düğümler koyu lacivert; yalnızca Teslim (success) yeşil kalır.
+   Başlık renkleri işlem türüne göre değişmeye devam eder. */
+.sc-node {
+    background: #64748b;
+    color: #f8fafc;
+    box-shadow: 0 0 0 1px #94a3b8, 0 2px 6px rgba(71, 85, 105, 0.25);
+}
+
+.sc-item[data-tone="info"] .sc-step-title  { color: #0369a1; }
+.sc-item[data-tone="success"] .sc-node       { background: #dcfce7; color: #15803d; box-shadow: 0 0 0 1px #86efac; }
+.sc-item[data-tone="success"] .sc-step-title { color: #166534; }
+.sc-item[data-tone="warning"] .sc-step-title { color: #92400e; }
+.sc-item[data-tone="neutral"] .sc-step-title { color: #475569; }
+
+.sc-item.is-latest .sc-node {
+    box-shadow: 0 0 0 1px #7dd3fc, 0 0 0 5px rgba(14, 165, 233, 0.15);
+}
+
+.sc-latest {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #0369a1;
+    background: #e0f2fe;
+    border: 1px solid rgba(3, 105, 161, 0.2);
+}
+
+/* ---- Sağ sütun: kart (kişiler solda, tarih sağda, tek satır) ---- */
+.sc-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    padding: 8px 14px;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid #e7eaf0;
+    border-left: 4px solid #cbd5e1;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+    animation: zm-fade-in 0.25s ease;
+}
+
+.sc-card:hover {
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+}
+
+/* İşlem türüne göre kart tonu: sol şerit ve hafif zemin.
+   Teslim Edildi (success) sürecin en önemli adımı olduğundan en belirgin tondur. */
+.sc-item[data-tone="info"] .sc-card {
+    border-left-color: #0ea5e9;
+    background: #f8fcff;
+}
+
+.sc-item[data-tone="success"] .sc-card {
+    border-color: #bbf7d0;
+    border-left-color: #16a34a;
+    background: linear-gradient(90deg, #ecfdf5 0%, #f0fdf4 100%);
+    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.12);
+}
+
+.sc-item[data-tone="success"] .sc-date {
+    color: #4d7c5f;
+}
+
+.sc-item[data-tone="warning"] .sc-card {
+    border-left-color: #f59e0b;
+    background: #fffcf5;
+}
+
+.sc-item[data-tone="neutral"] .sc-card {
+    border-left-color: #94a3b8;
+    background: #f8fafc;
+}
+
+.sc-item.is-latest .sc-card {
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.1);
+}
+
+.sc-date {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex: 0 0 auto;
+    margin-left: auto;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #64748b;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.sc-date .material-symbols-outlined {
+    font-size: 15px;
+}
+
+/* Kişi satırı (zm-avatar / zm-person-* kartçık parçaları yeniden kullanılır) */
+.sc-person {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.sc-person .zm-avatar {
+    width: 34px;
+    height: 34px;
+    font-size: 11.5px;
+}
+
+.sc-person .zm-person-meta {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #94a3b8;
+}
+
+.sc-person .zm-person-name {
+    font-size: 14px;
+    color: #0f172a;
+}
+
+/* Teslim kartında kişi avatarı yeşil tonda */
+.sc-item[data-tone="success"] .sc-person .zm-avatar {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.sc-item[data-tone="success"] .sc-people-arrow {
+    color: #86efac;
+}
+
+.zm-avatar.is-system {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.zm-avatar.is-system .material-symbols-outlined {
+    font-size: 18px;
+}
+
+/* Kişi alanı kalan genişliği alır; tarih sağa yaslanır */
+.sc-card > .sc-person,
+.sc-people {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* Teslim: alan ve eden yan yana */
+.sc-people {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.sc-people .sc-person {
+    flex: 1 1 160px;
+}
+
+.sc-people-arrow {
+    flex: 0 0 auto;
+    font-size: 18px;
+    color: #cbd5e1;
+}
+
+/* Dar ekran: kart ikonun altına iner, tarih kişilerin altına sarar */
+@media (max-width: 575.98px) {
+    .sc-timeline {
+        grid-template-columns: minmax(0, 1fr);
+        row-gap: 6px;
+    }
+
+    .sc-card {
+        margin-left: 50px;
+        margin-bottom: 8px;
+        flex-wrap: wrap;
+    }
+
+    .sc-date {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .sc-people-arrow {
+        display: none;
+    }
+}
+
+/* ============================================================
+   Koyu tema
+   ============================================================ */
+[data-theme="dark"] .sc-card {
+    background: rgba(148, 163, 184, 0.06);
+    border-color: rgba(148, 163, 184, 0.18);
+}
+
+[data-theme="dark"] .sc-step-title {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .sc-timeline::before {
+    background: linear-gradient(180deg, rgba(14, 165, 233, 0.5) 0%, rgba(148, 163, 184, 0.2) 100%);
+}
+
+[data-theme="dark"] .sc-node {
+    border-color: #2d3748;
+    box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.25);
+}
+
+[data-theme="dark"] .sc-node {
+    background: #475569;
+    color: #f1f5f9;
+    box-shadow: 0 0 0 1px #64748b, 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .sc-item[data-tone="info"] .sc-step-title  { color: #7dd3fc; }
+[data-theme="dark"] .sc-item[data-tone="success"] .sc-node       { background: rgba(34, 197, 94, 0.2); color: #86efac; box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.45); }
+[data-theme="dark"] .sc-item[data-tone="success"] .sc-step-title { color: #86efac; }
+[data-theme="dark"] .sc-item[data-tone="warning"] .sc-step-title { color: #fcd34d; }
+[data-theme="dark"] .sc-item[data-tone="neutral"] .sc-step-title { color: #cbd5e1; }
+
+[data-theme="dark"] .sc-item[data-tone="info"] .sc-card {
+    background: rgba(14, 165, 233, 0.08);
+}
+
+[data-theme="dark"] .sc-item[data-tone="success"] .sc-card {
+    background: linear-gradient(90deg, rgba(34, 197, 94, 0.16) 0%, rgba(34, 197, 94, 0.1) 100%);
+    border-color: rgba(34, 197, 94, 0.35);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] .sc-item[data-tone="success"] .sc-date {
+    color: #a7f3d0;
+}
+
+[data-theme="dark"] .sc-item[data-tone="success"] .sc-person .zm-avatar {
+    background: rgba(34, 197, 94, 0.2);
+    color: #86efac;
+}
+
+[data-theme="dark"] .sc-item[data-tone="warning"] .sc-card {
+    background: rgba(245, 158, 11, 0.08);
+}
+
+[data-theme="dark"] .sc-item[data-tone="neutral"] .sc-card {
+    background: rgba(148, 163, 184, 0.08);
+}
+
+[data-theme="dark"] .sc-date {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .sc-person .zm-person-name {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .zm-avatar.is-system {
+    background: rgba(148, 163, 184, 0.14);
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .sc-latest {
+    background: rgba(14, 165, 233, 0.18);
+    border-color: rgba(14, 165, 233, 0.35);
+    color: #7dd3fc;
+}

@@ -1,0 +1,274 @@
+/* ============================================================
+   Gelen Evrak Zimmet sayfası
+   Görsel dil: Ön Kayıt / Giden Evrak Teslim Al ekranlarıyla aynı.
+   Ortak parçalar zimmet.css (gidenevrak) ve onkayit.css'ten gelir;
+   burada yalnızca bu ekrana özgü "iz-" sınıfları var.
+   ============================================================ */
+
+/* İki sütunlu sekme / tür seçici (zm-modes üç sütunludur) */
+.zm-modes.iz-tabs {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+/* ---- Minimal sekme çubuğu: metin + ikon, aktifte ince alt çizgi ---- */
+.iz-tabbar {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid #e7eaf0;
+}
+
+.iz-tab {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px 10px;
+    margin-bottom: -1px;
+    border: 0;
+    background: transparent;
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    border-radius: 8px 8px 0 0;
+    transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.iz-tab .material-symbols-outlined {
+    font-size: 18px;
+    opacity: 0.8;
+    transition: opacity 0.15s ease;
+}
+
+.iz-tab::after {
+    content: "";
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 0;
+    height: 2px;
+    border-radius: 2px 2px 0 0;
+    background: #0ea5e9;
+    transform: scaleX(0);
+    transition: transform 0.2s ease;
+}
+
+.iz-tab:hover {
+    color: #0f172a;
+    background: #f8fafc;
+}
+
+.iz-tab.is-active {
+    color: #0369a1;
+}
+
+.iz-tab.is-active .material-symbols-outlined {
+    opacity: 1;
+}
+
+.iz-tab.is-active::after {
+    transform: scaleX(1);
+}
+
+/* Alt özet şeridi: zimmet sahibinin yanındaki açıklama ("Ad Soyad (Aktif Zimmet)") */
+.zm-summary-note {
+    font-size: 11.5px;
+    font-weight: 500;
+    color: #94a3b8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+[data-theme="dark"] .zm-summary-note {
+    color: #94a3b8;
+}
+
+/* Geçmiş sekmesindeki kayıt sayısı */
+.iz-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    margin-left: 4px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #0369a1;
+    background: #e0f2fe;
+    border: 1px solid rgba(3, 105, 161, 0.2);
+    vertical-align: 1px;
+}
+
+.zm-mode.is-active .iz-count,
+.iz-tab.is-active .iz-count {
+    color: #fff;
+    background: #0ea5e9;
+    border-color: #0ea5e9;
+}
+
+/* Evrak detay ızgarası */
+.iz-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.iz-detail {
+    min-width: 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid #e7eaf0;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.iz-detail:hover {
+    border-color: #d5dbe5;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+.iz-detail-wide {
+    grid-column: 1 / -1;
+}
+
+.iz-detail-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #94a3b8;
+    margin-bottom: 4px;
+}
+
+.iz-detail-label .material-symbols-outlined {
+    font-size: 15px;
+    color: #0ea5e9;
+}
+
+.iz-detail-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1e293b;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.iz-detail-wide .iz-detail-value {
+    white-space: normal;
+    line-height: 1.4;
+}
+
+/* Gizlilik / gereği rozetleri: yalnızca hap yerleşimi; zemin ve yazı rengi
+   degree-tier-N (styles.css) ya da Bootstrap bg- ve text- sınıflarından gelir. */
+.iz-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px 3px 6px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+.iz-badge .material-symbols-outlined {
+    font-size: 16px;
+}
+
+/* Evrak kartı: QR yerine küçük belge ikonu */
+.ok-doc-icon {
+    flex: 0 0 auto;
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+    color: #0369a1;
+}
+
+.ok-doc-icon .material-symbols-outlined {
+    font-size: 24px;
+}
+
+[data-theme="dark"] .ok-doc-icon {
+    background: rgba(14, 165, 233, 0.18);
+    border-color: rgba(14, 165, 233, 0.35);
+    box-shadow: none;
+    color: #7dd3fc;
+}
+
+/* Rozetler evrak kartının sağında, alt alta ve sağa yaslı */
+.ok-doc > .ok-checks-side {
+    position: relative;
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: flex-end;
+    align-self: center;
+    margin-left: auto;
+}
+
+/* Rozetler yanda olduğunda gövdedeki alt boşluk gereksizdir */
+.ok-doc:has(.ok-checks-side) .ok-doc-meta {
+    margin-bottom: 0;
+}
+
+@media (max-width: 575.98px) {
+    .iz-detail-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* ============================================================
+   Koyu tema
+   ============================================================ */
+[data-theme="dark"] .iz-detail {
+    background: rgba(148, 163, 184, 0.06);
+    border-color: rgba(148, 163, 184, 0.18);
+    box-shadow: none;
+}
+
+[data-theme="dark"] .iz-detail:hover {
+    border-color: rgba(148, 163, 184, 0.32);
+}
+
+[data-theme="dark"] .iz-detail-label .material-symbols-outlined {
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .iz-detail-value {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .iz-tabbar {
+    border-bottom-color: rgba(148, 163, 184, 0.18);
+}
+
+[data-theme="dark"] .iz-tab {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .iz-tab:hover {
+    color: #e2e8f0;
+    background: rgba(148, 163, 184, 0.08);
+}
+
+[data-theme="dark"] .iz-tab.is-active {
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .iz-count {
+    background: rgba(14, 165, 233, 0.18);
+    border-color: rgba(14, 165, 233, 0.35);
+    color: #7dd3fc;
+}

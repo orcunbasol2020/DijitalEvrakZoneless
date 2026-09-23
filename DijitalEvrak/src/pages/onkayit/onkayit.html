@@ -6,237 +6,280 @@
     [data]="previewData"
     (closed)="previewOpen = false">
 </print-preview>
+
 <div class="row">
-    <div class="col-md-9 col-12">
-        <div class="card" style="height: 700px;">
-            <div
-                class="card-header d-flex justify-content-between align-items-center">
-                <h4 class="m-0">
-                    <span class="nav-icon material-symbols-outlined"
-                        style="font-size: 22px;">app_registration</span>Ön
-                    Kayıt</h4>
-                <button type="button"
-                    class="btn btn-outline-secondary btn-sm d-flex align-items-center"
-                    (click)="backToQrScan()" *ngIf="backButtonVisible()">
-                    <span class="material-symbols-outlined me-1"
-                        style="font-size: 18px;">arrow_back_2</span>
-                    Ön Kayıt Ekranına Dön
+    <!-- SOL PANEL: QR okutma + ön kayıt sonucu -->
+    <div class="col-lg-6 col-12">
+        <div class="card zm-card d-flex flex-column">
+            <div class="card-header dashboard-header d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <span class="material-symbols-outlined me-2 text-info">app_registration</span>
+                    <h5 class="card-title mb-0 fw-semibold">Ön Kayıt</h5>
+                </div>
+                <button type="button" class="zm-pill-btn" *ngIf="detailsVisible()" (click)="backToQrScan()">
+                    <span class="material-symbols-outlined">qr_code_scanner</span>
+                    <span>Yeni Okutma</span>
                 </button>
             </div>
-            <div
-                class="alert alert-info d-flex align-items-center justify-content-between mx-5 mt-5"
-                role="alert"
-                *ngIf="alertVisible()">
 
-                <!-- Sol büyük QR icon -->
-                <div
-                    class="qr-icon-wrapper d-flex align-items-center justify-content-center me-3">
-                    <span class="material-symbols-outlined qr-icon"
-                        style="cursor: pointer;" (click)="onQrScanned('')"
-                        title="QR Kod Beklenmektedir.">
-                        barcode_reader
-                    </span>
-                </div>
+            <div class="card-body zm-body">
+                <!-- QR okutma bloğu (Giden Evrak Teslim Al ekranıyla aynı dil) -->
+                <!-- Ön kayıt tamamlanınca blok tek satıra daralır (kapan/aç); daraltılmışken okuyucu pasiftir. -->
+                <div class="zm-scan-hero" [class.is-active]="qrActive" [class.is-loading]="loading()"
+                    [class.is-collapsed]="scanCollapsed">
 
-                <!-- Sağ içerik + arrow -->
-                <div
-                    class="qr-panel-content position-relative flex-grow-1 pt-3 mb-3">
-                    <h5 class="mb-1 qr-title">QR Kodu Okutunuz</h5>
-                    <p class="mb-0 qr-description">
-                        Ön kayıt işlemini tamamlamak için belge üzerindeki QR
-                        kodu, QR kod okuyucunuz ile okutunuz.
-                    </p>
-
-                    <span class="material-symbols-outlined qr-panel-next pb-1"
-                        title="Manuel okut"
-                        (click)="onQrScanned('')">
-                        arrow_forward
-                    </span>
-                </div>
-
-            </div>
-            <div class="container-fluid" *ngIf="detailsVisible()">
-                <ng-container *ngIf="docStatus() === 1; else completedMsg">
-                    <div class="process-title mt-4 mb-4 text-muted">
-                        Evrak Daha Önce Kaydedilmiş
+                    <!-- Daraltılmış görünüm -->
+                    <div class="zm-scan-compact" *ngIf="scanCollapsed">
+                        <span class="material-symbols-outlined zm-scan-compact-icon">qr_code_2</span>
+                        <div class="zm-scan-compact-text">
+                            <div class="zm-scan-compact-title">QR okutma alanı daraltıldı</div>
+                            <div class="zm-scan-compact-sub">Okuyucu pasif; yeni bir evrak okutmak için alanı açın.</div>
+                        </div>
+                        <span class="zm-scan-status zm-scan-status-inline">Pasif</span>
+                        <button type="button" class="zm-scan-toggle" title="Okutma alanını aç" (click)="expandScan()">
+                            <span class="material-symbols-outlined">expand_more</span>
+                            Aç
+                        </button>
                     </div>
+
+                    <!-- Açık görünüm -->
+                    <div class="zm-scan-wrap" [hidden]="scanCollapsed">
+                        <span class="material-symbols-outlined zm-scan-icon">qr_code_2</span>
+                        <input
+                            #qrInput
+                            type="text"
+                            class="zm-scan-input"
+                            placeholder="Belge üzerindeki QR kodu okutun veya evrak numarasını yazıp Enter'a basın"
+                            (keydown)="onQrKeydown($event)"
+                            (focus)="qrActive = true"
+                            (blur)="qrActive = false"
+                            autocomplete="off">
+                        <span class="zm-scan-status" [class.is-active]="qrActive && !loading()" [class.is-loading]="loading()">
+                            <span class="spinner-border spinner-border-sm" *ngIf="loading()"></span>
+                            <span class="zm-ready-dot" *ngIf="qrActive && !loading()"></span>
+                            {{ loading() ? 'Kaydediliyor' : (qrActive ? 'Okumaya Hazır' : 'Pasif') }}
+                        </span>
+                    </div>
+                    <div class="zm-scan-hint-row" [hidden]="scanCollapsed">
+                        <div class="zm-scan-hint">
+                            Okutulan evrak için ön kayıt otomatik oluşturulur ve evrak üzerinize zimmetlenir.
+                        </div>
+                        <button type="button" class="zm-scan-toggle" title="Okutma alanını daralt"
+                            *ngIf="detailsVisible() && !loading()" (click)="collapseScan()">
+                            <span class="material-symbols-outlined">expand_less</span>
+                            Daralt
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Boş durum -->
+                <div class="zm-empty" *ngIf="!detailsVisible()">
+                    <div class="zm-empty-icon">
+                        <span class="material-symbols-outlined">qr_code_scanner</span>
+                    </div>
+                    <div class="zm-empty-title">Henüz evrak okutulmadı</div>
+                    <div class="zm-empty-text">
+                        Belge üzerindeki QR kodu okutun. Ön kayıt sonucu ve zimmet bilgisi burada gösterilir,
+                        ardından sağ panelden dilekçe alındı belgesi düzenleyebilirsiniz.
+                    </div>
+                </div>
+
+                <!-- Kayıt sürüyor -->
+                <div class="zm-empty" *ngIf="detailsVisible() && loading()">
+                    <div class="zm-empty-icon">
+                        <div class="spinner-border text-primary"></div>
+                    </div>
+                    <div class="zm-empty-title">Kaydediliyor...</div>
+                    <div class="zm-empty-text">{{ scannedDocumentNo() }} numaralı evrak için ön kayıt oluşturuluyor.</div>
+                </div>
+
+                <!-- Sonuç -->
+                <ng-container *ngIf="detailsVisible() && !loading()">
+                    <!-- Durum şeridi -->
+                    <div class="ok-status" [class.is-existing]="docStatus() === 1" [class.is-created]="docStatus() === 2">
+                        <span class="material-symbols-outlined ok-status-icon">
+                            {{ docStatus() === 1 ? 'info' : 'task_alt' }}
+                        </span>
+                        <div class="ok-status-body">
+                            <div class="ok-status-title">
+                                {{ docStatus() === 1 ? 'Evrak daha önce kaydedilmiş' : 'Ön kayıt ve zimmetleme tamamlandı' }}
+                            </div>
+                            <div class="ok-status-text">
+                                {{ docStatus() === 1
+                                    ? 'Bu evrak için yeni bir ön kayıt oluşturulmadı; mevcut kayıt ve zimmet bilgisi gösteriliyor.'
+                                    : 'Evrak sisteme alındı ve üzerinize zimmetlendi. İsterseniz dilekçe alındı belgesi düzenleyebilirsiniz.' }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Evrak kartı -->
+                    <div class="zm-list-title">Evrak</div>
+                    <div class="ok-doc">
+                        <div class="ok-doc-qr" *ngIf="scannedDocumentNo() as no">
+                            <qrcode [qrdata]="no" [width]="72" [errorCorrectionLevel]="'H'"></qrcode>
+                        </div>
+                        <div class="ok-doc-body">
+                            <div class="ok-doc-no">{{ scannedDocumentNo() }}</div>
+                            <div class="ok-doc-meta">Evrak numarası</div>
+                            <div class="ok-checks">
+                                <span class="ok-check is-done">
+                                    <span class="material-symbols-outlined">check_circle</span>
+                                    Ön kayıt
+                                </span>
+                                <span class="ok-check" [class.is-done]="allocations()">
+                                    <span class="material-symbols-outlined">
+                                        {{ allocations() ? 'check_circle' : 'radio_button_unchecked' }}
+                                    </span>
+                                    Zimmet
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Zimmet sahibi -->
+                    <div class="zm-list-title">Zimmet</div>
+                    <div class="zm-person zm-person-self is-selected" *ngIf="allocations() as a; else noAllocation">
+                        <span class="zm-avatar">{{ initials(a.fullName) }}</span>
+                        <div class="zm-person-info">
+                            <div class="zm-person-name">{{ a.fullName }}</div>
+                            <div class="zm-person-meta">
+                                Evrak bu kullanıcının üzerinde
+                                <ng-container *ngIf="a.createdDate">
+                                    · {{ a.createdDate | date:'dd.MM.yyyy HH:mm' }}
+                                </ng-container>
+                            </div>
+                        </div>
+                        <span class="material-symbols-outlined zm-person-check">check_circle</span>
+                    </div>
+                    <ng-template #noAllocation>
+                        <div class="zm-empty zm-empty-sm">
+                            <div class="zm-empty-icon">
+                                <span class="material-symbols-outlined">person_off</span>
+                            </div>
+                            <div class="zm-empty-title">Aktif zimmet bulunamadı</div>
+                            <div class="zm-empty-text">Bu evrak için sistemde aktif bir zimmet kaydı görünmüyor.</div>
+                        </div>
+                    </ng-template>
                 </ng-container>
-
-                <ng-template #completedMsg>
-                    <div class="process-title mt-4 mb-4 text-success">
-                        Ön Kayıt ve Zimmetleme Tamamlandı
-                    </div>
-                </ng-template>
-
-                <div class="row process-wrapper">
-                    <!-- ÖN KAYIT -->
-                    <div
-                        class="col-md-4 d-flex justify-content-center align-items-stretch">
-                        <div class="card process-card">
-                            <div class="card-header process-header pre-header">
-                                <span
-                                    class="material-symbols-outlined me-2">inventory</span>
-                                Ön Kayıt
-                            </div>
-                            <div class="card-body process-body">
-                                <div class="text-center">
-
-                                    <div class="user-name"
-                                        *ngIf="allocations()">
-                                        {{ allocations()?.fullName }}
-                                    </div>
-
-                                    <div class="user-date"
-                                        *ngIf="allocations()">
-                                        {{
-                                        allocations()?.createdDate
-                                        ? (allocations()?.createdDate |
-                                        date:'dd.MM.yyyy HH:mm')
-                                        : 'Tarih yok'
-                                        }}
-                                    </div>
-
-                                    <div class="qr-area"
-                                        *ngIf="scannedDocumentNo()">
-                                        <qrcode
-                                            [qrdata]="scannedDocumentNo()!"
-                                            [width]="110"
-                                            [errorCorrectionLevel]="'H'">
-                                        </qrcode>
-                                        <div class="qr-number">
-                                            {{ scannedDocumentNo() }}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="process-footer">
-                                    <span
-                                        class="material-symbols-outlined process-icon"
-                                        title="Ön Kayıt Yapıldı">
-                                        save
-                                    </span>
-                                    <span
-                                        class="material-symbols-outlined process-icon"
-                                        title="Zimmetleme Yapıldı">
-                                        contract_edit
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- ARROW -->
-                    <div
-                        class="col-md-4 d-flex justify-content-center align-items-center">
-                        <div class="step-arrow-wrapper">
-                            <div class="step-text">
-                                Opsiyonel
-                            </div>
-                            <span class="material-symbols-outlined step-arrow">
-                                arrow_forward
-                            </span>
-                        </div>
-                    </div>
-                    <!-- DİLEKÇE -->
-                    <div
-                        class="col-md-4 d-flex justify-content-center align-items-stretch">
-                        <div class="card process-card">
-                            <div
-                                class="card-header process-header petition-header">
-                                <span
-                                    class="material-symbols-outlined me-2">description</span>
-                                Dilekçe
-                            </div>
-                            <div class="card-body process-body">
-                                <div class="form-group mb-3">
-                                    <label class="form-label">Ad Soyad</label>
-                                    <input
-                                        type="text"
-                                        maxlength="200"
-                                        class="form-control modern-input"
-                                        [(ngModel)]="fullName">
-
-                                </div>
-
-                                <div class="form-group mb-4">
-
-                                    <label class="form-label">T.C. Kimlik
-                                        No</label>
-
-                                    <input
-                                        type="text"
-                                        maxlength="11"
-                                        class="form-control modern-input"
-                                        [(ngModel)]="tckn"
-                                        (keydown)="allowOnlyNumbers($event)">
-
-                                </div>
-
-                                <button
-                                    class="btn petition-btn"
-                                    (click)="openPreview()">
-                                    <span
-                                        class="material-symbols-outlined me-1">
-                                        description
-                                    </span>
-                                    Başvuru Alındı Belgesi
-                                </button>
-                                <div class="petition-info">
-                                    * Alındı belgesinin çıktısı alınarak dilekçe
-                                    sahibine teslim edilmelidir.
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
 
+            <!-- Özet + aksiyon -->
+            <div class="card-footer zm-footer mt-auto" *ngIf="detailsVisible()">
+                <div class="zm-summary" [class.is-ready]="allocations()">
+                    <span class="zm-summary-docs">
+                        <span class="material-symbols-outlined">description</span>
+                        {{ scannedDocumentNo() }}
+                    </span>
+                    <span class="material-symbols-outlined zm-summary-arrow">arrow_forward</span>
+                    <span class="zm-summary-target">
+                        {{ allocations()?.fullName || 'Zimmet yok' }}
+                    </span>
+                </div>
+                <div class="zm-footer-actions">
+                    <button type="button" class="btn btn-light zm-back-btn" (click)="backToQrScan()">
+                        <span class="material-symbols-outlined">restart_alt</span>
+                        Temizle
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
-    <!-- SAĞ INFO PANEL -->
-    <div class="col-md-3 col-12" *ngIf="!detailsVisible()">
-        <div class="card info-panel h-100">
-            <div class="card-header">
-                <h6 class="m-0">Bilgilendirme</h6>
-            </div>
-            <div class="card-body">
-                <div class="info-item mt-2">
-                    <span class="material-symbols-outlined sec-icon">
-                        info
-                    </span>
-                    <div>
-                        <strong>QR Okuma</strong>
-                        <p class="mb-0">
-                            Sistem QR kod okuyucu ile QR kodu okutmanızı
-                            beklemektedir.
-                        </p>
-                    </div>
-                </div>
-                <div class="detail-card-hr"></div>
-                <div class="info-item mt-4">
-                    <span class="material-symbols-outlined sec-icon">
-                        keyboard
-                    </span>
-                    <div>
-                        <strong>Manuel Giriş</strong>
-                        <p class="mb-0">
-                            QR kod okuma sırasında sorun yaşıyorsanız, evrak
-                            numarası manuel olarak girerek evrakın ön kaydını ve
-                            zimmetlemesini yapabilirsiniz.
-                        </p>
-                        <div class="qr-wait-cardOther mt-2">
-                            <input #qrInput
-                                type="text"
-                                class="form-control qr-result-input2 mt-2" />
 
-                            <button class="qr-manual-btn2"
-                                (click)="onQrScanned(qrInput.value)">
-                                Ön Kayıt Oluştur
-                            </button>
+    <!-- SAĞ PANEL: Dilekçe -->
+    <div class="col-lg-6 col-12">
+        <div class="card zm-card d-flex flex-column">
+            <div class="card-header dashboard-header d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <span class="material-symbols-outlined me-2 text-info">description</span>
+                    <h5 class="card-title mb-0 fw-semibold">Dilekçe</h5>
+                </div>
+                <span class="ok-optional" *ngIf="detailsVisible()">Opsiyonel</span>
+            </div>
+
+            <!-- Henüz evrak yokken: nasıl çalıştığını anlatan adımlar -->
+            <div class="card-body zm-body" *ngIf="!detailsVisible()">
+                <div class="zm-steps">
+                    <div class="zm-step">
+                        <span class="zm-step-no">1</span>
+                        <div class="zm-step-body">
+                            <div class="zm-step-title">QR kodu okutun</div>
+                            <div class="zm-step-text">Belge üzerindeki QR kodu okuyucuyla okutun. Okuyucu yoksa evrak numarasını sol paneldeki alana yazıp Enter'a basın.</div>
+                        </div>
+                    </div>
+                    <div class="zm-step">
+                        <span class="zm-step-no">2</span>
+                        <div class="zm-step-body">
+                            <div class="zm-step-title">Ön kayıt otomatik oluşur</div>
+                            <div class="zm-step-text">Evrak sisteme alınır ve üzerinize zimmetlenir. Daha önce kaydedilmiş bir evrak okutulursa mevcut zimmet bilgisi gösterilir.</div>
+                        </div>
+                    </div>
+                    <div class="zm-step">
+                        <span class="zm-step-no">3</span>
+                        <div class="zm-step-body">
+                            <div class="zm-step-title">Dilekçe alındı belgesi (isteğe bağlı)</div>
+                            <div class="zm-step-text">Evrak bir dilekçeyse, dilekçe sahibinin ad soyad ve kimlik numarasını girip "Başvuru Alındı Belgesi" çıktısını teslim edin.</div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <ng-container *ngIf="detailsVisible()">
+                <div class="card-body zm-body">
+                    <div class="ok-petition-intro">
+                        <span class="material-symbols-outlined">contact_page</span>
+                        <div>
+                            Okutulan evrak bir dilekçeyse, dilekçe sahibinin bilgilerini girerek
+                            <strong>Başvuru Alındı Belgesi</strong> düzenleyebilirsiniz.
+                        </div>
+                    </div>
+
+                    <div class="zm-field">
+                        <label class="zm-field-label">Ad Soyad</label>
+                        <input
+                            type="text"
+                            maxlength="200"
+                            class="form-control ok-input"
+                            placeholder="Dilekçe sahibinin adı ve soyadı"
+                            [(ngModel)]="fullName">
+                    </div>
+
+                    <div class="zm-field">
+                        <label class="zm-field-label">T.C. Kimlik No</label>
+                        <input
+                            type="text"
+                            maxlength="11"
+                            inputmode="numeric"
+                            class="form-control ok-input"
+                            placeholder="11 haneli kimlik numarası"
+                            [(ngModel)]="tckn"
+                            (keydown)="allowOnlyNumbers($event)">
+                        <div class="zm-field-hint">Yalnızca rakam girilebilir.</div>
+                    </div>
+
+                    <div class="ok-note">
+                        <span class="material-symbols-outlined">print</span>
+                        Alındı belgesinin çıktısı alınarak dilekçe sahibine teslim edilmelidir.
+                    </div>
+                </div>
+
+                <div class="card-footer zm-footer mt-auto">
+                    <div class="zm-summary" [class.is-ready]="fullName && tckn">
+                        <span class="zm-summary-docs">
+                            <span class="material-symbols-outlined">badge</span>
+                            {{ fullName || 'Ad Soyad' }}
+                        </span>
+                        <span class="material-symbols-outlined zm-summary-arrow">arrow_forward</span>
+                        <span class="zm-summary-target">{{ tckn || 'Kimlik no girilmedi' }}</span>
+                    </div>
+                    <div class="zm-footer-actions">
+                        <button type="button" class="btn btn-primary zimmet-submit-btn" data-mode="self"
+                            [disabled]="loading()" (click)="openPreview()">
+                            <span class="zimmet-submit-icon material-symbols-outlined">description</span>
+                            <span class="zimmet-submit-text">Başvuru Alındı Belgesi</span>
+                        </button>
+                    </div>
+                </div>
+            </ng-container>
         </div>
     </div>
 </div>

@@ -26,6 +26,17 @@ export class PrintPreview {
 
   @Input() pdfBlobUrl: string | null = null;
 
+  // Dilekçe alındı belgesi modu: PDF, QR listesi ve zarf etiketi dışındaki tek içerik.
+  get isPetition(): boolean {
+    return !this.pdfBlobUrl && !this.isQrList && !this.isLabel;
+  }
+
+  // Dilekçe şablonunda yazdırma alanının id'si "print-area-dilekce"dir;
+  // diğer şablonlar "print-area" kullanır.
+  private getPrintArea(): HTMLElement | null {
+    return document.getElementById('print-area') ?? document.getElementById('print-area-dilekce');
+  }
+
   printPdf() {
     if (this.pdfBlobUrl) {
       // Eğer QR PDF modundaysa HTML print çalışmamalı
@@ -42,7 +53,7 @@ export class PrintPreview {
     }
 
     // --- HTML print mode (Eski dilekçe yapısı) ---
-    const element = document.getElementById('print-area');
+    const element = this.getPrintArea();
     if (!element) return;
 
     const opt: any = {
@@ -53,11 +64,18 @@ export class PrintPreview {
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
+    // Ekrandaki küçültme (zoom) html2canvas çıktısını bozar; PDF üretimi
+    // süresince kaldırılıp ardından geri alınır.
+    const scaleWrap = element.closest<HTMLElement>('.petition-scale');
+    if (scaleWrap) scaleWrap.style.zoom = '1';
+    const restoreScale = () => { if (scaleWrap) scaleWrap.style.zoom = ''; };
+
     html2pdf()
       .from(element)
       .set(opt)
       .outputPdf('blob')
       .then((pdfBlob: Blob) => {
+        restoreScale();
         const blobUrl = URL.createObjectURL(pdfBlob);
 
         const iframe = document.createElement('iframe');
@@ -70,11 +88,15 @@ export class PrintPreview {
           iframe.contentWindow?.focus();
           iframe.contentWindow?.print();
         };
+      })
+      .catch((err: unknown) => {
+        restoreScale();
+        console.error('PDF üretilemedi:', err);
       });
   }
 
   generatePdf() {
-    const element = document.getElementById('print-area');
+    const element = this.getPrintArea();
     if (!element) {
       console.error("print-area bulunamadı");
       return;
@@ -109,7 +131,7 @@ export class PrintPreview {
     }
 
     // --- HTML print mode ---
-    const printContents = document.querySelector('#print-area')?.innerHTML;
+    const printContents = this.getPrintArea()?.innerHTML;
     if (!printContents) return;
 
     const popupWin = window.open('', '_blank', 'width=800,height=600');

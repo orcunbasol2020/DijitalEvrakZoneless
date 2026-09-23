@@ -1,0 +1,316 @@
+/* ============================================================
+   Ön Kayıt sayfası
+   Görsel dil: Giden Evrak Teslim Al (gidenevrak/zimmet) ekranıyla aynı.
+   Ortak parçalar (QR okutma bloğu, kartçıklar, adım rehberi, alt özet)
+   zimmet.css'ten gelir; burada yalnızca ön kayıta özgü "ok-" sınıfları var.
+   ============================================================ */
+
+/* ---- Durum şeridi: yeni kayıt yeşil, mevcut kayıt amber ---- */
+.ok-status {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid #e7eaf0;
+    background: #f8fafc;
+    animation: zm-fade-in 0.25s ease;
+}
+
+.ok-status-icon {
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.ok-status.is-created {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+}
+
+.ok-status.is-created .ok-status-icon {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.ok-status.is-existing {
+    background: #fffbeb;
+    border-color: #fde68a;
+}
+
+.ok-status.is-existing .ok-status-icon {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.ok-status-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 2px;
+}
+
+.ok-status.is-created .ok-status-title {
+    color: #166534;
+}
+
+.ok-status.is-existing .ok-status-title {
+    color: #92400e;
+}
+
+.ok-status-text {
+    font-size: 12.5px;
+    color: #64748b;
+    line-height: 1.45;
+}
+
+/* ---- Evrak kartı: QR + numara + adım rozetleri ---- */
+.ok-doc {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 18px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #f8fafc 0%, #eef4fc 100%);
+    border: 1px solid #dbe3ef;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    overflow: hidden;
+    animation: zm-fade-in 0.25s ease;
+}
+
+/* Sağ üstte silik dekoratif evrak ikonu */
+.ok-doc::after {
+    content: "description";
+    font-family: 'Material Symbols Outlined';
+    font-size: 96px;
+    line-height: 1;
+    position: absolute;
+    right: -14px;
+    top: -18px;
+    color: rgba(3, 105, 161, 0.06);
+    pointer-events: none;
+}
+
+.ok-doc-qr {
+    flex: 0 0 auto;
+    padding: 8px;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+    line-height: 0;
+}
+
+.ok-doc-body {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.ok-doc-no {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f172a;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ok-doc-meta {
+    font-size: 12.5px;
+    color: #64748b;
+    margin: 2px 0 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ok-checks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.ok-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px 3px 6px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #64748b;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    white-space: nowrap;
+}
+
+.ok-check .material-symbols-outlined {
+    font-size: 16px;
+}
+
+.ok-check.is-done {
+    color: #15803d;
+    background: #dcfce7;
+    border-color: #86efac;
+}
+
+/* ---- Sağ panel: opsiyonel rozeti, açıklama, form, not ---- */
+.ok-optional {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #64748b;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+}
+
+.ok-petition-intro {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: #0c4a6e;
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+}
+
+.ok-petition-intro .material-symbols-outlined {
+    flex: 0 0 auto;
+    font-size: 20px;
+    color: #0369a1;
+}
+
+.ok-input {
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-size: 13.5px;
+    border-color: #e2e8f0;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ok-input:focus {
+    border-color: #7dd3fc;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+}
+
+.ok-note {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+.ok-note .material-symbols-outlined {
+    font-size: 18px;
+    color: #cbd5e1;
+}
+
+/* ============================================================
+   Koyu tema
+   ============================================================ */
+[data-theme="dark"] .ok-status {
+    background: rgba(148, 163, 184, 0.06);
+    border-color: rgba(148, 163, 184, 0.18);
+}
+
+[data-theme="dark"] .ok-doc {
+    background: linear-gradient(135deg, rgba(148, 163, 184, 0.08) 0%, rgba(14, 165, 233, 0.08) 100%);
+    border-color: rgba(148, 163, 184, 0.2);
+    box-shadow: none;
+}
+
+[data-theme="dark"] .ok-doc::after {
+    color: rgba(125, 211, 252, 0.06);
+}
+
+[data-theme="dark"] .ok-doc-qr {
+    background: #fff;
+    border-color: transparent;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .ok-doc-meta {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .ok-status.is-created {
+    background: rgba(34, 197, 94, 0.1);
+    border-color: rgba(34, 197, 94, 0.35);
+}
+
+[data-theme="dark"] .ok-status.is-created .ok-status-icon {
+    background: rgba(34, 197, 94, 0.18);
+    color: #86efac;
+}
+
+[data-theme="dark"] .ok-status.is-created .ok-status-title {
+    color: #86efac;
+}
+
+[data-theme="dark"] .ok-status.is-existing {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.35);
+}
+
+[data-theme="dark"] .ok-status.is-existing .ok-status-icon {
+    background: rgba(245, 158, 11, 0.18);
+    color: #fcd34d;
+}
+
+[data-theme="dark"] .ok-status.is-existing .ok-status-title {
+    color: #fcd34d;
+}
+
+[data-theme="dark"] .ok-status-title,
+[data-theme="dark"] .ok-doc-no {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .ok-status-text {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .ok-check,
+[data-theme="dark"] .ok-optional {
+    background: rgba(148, 163, 184, 0.12);
+    border-color: rgba(148, 163, 184, 0.25);
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .ok-check.is-done {
+    background: rgba(34, 197, 94, 0.18);
+    border-color: rgba(34, 197, 94, 0.35);
+    color: #86efac;
+}
+
+[data-theme="dark"] .ok-petition-intro {
+    background: rgba(14, 165, 233, 0.12);
+    border-color: rgba(14, 165, 233, 0.3);
+    color: #bae6fd;
+}
+
+[data-theme="dark"] .ok-input {
+    background: #111827;
+    border-color: rgba(148, 163, 184, 0.25);
+    color: #e2e8f0;
+}
