@@ -1,7 +1,8 @@
 <app-generic pageTitle="Ana Sayfa" [breadcrumbs]="[]" />
 <app-admin-dashboard *ngIf="roleService.has('Yönetici')" />
 
-<app-gelen-evrak-dashboard *ngIf="roleService.has('Gelen Evrak')" />
+<!-- Ön Kayıt rolü, Gelen Evrak sorumlusuyla aynı kontrol panelini görür. -->
+<app-gelen-evrak-dashboard *ngIf="roleService.hasAny(['Gelen Evrak', 'Ön Kayıt'])" />
 
 <app-on-kayit-dashboard *ngIf="roleService.has('Misyon')" />
 

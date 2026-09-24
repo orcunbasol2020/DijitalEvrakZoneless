@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpService } from './http';
 import { DocumentAllocationModel } from '../models/documentallocation.model';
 import { AllocationStatusEnum } from '../models/allocationstatus.model';
+import { ActiveDocumentsResponse, DocumentDirectionEnum } from '../models/activedocument.model';
 
 @Injectable({ providedIn: 'root' })
 export class DocumentAllocation {
@@ -28,6 +29,23 @@ export class DocumentAllocation {
   getActiveByUserId(userId: string) {
     return this.httpService.get<DocumentAllocationModel[]>(
       `${this.baseUrl}/GetActiveByUserId?userId=${encodeURIComponent(userId)}`
+    );
+  }
+
+  // Kullanıcının üzerinde aktif zimmetli gelen + giden evrakları tek listede getirir
+  // (Zimmetlerim ekranı). documentDirection verilmezse ikisi birlikte döner;
+  // pageSize verilmezse tüm kayıtlar tek seferde gelir (üst sınır 200/sayfa).
+  getActiveDocumentsByUserId(
+    userId: string,
+    options: { documentDirection?: DocumentDirectionEnum; page?: number; pageSize?: number } = {}
+  ) {
+    const params = new URLSearchParams({ userId });
+    if (options.documentDirection) params.set('documentDirection', String(options.documentDirection));
+    if (options.page) params.set('page', String(options.page));
+    if (options.pageSize) params.set('pageSize', String(options.pageSize));
+
+    return this.httpService.get<ActiveDocumentsResponse>(
+      `${this.baseUrl}/GetActiveDocumentsByUserId?${params.toString()}`
     );
   }
 

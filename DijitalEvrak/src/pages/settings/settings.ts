@@ -2,9 +2,13 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal, ViewEncap
 import { RouterLink } from '@angular/router';
 import GenericModel from '../../../components/generic-model/generic-model';
 import { Common } from '../../services/common';
-import { getUserAvatar } from '../../services/user-avatar';
+import { RoleService } from '../../services/role-service';
+import { getUserAvatar, getUserInitials } from '../../services/user-avatar';
 
 type Theme = 'light' | 'dark';
+
+// Hesap kartında gösterilen en fazla yetki rozeti; kalanı "+N daha" olarak profile yönlenir
+const MAX_VISIBLE_ROLES = 6;
 
 @Component({
   imports: [
@@ -12,14 +16,26 @@ type Theme = 'light' | 'dark';
     RouterLink
   ],
   templateUrl: './settings.html',
+  styleUrl: './settings.css',
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export default class Settings {
   readonly #common = inject(Common);
-  readonly user = computed(() => this.#common.user());
+  readonly #roleService = inject(RoleService);
 
-  readonly userAvatar = computed(() => getUserAvatar(this.user(), 'assets/images/personel/oral.jpg'));
+  readonly user = computed(() => this.#common.user());
+  // Eşleşen profil resmi yoksa başka birinin fotoğrafı yerine baş harfler gösterilir.
+  readonly userAvatar = computed(() => getUserAvatar(this.user()));
+  readonly userInitials = computed(() => getUserInitials(this.user()));
+
+  // Roller oturum açılırken localStorage'a yazılır; kullanıcı sinyali değişince yeniden okunur
+  readonly roles = computed(() => {
+    this.user();
+    return this.#roleService.roles;
+  });
+  readonly visibleRoles = computed(() => this.roles().slice(0, MAX_VISIBLE_ROLES));
+  readonly hiddenRoleCount = computed(() => Math.max(0, this.roles().length - MAX_VISIBLE_ROLES));
 
   readonly theme = signal<Theme>(
     localStorage.getItem('theme') === 'dark' ? 'dark' : 'light'

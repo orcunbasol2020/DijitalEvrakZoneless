@@ -1,0 +1,474 @@
+/* ============================================================
+   Kullanıcı Profili (Yetkilerim) sayfası
+   Görsel dil: Ayarlar / Destek / Dokümanlar ekranlarıyla aynı. Üst kart ve
+   kart iskeleti (st-*) settings.css'ten, arama / boş durum / iletişim
+   bloğu (sp-*) support.css'ten gelir; burada yalnızca bu ekrana özgü
+   "pf-" sınıfları var.
+   ============================================================ */
+
+/* Üst karttaki filigran: dişli yerine kalkan */
+.st-hero.pf-hero::after {
+    content: "verified_user";
+}
+
+/* ---- Araç çubuğu: arama + filtre segmenti ---- */
+.pf-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.pf-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 1 1 220px;
+    max-width: 320px;
+}
+
+.pf-search .material-symbols-outlined {
+    position: absolute;
+    left: 10px;
+    font-size: 18px;
+    color: #94a3b8;
+    pointer-events: none;
+}
+
+.pf-search input {
+    width: 100%;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 7px 10px 7px 34px;
+    font-size: 12.5px;
+    color: #0f172a;
+    background: #fff;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pf-search input::placeholder {
+    color: #94a3b8;
+}
+
+.pf-search input:focus {
+    border-color: #7dd3fc;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+}
+
+.pf-seg {
+    display: inline-flex;
+    gap: 3px;
+    padding: 3px;
+    border-radius: 12px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+}
+
+.pf-seg-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 11px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.pf-seg-btn .material-symbols-outlined {
+    font-size: 16px;
+}
+
+.pf-seg-btn:hover {
+    color: #0f172a;
+    background: rgba(255, 255, 255, 0.6);
+}
+
+.pf-seg-btn.is-active {
+    background: #fff;
+    color: #0369a1;
+    border-color: #e2e8f0;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.pf-seg-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #475569;
+    background: #e2e8f0;
+}
+
+.pf-seg-btn.is-active .pf-seg-count {
+    color: #fff;
+    background: #0ea5e9;
+}
+
+.pf-icon-btn {
+    width: 34px;
+    height: 34px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    cursor: pointer;
+    flex: 0 0 auto;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.pf-icon-btn .material-symbols-outlined {
+    font-size: 19px;
+}
+
+.pf-icon-btn:hover {
+    background: #e0f2fe;
+    border-color: rgba(3, 105, 161, 0.2);
+    color: #0369a1;
+}
+
+/* ---- Rol kartçıkları ---- */
+.pf-roles {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.pf-role {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid #e7eaf0;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+    animation: st-fade-in 0.25s ease;
+}
+
+.pf-role:hover {
+    border-color: #d5dbe5;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+    transform: translateY(-1px);
+}
+
+.pf-role.is-granted {
+    border-color: #bbf7d0;
+    background: #f6fdf9;
+}
+
+.pf-role.is-granted:hover {
+    border-color: #86efac;
+}
+
+.pf-role-icon {
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f5f9;
+    color: #94a3b8;
+}
+
+.pf-role-icon .material-symbols-outlined {
+    font-size: 19px;
+}
+
+.pf-role.is-granted .pf-role-icon {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.pf-role-body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.pf-role-name {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pf-role-status {
+    font-size: 11.5px;
+    color: #94a3b8;
+}
+
+.pf-role.is-granted .pf-role-status {
+    color: #15803d;
+}
+
+.pf-role-check {
+    flex: 0 0 auto;
+    font-size: 22px;
+    color: #cbd5e1;
+}
+
+.pf-role.is-granted .pf-role-check {
+    color: #22c55e;
+}
+
+/* ---- Yükleniyor ---- */
+.pf-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 36px 16px;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.pf-loading .spinner-border {
+    width: 20px;
+    height: 20px;
+    border-width: 2px;
+    color: #0ea5e9;
+}
+
+/* ---- Sağ panel: yetki kapsamı ---- */
+.pf-cover {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f8fafc 0%, #eef4fc 100%);
+    border: 1px solid #dbe3ef;
+}
+
+.pf-cover-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.pf-cover-num {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #0369a1;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+
+.pf-cover-num small {
+    font-size: 13px;
+    font-weight: 600;
+    color: #94a3b8;
+    margin-left: 3px;
+}
+
+.pf-cover-pct {
+    font-size: 12px;
+    font-weight: 700;
+    color: #475569;
+}
+
+.pf-bar {
+    height: 8px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    overflow: hidden;
+}
+
+.pf-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #0284c7, #22d3ee);
+    transition: width 0.4s ease;
+}
+
+.pf-cover-text {
+    font-size: 12px;
+    color: #64748b;
+    line-height: 1.5;
+}
+
+.pf-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.pf-stat {
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #f8fafc;
+    border: 1px solid #e7eaf0;
+}
+
+.pf-stat-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #94a3b8;
+    margin-bottom: 4px;
+}
+
+.pf-stat-label .material-symbols-outlined {
+    font-size: 15px;
+}
+
+.pf-stat.is-ok .pf-stat-label .material-symbols-outlined {
+    color: #22c55e;
+}
+
+.pf-stat.is-muted .pf-stat-label .material-symbols-outlined {
+    color: #94a3b8;
+}
+
+.pf-stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e293b;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---- Dar ekran ---- */
+@media (max-width: 767.98px) {
+    .pf-roles {
+        grid-template-columns: 1fr;
+    }
+
+    .pf-search {
+        max-width: none;
+    }
+}
+
+/* ============================================================
+   Koyu tema
+   ============================================================ */
+[data-theme="dark"] .pf-search input,
+[data-theme="dark"] .pf-icon-btn {
+    background: #111827;
+    border-color: rgba(148, 163, 184, 0.25);
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .pf-icon-btn:hover {
+    background: rgba(14, 165, 233, 0.18);
+    border-color: rgba(14, 165, 233, 0.35);
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .pf-seg {
+    background: rgba(148, 163, 184, 0.08);
+    border-color: rgba(148, 163, 184, 0.18);
+}
+
+[data-theme="dark"] .pf-seg-btn {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .pf-seg-btn:hover {
+    background: rgba(148, 163, 184, 0.1);
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .pf-seg-btn.is-active {
+    background: #1e293b;
+    border-color: rgba(14, 165, 233, 0.35);
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .pf-seg-count {
+    background: rgba(148, 163, 184, 0.2);
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .pf-role {
+    background: rgba(148, 163, 184, 0.06);
+    border-color: rgba(148, 163, 184, 0.18);
+    box-shadow: none;
+}
+
+[data-theme="dark"] .pf-role:hover {
+    border-color: rgba(148, 163, 184, 0.32);
+}
+
+[data-theme="dark"] .pf-role.is-granted {
+    background: rgba(34, 197, 94, 0.08);
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+[data-theme="dark"] .pf-role.is-granted:hover {
+    border-color: rgba(34, 197, 94, 0.5);
+}
+
+[data-theme="dark"] .pf-role-icon {
+    background: rgba(148, 163, 184, 0.14);
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .pf-role.is-granted .pf-role-icon {
+    background: rgba(34, 197, 94, 0.18);
+    color: #86efac;
+}
+
+[data-theme="dark"] .pf-role-name,
+[data-theme="dark"] .pf-stat-value {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .pf-role.is-granted .pf-role-status {
+    color: #86efac;
+}
+
+[data-theme="dark"] .pf-role-check {
+    color: #475569;
+}
+
+[data-theme="dark"] .pf-loading,
+[data-theme="dark"] .pf-cover-text {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .pf-cover {
+    background: linear-gradient(135deg, rgba(148, 163, 184, 0.08) 0%, rgba(14, 165, 233, 0.08) 100%);
+    border-color: rgba(148, 163, 184, 0.2);
+}
+
+[data-theme="dark"] .pf-cover-num {
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .pf-cover-pct {
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .pf-bar {
+    background: rgba(148, 163, 184, 0.2);
+}
+
+[data-theme="dark"] .pf-stat {
+    background: rgba(148, 163, 184, 0.06);
+    border-color: rgba(148, 163, 184, 0.18);
+}

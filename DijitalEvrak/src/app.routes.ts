@@ -20,13 +20,13 @@ export const routes: Routes = [
                 path: "onkayit",
                 loadComponent: () => import("./pages/onkayit/onkayit"),
                 canActivate: [roleGuard],
-                data: { roles: ["Gelen Evrak"] }
+                data: { roles: ["Gelen Evrak", "Ön Kayıt"] }
             },
             {
                 path: "qrokut",
                 loadComponent: () => import("./pages/qrokut/qrokut"),
                 canActivate: [roleGuard],
-                data: { roles: ["Gelen Evrak"] }
+                data: { roles: ["Gelen Evrak", "Ön Kayıt"] }
             },
             {
                 path: "qrlist",
@@ -38,13 +38,13 @@ export const routes: Routes = [
                 path: "zimmet",
                 loadComponent: () => import("./pages/zimmet/zimmet"),
                 canActivate: [roleGuard],
-                data: { roles: ["Gelen Evrak", "Birim Evrak Sorumlusu"] }
+                data: { roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Ön Kayıt"] }
             },
             {
                 path: 'scanlist',
                 loadChildren: () => import('./pages/scanlist/route'),
                 canActivate: [roleGuard],
-                data: { roles: ["Gelen Evrak", "Birim Evrak Sorumlusu"] }
+                data: { roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Ön Kayıt"] }
             },
             {
                 path: 'documentlist',
@@ -75,10 +75,10 @@ export const routes: Routes = [
                 data: { roles: ["Gelen Evrak", "Yönetici"] }
             },
             {
+                // Rol koruması alt rotalarda: /users/profile her kullanıcıya açık,
+                // kullanıcı listesi ve düzenleme sayfaları rol gerektirir (bkz. pages/users/route.ts).
                 path: 'users',
-                loadChildren: () => import('./pages/users/route'),
-                canActivate: [roleGuard],
-                data: { roles: ["Gelen Evrak", "Yönetici"] }
+                loadChildren: () => import('./pages/users/route')
             },
             {
                 path: 'externaluser',
@@ -132,7 +132,7 @@ export const routes: Routes = [
                 path: 'gidenevrak/zimmet',
                 loadComponent: () => import('./pages/gidenevrak/zimmet/zimmet'),
                 canActivate: [roleGuard],
-                data: { roles: ["Gelen Evrak", "Giden Evrak"] }
+                data: { roles: ["Gelen Evrak", "Giden Evrak", "Ön Kayıt"] }
             },
             {
                 path: 'gidenevrak/outgoingzimmet',
@@ -146,7 +146,7 @@ export const routes: Routes = [
                 path: 'envelope',
                 loadComponent: () => import('./pages/envelope/envelope/envelope'),
                 canActivate: [roleGuard],
-                data: { roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Giden Evrak"] }
+                data: { roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Giden Evrak", "Ön Kayıt"] }
             },
                         {
                 path: 'gidenzimmet',
@@ -156,7 +156,7 @@ export const routes: Routes = [
                 path: 'ticket',
                 loadComponent: () => import('./pages/envelope/ticket/ticket'),
                 canActivate: [roleGuard],
-                data: { roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Giden Evrak"] }
+                data: { roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Giden Evrak", "Ön Kayıt"] }
             },
             {
                 path: 'settings',

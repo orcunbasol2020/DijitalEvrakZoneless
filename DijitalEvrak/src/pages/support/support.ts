@@ -11,7 +11,15 @@ interface FaqItem {
 
 interface QuickLink {
   title: string;
+  sub: string;
   url: string;
+  icon: string;
+}
+
+// Üst karttaki popüler konu hapları; tıklanınca arama kutusunu doldurur
+interface Topic {
+  label: string;
+  term: string;
   icon: string;
 }
 
@@ -22,6 +30,8 @@ interface QuickLink {
     FormsModule
   ],
   templateUrl: './support.html',
+  // Kart iskeleti (st-*) Ayarlar sayfasıyla ortak; sp-* sınıfları bu ekrana özgü
+  styleUrls: ['../settings/settings.css', './support.css'],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -69,10 +79,17 @@ export default class Support {
     );
   });
 
+  readonly topics: Topic[] = [
+    { label: 'Evrak kaydı', term: 'kayıt', icon: 'qr_code' },
+    { label: 'Zimmet', term: 'zimmet', icon: 'assignment_turned_in' },
+    { label: 'Şifre', term: 'şifre', icon: 'lock_reset' },
+    { label: 'Tema', term: 'tema', icon: 'palette' }
+  ];
+
   readonly quickLinks: QuickLink[] = [
-    { title: 'Ayarlar', url: '/settings', icon: 'settings' },
-    { title: 'Kontrol Paneli', url: '/', icon: 'dashboard' },
-    { title: 'Zimmetlerim', url: '/zimmetlerim', icon: 'assignment_ind' },
-    { title: 'Yetkilerim', url: '/users/profile', icon: 'account_circle' }
+    { title: 'Ayarlar', sub: 'Tema ve hesap bilgileri', url: '/settings', icon: 'settings' },
+    { title: 'Kontrol Paneli', sub: 'Genel bakış ve özetler', url: '/', icon: 'dashboard' },
+    { title: 'Zimmetlerim', sub: 'Üzerimdeki evraklar', url: '/zimmetlerim', icon: 'assignment_ind' },
+    { title: 'Yetkilerim', sub: 'Rol ve erişim listesi', url: '/users/profile', icon: 'account_circle' }
   ];
 }

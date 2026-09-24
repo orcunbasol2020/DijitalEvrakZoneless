@@ -24,19 +24,19 @@ export const navigations: NavigationModel[] = [
         title: "Ön Kayıt",
         url: "/onkayit",
         icon: "app_registration",
-        roles: ["Gelen Evrak"]
+        roles: ["Gelen Evrak", "Ön Kayıt"]
     },
     {
         title: "Evrak Kayıt",
         url: "/qrokut",
         icon: "qr_code",
-        roles: ["Gelen Evrak"]
+        roles: ["Gelen Evrak", "Ön Kayıt"]
     },
     {
         title: "Gelen Evraklar",
         url: "/scanlist",
         icon: "add_notes",
-        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu"]
+        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Ön Kayıt"]
     },
     {
         title: "Gelen Evraklar",
@@ -48,7 +48,7 @@ export const navigations: NavigationModel[] = [
         title: "Zimmet",
         url: "/zimmet",
         icon: "contract_edit",
-        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu"]
+        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Ön Kayıt"]
     },
     {
         title: "Evrak Eşleştirme",
@@ -60,7 +60,7 @@ export const navigations: NavigationModel[] = [
         title: "Havale (AI)",
         url: "/havale",
         icon: "neurology",
-        excludeRoles: ["Birim Evrak Sorumlusu"]
+        excludeRoles: ["Birim Evrak Sorumlusu", "Ön Kayıt"]
     },
     {
         title: "OCR Takip",
@@ -90,19 +90,19 @@ export const navigations: NavigationModel[] = [
         title: "Zarflar",
         url: "/envelope",
         icon: "stacked_email",
-        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Giden Evrak"]
+        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Giden Evrak", "Ön Kayıt"]
     },
     {
         title: "Zarf Etiketi",
         url: "/ticket",
         icon: "book",
-        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Giden Evrak"]
+        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Giden Evrak", "Ön Kayıt"]
     },
     {
         title: "Teslim Al / Zimmetle",
         url: "/gidenevrak/zimmet",
         icon: "approval_delegation",
-        roles: ["Gelen Evrak", "Giden Evrak"]
+        roles: ["Gelen Evrak", "Giden Evrak", "Ön Kayıt"]
     },
 
     {
@@ -146,24 +146,24 @@ export const navigations: NavigationModel[] = [
         title: "Birimler",
         url: "/birimler",
         icon: "apartment",
-        excludeRoles: ["Birim Evrak Sorumlusu"]
+        excludeRoles: ["Birim Evrak Sorumlusu", "Ön Kayıt"]
     },
     {
         title: "Dış Kurumlar",
         url: "/externalinstitution",
         icon: "moving_ministry",
-        excludeRoles: ["Birim Evrak Sorumlusu"]
+        excludeRoles: ["Birim Evrak Sorumlusu", "Ön Kayıt"]
     },
     {
         title: "Diller",
         url: "/parameters/languages",
         icon: "language_chinese_array",
-        excludeRoles: ["Birim Evrak Sorumlusu"]
+        excludeRoles: ["Birim Evrak Sorumlusu", "Ön Kayıt"]
     },
     {
         title: "Raporlar",
         url: "/reports",
         icon: "monitoring",
-        excludeRoles: ["Birim Evrak Sorumlusu"]
+        excludeRoles: ["Birim Evrak Sorumlusu", "Ön Kayıt"]
     }
 ];

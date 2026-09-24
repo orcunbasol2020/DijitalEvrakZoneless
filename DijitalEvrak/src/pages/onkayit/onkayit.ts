@@ -106,13 +106,13 @@ export default class Onkayit implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
-    if (!this.detailsVisible()) {
-      if (e.key === 'Enter') {
-        this.onQrScanned(this.buffer.trim());
-        this.buffer = '';
-      } else if (e.key.length === 1) {
-        this.buffer += e.key;
-      }
+    // Alan açıkken sonuç gösteriliyor olsa bile yeni okutma kabul edilir
+    // (onQrScanned önceki sonucu sıfırlar; istek sürerken zaten yoksayar).
+    if (e.key === 'Enter') {
+      this.onQrScanned(this.buffer.trim());
+      this.buffer = '';
+    } else if (e.key.length === 1) {
+      this.buffer += e.key;
     }
   }
 
@@ -120,8 +120,8 @@ export default class Onkayit implements OnInit, AfterViewInit, OnDestroy {
     setTimeout(() => this.qrInput?.nativeElement.focus());
   }
 
-  // Ön kayıt tamamlanınca QR okutma bloğu tek satıra daralır; böylece sonuç
-  // kartlarına yer açılır. Daraltılmışken okuyucu pasiftir (handleKeydown
+  // Kullanıcı isterse QR okutma bloğunu "Daralt" ile tek satıra indirebilir;
+  // otomatik daraltma yoktur. Daraltılmışken okuyucu pasiftir (handleKeydown
   // tuşları yoksayar); kullanıcı "Aç" ile açınca yeniden aktif olur.
   scanCollapsed = false;
 
@@ -241,21 +241,13 @@ export default class Onkayit implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  // İstek bitince sonuç gösterilir ve QR bloğu daraltılır (zimmet ekranıyla
-  // aynı davranış). Yeni evrak için kullanıcı "Aç" ya da "Yeni Okutma"yı kullanır.
+  // İstek bitince sonuç gösterilir; QR bloğu açık kalır ve odak tekrar okutma
+  // alanına verilir, böylece bir sonraki evrak hemen okutulabilir. Alanı
+  // daraltmak kullanıcının tercihidir ("Daralt" butonu).
   private finishLoading() {
     this.loading.set(false);
-    this.collapseScan();
     this.cdr.markForCheck();
-  }
-
-  // Zimmet sahibinin ad-soyad baş harfleri (avatar).
-  initials(fullName: string | null | undefined): string {
-    const parts = (fullName ?? '').trim().split(/\s+/).filter(Boolean);
-    if (parts.length === 0) return '?';
-    const first = parts[0].charAt(0);
-    const last = parts.length > 1 ? parts[parts.length - 1].charAt(0) : '';
-    return `${first}${last}`.toLocaleUpperCase('tr');
+    this.focusQrInputSoon();
   }
 
   getir(id: string) {

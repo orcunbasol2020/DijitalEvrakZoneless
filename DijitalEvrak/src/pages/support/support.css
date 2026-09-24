@@ -1,0 +1,769 @@
+/* ============================================================
+   Destek sayfası
+   Görsel dil: Ayarlar / Zimmet ekranlarıyla aynı. Kart iskeleti
+   (st-card, st-card-head, st-count, st-note ...) settings.css'ten
+   gelir; burada yalnızca bu ekrana özgü "sp-" sınıfları var.
+   ============================================================ */
+
+/* ---- Üst kart: arama ---- */
+.sp-hero {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 24px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 45%, #22d3ee 100%);
+    color: #fff;
+    box-shadow: 0 10px 26px rgba(14, 165, 233, 0.24);
+    overflow: hidden;
+}
+
+.sp-hero::after {
+    content: "support_agent";
+    font-family: 'Material Symbols Outlined';
+    font-size: 150px;
+    line-height: 1;
+    position: absolute;
+    right: -22px;
+    top: -30px;
+    color: rgba(255, 255, 255, 0.1);
+    pointer-events: none;
+}
+
+.sp-hero::before {
+    content: "";
+    position: absolute;
+    left: -60px;
+    bottom: -90px;
+    width: 220px;
+    height: 220px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 70%);
+    pointer-events: none;
+}
+
+.sp-hero-top {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.sp-hero-icon {
+    flex: 0 0 auto;
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    box-shadow: 0 6px 18px rgba(3, 105, 161, 0.3);
+}
+
+.sp-hero-icon .material-symbols-outlined {
+    font-size: 30px;
+}
+
+.sp-hero-kicker {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: rgba(255, 255, 255, 0.78);
+    margin-bottom: 3px;
+}
+
+.sp-hero-title {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    color: #fff;
+}
+
+.sp-hero-text {
+    margin-top: 4px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.85);
+    max-width: 560px;
+}
+
+/* Arama kutusu: beyaz, gölgeli, solda ikon, sağda sonuç hapı */
+.sp-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    max-width: 680px;
+}
+
+.sp-search-icon {
+    position: absolute;
+    left: 14px;
+    font-size: 22px;
+    color: #94a3b8;
+    pointer-events: none;
+    transition: color 0.15s ease;
+}
+
+.sp-search:focus-within .sp-search-icon {
+    color: #0ea5e9;
+}
+
+.sp-search-input {
+    width: 100%;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    padding: 12px 130px 12px 46px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #0f172a;
+    background: #fff;
+    box-shadow: 0 4px 14px rgba(3, 105, 161, 0.22);
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sp-search-input::placeholder {
+    color: #94a3b8;
+    font-weight: 400;
+}
+
+.sp-search-input:focus {
+    border-color: #bae6fd;
+    box-shadow: 0 4px 14px rgba(3, 105, 161, 0.22), 0 0 0 4px rgba(255, 255, 255, 0.35);
+}
+
+.sp-search-end {
+    position: absolute;
+    right: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.sp-search-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
+    white-space: nowrap;
+}
+
+.sp-search-count.is-active {
+    background: #e0f2fe;
+    border-color: #bae6fd;
+    color: #0369a1;
+}
+
+.sp-search-count.is-none {
+    background: #fee2e2;
+    border-color: #fecaca;
+    color: #b91c1c;
+}
+
+.sp-search-clear {
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.sp-search-clear .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.sp-search-clear:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+/* Popüler konu hapları (tıklayınca aramayı doldurur) */
+.sp-topics {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.sp-topics-label {
+    font-size: 11.5px;
+    color: rgba(255, 255, 255, 0.82);
+    margin-right: 4px;
+}
+
+.sp-topic {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 11px 4px 8px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.32);
+    background: rgba(255, 255, 255, 0.16);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.sp-topic .material-symbols-outlined {
+    font-size: 15px;
+}
+
+.sp-topic:hover,
+.sp-topic.is-active {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.6);
+}
+
+/* ---- Yerleşim: 8 / 4 ---- */
+.sp-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+}
+
+.sp-side {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* ---- SSS listesi ---- */
+.sp-faqs {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sp-faq {
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid #e7eaf0;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    animation: st-fade-in 0.25s ease;
+}
+
+.sp-faq:hover {
+    border-color: #d5dbe5;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+}
+
+.sp-faq[open] {
+    border-color: #bae6fd;
+    background: #f8fcff;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+}
+
+.sp-faq summary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    list-style: none;
+    cursor: pointer;
+}
+
+.sp-faq summary::-webkit-details-marker {
+    display: none;
+}
+
+.sp-faq-icon {
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f5f9;
+    color: #64748b;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.sp-faq-icon .material-symbols-outlined {
+    font-size: 19px;
+}
+
+.sp-faq[open] .sp-faq-icon,
+.sp-faq:hover .sp-faq-icon {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.sp-faq-q {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #1e293b;
+    line-height: 1.35;
+}
+
+.sp-faq[open] .sp-faq-q {
+    color: #0369a1;
+}
+
+.sp-faq-chev {
+    flex: 0 0 auto;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    transition: transform 0.2s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.sp-faq-chev .material-symbols-outlined {
+    font-size: 20px;
+}
+
+.sp-faq[open] .sp-faq-chev {
+    transform: rotate(180deg);
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.sp-faq-a {
+    margin: 0;
+    padding: 0 14px 14px 62px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #64748b;
+    animation: st-fade-in 0.2s ease;
+}
+
+/* Boş sonuç */
+.sp-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 36px 16px;
+    border-radius: 12px;
+    border: 1px dashed #d5dbe5;
+    background: #fbfcfe;
+}
+
+.sp-empty-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #e0f2fe;
+    color: #0369a1;
+    margin-bottom: 12px;
+}
+
+.sp-empty-icon .material-symbols-outlined {
+    font-size: 30px;
+}
+
+.sp-empty-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 4px;
+}
+
+.sp-empty-text {
+    font-size: 12.5px;
+    color: #64748b;
+    max-width: 340px;
+    margin-bottom: 12px;
+}
+
+.sp-pill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px 6px 10px;
+    border: 1px solid rgba(3, 105, 161, 0.18);
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #0369a1;
+    background: #e0f2fe;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sp-pill-btn .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.sp-pill-btn:hover {
+    background: #0ea5e9;
+    border-color: #0ea5e9;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+}
+
+/* ---- Hızlı bağlantılar ---- */
+.sp-links {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sp-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid #e7eaf0;
+    background: #fff;
+    text-decoration: none;
+    transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sp-link:hover {
+    border-color: #bae6fd;
+    background: #f8fcff;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+}
+
+.sp-link-icon {
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #e0f2fe;
+    color: #0369a1;
+    border: 1px solid rgba(3, 105, 161, 0.14);
+}
+
+.sp-link-icon .material-symbols-outlined {
+    font-size: 19px;
+}
+
+.sp-link-body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.sp-link-title {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #1e293b;
+    line-height: 1.2;
+}
+
+.sp-link-sub {
+    font-size: 11.5px;
+    color: #94a3b8;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sp-link-arrow {
+    flex: 0 0 auto;
+    font-size: 18px;
+    color: #cbd5e1;
+    transition: transform 0.2s ease, color 0.15s ease;
+}
+
+.sp-link:hover .sp-link-arrow {
+    transform: translateX(3px);
+    color: #0ea5e9;
+}
+
+/* ---- Teknik destek ---- */
+.sp-contact {
+    display: flex;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f8fafc 0%, #eef4fc 100%);
+    border: 1px solid #dbe3ef;
+}
+
+.sp-contact-icon {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    color: #0369a1;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+.sp-contact-icon .material-symbols-outlined {
+    font-size: 22px;
+}
+
+.sp-contact-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 2px;
+}
+
+.sp-contact-text {
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: #64748b;
+}
+
+/* E-posta bağlantısı: küçük hap, tıklanınca posta istemcisini açar */
+.sp-contact-mail {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 8px;
+    padding: 4px 11px 4px 8px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #0369a1;
+    background: #e0f2fe;
+    border: 1px solid rgba(3, 105, 161, 0.2);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sp-contact-mail .material-symbols-outlined {
+    font-size: 16px;
+}
+
+.sp-contact-mail:hover {
+    background: #0ea5e9;
+    border-color: #0ea5e9;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+}
+
+.sp-contact-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.sp-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px 4px 7px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    white-space: nowrap;
+}
+
+.sp-tag .material-symbols-outlined {
+    font-size: 15px;
+    color: #0ea5e9;
+}
+
+/* ---- Dar ekran ---- */
+@media (max-width: 991.98px) {
+    .sp-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .sp-hero {
+        padding: 18px;
+    }
+
+    .sp-hero::after {
+        font-size: 110px;
+    }
+
+    .sp-search-input {
+        padding-right: 46px;
+    }
+
+    .sp-search-count {
+        display: none;
+    }
+
+    .sp-faq-a {
+        padding-left: 14px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sp-faq,
+    .sp-faq-a,
+    .sp-faq-chev,
+    .sp-link,
+    .sp-link-arrow {
+        animation: none;
+        transition: none;
+    }
+}
+
+/* ============================================================
+   Koyu tema
+   ============================================================ */
+[data-theme="dark"] .sp-hero {
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .sp-search-input {
+    background: #111827;
+    border-color: rgba(148, 163, 184, 0.25);
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .sp-search-count {
+    background: rgba(148, 163, 184, 0.12);
+    border-color: rgba(148, 163, 184, 0.25);
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .sp-search-count.is-active {
+    background: rgba(14, 165, 233, 0.18);
+    border-color: rgba(14, 165, 233, 0.35);
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .sp-search-count.is-none {
+    background: rgba(220, 38, 38, 0.18);
+    border-color: rgba(220, 38, 38, 0.35);
+    color: #fca5a5;
+}
+
+[data-theme="dark"] .sp-search-clear:hover {
+    background: rgba(148, 163, 184, 0.12);
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .sp-faq,
+[data-theme="dark"] .sp-link {
+    background: rgba(148, 163, 184, 0.06);
+    border-color: rgba(148, 163, 184, 0.18);
+    box-shadow: none;
+}
+
+[data-theme="dark"] .sp-faq:hover,
+[data-theme="dark"] .sp-link:hover {
+    background: rgba(148, 163, 184, 0.1);
+    border-color: rgba(148, 163, 184, 0.32);
+}
+
+[data-theme="dark"] .sp-faq[open] {
+    background: rgba(14, 165, 233, 0.1);
+    border-color: rgba(14, 165, 233, 0.45);
+    box-shadow: none;
+}
+
+[data-theme="dark"] .sp-faq-icon {
+    background: rgba(148, 163, 184, 0.14);
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .sp-faq[open] .sp-faq-icon,
+[data-theme="dark"] .sp-faq:hover .sp-faq-icon,
+[data-theme="dark"] .sp-faq[open] .sp-faq-chev,
+[data-theme="dark"] .sp-link-icon,
+[data-theme="dark"] .sp-empty-icon,
+[data-theme="dark"] .sp-pill-btn {
+    background: rgba(14, 165, 233, 0.18);
+    border-color: rgba(14, 165, 233, 0.35);
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .sp-pill-btn:hover {
+    background: #0ea5e9;
+    color: #fff;
+}
+
+[data-theme="dark"] .sp-faq-q,
+[data-theme="dark"] .sp-link-title,
+[data-theme="dark"] .sp-empty-title,
+[data-theme="dark"] .sp-contact-title {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .sp-faq[open] .sp-faq-q {
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .sp-faq-a,
+[data-theme="dark"] .sp-link-sub,
+[data-theme="dark"] .sp-empty-text,
+[data-theme="dark"] .sp-contact-text {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .sp-empty {
+    background: rgba(148, 163, 184, 0.05);
+    border-color: rgba(148, 163, 184, 0.25);
+}
+
+[data-theme="dark"] .sp-contact {
+    background: linear-gradient(135deg, rgba(148, 163, 184, 0.08) 0%, rgba(14, 165, 233, 0.08) 100%);
+    border-color: rgba(148, 163, 184, 0.2);
+}
+
+[data-theme="dark"] .sp-contact-icon {
+    background: rgba(14, 165, 233, 0.18);
+    border-color: rgba(14, 165, 233, 0.35);
+    color: #7dd3fc;
+    box-shadow: none;
+}
+
+[data-theme="dark"] .sp-contact-mail {
+    background: rgba(14, 165, 233, 0.18);
+    border-color: rgba(14, 165, 233, 0.35);
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .sp-contact-mail:hover {
+    background: #0ea5e9;
+    border-color: #0ea5e9;
+    color: #fff;
+}
+
+[data-theme="dark"] .sp-tag {
+    background: rgba(148, 163, 184, 0.1);
+    border-color: rgba(148, 163, 184, 0.22);
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .sp-tag .material-symbols-outlined {
+    color: #7dd3fc;
+}

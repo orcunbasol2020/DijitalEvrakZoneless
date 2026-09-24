@@ -3,94 +3,200 @@
   ]">
 </app-generic>
 
-<div class="row documents-page">
-  <!-- Hero / Arama -->
-  <div class="col-12 mb-4">
-    <div class="card settings-profile-card">
-      <div class="card-body">
-        <div class="d-flex align-items-center gap-2 mb-1">
-          <span class="material-symbols-outlined" style="font-size:26px;">menu_book</span>
-          <h4 class="m-0">Kullanım Kılavuzu</h4>
-        </div>
-        <div class="text-muted mb-3">
-          Uygulamanın modüllerine göre kısa açıklamalar bulabilir, aradığınız
-          ekrana buradan doğrudan geçebilirsiniz.
-        </div>
-        <div class="support-search-box">
-          <span class="material-symbols-outlined">search</span>
-          <input
-            type="text"
-            class="form-control"
-            placeholder="Bir modül veya konu arayın..."
-            [ngModel]="search()"
-            (ngModelChange)="search.set($event)" />
+<div class="st-page">
+  <!-- Üst kart: arama -->
+  <section class="sp-hero dc-hero">
+    <div class="sp-hero-top">
+      <span class="sp-hero-icon">
+        <span class="material-symbols-outlined">menu_book</span>
+      </span>
+      <div>
+        <div class="sp-hero-kicker">KULLANIM KILAVUZU</div>
+        <h4 class="sp-hero-title">Modülleri keşfedin</h4>
+        <div class="sp-hero-text">
+          Uygulamanın modüllerine göre kısa açıklamalar bulabilir, aradığınız ekrana buradan doğrudan geçebilirsiniz.
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Rehber Listesi -->
-  <div class="col-lg-8 col-12 mb-4">
-    <div class="card h-100 settings-section-card">
-      <div class="card-header d-flex align-items-center gap-2">
-        <span class="material-symbols-outlined settings-section-icon">menu_book</span>
-        <h4 class="m-0">Modüller</h4>
-      </div>
-      <div class="card-body">
-        @for (guide of filteredGuides(); track guide.url) {
-          <a class="support-quick-link doc-guide-item" [routerLink]="guide.url">
-            <span class="material-symbols-outlined">{{ guide.icon }}</span>
-            <span class="doc-guide-text">
-              <span class="doc-guide-title">{{ guide.title }}</span>
-              <span class="doc-guide-description">{{ guide.description }}</span>
-            </span>
-            <span class="material-symbols-outlined support-quick-link-arrow">chevron_right</span>
-          </a>
-        } @empty {
-          <div class="support-empty-state">
-            <span class="material-symbols-outlined">search_off</span>
-            <p class="mb-0">"{{ search() }}" ile eşleşen bir sonuç bulunamadı.</p>
-          </div>
-        }
-      </div>
-    </div>
-  </div>
-
-  <!-- Sağ Panel -->
-  <div class="col-lg-4 col-12 mb-4">
-    <div class="card mb-4 settings-section-card">
-      <div class="card-header d-flex align-items-center gap-2">
-        <span class="material-symbols-outlined settings-section-icon">category</span>
-        <h4 class="m-0">Kategoriler</h4>
-      </div>
-      <div class="card-body d-flex flex-wrap gap-2">
-        @for (category of categories; track category) {
-          <button
-            type="button"
-            class="doc-category-chip"
-            [class.active]="activeCategory() === category"
-            (click)="toggleCategory(category)">
-            {{ category }}
+    <div class="sp-search">
+      <span class="material-symbols-outlined sp-search-icon">search</span>
+      <input
+        type="text"
+        class="sp-search-input"
+        placeholder="Bir modül veya konu arayın..."
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)" />
+      <div class="sp-search-end">
+        <span
+          class="sp-search-count"
+          [class.is-active]="isFiltering() && filteredGuides().length"
+          [class.is-none]="isFiltering() && !filteredGuides().length">
+          {{ filteredGuides().length }} / {{ guides.length }} modül
+        </span>
+        @if (search().trim()) {
+          <button type="button" class="sp-search-clear" title="Aramayı temizle" (click)="search.set('')">
+            <span class="material-symbols-outlined">close</span>
           </button>
         }
       </div>
     </div>
 
-    <div class="card settings-section-card">
-      <div class="card-header d-flex align-items-center gap-2">
-        <span class="material-symbols-outlined settings-section-icon">support_agent</span>
-        <h4 class="m-0">Sorunuzu bulamadınız mı?</h4>
+    <div class="sp-topics">
+      <span class="sp-topics-label">Kategoriler:</span>
+      <button
+        type="button"
+        class="sp-topic"
+        [class.is-active]="activeCategory() === null"
+        (click)="activeCategory.set(null)">
+        <span class="material-symbols-outlined">apps</span>
+        Tümü
+      </button>
+      @for (category of categories; track category.name) {
+        <button
+          type="button"
+          class="sp-topic"
+          [class.is-active]="activeCategory() === category.name"
+          (click)="toggleCategory(category.name)">
+          <span class="material-symbols-outlined">{{ category.icon }}</span>
+          {{ category.name }}
+        </button>
+      }
+    </div>
+  </section>
+
+  <div class="sp-grid">
+    <!-- Modüller -->
+    <section class="st-card">
+      <div class="st-card-head">
+        <span class="st-card-icon">
+          <span class="material-symbols-outlined">view_module</span>
+        </span>
+        <div>
+          <h4 class="st-card-title">Modüller</h4>
+          <div class="st-card-sub">
+            @if (activeCategory()) {
+              {{ activeCategory() }} kategorisindeki ekranlar
+            } @else {
+              Tüm ekranlar kategorilerine göre gruplanmış
+            }
+          </div>
+        </div>
+        <span class="st-count st-card-head-end">
+          <span class="material-symbols-outlined">grid_view</span>
+          {{ filteredGuides().length }} modül
+        </span>
       </div>
-      <div class="card-body">
-        <p class="mb-3 text-muted" style="font-size: 0.85rem;">
-          Sık sorulan sorular ve teknik destek bilgileri için Destek
-          sayfasına göz atabilirsiniz.
-        </p>
-        <a routerLink="/support" class="btn btn-sm doc-support-link">
-          <span class="material-symbols-outlined align-middle me-1" style="font-size:16px;">support_agent</span>
-          Destek Sayfasına Git
-        </a>
+
+      <div class="st-card-body">
+        @if (groupedGuides().length) {
+          <div class="dc-groups">
+            @for (group of groupedGuides(); track group.name) {
+              <div class="dc-group">
+                <div class="dc-group-head">
+                  <span class="material-symbols-outlined dc-group-icon">{{ group.icon }}</span>
+                  <span class="dc-group-title">{{ group.name }}</span>
+                  <span class="dc-group-count">{{ group.guides.length }}</span>
+                  <span class="dc-group-line"></span>
+                </div>
+                <div class="dc-list">
+                  @for (guide of group.guides; track guide.url) {
+                    <a class="sp-link" [routerLink]="guide.url">
+                      <span class="sp-link-icon">
+                        <span class="material-symbols-outlined">{{ guide.icon }}</span>
+                      </span>
+                      <span class="sp-link-body">
+                        <span class="sp-link-title d-block">{{ guide.title }}</span>
+                        <span class="sp-link-sub d-block">{{ guide.description }}</span>
+                      </span>
+                      <span class="material-symbols-outlined sp-link-arrow">arrow_forward</span>
+                    </a>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="sp-empty">
+            <span class="sp-empty-icon">
+              <span class="material-symbols-outlined">search_off</span>
+            </span>
+            <div class="sp-empty-title">Sonuç bulunamadı</div>
+            <div class="sp-empty-text">
+              "{{ search() }}" ile eşleşen bir modül yok. Farklı bir ifade deneyin ya da kategori filtresini kaldırın.
+            </div>
+            <button type="button" class="sp-pill-btn" (click)="clearFilters()">
+              <span class="material-symbols-outlined">restart_alt</span>
+              Filtreleri temizle
+            </button>
+          </div>
+        }
       </div>
+    </section>
+
+    <!-- Sağ panel -->
+    <div class="sp-side">
+      <section class="st-card">
+        <div class="st-card-head">
+          <span class="st-card-icon">
+            <span class="material-symbols-outlined">category</span>
+          </span>
+          <div>
+            <h4 class="st-card-title">Kategoriler</h4>
+            <div class="st-card-sub">Listeyi daraltmak için bir kategori seçin</div>
+          </div>
+        </div>
+        <div class="st-card-body">
+          <div class="dc-cats">
+            @for (category of categories; track category.name) {
+              <button
+                type="button"
+                class="dc-cat"
+                [class.is-active]="activeCategory() === category.name"
+                (click)="toggleCategory(category.name)">
+                <span class="material-symbols-outlined">{{ category.icon }}</span>
+                <span class="dc-cat-label">{{ category.name }}</span>
+                <span class="dc-cat-count">{{ categoryCount(category.name) }}</span>
+              </button>
+            }
+          </div>
+          @if (activeCategory()) {
+            <button type="button" class="st-link dc-cat-reset" (click)="activeCategory.set(null)">
+              <span class="material-symbols-outlined">filter_alt_off</span>
+              Filtreyi kaldır
+            </button>
+          }
+        </div>
+      </section>
+
+      <section class="st-card">
+        <div class="st-card-head">
+          <span class="st-card-icon">
+            <span class="material-symbols-outlined">support_agent</span>
+          </span>
+          <div>
+            <h4 class="st-card-title">Sorunuzu bulamadınız mı?</h4>
+            <div class="st-card-sub">Destek sayfası yardımcı olabilir</div>
+          </div>
+        </div>
+        <div class="st-card-body">
+          <div class="sp-contact">
+            <span class="sp-contact-icon">
+              <span class="material-symbols-outlined">help_center</span>
+            </span>
+            <div>
+              <div class="sp-contact-title">Destek Merkezi</div>
+              <div class="sp-contact-text">
+                Sık sorulan sorular ve destek ekibi iletişim bilgileri için Destek sayfasına göz atabilirsiniz.
+              </div>
+              <a routerLink="/support" class="sp-contact-mail">
+                <span class="material-symbols-outlined">support_agent</span>
+                Destek Sayfasına Git
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   </div>
 </div>

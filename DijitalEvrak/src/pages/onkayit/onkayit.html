@@ -24,7 +24,7 @@
 
             <div class="card-body zm-body">
                 <!-- QR okutma bloğu (Giden Evrak Teslim Al ekranıyla aynı dil) -->
-                <!-- Ön kayıt tamamlanınca blok tek satıra daralır (kapan/aç); daraltılmışken okuyucu pasiftir. -->
+                <!-- Blok kullanıcı isterse "Daralt" ile tek satıra iner (otomatik daralma yok); daraltılmışken okuyucu pasiftir. -->
                 <div class="zm-scan-hero" [class.is-active]="qrActive" [class.is-loading]="loading()"
                     [class.is-collapsed]="scanCollapsed">
 
@@ -95,32 +95,14 @@
 
                 <!-- Sonuç -->
                 <ng-container *ngIf="detailsVisible() && !loading()">
-                    <!-- Durum şeridi -->
-                    <div class="ok-status" [class.is-existing]="docStatus() === 1" [class.is-created]="docStatus() === 2">
-                        <span class="material-symbols-outlined ok-status-icon">
-                            {{ docStatus() === 1 ? 'info' : 'task_alt' }}
-                        </span>
-                        <div class="ok-status-body">
-                            <div class="ok-status-title">
-                                {{ docStatus() === 1 ? 'Evrak daha önce kaydedilmiş' : 'Ön kayıt ve zimmetleme tamamlandı' }}
-                            </div>
-                            <div class="ok-status-text">
-                                {{ docStatus() === 1
-                                    ? 'Bu evrak için yeni bir ön kayıt oluşturulmadı; mevcut kayıt ve zimmet bilgisi gösteriliyor.'
-                                    : 'Evrak sisteme alındı ve üzerinize zimmetlendi. İsterseniz dilekçe alındı belgesi düzenleyebilirsiniz.' }}
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Evrak kartı -->
-                    <div class="zm-list-title">Evrak</div>
                     <div class="ok-doc">
                         <div class="ok-doc-qr" *ngIf="scannedDocumentNo() as no">
                             <qrcode [qrdata]="no" [width]="72" [errorCorrectionLevel]="'H'"></qrcode>
                         </div>
                         <div class="ok-doc-body">
-                            <div class="ok-doc-no">{{ scannedDocumentNo() }}</div>
                             <div class="ok-doc-meta">Evrak numarası</div>
+                            <div class="ok-doc-no">{{ scannedDocumentNo() }}</div>
                             <div class="ok-checks">
                                 <span class="ok-check is-done">
                                     <span class="material-symbols-outlined">check_circle</span>
@@ -136,30 +118,22 @@
                         </div>
                     </div>
 
-                    <!-- Zimmet sahibi -->
-                    <div class="zm-list-title">Zimmet</div>
-                    <div class="zm-person zm-person-self is-selected" *ngIf="allocations() as a; else noAllocation">
-                        <span class="zm-avatar">{{ initials(a.fullName) }}</span>
-                        <div class="zm-person-info">
-                            <div class="zm-person-name">{{ a.fullName }}</div>
-                            <div class="zm-person-meta">
-                                Evrak bu kullanıcının üzerinde
-                                <ng-container *ngIf="a.createdDate">
-                                    · {{ a.createdDate | date:'dd.MM.yyyy HH:mm' }}
-                                </ng-container>
+                    <!-- Durum şeridi (evrak bilgilerinin altında) -->
+                    <div class="ok-status" [class.is-existing]="docStatus() === 1" [class.is-created]="docStatus() === 2">
+                        <span class="material-symbols-outlined ok-status-icon">
+                            {{ docStatus() === 1 ? 'info' : 'task_alt' }}
+                        </span>
+                        <div class="ok-status-body">
+                            <div class="ok-status-title">
+                                {{ docStatus() === 1 ? 'Evrak daha önce kaydedilmiş' : 'Ön kayıt ve zimmetleme tamamlandı' }}
+                            </div>
+                            <div class="ok-status-text">
+                                {{ docStatus() === 1
+                                    ? 'Bu evrak için yeni bir ön kayıt oluşturulmadı; mevcut kayıt ve zimmet bilgisi gösteriliyor.'
+                                    : 'Evrak sisteme alındı ve üzerinize zimmetlendi. İsterseniz dilekçe alındı belgesi düzenleyebilirsiniz.' }}
                             </div>
                         </div>
-                        <span class="material-symbols-outlined zm-person-check">check_circle</span>
                     </div>
-                    <ng-template #noAllocation>
-                        <div class="zm-empty zm-empty-sm">
-                            <div class="zm-empty-icon">
-                                <span class="material-symbols-outlined">person_off</span>
-                            </div>
-                            <div class="zm-empty-title">Aktif zimmet bulunamadı</div>
-                            <div class="zm-empty-text">Bu evrak için sistemde aktif bir zimmet kaydı görünmüyor.</div>
-                        </div>
-                    </ng-template>
                 </ng-container>
             </div>
 
@@ -174,6 +148,7 @@
                     <span class="zm-summary-target">
                         {{ allocations()?.fullName || 'Zimmet yok' }}
                     </span>
+                    <span class="ok-summary-note" *ngIf="allocations()">Evrak bu kullanıcıya zimmetlendi</span>
                 </div>
                 <div class="zm-footer-actions">
                     <button type="button" class="btn btn-light zm-back-btn" (click)="backToQrScan()">

@@ -11,6 +11,15 @@ interface DocGuide {
   category: string;
 }
 
+interface DocCategory {
+  name: string;
+  icon: string;
+}
+
+interface DocGroup extends DocCategory {
+  guides: DocGuide[];
+}
+
 @Component({
   imports: [
     GenericModel,
@@ -18,6 +27,9 @@ interface DocGuide {
     FormsModule
   ],
   templateUrl: './documents.html',
+  // Kart iskeleti (st-*) Ayarlar, üst kart / arama / bağlantı kartçıkları (sp-*)
+  // Destek sayfasıyla ortak; dc-* sınıfları bu ekrana özgü
+  styleUrls: ['../settings/settings.css', '../support/support.css', './documents.css'],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -25,7 +37,11 @@ export default class Documents {
   readonly search = signal<string>('');
   readonly activeCategory = signal<string | null>(null);
 
-  readonly categories: string[] = ['Gelen Evrak', 'Giden Evrak', 'Kullanıcılar'];
+  readonly categories: DocCategory[] = [
+    { name: 'Gelen Evrak', icon: 'move_to_inbox' },
+    { name: 'Giden Evrak', icon: 'outbox' },
+    { name: 'Kullanıcılar', icon: 'group' }
+  ];
 
   readonly guides: DocGuide[] = [
     {
@@ -149,7 +165,27 @@ export default class Documents {
     });
   });
 
+  // Filtrelenmiş modüller kategori sırasına göre gruplanır; boş kategoriler listelenmez
+  readonly groupedGuides = computed<DocGroup[]>(() => {
+    const guides = this.filteredGuides();
+
+    return this.categories
+      .map(category => ({ ...category, guides: guides.filter(g => g.category === category.name) }))
+      .filter(group => group.guides.length > 0);
+  });
+
+  readonly isFiltering = computed(() => !!this.search().trim() || this.activeCategory() !== null);
+
+  categoryCount(category: string): number {
+    return this.guides.filter(g => g.category === category).length;
+  }
+
   toggleCategory(category: string) {
     this.activeCategory.set(this.activeCategory() === category ? null : category);
+  }
+
+  clearFilters() {
+    this.search.set('');
+    this.activeCategory.set(null);
   }
 }

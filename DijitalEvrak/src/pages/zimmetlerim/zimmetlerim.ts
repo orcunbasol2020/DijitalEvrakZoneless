@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
   signal,
   ViewEncapsulation,
   computed,
@@ -8,28 +9,39 @@ import {
   HostListener
 } from '@angular/core';
 import { httpResource } from '@angular/common/http';
+import { Observable } from 'rxjs';
 import GenericModel from '../../../components/generic-model/generic-model';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FlexiToastService } from 'flexi-toast';
 import { DocumentAllocation } from '../../services/documentallocation';
-import { DocumentAssignmentService } from '../../services/documentassignment';
-import { AtlasZimmetService } from '../../services/atlas-zimmet';
+import { OutgoingDocumentAllocation } from '../../services/outgoingdocumentallocation';
 import { Common } from '../../services/common';
 import { UserModel } from '../users/users';
-import { DocumentAllocationModel } from '../../models/documentallocation.model';
+import {
+  ActiveDocumentModel,
+  AllocationSourceEnum,
+  AllocationSourceLabels,
+  DocumentDirectionEnum,
+  DocumentDirectionLabels
+} from '../../models/activedocument.model';
+import { AllocationStatusEnum, AllocationStatusLabels } from '../../models/allocationstatus.model';
 
-type ZimmetKaynak = 'EvrakTakip' | 'Atlas';
-type SortColumn = 'qrCode' | 'documentName' | 'documentDate' | 'source';
+type DirectionFilter = 'all' | DocumentDirectionEnum;
+type SortColumn = 'qrCode' | 'documentName' | 'documentDate' | 'documentDirection';
 
-interface ZimmetRow {
+// Geçmiş paneli: gelen (DocumentAllocations) ve giden (OutgoingDocumentAllocations)
+// kayıtları aynı biçime indirgenir.
+interface HistoryEntry {
   id: string;
-  qrCode?: string;
-  documentName?: string;
-  documentDate?: string;
-  status?: number;
-  source: ZimmetKaynak;
+  fullName: string;
+  isActive: boolean;
+  createdDate: string;
+  status: AllocationStatusEnum;
 }
+
+// DocumentAllocationModel ve OutgoingDocumentAllocationModel'in ortak kesişimi
+type HistorySource = HistoryEntry & { isDeleted: boolean };
 
 @Component({
   imports: [
@@ -38,42 +50,53 @@ interface ZimmetRow {
     CommonModule
   ],
   templateUrl: './zimmetlerim.html',
+  // Kart iskeleti (st-*) Ayarlar, üst kart / arama / boş durum (sp-*) Destek
+  // sayfasıyla ortak; zl-* sınıfları bu ekrana özgü
+  styleUrls: ['../settings/settings.css', '../support/support.css', './zimmetlerim.css'],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export default class Zimmetlerim {
 
   private readonly allocationService = inject(DocumentAllocation);
-  private readonly assignmentService = inject(DocumentAssignmentService);
-  private readonly atlasZimmetService = inject(AtlasZimmetService);
+  private readonly outgoingAllocationService = inject(OutgoingDocumentAllocation);
   private readonly toast = inject(FlexiToastService);
   private readonly common = inject(Common);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+
+  readonly Direction = DocumentDirectionEnum;
+  readonly Source = AllocationSourceEnum;
+  readonly directionLabels = DocumentDirectionLabels;
+  readonly sourceLabels = AllocationSourceLabels;
+  readonly statusLabels = AllocationStatusLabels;
 
   readonly user = computed(() => this.common.user());
 
-  readonly evrakTakipZimmetleri = signal<ZimmetRow[]>([]);
-  readonly atlasZimmetleri = signal<ZimmetRow[]>([]);
-  readonly zimmetlerim = computed(() => [
-    ...this.evrakTakipZimmetleri(),
-    ...this.atlasZimmetleri()
-  ]);
+  // Backend zimmet tarihine göre yeniden eskiye sıralı döner; sayfalama, arama ve
+  // sıralama istemci tarafında yapıldığı için tüm kayıtlar tek seferde çekilir.
+  readonly zimmetlerim = signal<ActiveDocumentModel[]>([]);
 
-  readonly sourceFilter = signal<'all' | ZimmetKaynak>('all');
+  readonly directionFilter = signal<DirectionFilter>('all');
   readonly searchQuery = signal('');
   readonly sortColumn = signal<SortColumn | null>(null);
   readonly sortDirection = signal<'asc' | 'desc'>('asc');
 
   readonly filteredZimmetlerim = computed(() => {
-    const filter = this.sourceFilter();
+    const filter = this.directionFilter();
     const query = this.searchQuery().trim().toLocaleLowerCase('tr');
     const column = this.sortColumn();
     const direction = this.sortDirection();
 
+    const matches = (value?: string | null) => (value ?? '').toLocaleLowerCase('tr').includes(query);
+
     const filtered = this.zimmetlerim()
-      .filter(item => filter === 'all' || item.source === filter)
+      .filter(item => filter === 'all' || item.documentDirection === filter)
       .filter(item => !query
-        || (item.qrCode ?? '').toLocaleLowerCase('tr').includes(query)
-        || (item.documentName ?? '').toLocaleLowerCase('tr').includes(query));
+        || matches(item.qrCode)
+        || matches(item.documentNo)
+        || matches(item.documentName)
+        || matches(item.fromName)
+        || matches(item.toName));
 
     if (!column) return filtered;
 
@@ -84,12 +107,24 @@ export default class Zimmetlerim {
         const bTime = b.documentDate ? new Date(b.documentDate).getTime() : 0;
         return (aTime - bTime) * factor;
       }
+      if (column === 'documentDirection') {
+        return (a.documentDirection - b.documentDirection) * factor;
+      }
       return (a[column] ?? '').localeCompare(b[column] ?? '', 'tr') * factor;
     });
   });
 
-  setSourceFilter(filter: 'all' | ZimmetKaynak): void {
-    this.sourceFilter.set(filter);
+  readonly isFiltering = computed(() => !!this.searchQuery().trim() || this.directionFilter() !== 'all');
+
+  clearFilters(): void {
+    this.searchQuery.set('');
+    this.directionFilter.set('all');
+    this.currentPage.set(1);
+    this.closeDetail();
+  }
+
+  setDirectionFilter(filter: DirectionFilter): void {
+    this.directionFilter.set(filter);
     this.currentPage.set(1);
     this.closeDetail();
   }
@@ -116,7 +151,7 @@ export default class Zimmetlerim {
     return this.sortDirection() === 'asc' ? 'arrow_upward' : 'arrow_downward';
   }
 
-  // Sayfalama: liste uzunsa "Üzerimdeki Zimmetler" tablosunu sayfalar.
+  // Sayfalama: liste uzunsa tabloyu sayfalar.
   readonly pageSize = 10;
   readonly currentPage = signal(1);
 
@@ -155,13 +190,20 @@ export default class Zimmetlerim {
 
   readonly loading = signal(false);
 
-  // "Detay" satırı: seçili evrağın tüm zimmet geçmişini (kimde, ne zaman) gösterir.
-  readonly expandedItem = signal<ZimmetRow | null>(null);
-  readonly detailHistory = signal<DocumentAllocationModel[]>([]);
-  readonly detailLoading = signal(false);
+  // Atlas kaynaklı zimmetler bu sistemde yönetilmez: devir ve geçmiş kapalıdır.
+  isAtlas(item: ActiveDocumentModel): boolean {
+    return item.source === AllocationSourceEnum.Atlas;
+  }
 
-  toggleDetail(item: ZimmetRow): void {
-    if (item.source !== 'EvrakTakip') return;
+  // "Geçmiş" paneli: seçili evrağın tüm zimmet geçmişini (kimde, ne zaman) gösterir.
+  readonly expandedItem = signal<ActiveDocumentModel | null>(null);
+  readonly detailHistory = signal<HistoryEntry[]>([]);
+  readonly detailLoading = signal(false);
+  // Panel varsayılan olarak butonun altında açılır; alta sığmıyorsa üstüne alınır.
+  readonly detailPlacement = signal<'down' | 'up'>('down');
+
+  toggleDetail(item: ActiveDocumentModel): void {
+    if (this.isAtlas(item)) return;
 
     if (this.isExpanded(item)) {
       this.closeDetail();
@@ -171,14 +213,24 @@ export default class Zimmetlerim {
     this.expandedItem.set(item);
     this.detailHistory.set([]);
     this.detailLoading.set(true);
+    this.detailPlacement.set('down');
+    this.placeDetailPopover();
 
-    this.allocationService.getByDocumentId(item.id).subscribe({
+    // Gelen ve giden zimmet kayıtları farklı modellerdir; ortak alanlar üzerinden tek tipe indirgenir.
+    const history$: Observable<HistorySource[]> = item.documentDirection === DocumentDirectionEnum.Giden
+      ? this.outgoingAllocationService.getByDocumentId(item.documentId)
+      : this.allocationService.getByDocumentId(item.documentId);
+
+    history$.subscribe({
       next: (history) => {
-        const sorted = [...history]
+        const sorted: HistoryEntry[] = (history ?? [])
           .filter(h => !h.isDeleted)
+          .map(h => ({ id: h.id, fullName: h.fullName, isActive: h.isActive, createdDate: h.createdDate, status: h.status }))
           .sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime());
         this.detailHistory.set(sorted);
         this.detailLoading.set(false);
+        // Geçmiş yüklenince panel uzar; yerleşim gerçek yüksekliğe göre yeniden ölçülür.
+        this.placeDetailPopover();
       },
       error: () => {
         this.detailHistory.set([]);
@@ -187,12 +239,40 @@ export default class Zimmetlerim {
     });
   }
 
+  // Sayfa içeriği sarmalayıcısı (#page-content-wrapper) overflow-x:hidden + contain:layout
+  // nedeniyle altına taşan mutlak konumlu paneli kırpar; sayfa kaydırılsa da panel görünmez.
+  // Bu yüzden panel render edildikten sonra ölçülür: sarmalayıcının altına taşıyorsa ve
+  // üstte yer varsa butonun üstüne alınır; ardından görünüm alanına kaydırılır.
+  private placeDetailPopover(): void {
+    setTimeout(() => {
+      const pop = this.host.nativeElement.querySelector<HTMLElement>('.zl-pop');
+      if (!pop) return;
+
+      const anchor = pop.parentElement as HTMLElement | null;
+      const clip = (document.getElementById('page-content-wrapper') ?? document.body).getBoundingClientRect();
+      const popRect = pop.getBoundingClientRect();
+      const anchorRect = (anchor ?? pop).getBoundingClientRect();
+      const bottomLimit = Math.min(clip.bottom, window.innerHeight);
+
+      if (this.detailPlacement() === 'down' && popRect.bottom > bottomLimit) {
+        const fitsAbove = anchorRect.top - popRect.height >= Math.max(clip.top, 0);
+        if (fitsAbove) {
+          this.detailPlacement.set('up');
+        }
+      }
+
+      // Yön belirlendikten sonra panel görünür alana getirilir (gerekirse sayfa kayar).
+      setTimeout(() => pop.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
+    });
+  }
+
   closeDetail(): void {
     this.expandedItem.set(null);
     this.detailHistory.set([]);
+    this.detailPlacement.set('down');
   }
 
-  // Popover dışına tıklanınca kapansın (butonun ve panelin kendi click
+  // Panel dışına tıklanınca kapansın (butonun ve panelin kendi click
   // handler'ları $event.stopPropagation() ile bu listener'ı tetiklemez).
   @HostListener('document:click')
   onDocumentClick(): void {
@@ -201,14 +281,15 @@ export default class Zimmetlerim {
     }
   }
 
-  isExpanded(item: ZimmetRow): boolean {
-    const expanded = this.expandedItem();
-    return !!expanded && expanded.id === item.id && expanded.source === item.source;
+  isExpanded(item: ActiveDocumentModel): boolean {
+    return this.expandedItem()?.allocationId === item.allocationId;
   }
 
   readonly totalCount = computed(() => this.zimmetlerim().length);
-  readonly evrakTakipCount = computed(() => this.evrakTakipZimmetleri().length);
-  readonly atlasCount = computed(() => this.atlasZimmetleri().length);
+  readonly incomingCount = computed(() =>
+    this.zimmetlerim().filter(i => i.documentDirection === DocumentDirectionEnum.Gelen).length);
+  readonly outgoingCount = computed(() =>
+    this.zimmetlerim().filter(i => i.documentDirection === DocumentDirectionEnum.Giden).length);
 
   readonly usersResult = httpResource<UserModel[]>(() => 'api/Users/GetAll');
   readonly personFilter = signal('');
@@ -219,10 +300,15 @@ export default class Zimmetlerim {
       .filter(u => !query || `${u.name} ${u.surname}`.toLocaleLowerCase('tr').includes(query));
   });
 
-  transferModalVisible = false;
-  transferLoading = false;
-  activeDocId: string | null = null;
-  selectedPersonId: string | null = null;
+  readonly transferModalVisible = signal(false);
+  readonly transferLoading = signal(false);
+  readonly selectedPersonId = signal<string | null>(null);
+  readonly transferItem = signal<ActiveDocumentModel | null>(null);
+
+  // Devir penceresindeki avatar: ad ve soyadın baş harfleri
+  initials(p: UserModel): string {
+    return `${p.name?.[0] ?? ''}${p.surname?.[0] ?? ''}`.toLocaleUpperCase('tr');
+  }
 
   get currentUserId(): string | undefined {
     return this.user()?.id;
@@ -237,94 +323,86 @@ export default class Zimmetlerim {
     this.currentPage.set(1);
     const currentUserId = this.currentUserId;
     if (!currentUserId) {
-      this.evrakTakipZimmetleri.set([]);
-      this.atlasZimmetleri.set([]);
+      this.zimmetlerim.set([]);
       return;
     }
 
     this.loading.set(true);
-    this.allocationService.getActiveByUserId(currentUserId).subscribe({
-      next: (allocations) => {
-        const mine: ZimmetRow[] = allocations
-          .filter(a => !a.isDeleted)
-          .map(a => ({
-            id: a.incomingDocumentId,
-            qrCode: a.qrCode,
-            documentName: a.documentName,
-            documentDate: a.documentDate,
-            source: 'EvrakTakip' as const
-          }));
-        this.evrakTakipZimmetleri.set(mine);
+    this.allocationService.getActiveDocumentsByUserId(currentUserId).subscribe({
+      next: (res) => {
+        this.zimmetlerim.set(res?.items ?? []);
         this.loading.set(false);
       },
       error: () => {
-        this.evrakTakipZimmetleri.set([]);
+        this.zimmetlerim.set([]);
         this.loading.set(false);
-      }
-    });
-
-    this.atlasZimmetService.getMyZimmetler(currentUserId).subscribe({
-      next: (docs) => {
-        const mapped: ZimmetRow[] = docs.map(doc => ({
-          id: doc.id,
-          qrCode: doc.qrCode,
-          documentName: doc.documentName,
-          documentDate: doc.documentDate,
-          source: 'Atlas' as const
-        }));
-        this.atlasZimmetleri.set(mapped);
-      },
-      error: () => {
-        this.atlasZimmetleri.set([]);
       }
     });
   }
 
-  openTransferModal(item: ZimmetRow) {
-    if (item.source !== 'EvrakTakip') return;
+  openTransferModal(item: ActiveDocumentModel) {
+    if (this.isAtlas(item)) return;
 
-    this.activeDocId = item.id;
-    this.selectedPersonId = null;
+    this.transferItem.set(item);
+    this.selectedPersonId.set(null);
     this.personFilter.set('');
-    this.transferModalVisible = true;
+    this.transferModalVisible.set(true);
   }
 
   closeTransferModal() {
-    this.transferModalVisible = false;
-    this.activeDocId = null;
-    this.selectedPersonId = null;
+    this.transferModalVisible.set(false);
+    this.transferItem.set(null);
+    this.selectedPersonId.set(null);
     this.personFilter.set('');
   }
 
-  confirmTransfer() {
-    if (!this.selectedPersonId) {
+  // Zimmet devri: kişiden kişiye geçtiği için status Devir (2) yazılır.
+  // Gelen evrakta backend yeni kayıt açılınca eskisini pasife çeker; giden evrakta
+  // reallocate önce mevcut aktif zimmetleri kapatıp sonra yenisini oluşturur.
+  async confirmTransfer() {
+    const personId = this.selectedPersonId();
+    if (!personId) {
       this.toast.showToast('Uyarı', 'Lütfen devredilecek personeli seçiniz.', 'warning');
       return;
     }
 
-    if (!this.activeDocId) {
+    const item = this.transferItem();
+    const createdUserId = this.currentUserId;
+    if (!item || !createdUserId) {
       this.toast.showToast('Hata', 'Evrak bulunamadı.', 'error');
       return;
     }
 
-    this.transferLoading = true;
+    this.transferLoading.set(true);
 
-    // documentlist.ts'teki atama akışıyla aynı API: currentAssignmentUserId'yi
-    // bu servis günceller (Zimmetlerim listesi de bu alana göre filtreleniyor).
-    this.assignmentService.createAssignment({
-      documentId: this.activeDocId,
-      userId: this.selectedPersonId
-    }).subscribe({
-      next: () => {
-        this.transferLoading = false;
-        this.toast.showToast('Başarılı', 'Zimmet devri tamamlandı', 'success');
-        this.closeTransferModal();
-        this.loadZimmetlerim();
-      },
-      error: () => {
-        this.transferLoading = false;
-        this.toast.showToast('Hata', 'Zimmet devri başarısız', 'error');
+    try {
+      if (item.documentDirection === DocumentDirectionEnum.Giden) {
+        await this.outgoingAllocationService.reallocate({
+          outgoingDocumentId: item.documentId,
+          userId: personId,
+          createdUserId,
+          status: AllocationStatusEnum.Devir,
+          userType: 1
+        });
+      } else {
+        await new Promise<void>((resolve, reject) =>
+          this.allocationService.createAllocation({
+            incomingDocumentId: item.documentId,
+            userId: personId,
+            createdUserId,
+            status: AllocationStatusEnum.Devir,
+            userType: 1
+          }).subscribe({ next: () => resolve(), error: reject })
+        );
       }
-    });
+
+      this.transferLoading.set(false);
+      this.toast.showToast('Başarılı', 'Zimmet devri tamamlandı', 'success');
+      this.closeTransferModal();
+      this.loadZimmetlerim();
+    } catch {
+      this.transferLoading.set(false);
+      this.toast.showToast('Hata', 'Zimmet devri başarısız', 'error');
+    }
   }
 }

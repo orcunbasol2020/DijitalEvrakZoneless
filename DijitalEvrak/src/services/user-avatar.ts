@@ -19,3 +19,10 @@ export function getUserAvatar(user: UserModel | undefined, fallback: string | nu
 
   return AVATARS_BY_NAME[user.name ?? ''] ?? fallback;
 }
+
+// Profil resmi olmayan kullanıcılar için ad-soyad baş harfleri (avatar yerine gösterilir).
+export function getUserInitials(user: UserModel | undefined): string {
+  const first = (user?.name ?? '').trim().charAt(0);
+  const last = (user?.surname ?? '').trim().charAt(0);
+  return `${first}${last}`.toLocaleUpperCase('tr') || '?';
+}

@@ -2,298 +2,379 @@
   [breadcrumbs]="[{title: 'Zimmetlerim', url: 'zimmetlerim', icon: ''}]">
 </app-generic>
 
-<div class="row g-3 mb-4">
-  <div class="col-md-4">
-    <div class="card stat-card h-100">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-start">
-          <div>
-            <h6 class="card-subtitle text-muted">Toplam Zimmet</h6>
-            <h4 class="card-title mt-2">{{ totalCount() }}</h4>
-          </div>
-          <div class="stat-icon stat-icon-pro bg-gradient-primary">
-            <span class="material-symbols-outlined" style="font-size: 22px;">inventory_2</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-4">
-    <div class="card stat-card h-100">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-start">
-          <div>
-            <h6 class="card-subtitle text-muted">Evrak Takip</h6>
-            <h4 class="card-title mt-2">{{ evrakTakipCount() }}</h4>
-          </div>
-          <div class="stat-icon stat-icon-pro bg-gradient-info">
-            <span class="material-symbols-outlined" style="font-size: 22px;">description</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-4">
-    <div class="card stat-card h-100">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-start">
-          <div>
-            <h6 class="card-subtitle text-muted">Atlas</h6>
-            <h4 class="card-title mt-2">{{ atlasCount() }}</h4>
-          </div>
-          <div class="stat-icon stat-icon-pro bg-gradient-violet">
-            <span class="material-symbols-outlined" style="font-size: 22px;">travel_explore</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="card premium-card orders-card">
-  <div class="card-header dashboard-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-    <h5 class="card-title mb-0 fw-semibold">Üzerimdeki Zimmetler</h5>
-
-    <div class="d-flex align-items-center gap-2 flex-wrap">
-      <div class="input-group input-group-sm" style="width: 320px; margin-right: 3px;">
-        <span class="input-group-text bg-white">
-          <span class="material-symbols-outlined" style="font-size: 16px;">search</span>
-        </span>
-        <input
-          type="text"
-          class="form-control"
-          style="border-right: 1px solid var(--input-border);"
-          placeholder="Belge no veya dosya adı ara..."
-          [ngModel]="searchQuery()"
-          (ngModelChange)="setSearchQuery($event)" />
-      </div>
-
-      <div class="ocr-tab-container">
-        <button
-          class="ocr-tab"
-          [class.active]="sourceFilter() === 'all'"
-          (click)="setSourceFilter('all')">
-          Tümü
-        </button>
-        <button
-          class="ocr-tab"
-          [class.active]="sourceFilter() === 'EvrakTakip'"
-          (click)="setSourceFilter('EvrakTakip')">
-          Evrak Takip
-        </button>
-        <button
-          class="ocr-tab"
-          [class.active]="sourceFilter() === 'Atlas'"
-          (click)="setSourceFilter('Atlas')">
-          Atlas
-        </button>
-      </div>
-
-      <button class="btn btn-sm btn-outline-info" title="Güncel Verileri Getir" (click)="loadZimmetlerim()">
-        <span class="material-symbols-outlined">refresh</span>
-      </button>
-    </div>
-  </div>
-
-  <div class="card-body p-0 position-relative">
-
-    <div *ngIf="loading()" class="d-flex justify-content-center align-items-center py-5">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Yükleniyor...</span>
-      </div>
-    </div>
-
-    <div *ngIf="!loading()">
-      <table class="table table-hover mb-0 align-middle zimmet-table">
-        <thead class="table-light" style="font-size: 0.75rem;">
-          <tr>
-            <th class="sortable-th" (click)="toggleSort('qrCode')">
-              Belge No
-              <span class="material-symbols-outlined sort-icon" [class.active]="sortColumn() === 'qrCode'">{{ sortIcon('qrCode') }}</span>
-            </th>
-            <th class="sortable-th" (click)="toggleSort('documentName')">
-              Dosya Adı
-              <span class="material-symbols-outlined sort-icon" [class.active]="sortColumn() === 'documentName'">{{ sortIcon('documentName') }}</span>
-            </th>
-            <th class="sortable-th" (click)="toggleSort('documentDate')">
-              Belge Tarihi
-              <span class="material-symbols-outlined sort-icon" [class.active]="sortColumn() === 'documentDate'">{{ sortIcon('documentDate') }}</span>
-            </th>
-            <th class="text-center sortable-th" (click)="toggleSort('source')">
-              Kaynak
-              <span class="material-symbols-outlined sort-icon" [class.active]="sortColumn() === 'source'">{{ sortIcon('source') }}</span>
-            </th>
-            <th class="text-center">Devir</th>
-            <th class="text-center">Zimmet</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          <ng-container *ngFor="let item of pagedZimmetlerim()">
-            <tr class="clickable-row" (click)="toggleDetail(item); $event.stopPropagation()">
-              <td>{{ item.qrCode }}</td>
-              <td>{{ item.documentName }}</td>
-              <td>{{ item.documentDate | date:'dd.MM.yyyy' }}</td>
-              <td class="text-center">
-                <span class="badge rounded-pill source-badge"
-                  [ngClass]="item.source === 'Atlas' ? 'source-badge-atlas' : 'source-badge-evraktakip'"
-                  [title]="item.source === 'Atlas' ? 'Atlas\'ta zimmetlenmiştir' : 'Evrak Takip sisteminde zimmetlenmiştir'">
-                  <span class="material-symbols-outlined">
-                    {{ item.source === 'Atlas' ? 'travel_explore' : 'description' }}
-                  </span>
-                  {{ item.source === 'Atlas' ? 'Atlas' : 'Evrak Takip' }}
-                </span>
-              </td>
-              <td class="text-center">
-                <button class="zimmet-action-btn"
-                  [disabled]="item.source === 'Atlas'"
-                  [title]="item.source === 'Atlas' ? 'Atlas zimmetleri için devir desteklenmiyor' : 'Zimmeti Devret'"
-                  (click)="openTransferModal(item); $event.stopPropagation()">
-                  <span class="material-symbols-outlined" style="transform: scaleX(-1);">assignment_return</span>
-                </button>
-              </td>
-              <td class="text-center position-relative">
-                <button class="zimmet-action-btn zimmet-action-btn-teal"
-                  [class.is-active]="isExpanded(item)"
-                  [disabled]="item.source === 'Atlas'"
-                  [title]="item.source === 'Atlas' ? 'Atlas zimmetleri için detay desteklenmiyor' : 'Zimmet Geçmişini Göster'"
-                  (click)="toggleDetail(item); $event.stopPropagation()">
-                  <span class="material-symbols-outlined">
-                    {{ isExpanded(item) ? 'expand_less' : 'history' }}
-                  </span>
-                </button>
-
-                <!-- Detay: Zimmet Geçmişi (Detay ikonunun hemen altında açılır) -->
-                <div class="zimmet-history-panel" *ngIf="isExpanded(item)" (click)="$event.stopPropagation()">
-                  <div class="zimmet-history-panel-header">
-                    <span class="material-symbols-outlined">history</span>
-                    Zimmet Geçmişi
-                  </div>
-
-                  <div class="zimmet-history-panel-body">
-                    <div *ngIf="detailLoading()" class="d-flex justify-content-center align-items-center py-3">
-                      <div class="spinner-border text-primary spinner-border-sm" role="status">
-                        <span class="visually-hidden">Yükleniyor...</span>
-                      </div>
-                    </div>
-
-                    <div *ngIf="!detailLoading() && detailHistory().length">
-                      <div class="zimmet-history-item" *ngFor="let h of detailHistory()">
-                        <span class="zimmet-history-dot" [ngClass]="h.isActive ? 'is-active' : 'is-past'">
-                          <span class="material-symbols-outlined">{{ h.isActive ? 'person' : 'person_off' }}</span>
-                        </span>
-                        <div class="zimmet-history-info">
-                          <div class="zimmet-history-name">{{ h.fullName }}</div>
-                          <div class="zimmet-history-date">{{ h.createdDate | date:'dd.MM.yyyy HH:mm' }}</div>
-                        </div>
-                        <span class="badge rounded-pill py-2 ms-auto"
-                          [ngClass]="h.isActive ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-secondary-subtle text-secondary border border-secondary-subtle'">
-                          {{ h.isActive ? 'Aktif' : 'Devredildi' }}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div *ngIf="!detailLoading() && !detailHistory().length" class="text-muted text-center py-2">
-                      <span class="material-symbols-outlined d-block mb-1" style="font-size: 24px;">history_toggle_off</span>
-                      Bu evrak için zimmet geçmişi bulunamadı.
-                    </div>
-                  </div>
-                </div>
-              </td>
-            </tr>
-          </ng-container>
-
-          <tr *ngIf="!filteredZimmetlerim().length">
-            <td colspan="6" class="text-center text-muted py-5">
-              <span class="material-symbols-outlined d-block mb-2" style="font-size: 32px;">
-                {{ searchQuery().trim() ? 'search_off' : 'inventory_2' }}
-              </span>
-              <ng-container *ngIf="searchQuery().trim(); else noZimmet">
-                "{{ searchQuery() }}" ile eşleşen bir zimmet bulunamadı.
-              </ng-container>
-              <ng-template #noZimmet>
-                Üzerinizde görünen bir zimmet bulunmuyor.
-              </ng-template>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-  </div>
-
-  <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2"
-    *ngIf="!loading() && filteredZimmetlerim().length">
-    <div class="text-muted small">
-      Toplam {{ filteredZimmetlerim().length }} kayıttan {{ pageRangeStart() }}-{{ pageRangeEnd() }} arası gösteriliyor
-    </div>
-
-    <nav *ngIf="totalPages() > 1">
-      <ul class="pagination pagination-sm mb-0">
-        <li class="page-item" [class.disabled]="currentPage() === 1">
-          <button class="page-link" (click)="goToPage(currentPage() - 1)">
-            <span class="material-symbols-outlined" style="font-size: 16px;">chevron_left</span>
-          </button>
-        </li>
-        <li class="page-item" *ngIf="pageNumbers()[0] > 1">
-          <button class="page-link" (click)="goToPage(1)">1</button>
-        </li>
-        <li class="page-item disabled" *ngIf="pageNumbers()[0] > 2">
-          <span class="page-link">…</span>
-        </li>
-        <li class="page-item" *ngFor="let p of pageNumbers()" [class.active]="p === currentPage()">
-          <button class="page-link" (click)="goToPage(p)">{{ p }}</button>
-        </li>
-        <li class="page-item disabled" *ngIf="pageNumbers()[pageNumbers().length - 1] < totalPages() - 1">
-          <span class="page-link">…</span>
-        </li>
-        <li class="page-item" *ngIf="pageNumbers()[pageNumbers().length - 1] < totalPages()">
-          <button class="page-link" (click)="goToPage(totalPages())">{{ totalPages() }}</button>
-        </li>
-        <li class="page-item" [class.disabled]="currentPage() === totalPages()">
-          <button class="page-link" (click)="goToPage(currentPage() + 1)">
-            <span class="material-symbols-outlined" style="font-size: 16px;">chevron_right</span>
-          </button>
-        </li>
-      </ul>
-    </nav>
-  </div>
-</div>
-
-<div *ngIf="transferModalVisible" class="modal-overlay" (click)="closeTransferModal()">
-  <div class="modal-box" style="width: 504px;" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <h5 class="d-flex align-items-center mb-0">
-        <span class="material-symbols-outlined me-2 text-secondary">assignment_return</span>
-        Zimmet Devri
-      </h5>
-    </div>
-    <div class="modal-body">
+<div class="st-page">
+  <!-- Üst kart: başlık (arama liste kartının başlığında) -->
+  <section class="sp-hero zl-hero">
+    <div class="sp-hero-top">
+      <span class="sp-hero-icon">
+        <span class="material-symbols-outlined">inventory_2</span>
+      </span>
       <div>
-        <label class="form-label">Devredilecek Personel</label>
-        <input
-          type="text"
-          class="form-control"
-          placeholder="Personel ara..."
-          [ngModel]="personFilter()"
-          (ngModelChange)="personFilter.set($event)" />
-      </div>
-      <select class="form-select" [(ngModel)]="selectedPersonId" size="6">
-        <option [ngValue]="null" disabled>Personel Seçiniz</option>
-        <option *ngFor="let p of personList()" [ngValue]="p.id">
-          {{ p.name }} {{ p.surname }}
-        </option>
-      </select>
-      <div class="form-text" *ngIf="!personList().length">
-        Aramanızla eşleşen personel bulunamadı.
+        <h4 class="sp-hero-title">Üzerimdeki Zimmetler</h4>
+        <div class="sp-hero-text">
+          Üzerinizdeki gelen ve giden evrak zimmetlerini tek listede görün, geçmişini inceleyin ya da başka bir personele devredin.
+        </div>
       </div>
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" [disabled]="transferLoading" (click)="closeTransferModal()">İptal</button>
-      <button class="btn btn-primary" [disabled]="transferLoading" (click)="confirmTransfer()">
-        <span *ngIf="transferLoading" class="spinner-border spinner-border-sm me-1"></span>
-        Devret
-      </button>
+  </section>
+
+  <!-- İstatistik kutuları: aynı zamanda yön (gelen / giden) filtresi -->
+  <div class="zl-stats">
+    <button type="button" class="zl-stat" [class.is-active]="directionFilter() === 'all'" (click)="setDirectionFilter('all')">
+      <span class="zl-stat-icon is-total">
+        <span class="material-symbols-outlined">inventory_2</span>
+      </span>
+      <span class="zl-stat-body">
+        <span class="zl-stat-label d-block">TOPLAM ZİMMET</span>
+        <span class="zl-stat-value d-block">{{ totalCount() }}</span>
+      </span>
+      <span class="material-symbols-outlined zl-stat-check">{{ directionFilter() === 'all' ? 'check_circle' : 'radio_button_unchecked' }}</span>
+    </button>
+
+    <button type="button" class="zl-stat" [class.is-active]="directionFilter() === Direction.Gelen" (click)="setDirectionFilter(Direction.Gelen)">
+      <span class="zl-stat-icon is-in">
+        <span class="material-symbols-outlined">move_to_inbox</span>
+      </span>
+      <span class="zl-stat-body">
+        <span class="zl-stat-label d-block">GELEN EVRAK</span>
+        <span class="zl-stat-value d-block">{{ incomingCount() }}</span>
+      </span>
+      <span class="material-symbols-outlined zl-stat-check">{{ directionFilter() === Direction.Gelen ? 'check_circle' : 'radio_button_unchecked' }}</span>
+    </button>
+
+    <button type="button" class="zl-stat" [class.is-active]="directionFilter() === Direction.Giden" (click)="setDirectionFilter(Direction.Giden)">
+      <span class="zl-stat-icon is-out">
+        <span class="material-symbols-outlined">outbox</span>
+      </span>
+      <span class="zl-stat-body">
+        <span class="zl-stat-label d-block">GİDEN EVRAK</span>
+        <span class="zl-stat-value d-block">{{ outgoingCount() }}</span>
+      </span>
+      <span class="material-symbols-outlined zl-stat-check">{{ directionFilter() === Direction.Giden ? 'check_circle' : 'radio_button_unchecked' }}</span>
+    </button>
+  </div>
+
+  <!-- Liste -->
+  <section class="st-card">
+    <div class="st-card-head zl-list-head">
+      <span class="st-card-icon">
+        <span class="material-symbols-outlined">list_alt</span>
+      </span>
+      <div>
+        <h4 class="st-card-title">Zimmet Listesi</h4>
+      </div>
+      <div class="zl-head-tools">
+        <div class="sp-search zl-head-search">
+          <span class="material-symbols-outlined sp-search-icon">search</span>
+          <input
+            type="text"
+            class="sp-search-input"
+            placeholder="Belge no, belge adı, kurum veya birim ara..."
+            [ngModel]="searchQuery()"
+            (ngModelChange)="setSearchQuery($event)" />
+          <div class="sp-search-end">
+            @if (searchQuery().trim()) {
+              <button type="button" class="sp-search-clear" title="Aramayı temizle" (click)="setSearchQuery('')">
+                <span class="material-symbols-outlined">close</span>
+              </button>
+            }
+          </div>
+        </div>
+        <span class="st-count"
+          [class.is-none]="isFiltering() && !filteredZimmetlerim().length">
+          <span class="material-symbols-outlined">filter_list</span>
+          {{ filteredZimmetlerim().length }} / {{ totalCount() }}
+        </span>
+        <button type="button" class="zl-icon-btn" title="Güncel Verileri Getir" (click)="loadZimmetlerim()">
+          <span class="material-symbols-outlined">refresh</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="st-card-body zl-body">
+      @if (loading()) {
+        <div class="zl-loading">
+          <span class="spinner-border" role="status"></span>
+          Zimmetler yükleniyor...
+        </div>
+      } @else if (!filteredZimmetlerim().length) {
+        <div class="zl-empty-wrap">
+          <div class="sp-empty">
+            <span class="sp-empty-icon">
+              <span class="material-symbols-outlined">{{ isFiltering() ? 'search_off' : 'inventory_2' }}</span>
+            </span>
+            @if (isFiltering()) {
+              <div class="sp-empty-title">Sonuç bulunamadı</div>
+              <div class="sp-empty-text">
+                @if (searchQuery().trim()) {
+                  "{{ searchQuery() }}" ile eşleşen bir zimmet yok. Farklı bir ifade deneyin ya da yön filtresini değiştirin.
+                } @else {
+                  Seçili yönde zimmet bulunmuyor.
+                }
+              </div>
+              <button type="button" class="sp-pill-btn" (click)="clearFilters()">
+                <span class="material-symbols-outlined">restart_alt</span>
+                Filtreleri temizle
+              </button>
+            } @else {
+              <div class="sp-empty-title">Zimmetiniz bulunmuyor</div>
+              <div class="sp-empty-text">Üzerinizde görünen bir zimmet yok. Yeni bir zimmet geldiğinde burada listelenir.</div>
+            }
+          </div>
+        </div>
+      } @else {
+        <div class="zl-table-wrap">
+          <table class="zl-table">
+            <thead>
+              <tr>
+                <th class="zl-th-sort" [class.is-active]="sortColumn() === 'qrCode'" (click)="toggleSort('qrCode')">
+                  <span class="zl-th-inner">BELGE NO <span class="material-symbols-outlined zl-sort-icon">{{ sortIcon('qrCode') }}</span></span>
+                </th>
+                <th class="zl-th-sort" [class.is-active]="sortColumn() === 'documentName'" (click)="toggleSort('documentName')">
+                  <span class="zl-th-inner">BELGE ADI <span class="material-symbols-outlined zl-sort-icon">{{ sortIcon('documentName') }}</span></span>
+                </th>
+                <th>NEREDEN / NEREYE</th>
+                <th class="zl-th-sort" [class.is-active]="sortColumn() === 'documentDate'" (click)="toggleSort('documentDate')">
+                  <span class="zl-th-inner">BELGE TARİHİ <span class="material-symbols-outlined zl-sort-icon">{{ sortIcon('documentDate') }}</span></span>
+                </th>
+                <th class="zl-th-sort zl-center" [class.is-active]="sortColumn() === 'documentDirection'" (click)="toggleSort('documentDirection')">
+                  <span class="zl-th-inner">YÖN <span class="material-symbols-outlined zl-sort-icon">{{ sortIcon('documentDirection') }}</span></span>
+                </th>
+                <th class="zl-center">KAYNAK</th>
+                <th class="zl-center">DEVİR</th>
+                <th class="zl-center">GEÇMİŞ</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (item of pagedZimmetlerim(); track item.allocationId) {
+                <tr class="zl-row" [class.is-open]="isExpanded(item)" (click)="toggleDetail(item); $event.stopPropagation()">
+                  <td>
+                    <span class="zl-doc">
+                      <span class="zl-doc-icon">
+                        <span class="material-symbols-outlined">{{ item.documentDirection === Direction.Giden ? 'outgoing_mail' : 'description' }}</span>
+                      </span>
+                      <span>
+                        <span class="zl-doc-no d-block">{{ item.qrCode || '-' }}</span>
+                        @if (item.documentNo) {
+                          <span class="zl-doc-sub">{{ item.documentNo }}</span>
+                        }
+                      </span>
+                    </span>
+                  </td>
+                  <td>
+                    <div class="zl-doc-name" [title]="item.documentName ?? ''">{{ item.documentName || '-' }}</div>
+                  </td>
+                  <td>
+                    <div class="zl-route">
+                      <span [title]="item.fromName ?? ''">
+                        <span class="material-symbols-outlined">north_east</span>
+                        @if (item.fromName) { {{ item.fromName }} } @else { <span class="zl-route-empty">-</span> }
+                      </span>
+                      <span [title]="item.toName ?? ''">
+                        <span class="material-symbols-outlined">south_east</span>
+                        @if (item.toName) { {{ item.toName }} } @else { <span class="zl-route-empty">-</span> }
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="zl-date">
+                      <span class="material-symbols-outlined">calendar_today</span>
+                      {{ item.documentDate ? (item.documentDate | date:'dd.MM.yyyy') : '-' }}
+                    </span>
+                  </td>
+                  <td class="zl-center">
+                    <span class="zl-dir"
+                      [class.is-in]="item.documentDirection === Direction.Gelen"
+                      [class.is-out]="item.documentDirection === Direction.Giden">
+                      <span class="material-symbols-outlined">{{ item.documentDirection === Direction.Giden ? 'outbox' : 'move_to_inbox' }}</span>
+                      {{ item.documentDirection === Direction.Giden ? 'Giden' : 'Gelen' }}
+                    </span>
+                  </td>
+                  <td class="zl-center">
+                    <span class="zl-src"
+                      [class.is-atlas]="isAtlas(item)"
+                      [class.is-evrak]="!isAtlas(item)"
+                      [title]="isAtlas(item) ? 'Atlas EBYS\'de zimmetlenmiştir' : 'Evrak Takip sisteminde zimmetlenmiştir'">
+                      <span class="material-symbols-outlined">{{ isAtlas(item) ? 'travel_explore' : 'description' }}</span>
+                      {{ sourceLabels[item.source] }}
+                    </span>
+                  </td>
+                  <td class="zl-center">
+                    <button type="button" class="zl-act"
+                      [disabled]="isAtlas(item)"
+                      [title]="isAtlas(item) ? 'Atlas zimmetleri için devir desteklenmiyor' : 'Zimmeti Devret'"
+                      (click)="openTransferModal(item); $event.stopPropagation()">
+                      <span class="material-symbols-outlined" style="transform: scaleX(-1);">assignment_return</span>
+                    </button>
+                  </td>
+                  <td class="zl-center zl-act-cell">
+                    <button type="button" class="zl-act"
+                      [class.is-active]="isExpanded(item)"
+                      [disabled]="isAtlas(item)"
+                      [title]="isAtlas(item) ? 'Atlas zimmetleri için geçmiş desteklenmiyor' : 'Zimmet Geçmişini Göster'"
+                      (click)="toggleDetail(item); $event.stopPropagation()">
+                      <span class="material-symbols-outlined">{{ isExpanded(item) ? 'expand_less' : 'history' }}</span>
+                    </button>
+
+                    <!-- Zimmet geçmişi: geçmiş butonunun hemen altında açılır -->
+                    @if (isExpanded(item)) {
+                      <div class="zl-pop" [class.is-up]="detailPlacement() === 'up'" (click)="$event.stopPropagation()">
+                        <div class="zl-pop-head">
+                          <span class="zl-pop-icon">
+                            <span class="material-symbols-outlined">history</span>
+                          </span>
+                          <div class="min-w-0">
+                            <div class="zl-pop-title">Zimmet Geçmişi</div>
+                            <div class="zl-pop-sub">{{ item.qrCode || item.documentNo }} · {{ item.documentName || directionLabels[item.documentDirection] }}</div>
+                          </div>
+                        </div>
+
+                        <div class="zl-pop-body">
+                          @if (detailLoading()) {
+                            <div class="zl-loading" style="padding: 12px;">
+                              <span class="spinner-border" role="status"></span>
+                              Geçmiş yükleniyor...
+                            </div>
+                          } @else if (detailHistory().length) {
+                            <ul class="zl-tl">
+                              @for (h of detailHistory(); track h.id) {
+                                <li class="zl-tl-item" [class.is-active]="h.isActive">
+                                  <span class="zl-tl-node">
+                                    <span class="material-symbols-outlined">{{ h.isActive ? 'person' : 'person_off' }}</span>
+                                  </span>
+                                  <div class="zl-tl-body">
+                                    <div class="zl-tl-name">{{ h.fullName }}</div>
+                                    <div class="zl-tl-date">{{ h.createdDate | date:'dd.MM.yyyy HH:mm' }} · {{ statusLabels[h.status] }}</div>
+                                  </div>
+                                  <span class="zl-tl-badge">{{ h.isActive ? 'AKTİF' : 'GEÇMİŞ' }}</span>
+                                </li>
+                              }
+                            </ul>
+                          } @else {
+                            <div class="zl-pop-none">
+                              <span class="material-symbols-outlined">history_toggle_off</span>
+                              Bu evrak için zimmet geçmişi bulunamadı.
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+
+    @if (!loading() && filteredZimmetlerim().length) {
+      <div class="zl-footer">
+        <div class="zl-range">
+          Toplam <b>{{ filteredZimmetlerim().length }}</b> kayıttan <b>{{ pageRangeStart() }}-{{ pageRangeEnd() }}</b> arası gösteriliyor
+        </div>
+
+        @if (totalPages() > 1) {
+          <div class="zl-pager">
+            <button type="button" class="zl-page" [disabled]="currentPage() === 1" (click)="goToPage(currentPage() - 1)">
+              <span class="material-symbols-outlined">chevron_left</span>
+            </button>
+            @if (pageNumbers()[0] > 1) {
+              <button type="button" class="zl-page" (click)="goToPage(1)">1</button>
+            }
+            @if (pageNumbers()[0] > 2) {
+              <span class="zl-page-gap">…</span>
+            }
+            @for (p of pageNumbers(); track p) {
+              <button type="button" class="zl-page" [class.is-active]="p === currentPage()" (click)="goToPage(p)">{{ p }}</button>
+            }
+            @if (pageNumbers()[pageNumbers().length - 1] < totalPages() - 1) {
+              <span class="zl-page-gap">…</span>
+            }
+            @if (pageNumbers()[pageNumbers().length - 1] < totalPages()) {
+              <button type="button" class="zl-page" (click)="goToPage(totalPages())">{{ totalPages() }}</button>
+            }
+            <button type="button" class="zl-page" [disabled]="currentPage() === totalPages()" (click)="goToPage(currentPage() + 1)">
+              <span class="material-symbols-outlined">chevron_right</span>
+            </button>
+          </div>
+        }
+      </div>
+
+      <!-- Dipnot: kullanım ipucu, listenin sağ altında -->
+      <div class="zl-footnote">
+        <span class="material-symbols-outlined">info</span>
+        Sıralamak için sütun başlığına, geçmişi görmek için satıra tıklayın
+      </div>
+    }
+  </section>
+</div>
+
+<!-- Devir penceresi -->
+@if (transferModalVisible()) {
+  <div class="modal-overlay" (click)="closeTransferModal()">
+    <div class="modal-box zl-modal" (click)="$event.stopPropagation()">
+      <div class="zl-modal-head">
+        <span class="st-card-icon">
+          <span class="material-symbols-outlined">assignment_return</span>
+        </span>
+        <div>
+          <h4 class="st-card-title">Zimmet Devri</h4>
+          <div class="st-card-sub">
+            @if (transferItem(); as t) {
+              {{ t.qrCode || t.documentNo }} · {{ directionLabels[t.documentDirection] }}
+            } @else {
+              Evrakı devredeceğiniz personeli seçin
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="zl-modal-body">
+        <div class="zl-search">
+          <span class="material-symbols-outlined">search</span>
+          <input
+            type="text"
+            placeholder="Personel ara..."
+            [ngModel]="personFilter()"
+            (ngModelChange)="personFilter.set($event)" />
+        </div>
+
+        @if (personList().length) {
+          <div class="zl-persons">
+            @for (p of personList(); track p.id) {
+              <button type="button" class="zl-person" [class.is-selected]="selectedPersonId() === p.id" (click)="selectedPersonId.set(p.id ?? null)">
+                <span class="zl-avatar">{{ initials(p) }}</span>
+                <span class="zl-person-info">
+                  <span class="zl-person-name d-block">{{ p.name }} {{ p.surname }}</span>
+                  <span class="zl-person-meta d-block">{{ p.departmentName || p.userName }}</span>
+                </span>
+                <span class="material-symbols-outlined zl-person-check">
+                  {{ selectedPersonId() === p.id ? 'check_circle' : 'radio_button_unchecked' }}
+                </span>
+              </button>
+            }
+          </div>
+        } @else {
+          <div class="zl-pop-none">
+            <span class="material-symbols-outlined">person_search</span>
+            Aramanızla eşleşen personel bulunamadı.
+          </div>
+        }
+      </div>
+
+      <div class="zl-modal-foot">
+        <button type="button" class="zl-btn-ghost" [disabled]="transferLoading()" (click)="closeTransferModal()">İptal</button>
+        <button type="button" class="zl-btn-primary" [disabled]="transferLoading() || !selectedPersonId()" (click)="confirmTransfer()">
+          @if (transferLoading()) {
+            <span class="spinner-border"></span>
+          } @else {
+            <span class="material-symbols-outlined">assignment_return</span>
+          }
+          Devret
+        </button>
+      </div>
     </div>
   </div>
-</div>
+}

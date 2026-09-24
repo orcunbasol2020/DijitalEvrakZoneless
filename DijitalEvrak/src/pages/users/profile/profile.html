@@ -3,101 +3,221 @@
   ]">
 </app-generic>
 
-<div class="row profile-page">
-  <!-- Profil Özeti -->
-  <div class="col-12 mb-4">
-    <div class="card settings-profile-card">
-      <div class="card-body d-flex align-items-center flex-wrap gap-3">
-        <div class="settings-avatar">
-          <img [src]="userAvatar()" alt="Kullanıcı Avatarı" />
-        </div>
-        <div class="flex-grow-1">
-          <h4 class="mb-1">{{ user()?.name }} {{ user()?.surname }}</h4>
-          <div class="text-muted small mb-2">{{ user()?.email || user()?.userName }}</div>
-          @if (user()?.departmentName) {
-            <span class="settings-department-badge">
-              <span class="material-symbols-outlined" style="font-size:14px;">apartment</span>
-              {{ user()?.departmentName }}
-            </span>
-          }
-        </div>
-        <a routerLink="/settings" class="btn btn-sm settings-profile-link">
-          <span class="material-symbols-outlined align-middle me-1" style="font-size:16px;">settings</span>
-          Ayarlara Git
-        </a>
+<div class="st-page">
+  <!-- Üst kart: kullanıcı özeti -->
+  <section class="st-hero pf-hero">
+    <div class="st-hero-avatar">
+      @if (userAvatar(); as avatar) {
+        <img [src]="avatar" alt="Kullanıcı Avatarı" />
+      } @else {
+        <span class="st-hero-initials" aria-label="Kullanıcı Avatarı">{{ userInitials() }}</span>
+      }
+    </div>
+
+    <div class="st-hero-body">
+      <div class="st-hero-kicker">KULLANICI PROFİLİ</div>
+      <h4 class="st-hero-name">{{ user()?.name }} {{ user()?.surname }}</h4>
+      <div class="st-hero-mail">
+        <span class="material-symbols-outlined">mail</span>
+        {{ user()?.email || user()?.userName }}
+      </div>
+
+      <div class="st-hero-chips">
+        @if (user()?.departmentName) {
+          <span class="st-chip">
+            <span class="material-symbols-outlined">apartment</span>
+            {{ user()?.departmentName }}
+          </span>
+        }
+        <span class="st-chip">
+          <span class="material-symbols-outlined">verified_user</span>
+          {{ activeRoleCount() }} / {{ data().length }} yetki
+        </span>
+        <span class="st-chip">
+          <span class="st-chip-dot"></span>
+          Aktif oturum
+        </span>
       </div>
     </div>
-  </div>
 
-  <div class="col-md-12 col-12">
-    <div class="card settings-section-card">
-      <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-        <div class="d-flex align-items-center gap-2">
-          <span class="material-symbols-outlined settings-section-icon">security</span>
-          <h4 class="m-0">Roller / Yetkiler</h4>
+    <a routerLink="/settings" class="st-hero-btn">
+      Ayarlara Git
+      <span class="material-symbols-outlined">arrow_forward</span>
+    </a>
+  </section>
+
+  <div class="sp-grid">
+    <!-- Roller / Yetkiler -->
+    <section class="st-card">
+      <div class="st-card-head">
+        <span class="st-card-icon">
+          <span class="material-symbols-outlined">security</span>
+        </span>
+        <div>
+          <h4 class="st-card-title">Roller / Yetkiler</h4>
+          <div class="st-card-sub">Sistemde tanımlı tüm roller ve hesabınızdaki durumu</div>
         </div>
-        <span class="doc-category-chip active" style="cursor: default;">
-          {{ activeRoleCount() }} / {{ data().length }} Aktif
+        <span class="st-count st-card-head-end">
+          <span class="material-symbols-outlined">check_circle</span>
+          {{ activeRoleCount() }} / {{ data().length }} aktif
         </span>
       </div>
 
-      <div class="card h-100">
-        <div class="card-body">
-          <div class="activity-list">
-            <div class="activity-item mb-3">
-              <div class="activity-content">
+      <div class="st-card-body">
+        <div class="pf-toolbar">
+          <div class="pf-search">
+            <span class="material-symbols-outlined">search</span>
+            <input
+              type="text"
+              placeholder="Rol adı ara..."
+              [ngModel]="search()"
+              (ngModelChange)="search.set($event)" />
+          </div>
 
-                <div [class.show-filters]="showFilters">
-                  <flexi-grid
-                    [data]="data()"
-                    [loading]="loading()"
-                    language="tr"
-                    [showCaption]="true"
-                    captionTitle="Roller / Yetkiler"
-                    [showExportExcelBtn]="true"
-                    exportExcelFileName="roller"
-                    [filterable]="true"
-                    (onRefresh)="result.reload()">
+          <div class="d-flex align-items-center gap-2">
+            <div class="pf-seg">
+              <button type="button" class="pf-seg-btn" [class.is-active]="filter() === 'all'" (click)="filter.set('all')">
+                <span class="material-symbols-outlined">apps</span>
+                Tümü
+                <span class="pf-seg-count">{{ data().length }}</span>
+              </button>
+              <button type="button" class="pf-seg-btn" [class.is-active]="filter() === 'granted'" (click)="filter.set('granted')">
+                <span class="material-symbols-outlined">check_circle</span>
+                Sahip
+                <span class="pf-seg-count">{{ activeRoleCount() }}</span>
+              </button>
+              <button type="button" class="pf-seg-btn" [class.is-active]="filter() === 'missing'" (click)="filter.set('missing')">
+                <span class="material-symbols-outlined">remove_circle</span>
+                Yok
+                <span class="pf-seg-count">{{ data().length - activeRoleCount() }}</span>
+              </button>
+            </div>
 
-                    <ng-template flexiGridCaptionCommandTemplate>
-                      <flexi-button
-                        btnIcon="filter_alt"
-                        btnColor="light"
-                        title="Filtre Aç/Kapat"
-                        flexiTooltip
-                        (click)="showFilters = !showFilters">
-                      </flexi-button>
-                    </ng-template>
+            <button type="button" class="pf-icon-btn" title="Yenile" (click)="result.reload()">
+              <span class="material-symbols-outlined">refresh</span>
+            </button>
+          </div>
+        </div>
 
-                    <!-- ✅ Rol Adı -->
-                    <flexi-grid-column field="name" title="Rol Adı" />
-
-                    <!-- ✅ Kullanıcıda var mı? -->
-                    <flexi-grid-column
-                      title="Var"
-                      width="70px"
-                      textAlign="center"
-                      filterType="boolean"
-                      [booleanData]="['Yok', 'Var']">
-                      <ng-template flexiGridCellTemplate let-item>
-                        <span
-                          class="material-symbols-outlined"
-                          style="font-size: 1.35rem; vertical-align: middle;"
-                          [ngStyle]="{ color: item.hasRole ? '#4CAF50' : '#cfd8dc' }">
-                          {{ item.hasRole ? 'check_circle' : 'remove_circle_outline' }}
-                        </span>
-                      </ng-template>
-                    </flexi-grid-column>
-
-                  </flexi-grid>
-                </div>
-
+        @if (loading()) {
+          <div class="pf-loading">
+            <span class="spinner-border" role="status"></span>
+            Roller yükleniyor...
+          </div>
+        } @else if (filteredRoles().length) {
+          <div class="pf-roles">
+            @for (role of filteredRoles(); track role.id ?? role.name) {
+              <div class="pf-role" [class.is-granted]="role.hasRole">
+                <span class="pf-role-icon">
+                  <span class="material-symbols-outlined">{{ role.hasRole ? 'verified_user' : 'shield' }}</span>
+                </span>
+                <span class="pf-role-body">
+                  <span class="pf-role-name d-block">{{ role.name }}</span>
+                  <span class="pf-role-status d-block">{{ role.hasRole ? 'Hesabınızda tanımlı' : 'Tanımlı değil' }}</span>
+                </span>
+                <span class="material-symbols-outlined pf-role-check">
+                  {{ role.hasRole ? 'check_circle' : 'radio_button_unchecked' }}
+                </span>
               </div>
+            }
+          </div>
+        } @else {
+          <div class="sp-empty">
+            <span class="sp-empty-icon">
+              <span class="material-symbols-outlined">search_off</span>
+            </span>
+            <div class="sp-empty-title">Sonuç bulunamadı</div>
+            <div class="sp-empty-text">
+              @if (search().trim()) {
+                "{{ search() }}" ile eşleşen bir rol yok. Farklı bir ifade deneyin ya da filtreyi değiştirin.
+              } @else {
+                Bu filtreye uyan bir rol bulunmuyor.
+              }
+            </div>
+            <button type="button" class="sp-pill-btn" (click)="clearFilters()">
+              <span class="material-symbols-outlined">restart_alt</span>
+              Filtreleri temizle
+            </button>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- Sağ panel -->
+    <div class="sp-side">
+      <section class="st-card">
+        <div class="st-card-head">
+          <span class="st-card-icon">
+            <span class="material-symbols-outlined">donut_large</span>
+          </span>
+          <div>
+            <h4 class="st-card-title">Yetki Kapsamı</h4>
+            <div class="st-card-sub">Tanımlı rollerin sistemdeki payı</div>
+          </div>
+        </div>
+        <div class="st-card-body">
+          <div class="pf-cover">
+            <div class="pf-cover-top">
+              <div class="pf-cover-num">
+                {{ activeRoleCount() }}<small>/ {{ data().length }}</small>
+              </div>
+              <div class="pf-cover-pct">%{{ coveragePct() }}</div>
+            </div>
+            <div class="pf-bar">
+              <div class="pf-bar-fill" [style.width.%]="coveragePct()"></div>
+            </div>
+            <div class="pf-cover-text">
+              Sistemde tanımlı rollerin {{ activeRoleCount() }} tanesi hesabınıza atanmış durumda.
+            </div>
+          </div>
+
+          <div class="pf-stats">
+            <div class="pf-stat is-ok">
+              <div class="pf-stat-label">
+                <span class="material-symbols-outlined">check_circle</span>
+                Sahip
+              </div>
+              <div class="pf-stat-value">{{ activeRoleCount() }}</div>
+            </div>
+            <div class="pf-stat is-muted">
+              <div class="pf-stat-label">
+                <span class="material-symbols-outlined">remove_circle</span>
+                Tanımsız
+              </div>
+              <div class="pf-stat-value">{{ data().length - activeRoleCount() }}</div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
+      <section class="st-card">
+        <div class="st-card-head">
+          <span class="st-card-icon">
+            <span class="material-symbols-outlined">key</span>
+          </span>
+          <div>
+            <h4 class="st-card-title">Yetki Talebi</h4>
+            <div class="st-card-sub">Eksik bir yetki mi var?</div>
+          </div>
+        </div>
+        <div class="st-card-body">
+          <div class="sp-contact">
+            <span class="sp-contact-icon">
+              <span class="material-symbols-outlined">contact_support</span>
+            </span>
+            <div>
+              <div class="sp-contact-title">Dijital Evrak Destek Ekibi</div>
+              <div class="sp-contact-text">
+                İhtiyaç duyduğunuz bir rol hesabınızda tanımlı değilse destek ekibimize e-posta ile ulaşabilirsiniz.
+              </div>
+              <a href="mailto:destek.evrak@mfa.gov.tr" class="sp-contact-mail">
+                <span class="material-symbols-outlined">mail</span>
+                destek.evrak&#64;mfa.gov.tr
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   </div>
 </div>

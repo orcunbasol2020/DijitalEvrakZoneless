@@ -3,89 +3,186 @@
   ]">
 </app-generic>
 
-<div class="row support-page">
-  <!-- Hero / Arama -->
-  <div class="col-12 mb-4">
-    <div class="card settings-profile-card">
-      <div class="card-body">
-        <div class="d-flex align-items-center gap-2 mb-1">
-          <span class="material-symbols-outlined" style="font-size:26px;">support_agent</span>
-          <h4 class="m-0">Nasıl yardımcı olabiliriz?</h4>
-        </div>
-        <div class="text-muted mb-3">
-          Sık sorulan sorular arasında arama yapabilir ya da aşağıdaki hızlı
-          bağlantıları kullanabilirsiniz.
-        </div>
-        <div class="support-search-box">
-          <span class="material-symbols-outlined">search</span>
-          <input
-            type="text"
-            class="form-control"
-            placeholder="Bir konu veya soru arayın..."
-            [ngModel]="search()"
-            (ngModelChange)="search.set($event)" />
+<div class="st-page">
+  <!-- Üst kart: arama -->
+  <section class="sp-hero">
+    <div class="sp-hero-top">
+      <span class="sp-hero-icon">
+        <span class="material-symbols-outlined">support_agent</span>
+      </span>
+      <div>
+        <div class="sp-hero-kicker">YARDIM MERKEZİ</div>
+        <h4 class="sp-hero-title">Nasıl yardımcı olabiliriz?</h4>
+        <div class="sp-hero-text">
+          Sık sorulan sorular arasında arama yapabilir ya da sağdaki hızlı bağlantıları kullanabilirsiniz.
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Sık Sorulan Sorular -->
-  <div class="col-lg-8 col-12 mb-4">
-    <div class="card h-100 settings-section-card">
-      <div class="card-header d-flex align-items-center gap-2">
-        <span class="material-symbols-outlined settings-section-icon">quiz</span>
-        <h4 class="m-0">Sık Sorulan Sorular</h4>
+    <div class="sp-search">
+      <span class="material-symbols-outlined sp-search-icon">search</span>
+      <input
+        type="text"
+        class="sp-search-input"
+        placeholder="Bir konu veya soru arayın..."
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)" />
+      <div class="sp-search-end">
+        <span
+          class="sp-search-count"
+          [class.is-active]="search().trim() && filteredFaqs().length"
+          [class.is-none]="search().trim() && !filteredFaqs().length">
+          {{ filteredFaqs().length }} / {{ faqs.length }} soru
+        </span>
+        @if (search().trim()) {
+          <button type="button" class="sp-search-clear" title="Aramayı temizle" (click)="search.set('')">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        }
       </div>
-      <div class="card-body">
-        @for (faq of filteredFaqs(); track faq.question) {
-          <details class="support-faq-item">
-            <summary>
-              <span class="d-flex align-items-center gap-2">
-                <span class="material-symbols-outlined support-faq-icon">{{ faq.icon }}</span>
-                {{ faq.question }}
-              </span>
-            </summary>
-            <p>{{ faq.answer }}</p>
-          </details>
-        } @empty {
-          <div class="support-empty-state">
-            <span class="material-symbols-outlined">search_off</span>
-            <p class="mb-0">"{{ search() }}" ile eşleşen bir sonuç bulunamadı.</p>
+    </div>
+
+    <div class="sp-topics">
+      <span class="sp-topics-label">Popüler konular:</span>
+      @for (topic of topics; track topic.term) {
+        <button
+          type="button"
+          class="sp-topic"
+          [class.is-active]="search() === topic.term"
+          (click)="search.set(topic.term)">
+          <span class="material-symbols-outlined">{{ topic.icon }}</span>
+          {{ topic.label }}
+        </button>
+      }
+    </div>
+  </section>
+
+  <div class="sp-grid">
+    <!-- Sık Sorulan Sorular -->
+    <section class="st-card">
+      <div class="st-card-head">
+        <span class="st-card-icon">
+          <span class="material-symbols-outlined">quiz</span>
+        </span>
+        <div>
+          <h4 class="st-card-title">Sık Sorulan Sorular</h4>
+          <div class="st-card-sub">En çok merak edilen işlemler ve yanıtları</div>
+        </div>
+        <span class="st-count st-card-head-end">
+          <span class="material-symbols-outlined">help</span>
+          {{ filteredFaqs().length }} soru
+        </span>
+      </div>
+
+      <div class="st-card-body">
+        @if (filteredFaqs().length) {
+          <div class="sp-faqs">
+            @for (faq of filteredFaqs(); track faq.question) {
+              <details class="sp-faq">
+                <summary>
+                  <span class="sp-faq-icon">
+                    <span class="material-symbols-outlined">{{ faq.icon }}</span>
+                  </span>
+                  <span class="sp-faq-q">{{ faq.question }}</span>
+                  <span class="sp-faq-chev">
+                    <span class="material-symbols-outlined">expand_more</span>
+                  </span>
+                </summary>
+                <p class="sp-faq-a">{{ faq.answer }}</p>
+              </details>
+            }
+          </div>
+        } @else {
+          <div class="sp-empty">
+            <span class="sp-empty-icon">
+              <span class="material-symbols-outlined">search_off</span>
+            </span>
+            <div class="sp-empty-title">Sonuç bulunamadı</div>
+            <div class="sp-empty-text">
+              "{{ search() }}" ile eşleşen bir soru yok. Farklı bir ifade deneyin ya da destek ekibimize yazın.
+            </div>
+            <button type="button" class="sp-pill-btn" (click)="search.set('')">
+              <span class="material-symbols-outlined">restart_alt</span>
+              Aramayı temizle
+            </button>
           </div>
         }
       </div>
-    </div>
-  </div>
+    </section>
 
-  <!-- Sağ Panel -->
-  <div class="col-lg-4 col-12 mb-4">
-    <div class="card mb-4 settings-section-card">
-      <div class="card-header d-flex align-items-center gap-2">
-        <span class="material-symbols-outlined settings-section-icon">bolt</span>
-        <h4 class="m-0">Hızlı Bağlantılar</h4>
-      </div>
-      <div class="card-body">
-        @for (link of quickLinks; track link.url) {
-          <a class="support-quick-link" [routerLink]="link.url">
-            <span class="material-symbols-outlined">{{ link.icon }}</span>
-            <span>{{ link.title }}</span>
-            <span class="material-symbols-outlined support-quick-link-arrow">chevron_right</span>
-          </a>
-        }
-      </div>
-    </div>
+    <!-- Sağ panel -->
+    <div class="sp-side">
+      <section class="st-card">
+        <div class="st-card-head">
+          <span class="st-card-icon">
+            <span class="material-symbols-outlined">bolt</span>
+          </span>
+          <div>
+            <h4 class="st-card-title">Hızlı Bağlantılar</h4>
+            <div class="st-card-sub">Sık kullanılan ekranlara tek tıkla gidin</div>
+          </div>
+        </div>
+        <div class="st-card-body">
+          <div class="sp-links">
+            @for (link of quickLinks; track link.url) {
+              <a class="sp-link" [routerLink]="link.url">
+                <span class="sp-link-icon">
+                  <span class="material-symbols-outlined">{{ link.icon }}</span>
+                </span>
+                <span class="sp-link-body">
+                  <span class="sp-link-title d-block">{{ link.title }}</span>
+                  <span class="sp-link-sub d-block">{{ link.sub }}</span>
+                </span>
+                <span class="material-symbols-outlined sp-link-arrow">arrow_forward</span>
+              </a>
+            }
+          </div>
+        </div>
+      </section>
 
-    <div class="card settings-section-card">
-      <div class="card-header d-flex align-items-center gap-2">
-        <span class="material-symbols-outlined settings-section-icon">admin_panel_settings</span>
-        <h4 class="m-0">Teknik Destek</h4>
-      </div>
-      <div class="card-body">
-        <p class="mb-0 text-muted" style="font-size: 0.85rem;">
-          Sorun yaşadığınızda ya da erişim/şifre talepleriniz için
-          biriminizin sistem yöneticisiyle iletişime geçebilirsiniz.
-        </p>
-      </div>
+      <section class="st-card">
+        <div class="st-card-head">
+          <span class="st-card-icon">
+            <span class="material-symbols-outlined">admin_panel_settings</span>
+          </span>
+          <div>
+            <h4 class="st-card-title">Teknik Destek</h4>
+            <div class="st-card-sub">Çözüm bulamadığınız durumlar için</div>
+          </div>
+        </div>
+        <div class="st-card-body">
+          <div class="sp-contact">
+            <span class="sp-contact-icon">
+              <span class="material-symbols-outlined">contact_support</span>
+            </span>
+            <div>
+              <div class="sp-contact-title">Dijital Evrak Destek Ekibi</div>
+              <div class="sp-contact-text">
+                Sorun yaşadığınızda ya da erişim ve şifre talepleriniz için destek ekibimize e-posta ile ulaşabilirsiniz.
+              </div>
+              <a href="mailto:destek.evrak@mfa.gov.tr" class="sp-contact-mail">
+                <span class="material-symbols-outlined">mail</span>
+                destek.evrak&#64;mfa.gov.tr
+              </a>
+            </div>
+          </div>
+
+          <div class="sp-contact-tags">
+            <span class="sp-tag">
+              <span class="material-symbols-outlined">lock_reset</span>
+              Şifre sıfırlama
+            </span>
+            <span class="sp-tag">
+              <span class="material-symbols-outlined">key</span>
+              Yetki talebi
+            </span>
+            <span class="sp-tag">
+              <span class="material-symbols-outlined">bug_report</span>
+              Hata bildirimi
+            </span>
+          </div>
+        </div>
+      </section>
     </div>
   </div>
 </div>
