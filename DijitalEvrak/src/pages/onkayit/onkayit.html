@@ -9,7 +9,7 @@
 
 <div class="row">
     <!-- SOL PANEL: QR okutma + ön kayıt sonucu -->
-    <div class="col-lg-6 col-12">
+    <div class="col-lg-8 col-12">
         <div class="card zm-card d-flex flex-column">
             <div class="card-header dashboard-header d-flex align-items-center justify-content-between">
                 <div class="d-flex align-items-center">
@@ -161,12 +161,13 @@
     </div>
 
     <!-- SAĞ PANEL: Dilekçe -->
-    <div class="col-lg-6 col-12">
+    <div class="col-lg-4 col-12">
         <div class="card zm-card d-flex flex-column">
             <div class="card-header dashboard-header d-flex align-items-center justify-content-between">
+                <!-- Evrak yokken "Nasıl Çalışır" rehberi, evrak bulununca "Dilekçe" formu -->
                 <div class="d-flex align-items-center">
-                    <span class="material-symbols-outlined me-2 text-info">description</span>
-                    <h5 class="card-title mb-0 fw-semibold">Dilekçe</h5>
+                    <span class="material-symbols-outlined me-2 text-info">{{ detailsVisible() ? 'description' : 'help_outline' }}</span>
+                    <h5 class="card-title mb-0 fw-semibold">{{ detailsVisible() ? 'Dilekçe' : 'Nasıl Çalışır' }}</h5>
                 </div>
                 <span class="ok-optional" *ngIf="detailsVisible()">Opsiyonel</span>
             </div>

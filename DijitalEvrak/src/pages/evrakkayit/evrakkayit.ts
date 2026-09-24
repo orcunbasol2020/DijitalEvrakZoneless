@@ -17,6 +17,14 @@ import { DocumentTransaction } from '../../services/documenttransaction';
 import { DocumentTransactionModel } from '../../models/documenttransaction.model';
 import { SecurityDegreeEnum, SecurityDegreeLabels } from '../../models/securitydegree.model';
 import { actionRequiredOptions } from '../../models/actionrequired.model';
+import { DocumentTypeEnum, DocumentTypeLabels } from '../../models/documenttype.model';
+
+// "Diğer Bilgiler" sekmesinin varsayılanları: Hizmete Özel, elektronik kopya yok, Türkçe (1)
+const DETAIL_DEFAULTS = {
+  securityDegree: SecurityDegreeEnum.ServiceUseOnly,
+  electronicCopy: false,
+  languageId: 1,
+} as const;
 
 @Component({
   standalone: true,
@@ -28,11 +36,34 @@ import { actionRequiredOptions } from '../../models/actionrequired.model';
     SimpleAutocompleteComponent
   ],
   templateUrl: './evrakkayit.html',
+  // Görsel dil Ön Kayıt / Zimmet ekranlarıyla aynı; ortak zm-* sınıfları
+  // gidenevrak/zimmet.css'ten, ok-input gibi form parçaları onkayit.css'ten,
+  // bu ekrana özgü ek-* sınıfları evrakkayit.css'ten gelir.
+  styleUrls: ['../gidenevrak/zimmet/zimmet.css', '../onkayit/onkayit.css', './evrakkayit.css'],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export default class Evrakkayit implements OnInit {
   publish = signal(false);
+
+  // Başlık kutusu ve alt özette gösterilen evrak sayısı (qrCode)
+  readonly documentNo = signal<string>('');
+
+  // Sol karttaki sekmeler (Bootstrap tab JS yerine sinyal ile yönetilir)
+  readonly activeTab = signal<'general' | 'detail' | 'transaction'>('general');
+
+  setTab(tab: 'general' | 'detail' | 'transaction') {
+    this.activeTab.set(tab);
+    if (tab === 'transaction') this.loadTransactions();
+  }
+
+  // Başlıktaki durum rozeti: yayın durumu öncelikli, aksi halde kayıt durumu
+  readonly statusBadge = computed(() => {
+    const status = this.docStatus();
+    if (status === 10) return { text: 'Yayınlandı', tone: 'success', icon: 'verified' };
+    if (status === 6) return { text: 'Yayınlanma Sırasında', tone: 'warning', icon: 'hourglass_top' };
+    return { text: 'Kayıt', tone: 'info', icon: 'edit_document' };
+  });
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private incomingDocumentService = inject(IncomingDocumentService);
@@ -75,6 +106,12 @@ export default class Evrakkayit implements OnInit {
     return this.sanitizer.bypassSecurityTrustResourceUrl(url);
   });
 
+  // "Yeni sekmede aç" bağlantısı için ham PDF adresi
+  readonly pdfRawUrl = computed<string | null>(() => {
+    const fileName = this.pdfFileName();
+    return fileName ? this.incomingDocumentService.getPdfUrl(fileName) : null;
+  });
+
   // PDF yükleme hazır flag sinyali
   readonly isPdfReady = signal(false);
 
@@ -91,6 +128,16 @@ export default class Evrakkayit implements OnInit {
   }));
 
   readonly actionRequiredOptions = actionRequiredOptions;
+
+  // Gelen evrak kaydında seçilemeyen türler (enum'da kalır, listede görünmez)
+  private static readonly hiddenDocumentTypes: ReadonlySet<DocumentTypeEnum> = new Set([
+    DocumentTypeEnum.Nota,
+  ]);
+
+  // Evrak türü seçenekleri ortak enum'dan (giden evrak ve zarf etiketi ekranlarıyla aynı liste)
+  readonly documentTypeOptions = Object.entries(DocumentTypeLabels)
+    .map(([value, label]) => ({ value: Number(value) as DocumentTypeEnum, label }))
+    .filter(opt => !Evrakkayit.hiddenDocumentTypes.has(opt.value));
 
   private documentTransactionService = inject(DocumentTransaction);
   transactionData = signal<DocumentTransactionModel[]>([]);
@@ -110,20 +157,24 @@ export default class Evrakkayit implements OnInit {
       documentName: [''],
       externalInstitutionId: new FormControl<ExternalInstitutionModel | null>(null),
       departmentId: new FormControl<DepartmentModel | null>(null),
-      documentTypeId: [''],
+      documentTypeId: [null as DocumentTypeEnum | null],
     });
 
     this.formDetail = this.fb.group({
       id: ['', Validators.required],
       status: [''],
-      securityDegree: [''],
+      securityDegree: [DETAIL_DEFAULTS.securityDegree],
       actionRequired: [null],
-      electronicCopy: [''],
-      languageId: [''],
+      electronicCopy: [DETAIL_DEFAULTS.electronicCopy],
+      languageId: [DETAIL_DEFAULTS.languageId],
       pageCount: [''],
       ocrStatus: [{ value: '', disabled: true }],
       release: [{ value: '', disabled: true }]
     });
+
+    // Zoneless CD: şablondaki evrak sayısı metni ham form değeri yerine bu sinyalden okunur,
+    // böylece patchValue sonrası görünüm güncellenir.
+    this.form.controls['qrCode'].valueChanges.subscribe(v => this.documentNo.set(v ?? ''));
 
     this.loadDepartments();
     this.loadExternalInstitutions();
@@ -167,18 +218,7 @@ export default class Evrakkayit implements OnInit {
         this.applyDepartment(doc.departmentId);
         this.applyExternalInstitution(doc.externalInstitutionId);
 
-        this.formDetail.patchValue({
-          id: doc.id,
-          securityDegree: doc.securityDegree,
-          actionRequired: doc.actionRequired,
-          languageId: doc.languageId,
-          electronicCopy: doc.electronicCopy,
-          pageCount: doc.pageCount,
-          ocrStatus: doc.ocrStatus,
-          release: doc.release,
-          status: doc.status,
-        });
-
+        this.patchDetail(doc);
 
       });
 
@@ -383,19 +423,23 @@ export default class Evrakkayit implements OnInit {
       this.applyDepartment(doc.departmentId);
       this.applyExternalInstitution(doc.externalInstitutionId);
 
-      this.formDetail.patchValue({
-        id: doc.id,
-        securityDegree: doc.securityDegree,
-        actionRequired: doc.actionRequired,
-        languageId: doc.languageId,
-        electronicCopy: doc.electronicCopy,
-        pageCount: doc.pageCount,
-        ocrStatus: doc.ocrStatus,
-        release: doc.release,
-        status: doc.status,
-      });
+      this.patchDetail(doc);
 
+    });
+  }
 
+  // "Diğer Bilgiler" formunu belgeden doldurur; backend'de boş olan alanlar varsayılanla gelir.
+  private patchDetail(doc: IncomingDocumentModel) {
+    this.formDetail.patchValue({
+      id: doc.id,
+      securityDegree: doc.securityDegree ?? DETAIL_DEFAULTS.securityDegree,
+      actionRequired: doc.actionRequired,
+      languageId: doc.languageId ?? DETAIL_DEFAULTS.languageId,
+      electronicCopy: doc.electronicCopy ?? DETAIL_DEFAULTS.electronicCopy,
+      pageCount: doc.pageCount,
+      ocrStatus: doc.ocrStatus,
+      release: doc.release,
+      status: doc.status,
     });
   }
 

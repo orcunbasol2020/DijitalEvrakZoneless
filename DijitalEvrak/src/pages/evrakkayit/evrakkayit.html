@@ -2,309 +2,315 @@
 </app-generic>
 
 <div class="row evrakkayit-page">
-  <!-- Sol taraf: Form ve Tablar -->
-  <div class="col-md-5 col-12">
-    <div class="card">
-      <div class="card-body">
-        <div class="card-header p-2 bg-white">
-          <ul class="nav nav-pills nav-fill" id="evrakTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-              <button class="nav-link active shadow-sm rounded-pill"
-                id="general-tab" data-bs-toggle="tab" data-bs-target="#general"
-                type="button" role="tab">
-                Evrak Kayıt
-              </button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link shadow-sm rounded-pill" id="technical-tab"
-                data-bs-toggle="tab" data-bs-target="#technical" type="button"
-                role="tab">
-                Diğer Bilgiler
-              </button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button
-                class="nav-link shadow-sm rounded-pill"
-                id="transaction-tab"
-                data-bs-toggle="tab"
-                data-bs-target="#transaction"
-                type="button"
-                role="tab"
-                (click)="loadTransactions()">
-                İşlem Takip
-              </button>
-            </li>
-          </ul>
+  <!-- SOL PANEL: Kayıt formu ve sekmeler -->
+  <div class="col-lg-5 col-12">
+    <div class="card zm-card d-flex flex-column">
+      <div class="card-header dashboard-header d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center">
+          <span class="material-symbols-outlined me-2 text-info">edit_document</span>
+          <h5 class="card-title mb-0 fw-semibold">Gelen Evrak Kayıt</h5>
+        </div>
+        <span class="ek-status-pill" [attr.data-tone]="statusBadge().tone">
+          <span class="material-symbols-outlined">{{ statusBadge().icon }}</span>
+          {{ statusBadge().text }}
+        </span>
+      </div>
+
+      <div class="card-body zm-body">
+        <!-- Evrak sayısı (salt okunur) -->
+        <div class="ek-lookup">
+          <span class="ek-lookup-icon">
+            <span class="material-symbols-outlined">qr_code_2</span>
+          </span>
+          <div class="ek-lookup-body">
+            <div class="zm-field-label">Evrak Sayısı</div>
+            <div class="ek-lookup-no">{{ documentNo() || '—' }}</div>
+          </div>
         </div>
 
-        <!-- Tab Panes -->
-        <div class="tab-content" id="evrakTabsContent">
-          <!-- Genel Bilgiler Tab -->
-          <div class="tab-pane fade show active" id="general" role="tabpanel">
-            <form [formGroup]="form" autocomplete="off" (ngSubmit)="save()">
+        <!-- Sekme seçici (Teslim türü segment seçicisiyle aynı dil) -->
+        <div class="ek-tabs" role="tablist">
+          <button type="button" class="ek-tab" role="tab"
+            [class.is-active]="activeTab() === 'general'" (click)="setTab('general')">
+            <span class="material-symbols-outlined">description</span>
+            <span>Evrak Kayıt</span>
+          </button>
+          <button type="button" class="ek-tab" role="tab"
+            [class.is-active]="activeTab() === 'detail'" (click)="setTab('detail')">
+            <span class="material-symbols-outlined">tune</span>
+            <span>Diğer Bilgiler</span>
+          </button>
+          <button type="button" class="ek-tab" role="tab"
+            [class.is-active]="activeTab() === 'transaction'" (click)="setTab('transaction')">
+            <span class="material-symbols-outlined">history</span>
+            <span>İşlem Takip</span>
+          </button>
+        </div>
 
-              <!-- Sistem No -->
-              <div class="evrak-lookup-box">
-                <span class="material-symbols-outlined">qr_code_2</span>
-                <div class="flex-grow-1">
-                  <label for="documentNo" class="evrak-lookup-label">SİSTEM NO</label>
-                  <div class="input-group input-group-sm">
-                    <input type="text" id="documentNo" class="form-control"
-                      placeholder="2025/" formControlName="qrCode">
-                    <button class="btn btn-outline-info" type="button"
-                      (click)="getir('')">
-                      <span class="material-symbols-outlined" style="font-size: 16px;">search</span>
-                      Getir
-                    </button>
-                  </div>
-                </div>
+        <!-- ===== Evrak Kayıt ===== -->
+        <form id="ekGeneralForm" [formGroup]="form" autocomplete="off" (ngSubmit)="save()"
+          class="ek-pane" [hidden]="activeTab() !== 'general'">
+
+          <!-- Evrak sayısı üstteki kutuda gösterilir; qrCode formda gizli alan olarak kalır -->
+          <input type="hidden" formControlName="qrCode">
+
+          <!-- Belge bilgileri -->
+          <div class="ek-section">
+            <div class="ek-section-title">
+              <span class="material-symbols-outlined">description</span>
+              Belge Bilgileri
+            </div>
+            <div class="ek-grid">
+              <div class="zm-field">
+                <label for="belgeTuru" class="zm-field-label">Evrak Türü</label>
+                <select id="belgeTuru" formControlName="documentTypeId" class="form-select ok-input">
+                  <option [ngValue]="null" disabled>Seçiniz</option>
+                  <option *ngFor="let opt of documentTypeOptions" [ngValue]="opt.value">{{ opt.label }}</option>
+                </select>
+              </div>
+              <div class="zm-field">
+                <label for="belgeTarihi" class="zm-field-label">Evrak Tarihi</label>
+                <input type="date" id="belgeTarihi" class="form-control ok-input" formControlName="documentDate">
+              </div>
+              <div class="zm-field ek-span-2">
+                <label for="orjBelge" class="zm-field-label">Orjinal Belge No</label>
+                <input type="text" id="orjBelge" class="form-control ok-input" formControlName="orginalNo">
+              </div>
+              <div class="zm-field ek-span-2">
+                <label for="konusu" class="zm-field-label">Konusu</label>
+                <input type="text" id="konusu" class="form-control ok-input" formControlName="subject">
               </div>
 
-              <div class="evrak-form-section">
-                <div class="evrak-form-section-header">
-                  <span class="material-symbols-outlined">description</span>
-                  BELGE BİLGİLERİ
-                </div>
-
-                <!-- Evrak Türü -->
-                <div class="row g-3 mb-3">
-                  <div class="col-md-6">
-                    <label for="belgeTuru" class="form-label">Evrak Türü</label>
-                    <select
-                      id="belgeTuru"
-                      formControlName="documentTypeId"
-                      class="form-select custom-select-blue">
-                      <option [value]="1">Nota</option>
-                      <option [value]="2">Evrak</option>
-                    </select>
-                  </div>
-                  <div class="col-md-6">
-                    <!-- Belge Tarihi -->
-                    <label for="belgeTarihi" class="form-label">Evrak Tarihi</label>
-                    <input type="date" id="belgeTarihi" class="form-control"
-                      formControlName="documentDate">
-                  </div>
-                </div>
-                <!-- Orjinal Belge No -->
-                <div class="form-group mb-3">
-                  <label for="orjBelge" class="form-label">Orjinal Belge No</label>
-                  <input type="text" id="orjBelge" class="form-control"
-                    formControlName="orginalNo">
-                </div>
-
-                <!-- Konusu -->
-                <div class="form-group">
-                  <label for="konusu" class="form-label">Konusu</label>
-                  <input type="text" id="konusu" class="form-control"
-                    formControlName="subject">
-                </div>
+              <!-- Kurum / Birim: aynı bölümün devamı -->
+              <div class="zm-field ek-span-2">
+                <label class="zm-field-label">
+                  <span class="material-symbols-outlined ek-label-icon">call_made</span>
+                  Nereden
+                </label>
+                <app-simple-autocomplete [control]="externalInstitutionControl"
+                  [options]="externalInstitutions"
+                  placeholder="Kurum seçiniz"></app-simple-autocomplete>
               </div>
-
-              <div class="evrak-form-section">
-                <!-- Kurum / Birim -->
-                <div class="form-group mb-3">
-                  <label for="nereden" class="form-label">
-                    <span class="material-symbols-outlined align-middle me-1" style="font-size: 16px;">call_made</span>
-                    Nereden
-                  </label>
-                  <app-simple-autocomplete [control]="externalInstitutionControl"
-                    [options]="externalInstitutions"
-                    placeholder="Kurum seçiniz"></app-simple-autocomplete>
-                </div>
-                <div class="form-group">
-                  <label for="nereye" class="form-label">
-                    <span class="material-symbols-outlined align-middle me-1" style="font-size: 16px;">call_received</span>
-                    Nereye
-                  </label>
-                  <app-simple-autocomplete [control]="departmentControl"
-                    [options]="departments"
-                    placeholder="Birim seçiniz"></app-simple-autocomplete>
-                </div>
-              </div>
-
-              <div class="evrak-form-section">
-                <div class="evrak-form-section-header">
-                  <span class="material-symbols-outlined">sticky_note_2</span>
-                  NOTLAR
-                </div>
-                <textarea id="notlar" class="form-control"
-                  formControlName="notes" rows="2"></textarea>
-              </div>
-              <div class="form-actions">
-                <button
-                  type="submit"
-                  class="btn btn-save"
-                  [disabled]="activeStatus()"
-                  (click)="publish.set(false)">
-                  Kaydet
-                </button>
-                <button
-                  type="submit"
-                  class="btn btn-publish"
-                  [disabled]="activeStatus()"
-                  (click)="publish.set(true)">
-                  <span class="material-symbols-outlined me-1">publish</span>
-                  Kaydet ve Yayınla
-                </button>
-              </div>
-            </form>
-          </div>
-
-          <!-- Teknik Bilgiler Tab -->
-          <div class="tab-pane fade" id="technical" role="tabpanel">
-            <form *ngIf="formDetail" [formGroup]="formDetail" autocomplete="off"
-              (ngSubmit)="saveDetail()">
-
-              <div class="evrak-form-section">
-                <div class="evrak-form-section-header">
-                  <span class="material-symbols-outlined">tune</span>
-                  BELGE ÖZELLİKLERİ
-                </div>
-
-                <div class="row g-3">
-                  <div class="col-md-6">
-                    <label class="form-label">Gizlilik Derecesi</label>
-                    <select class="form-select" formControlName="securityDegree">
-                      <option *ngFor="let opt of securityDegreeOptions" [ngValue]="opt.value">{{ opt.label }}</option>
-                    </select>
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label">Elektronik Kopya</label>
-                    <select class="form-select" formControlName="electronicCopy">
-                      <option [ngValue]="true">Evet</option>
-                      <option [ngValue]="false">Hayır</option>
-                    </select>
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label">Dil</label>
-                    <select class="form-select" formControlName="languageId">
-                      <option [ngValue]="1">Türkçe</option>
-                      <option [ngValue]="2">İngilizce</option>
-                    </select>
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label">Sayfa Sayısı</label>
-                    <input type="number" class="form-control"
-                      formControlName="pageCount">
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label">Gereği/Bilgi</label>
-                    <select class="form-select" formControlName="actionRequired">
-                      <option *ngFor="let opt of actionRequiredOptions" [ngValue]="opt.value">{{ opt.label }}</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              <div class="d-flex justify-content-end">
-                <button type="submit" class="btn btn-save px-4">
-                  <span class="material-symbols-outlined me-1" style="font-size: 16px;">save</span>
-                  Kaydet
-                </button>
-              </div>
-            </form>
-          </div>
-
-          <!-- Transaction / Takip Tab -->
-          <div class="tab-pane fade" id="transaction" role="tabpanel">
-            <div class="transaction-status-row">
-              <div class="transaction-status-chip" [ngClass]="statusChipClass()">
-                <span class="material-symbols-outlined">fact_check</span>
-                <div>
-                  <div class="transaction-status-label">DURUM</div>
-                  <div class="transaction-status-value">{{ activeStatus() ? 'Yayınlandı' : getStatusText() }}</div>
-                </div>
-              </div>
-
-              <div class="transaction-status-chip" [ngClass]="ocrChipClass()">
-                <span class="material-symbols-outlined">document_scanner</span>
-                <div>
-                  <div class="transaction-status-label">OCR DURUMU</div>
-                  <div class="transaction-status-value">{{ getOcrStatusText() }}</div>
-                </div>
-              </div>
-
-              <div class="transaction-status-chip" [ngClass]="releaseChipClass()">
-                <span class="material-symbols-outlined">cloud_done</span>
-                <div>
-                  <div class="transaction-status-label">YAYINLANMA DURUMU</div>
-                  <div class="transaction-status-value">{{ getReleaseText() }}</div>
-                </div>
+              <div class="zm-field ek-span-2">
+                <label class="zm-field-label">
+                  <span class="material-symbols-outlined ek-label-icon">call_received</span>
+                  Nereye
+                </label>
+                <app-simple-autocomplete [control]="departmentControl"
+                  [options]="departments"
+                  placeholder="Birim seçiniz"></app-simple-autocomplete>
               </div>
             </div>
+          </div>
 
-            <div class="transaction-timeline-card">
-              <div class="transaction-timeline-header">
-                <span class="d-flex align-items-center gap-2">
-                  <span class="material-symbols-outlined">history</span>
-                  İşlem Geçmişi
-                  <span class="badge rounded-pill bg-light text-muted border" *ngIf="data().length">{{ data().length }}</span>
-                </span>
-                <button class="btn btn-sm btn-outline-info" title="Güncel Verileri Getir" (click)="loadTransactions()">
-                  <span class="material-symbols-outlined" [class.spin]="loading()">refresh</span>
-                </button>
+          <!-- Notlar (şimdilik gizli; alan formda kalır, değeri kaydedilmeye devam eder) -->
+          <div class="ek-section" [hidden]="true">
+            <div class="ek-section-title">
+              <span class="material-symbols-outlined">sticky_note_2</span>
+              Notlar
+            </div>
+            <textarea id="notlar" class="form-control ok-input" formControlName="notes" rows="3"
+              placeholder="Evrakla ilgili kısa not (isteğe bağlı)"></textarea>
+          </div>
+        </form>
+
+        <!-- ===== Diğer Bilgiler ===== -->
+        <form id="ekDetailForm" *ngIf="formDetail" [formGroup]="formDetail" autocomplete="off"
+          (ngSubmit)="saveDetail()" class="ek-pane" [hidden]="activeTab() !== 'detail'">
+
+          <div class="ek-section">
+            <div class="ek-section-title">
+              <span class="material-symbols-outlined">tune</span>
+              Belge Özellikleri
+            </div>
+            <div class="ek-grid">
+              <div class="zm-field">
+                <label class="zm-field-label">Gizlilik Derecesi</label>
+                <select class="form-select ok-input" formControlName="securityDegree">
+                  <option *ngFor="let opt of securityDegreeOptions" [ngValue]="opt.value">{{ opt.label }}</option>
+                </select>
               </div>
+              <div class="zm-field">
+                <label class="zm-field-label">Elektronik Kopya</label>
+                <select class="form-select ok-input" formControlName="electronicCopy">
+                  <option [ngValue]="true">Evet</option>
+                  <option [ngValue]="false">Hayır</option>
+                </select>
+              </div>
+              <div class="zm-field">
+                <label class="zm-field-label">Dil</label>
+                <select class="form-select ok-input" formControlName="languageId">
+                  <option [ngValue]="1">Türkçe</option>
+                  <option [ngValue]="2">İngilizce</option>
+                </select>
+              </div>
+              <div class="zm-field">
+                <label class="zm-field-label">Sayfa Sayısı</label>
+                <input type="number" min="0" class="form-control ok-input" formControlName="pageCount">
+              </div>
+              <div class="zm-field ek-span-2">
+                <label class="zm-field-label">Gereği / Bilgi</label>
+                <select class="form-select ok-input" formControlName="actionRequired">
+                  <option *ngFor="let opt of actionRequiredOptions" [ngValue]="opt.value">{{ opt.label }}</option>
+                </select>
+              </div>
+            </div>
+          </div>
 
-              <div class="transaction-timeline-body">
-                <div *ngIf="loading()" class="d-flex justify-content-center align-items-center py-4">
-                  <div class="spinner-border spinner-border-sm text-primary" role="status">
-                    <span class="visually-hidden">Yükleniyor...</span>
-                  </div>
-                </div>
+          <div class="ok-note">
+            <span class="material-symbols-outlined">info</span>
+            Bu bilgiler evrakın arşiv ve dağıtım özelliklerini belirler; gerektiğinde sonradan güncellenebilir.
+          </div>
+        </form>
 
-                <ng-container *ngIf="!loading()">
-                  <div class="transaction-timeline-item" *ngFor="let item of data()">
-                    <span class="transaction-timeline-dot" [ngClass]="transactionIconClass(item.transactionType)">
-                      <span class="material-symbols-outlined">{{ transactionIcon(item.transactionType) }}</span>
-                    </span>
-                    <div class="transaction-timeline-info">
-                      <div class="transaction-timeline-title">{{ item.transactionTypeName }}</div>
-                      <div class="transaction-timeline-user">
-                        <span class="material-symbols-outlined">person</span>
-                        {{ item.userFullName }}
-                      </div>
-                      <div class="transaction-timeline-date">{{ item.createdDate | date:'dd.MM.yyyy HH:mm' }}</div>
+        <!-- ===== İşlem Takip ===== -->
+        <div class="ek-pane" [hidden]="activeTab() !== 'transaction'">
+          <!-- Durum özeti -->
+          <div class="ek-stats">
+            <div class="ek-stat" [ngClass]="statusChipClass()">
+              <span class="ek-stat-icon">
+                <span class="material-symbols-outlined">fact_check</span>
+              </span>
+              <span class="ek-stat-body">
+                <span class="ek-stat-label">DURUM</span>
+                <span class="ek-stat-value">{{ activeStatus() ? 'Yayınlandı' : getStatusText() }}</span>
+              </span>
+            </div>
+            <div class="ek-stat" [ngClass]="ocrChipClass()">
+              <span class="ek-stat-icon">
+                <span class="material-symbols-outlined">document_scanner</span>
+              </span>
+              <span class="ek-stat-body">
+                <span class="ek-stat-label">OCR</span>
+                <span class="ek-stat-value">{{ getOcrStatusText() }}</span>
+              </span>
+            </div>
+            <div class="ek-stat" [ngClass]="releaseChipClass()">
+              <span class="ek-stat-icon">
+                <span class="material-symbols-outlined">cloud_done</span>
+              </span>
+              <span class="ek-stat-body">
+                <span class="ek-stat-label">YAYIN</span>
+                <span class="ek-stat-value">{{ getReleaseText() }}</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- İşlem geçmişi -->
+          <div class="ek-section">
+            <div class="ek-section-title">
+              <span class="material-symbols-outlined">history</span>
+              İşlem Geçmişi
+              <span class="ek-count" *ngIf="data().length">{{ data().length }}</span>
+              <button type="button" class="zm-icon-btn ms-auto" title="Güncel Verileri Getir" (click)="loadTransactions()">
+                <span class="material-symbols-outlined" [class.spin]="loading()">refresh</span>
+              </button>
+            </div>
+
+            <div class="zm-empty zm-empty-sm" *ngIf="loading()">
+              <div class="zm-empty-icon">
+                <div class="spinner-border text-primary"></div>
+              </div>
+              <div class="zm-empty-title">Yükleniyor...</div>
+              <div class="zm-empty-text">İşlem geçmişi getiriliyor.</div>
+            </div>
+
+            <ng-container *ngIf="!loading()">
+              <ul class="ek-tl" *ngIf="data().length; else noTransactions">
+                <li class="ek-tl-item" *ngFor="let item of data()">
+                  <span class="ek-tl-dot" [ngClass]="transactionIconClass(item.transactionType)">
+                    <span class="material-symbols-outlined">{{ transactionIcon(item.transactionType) }}</span>
+                  </span>
+                  <div class="ek-tl-body">
+                    <div class="ek-tl-title">{{ item.transactionTypeName }}</div>
+                    <div class="ek-tl-meta">
+                      <span class="material-symbols-outlined">person</span>
+                      {{ item.userFullName }}
+                      <span class="ek-tl-sep">·</span>
+                      {{ item.createdDate | date:'dd.MM.yyyy HH:mm' }}
                     </div>
                   </div>
-
-                  <div *ngIf="!data().length" class="transaction-timeline-empty">
+                </li>
+              </ul>
+              <ng-template #noTransactions>
+                <div class="zm-empty zm-empty-sm">
+                  <div class="zm-empty-icon">
                     <span class="material-symbols-outlined">history_toggle_off</span>
-                    Bu belge için henüz işlem kaydı bulunmuyor.
                   </div>
-                </ng-container>
-              </div>
-            </div>
+                  <div class="zm-empty-title">İşlem kaydı yok</div>
+                  <div class="zm-empty-text">Bu belge için henüz işlem kaydı bulunmuyor.</div>
+                </div>
+              </ng-template>
+            </ng-container>
           </div>
+        </div>
+      </div>
+
+      <!-- Alt şerit: özet + aksiyonlar (sekmeye göre) -->
+      <div class="card-footer zm-footer mt-auto" *ngIf="activeTab() !== 'transaction'">
+        <div class="zm-summary" [class.is-ready]="documentNo()">
+          <span class="zm-summary-docs">
+            <span class="material-symbols-outlined">description</span>
+            {{ documentNo() || 'Evrak sayısı yok' }}
+          </span>
+          <span class="material-symbols-outlined zm-summary-arrow">arrow_forward</span>
+          <span class="zm-summary-target">{{ statusBadge().text }}</span>
+        </div>
+
+        <div class="zm-footer-actions" *ngIf="activeTab() === 'general'">
+          <button type="submit" form="ekGeneralForm" class="btn btn-light zm-back-btn"
+            [disabled]="activeStatus()" (click)="publish.set(false)">
+            <span class="material-symbols-outlined">save</span>
+            Kaydet
+          </button>
+          <button type="submit" form="ekGeneralForm" class="btn btn-primary zimmet-submit-btn" data-mode="self"
+            [disabled]="activeStatus()" (click)="publish.set(true)">
+            <span class="zimmet-submit-icon material-symbols-outlined">publish</span>
+            <span class="zimmet-submit-text">Kaydet ve Yayınla</span>
+          </button>
+        </div>
+
+        <div class="zm-footer-actions" *ngIf="activeTab() === 'detail'">
+          <button type="submit" form="ekDetailForm" class="btn btn-primary zimmet-submit-btn" data-mode="self">
+            <span class="zimmet-submit-icon material-symbols-outlined">save</span>
+            <span class="zimmet-submit-text">Kaydet</span>
+          </button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Sağ taraf: PDF Önizleme -->
-  <div class="col-md-7 col-12">
-    <div class="card">
-      <div class="card-body p-0">
-        <div *ngIf="docStatus() === 6 || docStatus() === 10"
-          class="publish-badge"
-          [ngClass]="{'verified': docStatus() === 10}">
-          <span class="material-symbols-outlined me-1">
-            {{ docStatus() === 10 ? 'verified' : 'hourglass_top' }}
+  <!-- SAĞ PANEL: PDF önizleme -->
+  <div class="col-lg-7 col-12">
+    <div class="card zm-card d-flex flex-column">
+      <div class="card-header dashboard-header d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center">
+          <span class="material-symbols-outlined me-2 text-info">picture_as_pdf</span>
+          <h5 class="card-title mb-0 fw-semibold">Evrak Önizleme</h5>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="ek-status-pill" *ngIf="docStatus() === 6 || docStatus() === 10"
+            [attr.data-tone]="statusBadge().tone">
+            <span class="material-symbols-outlined">{{ statusBadge().icon }}</span>
+            {{ statusBadge().text }}
           </span>
-          {{ docStatus() === 10 ? 'Yayınlandı' : 'Yayınlanma Sırasında' }}
+          <a class="zm-pill-btn" *ngIf="pdfRawUrl() as raw" [href]="raw" target="_blank" rel="noopener"
+            title="PDF'i yeni sekmede aç">
+            <span class="material-symbols-outlined">open_in_new</span>
+            <span>Yeni Sekmede</span>
+          </a>
         </div>
+      </div>
 
-        <div *ngIf="!isPdfReady()" class="pdf-loader">
-          <div class="spinner"></div>
-          <span>Evrak yükleniyor, lütfen bekleyin...</span>
+      <div class="card-body ek-pdf-body">
+        <div class="zm-empty ek-pdf-empty" *ngIf="!isPdfReady()">
+          <div class="zm-empty-icon">
+            <div class="spinner-border text-primary"></div>
+          </div>
+          <div class="zm-empty-title">Evrak yükleniyor</div>
+          <div class="zm-empty-text">Taranmış belge hazırlanıyor, lütfen bekleyin.</div>
         </div>
-        <iframe
-          *ngIf="isPdfReady()"
-          [src]="pdfUrl()"
-          width="100%"
-          height="920px"
-          style="border:none;">
-        </iframe>
-        
+        <iframe *ngIf="isPdfReady()" class="ek-pdf-frame" [src]="pdfUrl()" title="Evrak önizleme"></iframe>
       </div>
     </div>
   </div>
