@@ -27,6 +27,12 @@ export const navigations: NavigationModel[] = [
         roles: ["Gelen Evrak", "Ön Kayıt"]
     },
     {
+        title: "Ön Kayıtlar",
+        url: "/onkayitlar",
+        icon: "pending_actions",
+        roles: ["Gelen Evrak", "Ön Kayıt"]
+    },
+    {
         title: "Evrak Kayıt",
         url: "/qrokut",
         icon: "qr_code",

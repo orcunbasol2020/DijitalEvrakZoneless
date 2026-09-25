@@ -26,6 +26,8 @@ export interface IncomingDocumentModel {
   submissionStatus: number;
 
   userId?: string;
+  // Evrakı oluşturan (ön kaydı yapan) kullanıcı; sütun eklenmeden önceki kayıtlarda null
+  createdUserId?: string | null;
 
   documentName?: string;
   notes?: string;

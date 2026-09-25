@@ -1,0 +1,69 @@
+@if (document()) {
+  <div class="modal-overlay" (click)="cancel()">
+    <div class="modal-box udm-modal" (click)="$event.stopPropagation()">
+      <div class="udm-head">
+        <span class="udm-head-icon">
+          <span class="material-symbols-outlined">upload_file</span>
+        </span>
+        <div>
+          <h4 class="udm-title">Belge Yükle</h4>
+          <div class="udm-sub">{{ subtitle() }}</div>
+        </div>
+      </div>
+
+      <div class="udm-body">
+        @if (file(); as f) {
+          <div class="udm-file">
+            <span class="udm-file-icon">
+              <span class="material-symbols-outlined">picture_as_pdf</span>
+            </span>
+            <span class="udm-file-body">
+              <span class="udm-file-name" [title]="f.name">{{ f.name }}</span>
+              <span class="udm-file-meta">{{ fileSizeLabel() }}</span>
+            </span>
+            <button type="button" class="udm-file-remove" title="Dosyayı kaldır"
+              [disabled]="loading()" (click)="clearFile()">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+        } @else {
+          <label class="udm-drop" [class.is-dragging]="dragging()" [class.is-disabled]="loading()"
+            (dragover)="onDragOver($event)" (dragleave)="onDragLeave()" (drop)="onDrop($event)">
+            <span class="udm-drop-icon">
+              <span class="material-symbols-outlined">upload_file</span>
+            </span>
+            <span class="udm-drop-text">
+              <span class="udm-drop-title">Belgeyi seçin ya da buraya bırakın</span>
+              <span class="udm-drop-hint">PDF · en fazla {{ maxSizeLabel }}</span>
+            </span>
+            <input type="file" hidden [accept]="acceptAttr" [disabled]="loading()" (change)="onFileSelected($event)">
+          </label>
+        }
+
+        @if (error()) {
+          <div class="udm-error">
+            <span class="material-symbols-outlined">error</span>
+            {{ error() }}
+          </div>
+        }
+
+        <div class="udm-hint">
+          <span class="material-symbols-outlined">info</span>
+          Yükleme tamamlanınca evrak kaydını tamamlamak için Evrak Kayıt ekranına geçilir.
+        </div>
+      </div>
+
+      <div class="udm-foot">
+        <button type="button" class="udm-btn-ghost" [disabled]="loading()" (click)="cancel()">İptal</button>
+        <button type="button" class="udm-btn-primary" [disabled]="loading() || !file()" (click)="confirm()">
+          @if (loading()) {
+            <span class="spinner-border"></span>
+          } @else {
+            <span class="material-symbols-outlined">edit_document</span>
+          }
+          Yükle ve Kayda Geç
+        </button>
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,294 @@
+<app-generic pageTitle="Ön Kayıtlar"
+  [breadcrumbs]="[{title: 'Ön Kayıtlar', url: 'onkayitlar', icon: ''}]">
+</app-generic>
+
+<div class="st-page">
+  <!-- Üst kart -->
+  <section class="sp-hero zl-hero okl-hero">
+    <div class="sp-hero-top">
+      <span class="sp-hero-icon">
+        <span class="material-symbols-outlined">pending_actions</span>
+      </span>
+      <div>
+        <h4 class="sp-hero-title">Ön Kayıt Evrakları</h4>
+        <div class="sp-hero-text">
+          Ön kaydı yapılmış, henüz evrak kaydı tamamlanmamış gelen evrakları izleyin; taranan evrakları işleme alın.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- İstatistik kutuları: aynı zamanda liste filtresi -->
+  <div class="zl-stats okl-stats">
+    <button type="button" class="zl-stat" [class.is-active]="listFilter() === 'all'" (click)="setListFilter('all')">
+      <span class="zl-stat-icon is-total">
+        <span class="material-symbols-outlined">pending_actions</span>
+      </span>
+      <span class="zl-stat-body">
+        <span class="zl-stat-label d-block">TOPLAM ÖN KAYIT</span>
+        <span class="zl-stat-value d-block">{{ totalCount() }}</span>
+      </span>
+      <span class="material-symbols-outlined zl-stat-check">{{ listFilter() === 'all' ? 'check_circle' : 'radio_button_unchecked' }}</span>
+    </button>
+
+    <button type="button" class="zl-stat" [class.is-active]="listFilter() === 'mine'" (click)="setListFilter('mine')">
+      <span class="zl-stat-icon okl-mine">
+        <span class="material-symbols-outlined">person_edit</span>
+      </span>
+      <span class="zl-stat-body">
+        <span class="zl-stat-label d-block">KAYDETTİKLERİM</span>
+        <span class="zl-stat-value d-block">{{ mineCount() }}</span>
+      </span>
+      <span class="material-symbols-outlined zl-stat-check">{{ listFilter() === 'mine' ? 'check_circle' : 'radio_button_unchecked' }}</span>
+    </button>
+
+    <button type="button" class="zl-stat" [class.is-active]="listFilter() === 'scanned'" (click)="setListFilter('scanned')">
+      <span class="zl-stat-icon is-in">
+        <span class="material-symbols-outlined">document_scanner</span>
+      </span>
+      <span class="zl-stat-body">
+        <span class="zl-stat-label d-block">TARANMIŞ</span>
+        <span class="zl-stat-value d-block">{{ scannedCount() }}</span>
+      </span>
+      <span class="material-symbols-outlined zl-stat-check">{{ listFilter() === 'scanned' ? 'check_circle' : 'radio_button_unchecked' }}</span>
+    </button>
+
+    <button type="button" class="zl-stat" [class.is-active]="listFilter() === 'unscanned'" (click)="setListFilter('unscanned')">
+      <span class="zl-stat-icon is-out">
+        <span class="material-symbols-outlined">hourglass_top</span>
+      </span>
+      <span class="zl-stat-body">
+        <span class="zl-stat-label d-block">TARAMA BEKLEYEN</span>
+        <span class="zl-stat-value d-block">{{ unscannedCount() }}</span>
+      </span>
+      <span class="material-symbols-outlined zl-stat-check">{{ listFilter() === 'unscanned' ? 'check_circle' : 'radio_button_unchecked' }}</span>
+    </button>
+  </div>
+
+  <!-- Liste -->
+  <section class="st-card">
+    <div class="st-card-head zl-list-head">
+      <span class="st-card-icon">
+        <span class="material-symbols-outlined">list_alt</span>
+      </span>
+      <div>
+        <h4 class="st-card-title">Ön Kayıt Listesi</h4>
+      </div>
+      <div class="zl-head-tools">
+        <div class="sp-search zl-head-search">
+          <span class="material-symbols-outlined sp-search-icon">search</span>
+          <input
+            type="text"
+            class="sp-search-input"
+            placeholder="Belge no veya kaydeden ara..."
+            [ngModel]="searchQuery()"
+            (ngModelChange)="setSearchQuery($event)" />
+          <div class="sp-search-end">
+            @if (searchQuery().trim()) {
+              <button type="button" class="sp-search-clear" title="Aramayı temizle" (click)="setSearchQuery('')">
+                <span class="material-symbols-outlined">close</span>
+              </button>
+            }
+          </div>
+        </div>
+        <span class="st-count"
+          [class.is-none]="isFiltering() && !filteredRows().length">
+          <span class="material-symbols-outlined">filter_list</span>
+          {{ filteredRows().length }} / {{ totalCount() }}
+        </span>
+        <button type="button" class="zl-icon-btn" title="Güncel Verileri Getir" (click)="loadDocuments()">
+          <span class="material-symbols-outlined">refresh</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="st-card-body zl-body">
+      @if (loading()) {
+        <div class="zl-loading">
+          <span class="spinner-border" role="status"></span>
+          Ön kayıt evrakları yükleniyor...
+        </div>
+      } @else if (!filteredRows().length) {
+        <div class="zl-empty-wrap">
+          <div class="sp-empty">
+            <span class="sp-empty-icon">
+              <span class="material-symbols-outlined">{{ isFiltering() ? 'search_off' : 'pending_actions' }}</span>
+            </span>
+            @if (isFiltering()) {
+              <div class="sp-empty-title">Sonuç bulunamadı</div>
+              <div class="sp-empty-text">
+                @if (searchQuery().trim()) {
+                  "{{ searchQuery() }}" ile eşleşen bir ön kayıt yok. Farklı bir ifade deneyin ya da filtreyi değiştirin.
+                } @else {
+                  Seçili filtrede ön kayıt bulunmuyor.
+                }
+              </div>
+              <button type="button" class="sp-pill-btn" (click)="clearFilters()">
+                <span class="material-symbols-outlined">restart_alt</span>
+                Filtreleri temizle
+              </button>
+            } @else {
+              <div class="sp-empty-title">Ön kayıt bulunmuyor</div>
+              <div class="sp-empty-text">
+                Ön kayıt durumunda bekleyen bir evrak yok. Yeni bir ön kayıt yapıldığında burada listelenir.
+              </div>
+            }
+          </div>
+        </div>
+      } @else {
+        <div class="zl-table-wrap">
+          <table class="zl-table">
+            <thead>
+              <tr>
+                <th class="zl-th-sort" [class.is-active]="sortColumn() === 'qrCode'" (click)="toggleSort('qrCode')">
+                  <span class="zl-th-inner">BELGE NO <span class="material-symbols-outlined zl-sort-icon">{{ sortIcon('qrCode') }}</span></span>
+                </th>
+                <th class="zl-th-sort" [class.is-active]="sortColumn() === 'createdByName'" (click)="toggleSort('createdByName')">
+                  <span class="zl-th-inner">KAYDEDEN <span class="material-symbols-outlined zl-sort-icon">{{ sortIcon('createdByName') }}</span></span>
+                </th>
+                <th class="zl-th-sort" [class.is-active]="sortColumn() === 'createdDate'" (click)="toggleSort('createdDate')">
+                  <span class="zl-th-inner">ÖN KAYIT TARİHİ <span class="material-symbols-outlined zl-sort-icon">{{ sortIcon('createdDate') }}</span></span>
+                </th>
+                <th class="zl-center">TARAMA</th>
+                <th class="zl-center">OCR</th>
+                <th class="zl-center">EVRAK KAYIT</th>
+                <th class="zl-center">SÜREÇ</th>
+                <th class="zl-center">ZİMMET</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (item of pagedRows(); track item.id) {
+                <tr class="zl-row">
+                  <td>
+                    <span class="zl-doc">
+                      <span class="zl-doc-icon">
+                        <span class="material-symbols-outlined">app_registration</span>
+                      </span>
+                      <span>
+                        <span class="zl-doc-no d-block">{{ item.qrCode || '-' }}</span>
+                        @if (item.orginalNo) {
+                          <span class="zl-doc-sub">{{ item.orginalNo }}</span>
+                        }
+                      </span>
+                    </span>
+                  </td>
+                  <td>
+                    <span class="okl-person">
+                      <span class="okl-avatar">{{ item.createdByInitials }}</span>
+                      <span class="min-w-0">
+                        <span class="okl-person-name d-block">{{ item.createdByName }}</span>
+                        @if (item.createdByDepartment) {
+                          <span class="okl-person-meta d-block">{{ item.createdByDepartment }}</span>
+                        }
+                      </span>
+                    </span>
+                  </td>
+                  <td>
+                    <span class="zl-date">
+                      <span class="material-symbols-outlined">calendar_today</span>
+                      {{ item.createdDate ? (item.createdDate | date:'dd.MM.yyyy HH:mm') : '-' }}
+                    </span>
+                  </td>
+                  <td class="zl-center">
+                    <span class="okl-scan" [class.is-done]="item.isScanned" [class.is-wait]="!item.isScanned">
+                      <span class="material-symbols-outlined">{{ item.isScanned ? 'task_alt' : 'hourglass_top' }}</span>
+                      {{ item.isScanned ? 'Taranmış' : 'Bekliyor' }}
+                    </span>
+                  </td>
+                  <td class="zl-center">
+                    <span class="okl-ocr"
+                      [class.is-done]="item.ocrStatus === 1"
+                      [class.is-error]="item.ocrStatus === 2"
+                      [class.is-wait]="item.ocrStatus !== 1 && item.ocrStatus !== 2"
+                      [title]="item.ocrStatus === 1 ? 'OCR tamamlandı' : item.ocrStatus === 2 ? 'OCR hatalı' : 'OCR bekliyor'">
+                      <span class="material-symbols-outlined">
+                        {{ item.ocrStatus === 1 ? 'check_circle' : item.ocrStatus === 2 ? 'error' : 'hourglass_bottom' }}
+                      </span>
+                    </span>
+                  </td>
+                  <td class="zl-center">
+                    <span class="okl-act-group">
+                      <button type="button" class="zl-act okl-act-primary"
+                        [disabled]="!item.isScanned || isAssignedToOther(item)"
+                        [title]="evrakKayitTitle(item)"
+                        (click)="goToEvrakKayit(item)">
+                        <span class="material-symbols-outlined">
+                          {{ isMe(item.currentAssignmentUserId) ? 'motion_play' : (isAssignedToOther(item) ? 'key' : 'edit_document') }}
+                        </span>
+                      </button>
+                      @if (canOfferUpload(item)) {
+                        <button type="button" class="zl-act okl-act-upload"
+                          title="Belge yükle ve kayda geç"
+                          (click)="openUpload(item)">
+                          <span class="material-symbols-outlined">upload_file</span>
+                        </button>
+                      }
+                    </span>
+                  </td>
+                  <td class="zl-center">
+                    <button type="button" class="zl-act" title="Süreçler" (click)="goToProcess(item.id)">
+                      <span class="material-symbols-outlined">conversion_path</span>
+                    </button>
+                  </td>
+                  <td class="zl-center">
+                    <button type="button" class="zl-act" title="Zimmetleme" (click)="goToZimmet(item.id)">
+                      <span class="material-symbols-outlined">article_person</span>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+
+    @if (!loading() && filteredRows().length) {
+      <div class="zl-footer">
+        <div class="zl-range">
+          Toplam <b>{{ filteredRows().length }}</b> kayıttan <b>{{ pageRangeStart() }}-{{ pageRangeEnd() }}</b> arası gösteriliyor
+        </div>
+
+        @if (totalPages() > 1) {
+          <div class="zl-pager">
+            <button type="button" class="zl-page" [disabled]="currentPage() === 1" (click)="goToPage(currentPage() - 1)">
+              <span class="material-symbols-outlined">chevron_left</span>
+            </button>
+            @if (pageNumbers()[0] > 1) {
+              <button type="button" class="zl-page" (click)="goToPage(1)">1</button>
+            }
+            @if (pageNumbers()[0] > 2) {
+              <span class="zl-page-gap">…</span>
+            }
+            @for (p of pageNumbers(); track p) {
+              <button type="button" class="zl-page" [class.is-active]="p === currentPage()" (click)="goToPage(p)">{{ p }}</button>
+            }
+            @if (pageNumbers()[pageNumbers().length - 1] < totalPages() - 1) {
+              <span class="zl-page-gap">…</span>
+            }
+            @if (pageNumbers()[pageNumbers().length - 1] < totalPages()) {
+              <button type="button" class="zl-page" (click)="goToPage(totalPages())">{{ totalPages() }}</button>
+            }
+            <button type="button" class="zl-page" [disabled]="currentPage() === totalPages()" (click)="goToPage(currentPage() + 1)">
+              <span class="material-symbols-outlined">chevron_right</span>
+            </button>
+          </div>
+        }
+      </div>
+
+      <div class="zl-footnote">
+        <span class="material-symbols-outlined">info</span>
+        Sıralamak için sütun başlığına tıklayın; taranmış evraklar Evrak Kayıt ile işleme alınabilir, taranmamış evraklara belge yüklenebilir
+      </div>
+    }
+  </section>
+</div>
+
+<!-- Belge Yükle penceresi -->
+<app-upload-document-modal
+  [document]="uploadDoc()"
+  [loading]="uploadLoading()"
+  (confirmed)="confirmUpload($event)"
+  (cancelled)="closeUpload()" />
+

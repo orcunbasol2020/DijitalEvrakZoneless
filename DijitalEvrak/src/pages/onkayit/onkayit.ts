@@ -208,6 +208,7 @@ export default class Onkayit implements OnInit, AfterViewInit, OnDestroy {
           id: result,
           qrCode: result,
           userId: userId!,
+          createdUserId: userId!,
           userType: 1,
           documentDirection: 1,
           isDeleted: false,

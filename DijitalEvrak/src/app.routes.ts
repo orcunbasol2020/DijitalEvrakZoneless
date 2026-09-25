@@ -23,6 +23,12 @@ export const routes: Routes = [
                 data: { roles: ["Gelen Evrak", "Ön Kayıt"] }
             },
             {
+                path: "onkayitlar",
+                loadComponent: () => import("./pages/onkayitlar/onkayitlar"),
+                canActivate: [roleGuard],
+                data: { roles: ["Gelen Evrak", "Ön Kayıt"] }
+            },
+            {
                 path: "qrokut",
                 loadComponent: () => import("./pages/qrokut/qrokut"),
                 canActivate: [roleGuard],

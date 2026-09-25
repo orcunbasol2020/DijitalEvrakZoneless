@@ -52,6 +52,13 @@ export default class Documents {
       category: 'Gelen Evrak'
     },
     {
+      title: 'Ön Kayıtlar',
+      description: 'Ön kaydı yapılmış, evrak kaydı bekleyen gelen evrakları listeleyin ve işleme alın.',
+      icon: 'pending_actions',
+      url: '/onkayitlar',
+      category: 'Gelen Evrak'
+    },
+    {
       title: 'Evrak Kayıt',
       description: 'QR kodu okutarak ya da manuel giriş ile yeni bir evrakı sisteme kaydedin.',
       icon: 'qr_code',

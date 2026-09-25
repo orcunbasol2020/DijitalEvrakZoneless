@@ -375,6 +375,8 @@ export default class Evrakkayit implements OnInit {
       externalInstitutionId: raw.externalInstitutionId?.id ?? null,
       userId: userId,
       status: this.docStatus(),
+      // Oluşturan kullanıcı yalnızca ilk kayıtta yazılır; güncellemede değişmez.
+      ...(raw.id ? {} : { createdUserId: userId }),
     };
 
     // 🔹 Eğer ID varsa update, yoksa create

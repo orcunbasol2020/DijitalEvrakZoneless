@@ -1,0 +1,371 @@
+/* ============================================================
+   Belge Yükle penceresi
+   Kabuk (modal-overlay / modal-box) styles.css'ten gelir; pencere iskeleti
+   Zimmetlerim'deki devir penceresi, yükleme alanı Giden Evrak Zimmet'teki
+   ıslak imzalı belge alanıyla aynı dildedir.
+   ============================================================ */
+
+.modal-box.udm-modal {
+    width: 500px;
+    max-width: calc(100vw - 32px);
+    border-radius: 16px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.udm-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 18px;
+    border-bottom: 1px solid #eef2f7;
+}
+
+.udm-head-icon {
+    flex: 0 0 auto;
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    background: linear-gradient(135deg, #0284c7, #38bdf8);
+    box-shadow: 0 6px 14px rgba(2, 132, 199, 0.28);
+}
+
+.udm-head-icon .material-symbols-outlined {
+    font-size: 21px;
+}
+
+.udm-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: #1e293b;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+}
+
+.udm-sub {
+    margin-top: 2px;
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+.udm-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 18px;
+}
+
+/* Dosya bırakma alanı */
+.udm-drop {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+    padding: 18px 16px;
+    border-radius: 12px;
+    border: 1px dashed #cbd5e1;
+    background: #fbfcfe;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.udm-drop:hover,
+.udm-drop.is-dragging {
+    border-color: #7dd3fc;
+    background: #f0f9ff;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+}
+
+.udm-drop.is-disabled {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.udm-drop-icon {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.udm-drop-icon .material-symbols-outlined {
+    font-size: 22px;
+}
+
+.udm-drop-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.udm-drop-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.udm-drop-hint {
+    font-size: 11.5px;
+    color: #94a3b8;
+    margin-top: 1px;
+}
+
+/* Seçilen dosya */
+.udm-file {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid #bae6fd;
+    background: #f0f9ff;
+}
+
+.udm-file-icon {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.udm-file-icon .material-symbols-outlined {
+    font-size: 22px;
+}
+
+.udm-file-body {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.udm-file-name {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.udm-file-meta {
+    font-size: 11.5px;
+    color: #64748b;
+    margin-top: 1px;
+}
+
+.udm-file-remove {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    color: #64748b;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.udm-file-remove .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.udm-file-remove:hover:not(:disabled) {
+    color: #dc2626;
+    border-color: rgba(220, 38, 38, 0.3);
+    background: #fef2f2;
+}
+
+.udm-error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    font-size: 12.5px;
+    color: #b91c1c;
+    background: #fef2f2;
+    border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
+.udm-error .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.udm-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #64748b;
+}
+
+.udm-hint .material-symbols-outlined {
+    flex: 0 0 auto;
+    font-size: 17px;
+    color: #0ea5e9;
+}
+
+.udm-foot {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 18px;
+    border-top: 1px solid #eef2f7;
+    background: #f8fafc;
+}
+
+.udm-btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.udm-btn-ghost:hover:not(:disabled) {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.udm-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: 0;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #0284c7, #0ea5e9);
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 6px 16px rgba(14, 165, 233, 0.3);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.udm-btn-primary .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.udm-btn-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px rgba(14, 165, 233, 0.36);
+}
+
+.udm-btn-primary:disabled,
+.udm-btn-ghost:disabled,
+.udm-file-remove:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.udm-btn-primary .spinner-border {
+    width: 14px;
+    height: 14px;
+    border-width: 2px;
+}
+
+/* ---- Koyu tema ---- */
+[data-theme="dark"] .modal-box.udm-modal {
+    background: #1a2030;
+}
+
+[data-theme="dark"] .udm-head,
+[data-theme="dark"] .udm-foot {
+    border-color: rgba(148, 163, 184, 0.16);
+}
+
+[data-theme="dark"] .udm-foot {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+[data-theme="dark"] .udm-title,
+[data-theme="dark"] .udm-drop-title,
+[data-theme="dark"] .udm-file-name {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .udm-sub {
+    color: #64748b;
+}
+
+[data-theme="dark"] .udm-drop {
+    background: rgba(148, 163, 184, 0.05);
+    border-color: rgba(148, 163, 184, 0.25);
+}
+
+[data-theme="dark"] .udm-drop:hover,
+[data-theme="dark"] .udm-drop.is-dragging {
+    background: rgba(14, 165, 233, 0.1);
+    border-color: rgba(14, 165, 233, 0.45);
+}
+
+[data-theme="dark"] .udm-drop-icon {
+    background: rgba(14, 165, 233, 0.18);
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .udm-file {
+    background: rgba(14, 165, 233, 0.1);
+    border-color: rgba(14, 165, 233, 0.3);
+}
+
+[data-theme="dark"] .udm-file-icon {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+}
+
+[data-theme="dark"] .udm-file-meta,
+[data-theme="dark"] .udm-hint {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .udm-file-remove {
+    background: rgba(148, 163, 184, 0.06);
+    border-color: rgba(148, 163, 184, 0.2);
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .udm-error {
+    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(248, 113, 113, 0.28);
+}
+
+[data-theme="dark"] .udm-btn-ghost {
+    background: rgba(148, 163, 184, 0.06);
+    border-color: rgba(148, 163, 184, 0.2);
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .udm-btn-ghost:hover:not(:disabled) {
+    background: rgba(148, 163, 184, 0.12);
+    color: #e2e8f0;
+}

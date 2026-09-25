@@ -95,11 +95,37 @@ export class IncomingDocumentService {
     );
   }
 
+  // BELGE YÜKLE: tarayıcı hattı dışında, henüz taranmamış ön kayıt evrakına
+  // dosya yükler (multipart/form-data). Evrak id ile birlikte qrCode ve yükleyen
+  // kullanıcı da gönderilir; backend hangisini bekliyorsa onu kullanır.
+  uploadFile(documentId: string, file: File, options?: { qrCode?: string; userId?: string }) {
+    const formData = new FormData();
+    formData.append('id', documentId);
+    if (options?.qrCode) formData.append('qrCode', options.qrCode);
+    if (options?.userId) formData.append('userId', options.userId);
+    formData.append('file', file, file.name);
+
+    return this.httpService.post<any>(
+      `${this.baseUrl}UploadFile`,
+      formData
+    );
+  }
+
   // OCR Filtreli liste
   getIncomingDocumentsByStatus(status: string, departmentId?: string) {
     const departmentQuery = departmentId ? `&departmentId=${encodeURIComponent(departmentId)}` : '';
     return this.httpService.createResource<IncomingDocumentModel[]>(
       `${this.baseUrl}GetAll?Status=${encodeURIComponent(status)}${departmentQuery}`
+    );
+  }
+  // GET BY STATUS: DocumentStatusEnum değerine göre (1 Ön Kayıt, 2 Güncelleme, 3 Teslim,
+  // 4 Eşleştirme, 5 Ocr, 6 Yayınla). departmentId ve createdUserId isteğe bağlı süzgeçlerdir.
+  getIncomingDocumentsByStatusCode(status: number, options?: { departmentId?: string; createdUserId?: string }) {
+    const params = [`status=${status}`];
+    if (options?.departmentId) params.push(`departmentId=${encodeURIComponent(options.departmentId)}`);
+    if (options?.createdUserId) params.push(`createdUserId=${encodeURIComponent(options.createdUserId)}`);
+    return this.httpService.get<IncomingDocumentModel[]>(
+      `${this.baseUrl}GetByStatus?${params.join('&')}`
     );
   }
   getIncomingDocumentsByDirection(documentDirection: string) {

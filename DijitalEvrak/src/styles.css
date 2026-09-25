@@ -8328,6 +8328,31 @@ button:disabled {
     background: rgba(90, 120, 255, 0.14);
 }
 
+/* Aktif sayfa (routerLinkActive): Bootstrap'in koyu .dropdown-item.active
+   arka planı yerine sol menüyle uyumlu yumuşak vurgu; yazılar okunur kalır */
+.user-dropdown-item:active,
+.user-dropdown-item.active,
+.user-dropdown-item.active:hover,
+.user-dropdown-item.active:focus {
+    background: rgba(67, 97, 238, 0.12);
+    color: var(--text-color);
+    box-shadow: inset 3px 0 0 var(--primary-color);
+}
+
+[data-theme="dark"] .user-dropdown-item.active,
+[data-theme="dark"] .user-dropdown-item.active:hover,
+[data-theme="dark"] .user-dropdown-item.active:focus {
+    background: rgba(90, 120, 255, 0.2);
+}
+
+.user-dropdown-item.active .user-dropdown-item-title {
+    color: var(--primary-color);
+}
+
+.user-dropdown-item.active .user-dropdown-item-sub {
+    color: var(--text-muted);
+}
+
 .user-dropdown-icon {
     flex-shrink: 0;
     width: 34px;
