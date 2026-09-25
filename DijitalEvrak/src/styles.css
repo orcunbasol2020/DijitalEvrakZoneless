@@ -18,15 +18,21 @@
     --bg-lightBlue: #c9ebf3;
     --sidebar-width: 260px;
     --sidebar-mini-width: 72px;
+    /* Sol menü aç/kapa: tüm parçalar (menü, üst çubuk, alt bilgi, içerik) aynı zamanlamayı kullanır */
+    --sb-transition: 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+    --sb-fade: 0.14s ease;
+    /* Sol menü teması: lacivert → koyu petrol; vurgular turkuaz
+       (üst çubuk hover'ı ve Evrak Kayıt numara kartıyla aynı aile) */
     --sidebar-bg: #0f172a;
-    --sidebar-bg-bottom: #0b1222;
+    --sidebar-bg-bottom: #0b3048;
+    --sidebar-glow: rgba(14, 165, 233, 0.14);
     --sidebar-darker: #1d2740;
     --sidebar-even-darker: #1c2a36;
     --sidebar-surface: rgba(255, 255, 255, 0.05);
     --sidebar-border: rgba(255, 255, 255, 0.08);
-    --sidebar-hover: rgba(255, 255, 255, 0.06);
-    --sidebar-active-bg: rgba(67, 97, 238, 0.22);
-    --sidebar-accent: #8aa4ff;
+    --sidebar-hover: rgba(255, 255, 255, 0.09);
+    --sidebar-active-bg: linear-gradient(120deg, #0f172a 0%, #0c4a6e 55%, #0369a1 100%);
+    --sidebar-accent: #7dd3fc;
     --sidebar-text: #aeb6c6;
     --sidebar-text-strong: #f1f5f9;
     --sidebar-category: rgba(226, 232, 240, 0.45);
@@ -67,11 +73,13 @@
     --border-light: #4a5568;
     --bg-light: #2d3748;
 
-    --sidebar-bg: #171923;
-    --sidebar-bg-bottom: #0f1117;
+    --sidebar-bg: #0b1220;
+    --sidebar-bg-bottom: #0a2a40;
+    --sidebar-glow: rgba(14, 165, 233, 0.1);
     --sidebar-darker: #0d1117;
     --sidebar-even-darker: #06090f;
-    --sidebar-hover: rgba(255, 255, 255, 0.06);
+    --sidebar-hover: rgba(255, 255, 255, 0.09);
+    --sidebar-active-bg: linear-gradient(120deg, #0b1220 0%, #0c3a57 55%, #075985 100%);
 
     /* Dark mod için ek renkler */
     --input-border: #4a5568;
@@ -129,7 +137,7 @@ a {
     left: var(--sidebar-width);
     right: 0;
     position: fixed;
-    transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: left var(--sb-transition);
 }
 
 .navbar .form-control {
@@ -198,12 +206,14 @@ a {
     height: 100vh;
     display: flex;
     flex-direction: column;
-    background: linear-gradient(180deg, var(--sidebar-bg) 0%, var(--sidebar-bg-bottom) 100%);
+    background:
+        radial-gradient(120% 36% at 50% 0%, var(--sidebar-glow) 0%, transparent 70%),
+        linear-gradient(180deg, var(--sidebar-bg) 0%, var(--sidebar-bg-bottom) 100%);
     color: var(--sidebar-text);
     border-right: 1px solid var(--sidebar-border);
     text-align: left;
     z-index: 11020;
-    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform var(--sb-transition), width var(--sb-transition);
 }
 
 /* --- Marka --- */
@@ -213,6 +223,7 @@ a {
     align-items: center;
     padding: calc(0.75rem + 5px) 0.75rem calc(0.625rem + 5px) calc(0.75rem + 5px);
     border-bottom: 1px solid var(--sidebar-border);
+    transition: padding var(--sb-transition);
 }
 
 .sb-logo {
@@ -223,6 +234,7 @@ a {
     min-width: 0;
     color: inherit;
     text-decoration: none;
+    transition: gap var(--sb-transition);
 }
 
 .sb-logo:hover {
@@ -236,7 +248,7 @@ a {
     height: auto;
     display: block;
     filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.45));
-    transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: width var(--sb-transition);
 }
 
 .sb-logo-text {
@@ -245,6 +257,8 @@ a {
     min-width: 0;
     line-height: 1.2;
     white-space: nowrap;
+    overflow: hidden;
+    transition: opacity var(--sb-fade) 0.12s;
 }
 
 .sb-logo-text > span {
@@ -276,7 +290,11 @@ a {
 .sb-search {
     position: relative;
     flex-shrink: 0;
+    height: calc(36px + 1.5rem);
     padding: 0.75rem 1rem;
+    overflow: hidden;
+    transition: height var(--sb-transition), padding var(--sb-transition),
+        opacity var(--sb-fade) 0.12s, visibility 0s;
 }
 
 .sb-search-icon {
@@ -304,8 +322,8 @@ a {
 .sb-search-input:focus {
     outline: none;
     background-color: rgba(255, 255, 255, 0.08);
-    border-color: rgba(109, 141, 255, 0.5);
-    box-shadow: 0 0 0 3px rgba(109, 141, 255, 0.15);
+    border-color: rgba(125, 211, 252, 0.55);
+    box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.18);
 }
 
 .sb-search-input::placeholder {
@@ -383,7 +401,7 @@ a {
     text-align: left;
     cursor: pointer;
     user-select: none;
-    transition: color 0.15s;
+    transition: color 0.15s, gap var(--sb-transition), padding var(--sb-transition);
 }
 
 .sb-category:hover {
@@ -392,6 +410,8 @@ a {
 
 .sb-category-label {
     white-space: nowrap;
+    overflow: hidden;
+    transition: opacity var(--sb-fade) 0.12s;
 }
 
 .sb-category-line {
@@ -450,7 +470,8 @@ a {
     font-weight: 500;
     white-space: nowrap;
     text-decoration: none;
-    transition: background-color 0.15s, color 0.15s;
+    transition: background-color 0.15s, color 0.15s,
+        gap var(--sb-transition), padding var(--sb-transition), height var(--sb-transition);
 }
 
 .sb-link:hover {
@@ -458,9 +479,11 @@ a {
     color: var(--sidebar-text-strong);
 }
 
+/* Aktif öğe: breadcrumb hover'ı ile aynı petrol-mavi gradyan kapsül */
 .sb-link.active {
-    background-color: var(--sidebar-active-bg);
+    background: var(--sidebar-active-bg);
     color: var(--sidebar-active);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 4px 12px rgba(3, 105, 161, 0.28);
 }
 
 /* Aktif öğe: sidebar'ın sol kenarına yaslı kısa vurgu çubuğu */
@@ -487,7 +510,7 @@ a {
 }
 
 .sb-link:hover .sb-icon {
-    color: rgba(255, 255, 255, 0.85);
+    color: var(--sidebar-accent);
 }
 
 .sb-link.active .sb-icon {
@@ -499,6 +522,7 @@ a {
     flex: 1 1 auto;
     overflow: hidden;
     text-overflow: ellipsis;
+    transition: opacity var(--sb-fade) 0.12s;
 }
 
 .sb-badge {
@@ -540,6 +564,7 @@ a {
     padding: 0.75rem;
     border-top: 1px solid var(--sidebar-border);
     background-color: rgba(0, 0, 0, 0.18);
+    transition: padding var(--sb-transition), gap var(--sb-transition);
 }
 
 .sb-user {
@@ -552,7 +577,7 @@ a {
     border-radius: 10px;
     color: inherit;
     text-decoration: none;
-    transition: background-color 0.15s;
+    transition: background-color 0.15s, gap var(--sb-transition), padding var(--sb-transition);
 }
 
 .sb-user:hover {
@@ -571,6 +596,7 @@ a {
     justify-content: center;
     background: linear-gradient(135deg, #06b6d4, #0e7490);
     box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.35);
+    transition: width var(--sb-transition), height var(--sb-transition);
 }
 
 .sb-avatar-initials {
@@ -587,6 +613,8 @@ a {
     flex-direction: column;
     min-width: 0;
     line-height: 1.25;
+    overflow: hidden;
+    transition: opacity var(--sb-fade) 0.12s;
 }
 
 .sb-user-name {
@@ -676,8 +704,15 @@ a {
     border-right-color: #1e293b;
 }
 
-/* --- Mini (yalnız ikon) mod: masaüstü --- */
+/* --- Mini (yalnız ikon) mod: masaüstü ---
+   Metinler display:none yerine opaklık + sıfır genişlik ile gizlenir; böylece
+   daralma/genişleme tek bir akışkan hareket olarak görünür. Daralırken metin
+   hemen söner, genişlerken kısa gecikmeyle yeniden belirir. --- */
 @media (min-width: 769px) {
+    #sidebar-wrapper {
+        overflow: hidden;
+    }
+
     body.sb-mini {
         --sidebar-width: var(--sidebar-mini-width);
     }
@@ -689,18 +724,32 @@ a {
 
     body.sb-mini .sb-logo {
         width: auto;
+        gap: 0;
     }
 
     body.sb-mini .sb-logo-mark {
         width: 52px;
     }
 
-    body.sb-mini .sb-logo-text {
-        display: none;
+    body.sb-mini .sb-logo-text,
+    body.sb-mini .sb-category-label,
+    body.sb-mini .sb-label,
+    body.sb-mini .sb-user-info {
+        width: 0;
+        flex: 0 0 0;
+        opacity: 0;
+        transition-delay: 0s;
     }
 
     body.sb-mini .sb-search {
-        display: none;
+        height: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        /* görünürlük daralma bitince kapanır; genişlerken hemen açılır */
+        transition-delay: 0s, 0s, 0s, 0.32s;
     }
 
     body.sb-mini .sb-nav {
@@ -708,18 +757,15 @@ a {
     }
 
     body.sb-mini .sb-category {
-        padding: 0.5rem 0;
-        justify-content: center;
+        gap: 0;
+        padding: 0.5rem 0.75rem;
         pointer-events: none;
     }
 
-    body.sb-mini .sb-category-label,
     body.sb-mini .sb-category-chevron {
-        display: none;
-    }
-
-    body.sb-mini .sb-category-line {
-        flex: 0 0 24px;
+        width: 0;
+        opacity: 0;
+        overflow: hidden;
     }
 
     /* Mini modda kapalı kategoriler de görünür; aksi halde öğelere ulaşılamaz */
@@ -729,12 +775,9 @@ a {
 
     body.sb-mini .sb-link {
         justify-content: center;
+        gap: 0;
         padding: 0;
         height: 40px;
-    }
-
-    body.sb-mini .sb-label {
-        display: none;
     }
 
     body.sb-mini .sb-badge {
@@ -754,12 +797,9 @@ a {
     }
 
     body.sb-mini .sb-user {
+        gap: 0;
         padding: 0.25rem;
         justify-content: center;
-    }
-
-    body.sb-mini .sb-user-info {
-        display: none;
     }
 
     body.sb-mini .sb-avatar {
@@ -797,7 +837,7 @@ a {
     min-width: auto;
     width: calc(100% - var(--sidebar-width));
     margin-left: var(--sidebar-width);
-    transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: margin-left var(--sb-transition), width var(--sb-transition);
     will-change: margin-left, width;
     contain: layout style;
     overflow-x: hidden;
@@ -948,7 +988,7 @@ h6 {
     border-top: 1px solid var(--border-color);
     box-shadow: 0 -8px 24px -18px rgba(15, 23, 42, 0.35);
     z-index: 1000;
-    transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: left var(--sb-transition);
 }
 
 /* Üst kenarda ince, ortada belirginleşen gradyan aksan çizgisi */
@@ -1582,73 +1622,145 @@ h6 {
 }
 
 
+/* ---------- Üst çubuk: breadcrumb ---------- */
+.header-divider {
+    width: 1px;
+    height: 22px;
+    background: var(--border-color);
+    margin: 0 0.85rem 0 0.25rem;
+    flex: 0 0 auto;
+}
+
+.breadcrumb-container {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
 .modern-breadcrumb {
     display: flex;
     align-items: center;
+    min-width: 0;
     font-family: var(--breadcrumb-font-family);
-    width: 800px;
 }
 
 .modern-breadcrumb .breadcrumb {
     display: flex;
     align-items: center;
+    flex-wrap: nowrap;
+    gap: 2px;
     margin: 0;
     padding: 0;
+    min-width: 0;
     background: none;
+    white-space: nowrap;
 }
 
 .modern-breadcrumb .breadcrumb-item {
     display: flex;
     align-items: center;
-    font-weight: 400;
+    min-width: 0;
+    padding: 0;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
     color: var(--breadcrumb-text-color);
-    font-size: 0.875rem;
 }
 
-.modern-breadcrumb .breadcrumb-item a {
-    color: var(--breadcrumb-text-color);
-    text-decoration: none;
-    transition: color 0.2s ease;
+/* Bootstrap ve global ">" ayırıcıyı devre dışı bırak; ayırıcı ayrı bir öğe */
+.modern-breadcrumb .breadcrumb-item+.breadcrumb-item::before,
+.modern-breadcrumb .breadcrumb-sep+.breadcrumb-item::before {
+    content: none;
+    display: none;
+}
+
+.modern-breadcrumb .breadcrumb-sep {
     display: flex;
     align-items: center;
-}
-
-.modern-breadcrumb .breadcrumb-item a:hover {
-    color: var(--breadcrumb-hover-color);
-}
-
-.modern-breadcrumb .breadcrumb-item.active {
-    color: var(--breadcrumb-active-color);
-    font-weight: 500;
-}
-
-.modern-breadcrumb .breadcrumb-item+.breadcrumb-item::before {
-    content: '›';
+    flex: 0 0 auto;
     color: var(--breadcrumb-separator-color);
-    margin: 0 0.5rem;
-    font-weight: 500;
-    font-size: 1.1rem;
+    opacity: 0.75;
 }
 
-.modern-breadcrumb .breadcrumb-item .material-symbols-outlined {
-    margin-right: 0.3rem;
+.modern-breadcrumb .breadcrumb-sep .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.modern-breadcrumb .breadcrumb-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    height: 30px;
+    padding: 0 0.6rem;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    color: var(--breadcrumb-text-color);
+    text-decoration: none;
+    min-width: 0;
+    transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+
+.modern-breadcrumb .breadcrumb-link .material-symbols-outlined {
+    font-size: 18px;
     color: var(--breadcrumb-icon-color);
-    font-size: 24px;
+    transition: color 0.18s ease;
 }
 
-/* Responsive adjustments */
-@media (max-width: 576px) {
-    .modern-breadcrumb .breadcrumb-item {
-        font-size: 0.75rem;
-    }
+.modern-breadcrumb .breadcrumb-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 240px;
+}
 
-    .modern-breadcrumb .breadcrumb-item .material-symbols-outlined {
-        font-size: 1rem;
-        margin-right: 0.2rem;
-    }
+/* Ana sayfa: yalnızca ikon, kare rozet */
+.modern-breadcrumb .breadcrumb-item.is-home .breadcrumb-link:not(.breadcrumb-current) {
+    width: 30px;
+    padding: 0;
+    justify-content: center;
+}
 
-    .modern-breadcrumb .breadcrumb-item+.breadcrumb-item::before {
-        margin: 0 0.3rem;
+/* Hover: Evrak Kayıt numara alanındaki dropdown ile aynı dil
+   (koyu lacivert-petrol zemin, açık turkuaz metin) */
+.modern-breadcrumb a.breadcrumb-link:hover {
+    background: linear-gradient(120deg, #0f172a 0%, #0c4a6e 55%, #0369a1 100%);
+    border-color: rgba(125, 211, 252, 0.35);
+    color: #e0f2fe;
+    box-shadow: 0 4px 12px rgba(3, 105, 161, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.modern-breadcrumb a.breadcrumb-link:hover .material-symbols-outlined {
+    color: #7dd3fc;
+}
+
+.modern-breadcrumb a.breadcrumb-link:focus-visible {
+    outline: none;
+    border-color: #7dd3fc;
+    box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.3);
+}
+
+/* Geçerli sayfa: zemin yok, koyu ve yarı kalın metin */
+.modern-breadcrumb .breadcrumb-current {
+    padding: 0 0.35rem;
+    color: var(--breadcrumb-active-color);
+    font-weight: 600;
+    background: none;
+    border-color: transparent;
+    cursor: default;
+}
+
+.modern-breadcrumb .breadcrumb-current .material-symbols-outlined {
+    color: var(--breadcrumb-active-color);
+}
+
+[data-theme="dark"] .modern-breadcrumb a.breadcrumb-link:hover {
+    background: linear-gradient(120deg, #0b1220 0%, #0c3a57 55%, #075985 100%);
+    border-color: rgba(125, 211, 252, 0.28);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 992px) {
+    .modern-breadcrumb .breadcrumb-text {
+        max-width: 160px;
     }
 }
 
@@ -1732,31 +1844,55 @@ h6 {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: none;
-    background: transparent;
-    color: var(--text-color);
-    transition: background-color 0.2s;
+    flex: 0 0 auto;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-light);
+    color: var(--text-muted);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease,
+        box-shadow 0.2s ease, transform 0.15s ease;
     margin-right: 0.5rem;
 }
 
 #sidebarToggle:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background: linear-gradient(120deg, #0f172a 0%, #0c4a6e 55%, #0369a1 100%);
+    border-color: rgba(125, 211, 252, 0.35);
+    color: #7dd3fc;
+    box-shadow: 0 4px 12px rgba(3, 105, 161, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+#sidebarToggle:focus-visible {
+    outline: none;
+    border-color: #7dd3fc;
+    box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.3);
 }
 
 #sidebarToggle:active {
-    transform: scale(0.9);
+    transform: scale(0.94);
+    box-shadow: none;
+}
+
+[data-theme="dark"] #sidebarToggle {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-muted);
+    box-shadow: none;
 }
 
 [data-theme="dark"] #sidebarToggle:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background: linear-gradient(120deg, #0b1220 0%, #0c3a57 55%, #075985 100%);
+    border-color: rgba(125, 211, 252, 0.28);
+    color: #7dd3fc;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .sidebar-toggle-icon {
     display: inline-block;
-    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform var(--sb-transition);
 }
 
 .sidebar-toggle-icon.is-collapsed {

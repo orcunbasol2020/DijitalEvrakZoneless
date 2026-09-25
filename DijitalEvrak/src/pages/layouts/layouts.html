@@ -1,12 +1,13 @@
 <!-- Header/Navbar -->
 <nav class="navbar navbar-expand-lg navbar-light bg-white fixed-top shadow-sm">
     <div class="container-fluid">
-        <button class="btn" id="sidebarToggle" type="button" title="Menüyü Aç/Kapat" (click)="toggleSidebar()">
+        <button class="btn" id="sidebarToggle" type="button" title="Menüyü Aç/Kapat"
+            [attr.aria-expanded]="!sidebarCollapsed()" (click)="toggleSidebar()">
             <span class="material-symbols-outlined sidebar-toggle-icon" [class.is-collapsed]="sidebarCollapsed()">menu_open</span>
         </button>
+        <span class="header-divider d-none d-md-block" aria-hidden="true"></span>
         <!-- Bread Crumb -->
-        <div class="breadcrumb-container position-relative d-none d-md-block"
-            style="width: 250px;">
+        <div class="breadcrumb-container position-relative d-none d-md-block">
             <nav aria-label="breadcrumb" class="modern-breadcrumb">
                 <app-breadcrumb></app-breadcrumb>
             </nav>
