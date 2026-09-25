@@ -5,29 +5,7 @@
   <!-- SOL PANEL: Kayıt formu ve sekmeler -->
   <div class="col-lg-5 col-12">
     <div class="card zm-card d-flex flex-column">
-      <div class="card-header dashboard-header d-flex align-items-center justify-content-between">
-        <div class="d-flex align-items-center">
-          <span class="material-symbols-outlined me-2 text-info">edit_document</span>
-          <h5 class="card-title mb-0 fw-semibold">Gelen Evrak Kayıt</h5>
-        </div>
-        <span class="ek-status-pill" [attr.data-tone]="statusBadge().tone">
-          <span class="material-symbols-outlined">{{ statusBadge().icon }}</span>
-          {{ statusBadge().text }}
-        </span>
-      </div>
-
       <div class="card-body zm-body">
-        <!-- Evrak sayısı (salt okunur) -->
-        <div class="ek-lookup">
-          <span class="ek-lookup-icon">
-            <span class="material-symbols-outlined">qr_code_2</span>
-          </span>
-          <div class="ek-lookup-body">
-            <div class="zm-field-label">Evrak Sayısı</div>
-            <div class="ek-lookup-no">{{ documentNo() || '—' }}</div>
-          </div>
-        </div>
-
         <!-- Sekme seçici (Teslim türü segment seçicisiyle aynı dil) -->
         <div class="ek-tabs" role="tablist">
           <button type="button" class="ek-tab" role="tab"
@@ -47,6 +25,21 @@
           </button>
         </div>
 
+        <!-- Evrak numarası (salt okunur) + gizlilik derecesi -->
+        <div class="ek-lookup">
+          <span class="ek-lookup-icon">
+            <span class="material-symbols-outlined">tag</span>
+          </span>
+          <div class="ek-lookup-body">
+            <div class="ek-lookup-no">{{ documentNo() || '—' }}</div>
+          </div>
+          <!-- Gizlilik derecesi: form dışında durduğu için kontrol doğrudan bağlanır -->
+          <select class="form-select ok-input ek-lookup-select" [formControl]="securityDegreeControl"
+            title="Gizlilik Derecesi" aria-label="Gizlilik Derecesi">
+            <option *ngFor="let opt of securityDegreeOptions" [ngValue]="opt.value">{{ opt.label }}</option>
+          </select>
+        </div>
+
         <!-- ===== Evrak Kayıt ===== -->
         <form id="ekGeneralForm" [formGroup]="form" autocomplete="off" (ngSubmit)="save()"
           class="ek-pane" [hidden]="activeTab() !== 'general'">
@@ -56,10 +49,6 @@
 
           <!-- Belge bilgileri -->
           <div class="ek-section">
-            <div class="ek-section-title">
-              <span class="material-symbols-outlined">description</span>
-              Belge Bilgileri
-            </div>
             <div class="ek-grid">
               <div class="zm-field">
                 <label for="belgeTuru" class="zm-field-label">Evrak Türü</label>
@@ -72,16 +61,26 @@
                 <label for="belgeTarihi" class="zm-field-label">Evrak Tarihi</label>
                 <input type="date" id="belgeTarihi" class="form-control ok-input" formControlName="documentDate">
               </div>
-              <div class="zm-field ek-span-2">
+              <div class="zm-field">
                 <label for="orjBelge" class="zm-field-label">Orjinal Belge No</label>
                 <input type="text" id="orjBelge" class="form-control ok-input" formControlName="orginalNo">
+              </div>
+              <div class="zm-field">
+                <label for="geregiBilgi" class="zm-field-label">Gereği / Bilgi</label>
+                <select id="geregiBilgi" class="form-select ok-input" formControlName="actionRequired">
+                  <option *ngFor="let opt of actionRequiredOptions" [ngValue]="opt.value">{{ opt.label }}</option>
+                </select>
               </div>
               <div class="zm-field ek-span-2">
                 <label for="konusu" class="zm-field-label">Konusu</label>
                 <input type="text" id="konusu" class="form-control ok-input" formControlName="subject">
               </div>
 
-              <!-- Kurum / Birim: aynı bölümün devamı -->
+              <!-- Kurum / Birim: aynı kart içinde ayraçla ayrılmış grup -->
+              <div class="ek-divider" aria-hidden="true">
+                <span class="material-symbols-outlined">apartment</span>
+                KURUM / BİRİM
+              </div>
               <div class="zm-field ek-span-2">
                 <label class="zm-field-label">
                   <span class="material-symbols-outlined ek-label-icon">call_made</span>
@@ -125,12 +124,6 @@
             </div>
             <div class="ek-grid">
               <div class="zm-field">
-                <label class="zm-field-label">Gizlilik Derecesi</label>
-                <select class="form-select ok-input" formControlName="securityDegree">
-                  <option *ngFor="let opt of securityDegreeOptions" [ngValue]="opt.value">{{ opt.label }}</option>
-                </select>
-              </div>
-              <div class="zm-field">
                 <label class="zm-field-label">Elektronik Kopya</label>
                 <select class="form-select ok-input" formControlName="electronicCopy">
                   <option [ngValue]="true">Evet</option>
@@ -148,19 +141,9 @@
                 <label class="zm-field-label">Sayfa Sayısı</label>
                 <input type="number" min="0" class="form-control ok-input" formControlName="pageCount">
               </div>
-              <div class="zm-field ek-span-2">
-                <label class="zm-field-label">Gereği / Bilgi</label>
-                <select class="form-select ok-input" formControlName="actionRequired">
-                  <option *ngFor="let opt of actionRequiredOptions" [ngValue]="opt.value">{{ opt.label }}</option>
-                </select>
-              </div>
             </div>
           </div>
 
-          <div class="ok-note">
-            <span class="material-symbols-outlined">info</span>
-            Bu bilgiler evrakın arşiv ve dağıtım özelliklerini belirler; gerektiğinde sonradan güncellenebilir.
-          </div>
         </form>
 
         <!-- ===== İşlem Takip ===== -->
@@ -299,19 +282,73 @@
             <span class="material-symbols-outlined">open_in_new</span>
             <span>Yeni Sekmede</span>
           </a>
+          <!-- Belge yüklenmemişse başlığın sağında yükleme butonu; Gizli / Çok Gizli evrakta
+               belgenin tamamı yerine kapak yazısı da yüklenebilir -->
+          <button type="button" class="ek-head-upload-btn" *ngIf="!hasDocument() && canUploadDocument()"
+            (click)="openUpload()">
+            <span class="material-symbols-outlined">upload_file</span>
+            {{ showSecurityStamp() ? 'Kapak Yazısı / Belge Yükle' : 'Belge Yükle' }}
+          </button>
         </div>
       </div>
 
       <div class="card-body ek-pdf-body">
-        <div class="zm-empty ek-pdf-empty" *ngIf="!isPdfReady()">
+        <!-- Belge yüklenmemiş + Gizli / Çok Gizli: gizlilik mührü -->
+        <!-- Belge yüklenmemiş: "belge sahnesi" — masa üstünde boş bir sayfa silueti,
+             (Gizli / Çok Gizli seçiliyse üzerinde mühür), durum hapı ve üç adım -->
+        <div class="ek-stage" *ngIf="!hasDocument()">
+          <button type="button" class="ek-sheet" [class.is-clickable]="canUploadDocument()"
+            [disabled]="!canUploadDocument()"
+            [title]="canUploadDocument() ? (showSecurityStamp() ? 'Kapak yazısı / belge yükle' : 'Belge yükle') : 'Belge henüz yüklenmedi'"
+            (click)="openUpload()">
+            <span class="ek-sheet-head">
+              <span class="ek-sheet-logo"></span>
+              <span class="ek-sheet-tag">{{ documentNo() || '—' }}</span>
+            </span>
+            <span class="ek-sheet-lines">
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            </span>
+            <span class="ek-sheet-lines is-second">
+              <i></i><i></i><i></i><i></i><i></i>
+            </span>
+
+            <!-- Gizlilik mührü sayfanın üzerine basılı -->
+            <span class="ek-stamp" *ngIf="showSecurityStamp()" [attr.data-level]="selectedSecurityDegree()">
+              <span class="ek-stamp-text">{{ securityStamp() }}</span>
+              <span class="ek-stamp-sub">DİJİTAL KOPYA YOK</span>
+            </span>
+
+            <span class="ek-sheet-cta" *ngIf="canUploadDocument()">
+              <span class="material-symbols-outlined">upload_file</span>
+              {{ showSecurityStamp() ? 'Kapak yazısı / belge yükle' : 'Belge yükle' }}
+            </span>
+          </button>
+
+          <!-- Belge yüklemek zorunlu değil: nötr durum hapı -->
+          <div class="ek-stage-status" [class.is-secure]="showSecurityStamp()">
+            <span class="ek-stage-dot"></span>
+            {{ showSecurityStamp() ? securityStamp() + ' · Yüklenmiş / taranmış bir belge bulunmuyor' : 'Yüklenmiş / taranmış bir belge bulunmuyor' }}
+          </div>
+        </div>
+
+        <div class="zm-empty ek-pdf-empty" *ngIf="hasDocument() && !isPdfReady()">
           <div class="zm-empty-icon">
             <div class="spinner-border text-primary"></div>
           </div>
           <div class="zm-empty-title">Evrak yükleniyor</div>
           <div class="zm-empty-text">Taranmış belge hazırlanıyor, lütfen bekleyin.</div>
         </div>
-        <iframe *ngIf="isPdfReady()" class="ek-pdf-frame" [src]="pdfUrl()" title="Evrak önizleme"></iframe>
+        <iframe *ngIf="hasDocument() && isPdfReady()" class="ek-pdf-frame" [src]="pdfUrl()" title="Evrak önizleme"></iframe>
       </div>
     </div>
   </div>
 </div>
+
+<!-- Belge Yükle penceresi -->
+<app-upload-document-modal
+  [document]="uploadDoc()"
+  [loading]="uploadLoading()"
+  [navigationHint]="false"
+  confirmLabel="Yükle"
+  (confirmed)="confirmUpload($event)"
+  (cancelled)="closeUpload()" />

@@ -20,6 +20,7 @@ import { IncomingDocumentModel } from '../../models/incoming-document/incoming-d
 import { UserModel } from '../users/users';
 import { RoleService } from '../../services/role-service';
 import { UPLOAD_DOCUMENT_ROLES, UploadDocumentModal } from '../../../components/upload-document-modal/upload-document-modal';
+import { DocumentUploadFlow } from '../../services/document-upload-flow';
 
 // Ön kayıt: DocumentStatusEnum.OnKayit
 const ON_KAYIT_STATUS = 1;
@@ -60,6 +61,7 @@ export default class Onkayitlar {
   private readonly common = inject(Common);
   private readonly router = inject(Router);
   private readonly roleService = inject(RoleService);
+  private readonly uploadFlow = inject(DocumentUploadFlow);
 
   readonly user = computed(() => this.common.user());
 
@@ -314,8 +316,9 @@ export default class Onkayitlar {
   }
 
   // ---- Belge Yükle penceresi ----
-  // Henüz taranmamış evrağa tarayıcı hattı dışında dosya yüklenir; yükleme
-  // tamamlanınca normal "İşleme Al" akışıyla Evrak Kayıt ekranına geçilir.
+  // Henüz taranmamış evrağa tarayıcı hattı dışında dosya yüklenir; akış evrağı
+  // Kayıt Tamamlandı yapıp zimmeti yükleyene devreder (DocumentUploadFlow),
+  // ardından normal "İşleme Al" akışıyla Evrak Kayıt ekranına geçilir.
   // Pencere için sunucudan gelen ham evrak tutulur.
   readonly uploadDoc = signal<IncomingDocumentModel | null>(null);
   readonly uploadLoading = signal(false);
@@ -345,21 +348,35 @@ export default class Onkayitlar {
     if (!source?.id || this.uploadLoading()) return;
 
     const documentId = source.id;
+    const userId = this.currentUserId;
+    if (!userId) {
+      this.toast.showToast('Hata', 'Kullanıcı bulunamadı', 'error');
+      return;
+    }
 
     this.uploadLoading.set(true);
-    this.incomingDocumentService.uploadFile(documentId, file, { qrCode: source.qrCode, userId: this.currentUserId }).subscribe({
-      next: () => {
-        // Yerel listeler "taranmış" olarak güncellenir; kullanıcı geri döndüğünde rozet doğru görünür
-        const apply = (list: IncomingDocumentModel[]) =>
-          list.map(d => d.id === documentId ? { ...d, documentName: d.documentName || file.name } : d);
-        this.documents.update(apply);
-        this.mineDocuments.update(apply);
+    this.uploadFlow.run(documentId, file, userId).subscribe({
+      next: (result) => {
+        // Evrak artık Ön Kayıt durumunda değil; listelerden düşürülür
+        const drop = (list: IncomingDocumentModel[]) => list.filter(d => d.id !== documentId);
+        this.documents.update(drop);
+        this.mineDocuments.update(drop);
+
+        if (result.transferFailed) {
+          this.toast.showToast(
+            'Zimmet devri yapılamadı',
+            'Belge yüklendi ve evrak kaydı oluşturuldu ancak zimmet devredilemedi. Zimmet ekranından devir yapabilirsiniz.',
+            'warning'
+          );
+        } else {
+          this.toast.showToast('Başarılı', 'Belge yüklendi, evrak kaydı oluşturuldu ve zimmet üzerinize geçti.', 'success');
+        }
 
         this.assignAndOpen(documentId, () => this.uploadLoading.set(false));
       },
       error: () => {
         this.uploadLoading.set(false);
-        this.toast.showToast('Hata', 'Belge yüklenemedi.', 'error');
+        this.toast.showToast('Hata', 'Belge yüklenemedi ya da evrak kaydı güncellenemedi.', 'error');
       }
     });
   }

@@ -34,6 +34,11 @@ export class UploadDocumentModal {
   // Pencere yalnızca bir evrak verildiğinde görünür
   readonly document = input<IncomingDocumentModel | null>(null);
   readonly loading = input(false);
+  // "Yükleme tamamlanınca Evrak Kayıt ekranına geçilir" notu; zaten Evrak Kayıt
+  // ekranındayken (yönlendirme olmayacak) üst bileşen kapatır.
+  readonly navigationHint = input(true);
+  // Onay butonu metni; Evrak Kayıt içinden yüklemede yalnızca "Yükle"
+  readonly confirmLabel = input('Yükle ve Kayda Geç');
 
   readonly confirmed = output<File>();
   readonly cancelled = output<void>();

@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { Observable, catchError, map, of, switchMap } from 'rxjs';
 import { HttpService } from './http';
 import { DocumentAllocationModel } from '../models/documentallocation.model';
 import { AllocationStatusEnum } from '../models/allocationstatus.model';
@@ -70,6 +71,26 @@ export class DocumentAllocation {
     return this.httpService.post(
       `${this.baseUrl}/Create`,
       { ...allocation, status: String(allocation.status) }
+    );
+  }
+
+  // Zimmeti verilen kullanıcıya Devir (2) olarak geçirir. Backend gelen evrakta yeni
+  // zimmet açılınca eskisini pasife çeker. Zimmet zaten bu kullanıcıdaysa yeni kayıt
+  // açılmaz ve false döner; aktif zimmet sorgulanamazsa yine de devir kaydı açılır.
+  transferToUser(incomingDocumentId: string, userId: string): Observable<boolean> {
+    return this.getActiveByDocumentId(incomingDocumentId).pipe(
+      catchError(() => of(null)),
+      switchMap(active => {
+        const alreadyMine = !!active?.userId && active.userId.toLowerCase() === userId.toLowerCase();
+        if (alreadyMine) return of(false);
+        return this.createAllocation({
+          incomingDocumentId,
+          userId,
+          createdUserId: userId,
+          status: AllocationStatusEnum.Devir,
+          userType: 1
+        }).pipe(map(() => true));
+      })
     );
   }
 }

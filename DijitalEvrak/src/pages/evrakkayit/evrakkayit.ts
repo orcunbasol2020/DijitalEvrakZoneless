@@ -18,6 +18,11 @@ import { DocumentTransactionModel } from '../../models/documenttransaction.model
 import { SecurityDegreeEnum, SecurityDegreeLabels } from '../../models/securitydegree.model';
 import { actionRequiredOptions } from '../../models/actionrequired.model';
 import { DocumentTypeEnum, DocumentTypeLabels } from '../../models/documenttype.model';
+import { DocumentAllocation } from '../../services/documentallocation';
+import { RoleService } from '../../services/role-service';
+import { UPLOAD_DOCUMENT_ROLES, UploadDocumentModal } from '../../../components/upload-document-modal/upload-document-modal';
+import { DocumentUploadFlow } from '../../services/document-upload-flow';
+import { INCOMING_STATUS_ON_KAYIT } from '../../services/incomingdocument';
 
 // "Diğer Bilgiler" sekmesinin varsayılanları: Hizmete Özel, elektronik kopya yok, Türkçe (1)
 const DETAIL_DEFAULTS = {
@@ -33,7 +38,8 @@ const DETAIL_DEFAULTS = {
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    SimpleAutocompleteComponent
+    SimpleAutocompleteComponent,
+    UploadDocumentModal
   ],
   templateUrl: './evrakkayit.html',
   // Görsel dil Ön Kayıt / Zimmet ekranlarıyla aynı; ortak zm-* sınıfları
@@ -71,6 +77,10 @@ export default class Evrakkayit implements OnInit {
   private externalInstitutionService = inject(ExternalInstitution);
   private toast = inject(FlexiToastService);
   private sanitizer = inject(DomSanitizer);
+  private allocationService = inject(DocumentAllocation);
+  // Evrağın sunucudan yüklendiği andaki durumu; ilk kayıtta (Ön Kayıt -> Kayıt)
+  // zimmetin kayıt yapan personele devredilmesi buna göre tetiklenir.
+  private loadedStatus = signal<number | null>(null);
   private pendingDepartmentId: string | null = null;
   private pendingExternalInstitutionId: string | null = null;
   public docStatus = signal<number>(2);
@@ -95,6 +105,12 @@ export default class Evrakkayit implements OnInit {
     return this.form.get('externalInstitutionId') as FormControl<ExternalInstitutionModel | null>;
   }
 
+  // Üst kutudaki gizlilik derecesi seçimi form etiketinin dışında durduğu için
+  // formControlName yerine doğrudan bağlanır; değer yine ana formla kaydedilir.
+  get securityDegreeControl(): FormControl<SecurityDegreeEnum | null> {
+    return this.form.get('securityDegree') as FormControl<SecurityDegreeEnum | null>;
+  }
+
   private pdfFileName = signal<string>('');
 
   // PDF URL signal, sadece değer döndürüyor
@@ -114,6 +130,106 @@ export default class Evrakkayit implements OnInit {
 
   // PDF yükleme hazır flag sinyali
   readonly isPdfReady = signal(false);
+
+  // Evrakta taranmış/yüklenmiş dosya var mı; yoksa sağ panelde "Belge yüklenmedi"
+  // durumu ve (yetkili roller için) yükleme seçeneği gösterilir.
+  readonly hasDocument = signal(false);
+
+  // Üst kutudaki gizlilik derecesi seçimi (zoneless: şablon bu sinyalden okur).
+  // Belge yüklü değilken Gizli / Çok Gizli seçiliyse önizleme alanında mühür gösterilir.
+  readonly selectedSecurityDegree = signal<SecurityDegreeEnum>(DETAIL_DEFAULTS.securityDegree);
+
+  private static readonly stampLabels: Partial<Record<SecurityDegreeEnum, string>> = {
+    [SecurityDegreeEnum.Confidential]: 'GİZLİ',
+    [SecurityDegreeEnum.TopSecret]: 'ÇOK GİZLİ'
+  };
+
+  readonly securityStamp = computed(() => Evrakkayit.stampLabels[this.selectedSecurityDegree()] ?? null);
+  readonly showSecurityStamp = computed(() => !this.hasDocument() && !!this.securityStamp());
+
+  // ---- Belge Yükle (Evrak Kayıt içinden) ----
+  // Akış Ön Kayıtlar / QR Okut ile aynı: yükle -> evrak Kayıt Tamamlandı ->
+  // zimmet yükleyene Devir (DocumentUploadFlow). Sonuç ekrana yansıtılır.
+  private readonly roleService = inject(RoleService);
+  private readonly uploadFlow = inject(DocumentUploadFlow);
+  readonly canUploadDocument = computed(() => this.roleService.hasAny(UPLOAD_DOCUMENT_ROLES));
+  // Sunucudan yüklenen evrak; yükleme penceresine verilir
+  private readonly loadedDoc = signal<IncomingDocumentModel | null>(null);
+  readonly uploadDoc = signal<IncomingDocumentModel | null>(null);
+  readonly uploadLoading = signal(false);
+
+  openUpload(): void {
+    const doc = this.loadedDoc();
+    if (!doc?.id || this.hasDocument() || !this.canUploadDocument()) return;
+    this.uploadDoc.set(doc);
+  }
+
+  closeUpload(): void {
+    if (this.uploadLoading()) return;
+    this.uploadDoc.set(null);
+  }
+
+  confirmUpload(file: File): void {
+    const doc = this.uploadDoc();
+    const userId = this.user()?.id;
+    if (!doc?.id || this.uploadLoading()) return;
+    if (!userId) {
+      this.toast.showToast('Hata', 'Kullanıcı bilgisi alınamadı', 'error');
+      return;
+    }
+
+    this.uploadLoading.set(true);
+    this.uploadFlow.run(doc.id, file, userId).subscribe({
+      next: (result) => {
+        this.uploadLoading.set(false);
+        this.uploadDoc.set(null);
+
+        if (result.transferFailed) {
+          this.toast.showToast(
+            'Zimmet devri yapılamadı',
+            'Belge yüklendi ve evrak kaydı oluşturuldu ancak zimmet devredilemedi. Zimmet ekranından devir yapabilirsiniz.',
+            'warning'
+          );
+        } else {
+          this.toast.showToast('Başarılı', 'Belge yüklendi, evrak kaydı oluşturuldu ve zimmet üzerinize geçti.', 'success');
+        }
+
+        // Ekran güncel evrağa göre tazelenir: dosya önizlemesi açılır, durum Kayıt
+        // Tamamlandı olur ve sonraki "Kaydet" ilk kayıt devrini yeniden tetiklemez.
+        this.applyUploadedDocument(result.document);
+      },
+      error: () => {
+        this.uploadLoading.set(false);
+        this.toast.showToast('Hata', 'Belge yüklenemedi ya da evrak kaydı güncellenemedi.', 'error');
+      }
+    });
+  }
+
+  private applyDocumentFile(doc: IncomingDocumentModel) {
+    this.hasDocument.set(!!doc.documentName);
+    if (doc.documentName) this.setPdf(doc.documentName);
+  }
+
+  // Yükleme sonrası evrak ekrana yansıtılır ve önizleme açılır. Dosya adı sunucuda
+  // asenkron yazılıyorsa (GetById henüz boş dönerse) kısa aralıklarla birkaç kez
+  // yeniden sorgulanır.
+  private applyUploadedDocument(doc: IncomingDocumentModel, attempt = 0) {
+    this.loadedDoc.set(doc);
+    this.loadedStatus.set(doc.status);
+    if (!this.activeStatus()) this.docStatus.set(doc.status);
+    this.form.patchValue({ documentName: doc.documentName ?? '' });
+    this.formDetail.patchValue({ status: doc.status });
+    this.applyDocumentFile(doc);
+
+    if (doc.documentName || !doc.id || attempt >= 3) return;
+
+    const documentId = doc.id;
+    setTimeout(() => {
+      this.incomingDocumentService.getIncomingDocumentByDocumentId(documentId).subscribe(fresh => {
+        if (fresh) this.applyUploadedDocument(fresh, attempt + 1);
+      });
+    }, 1000);
+  }
 
   readonly breadcrumbs = signal<BreadcrumbModel[]>([
     { title: 'Taranmış Evraklar', url: '/scanlist', icon: '' },
@@ -158,13 +274,14 @@ export default class Evrakkayit implements OnInit {
       externalInstitutionId: new FormControl<ExternalInstitutionModel | null>(null),
       departmentId: new FormControl<DepartmentModel | null>(null),
       documentTypeId: [null as DocumentTypeEnum | null],
+      // Gizlilik derecesi ve Gereği/Bilgi "Evrak Kayıt" sekmesinde girilir
+      securityDegree: [DETAIL_DEFAULTS.securityDegree],
+      actionRequired: [null],
     });
 
     this.formDetail = this.fb.group({
       id: ['', Validators.required],
       status: [''],
-      securityDegree: [DETAIL_DEFAULTS.securityDegree],
-      actionRequired: [null],
       electronicCopy: [DETAIL_DEFAULTS.electronicCopy],
       languageId: [DETAIL_DEFAULTS.languageId],
       pageCount: [''],
@@ -175,6 +292,8 @@ export default class Evrakkayit implements OnInit {
     // Zoneless CD: şablondaki evrak sayısı metni ham form değeri yerine bu sinyalden okunur,
     // böylece patchValue sonrası görünüm güncellenir.
     this.form.controls['qrCode'].valueChanges.subscribe(v => this.documentNo.set(v ?? ''));
+    this.form.controls['securityDegree'].valueChanges.subscribe(v =>
+      this.selectedSecurityDegree.set(v ?? DETAIL_DEFAULTS.securityDegree));
 
     this.loadDepartments();
     this.loadExternalInstitutions();
@@ -191,29 +310,33 @@ export default class Evrakkayit implements OnInit {
       this.incomingDocumentService.GetByQrCode(id).subscribe(doc => {
         if (!doc) return;
 
+        this.loadedStatus.set(doc.status ?? null);
+        this.loadedDoc.set(doc);
+
         if (doc.status === 6 || doc.status === 10)  // yayinla durumu
         {
           this.activeStatus.set(true);
           this.docStatus.set(doc.status);
         }
 
+        // Belge yüklenmemiş olsa da kayıt yapılabilir; dosya sonradan eklenebilir
         if (!doc.documentName) {
           this.toast.showToast(
             "Belge henüz taranmamış",
-            "Belge ön kaydı yapılmış fakat belge henüz taranmamış."
+            "Belge dosyası olmadan kayıt yapabilir, dosyayı sonradan yükleyebilirsiniz."
           );
-          return;
         }
 
         this.form.patchValue({
           ...doc,
           departmentId: null,
           externalInstitutionId: null,
-          documentDate: doc.documentDate?.split('T')[0]
+          documentDate: doc.documentDate?.split('T')[0],
+          securityDegree: doc.securityDegree ?? DETAIL_DEFAULTS.securityDegree,
+          actionRequired: doc.actionRequired ?? null
         });
 
-        if (doc.documentName)
-          this.setPdf(doc.documentName);
+        this.applyDocumentFile(doc);
 
         this.applyDepartment(doc.departmentId);
         this.applyExternalInstitution(doc.externalInstitutionId);
@@ -328,6 +451,10 @@ export default class Evrakkayit implements OnInit {
 
     const formData: IncomingDocumentModel = {
       ...raw,
+      // Evrak Kayıt sekmesine taşınan alanlar detay güncellemesinde de gönderilir;
+      // aksi halde Update bu alanları boşaltabilir.
+      securityDegree: this.form.value.securityDegree,
+      actionRequired: this.form.value.actionRequired,
       userId: userId
     };
 
@@ -384,6 +511,9 @@ export default class Evrakkayit implements OnInit {
       ? this.incomingDocumentService.updateIncomingDocument(formData)
       : this.incomingDocumentService.createIncomingDocument(formData);
 
+    // İlk kayıt mı: evrak Ön Kayıt durumundan çıkıyorsa zimmet kayıt yapan personele devredilir
+    const isFirstRegistration = !!formData.id && this.loadedStatus() === INCOMING_STATUS_ON_KAYIT;
+
     saveObs.subscribe({
       next: () => {
 
@@ -393,10 +523,35 @@ export default class Evrakkayit implements OnInit {
           msg = formData.id ? "Belge güncellendi, yayınlanma sırasına alındı." : "Başarılı";
 
         this.toast.showToast("Başarılı", msg);
+
+        // Aynı ekranda tekrar kaydedilirse devir yeniden tetiklenmez
+        this.loadedStatus.set(this.docStatus());
+
+        if (isFirstRegistration && formData.id) {
+          this.transferAllocationToMe(formData.id, userId);
+        }
       },
       error: (err) => {
         console.error(err);
         this.toast.showToast("Kayıt Başarısız", "Belge kaydedilirken bir hata oluştu.");
+      }
+    });
+  }
+
+  // İlk kayıtta zimmet devri: ön kaydı yapan personelin üzerindeki zimmet, kaydı
+  // tamamlayan personele Devir (2) olarak geçer; zimmet zaten bu kullanıcıdaysa dokunulmaz.
+  private transferAllocationToMe(documentId: string, userId: string) {
+    this.allocationService.transferToUser(documentId, userId).subscribe({
+      next: (transferred) => {
+        if (transferred) this.toast.showToast("Zimmet", "Evrak zimmeti üzerinize devredildi.", "success");
+      },
+      error: (err) => {
+        console.error(err);
+        this.toast.showToast(
+          "Zimmet devri yapılamadı",
+          "Belge kaydedildi ancak zimmet devredilemedi. Zimmet ekranından devir yapabilirsiniz.",
+          "warning"
+        );
       }
     });
   }
@@ -406,11 +561,16 @@ export default class Evrakkayit implements OnInit {
     this.incomingDocumentService.getIncomingDocumentByDocumentId(id).subscribe(doc => {
       if (!doc) return;
 
+      this.loadedStatus.set(doc.status ?? null);
+      this.loadedDoc.set(doc);
+
       this.form.patchValue({
         ...doc,
         departmentId: null,
         externalInstitutionId: null,
-        documentDate: doc.documentDate?.split('T')[0]
+        documentDate: doc.documentDate?.split('T')[0],
+        securityDegree: doc.securityDegree ?? DETAIL_DEFAULTS.securityDegree,
+        actionRequired: doc.actionRequired ?? null
       });
 
       if (doc.status === 6 || doc.status === 10) // yayinla durumu
@@ -419,8 +579,7 @@ export default class Evrakkayit implements OnInit {
         this.docStatus.set(doc.status);
       }
 
-      if (doc.documentName)
-        this.setPdf(doc.documentName);
+      this.applyDocumentFile(doc);
 
       this.applyDepartment(doc.departmentId);
       this.applyExternalInstitution(doc.externalInstitutionId);
@@ -434,8 +593,6 @@ export default class Evrakkayit implements OnInit {
   private patchDetail(doc: IncomingDocumentModel) {
     this.formDetail.patchValue({
       id: doc.id,
-      securityDegree: doc.securityDegree ?? DETAIL_DEFAULTS.securityDegree,
-      actionRequired: doc.actionRequired,
       languageId: doc.languageId ?? DETAIL_DEFAULTS.languageId,
       electronicCopy: doc.electronicCopy ?? DETAIL_DEFAULTS.electronicCopy,
       pageCount: doc.pageCount,
@@ -506,7 +663,7 @@ export default class Evrakkayit implements OnInit {
     }
   }
   getSecurityDegreeText(): string {
-    const value = this.formDetail.get('securityDegree')?.value;
+    const value = this.form.get('securityDegree')?.value;
     return this.securityDegreeOptions.find(opt => opt.value === value)?.label ?? '-';
   }
 

@@ -8,6 +8,8 @@ import { IncomingDocumentModel } from '../../models/incoming-document/incoming-d
 import { RoleService } from '../../services/role-service';
 import { Common } from '../../services/common';
 import { UPLOAD_DOCUMENT_ROLES, UploadDocumentModal } from '../../../components/upload-document-modal/upload-document-modal';
+import { DocumentUploadFlow } from '../../services/document-upload-flow';
+import { INCOMING_STATUS_KAYIT } from '../../services/incomingdocument';
 
 type ScanResult = { code: string; kind: 'notfound' | 'notscanned' };
 
@@ -20,8 +22,9 @@ type ScanResult = { code: string; kind: 'notfound' | 'notscanned' };
   ],
   templateUrl: './qrokut.html',
   // Görsel dil Ön Kayıt / Giden Evrak Teslim Al ekranlarıyla aynı; ortak zm-*
-  // sınıfları zimmet.css'ten, durum şeridi (ok-status) onkayit.css'ten gelir.
-  styleUrls: ['../gidenevrak/zimmet/zimmet.css', '../onkayit/onkayit.css'],
+  // sınıfları zimmet.css'ten, durum şeridi (ok-status) onkayit.css'ten gelir;
+  // taranmamış evrak aksiyon kartları (qk-*) bu ekrana özgüdür.
+  styleUrls: ['../gidenevrak/zimmet/zimmet.css', '../onkayit/onkayit.css', './qrokut.css'],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -42,23 +45,35 @@ export default class Qrokut implements OnInit, AfterViewInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly roleService = inject(RoleService);
   private readonly common = inject(Common);
+  private readonly uploadFlow = inject(DocumentUploadFlow);
   private cdr = inject(ChangeDetectorRef);
   private buffer: string = '';
   private keydownHandler: any;
 
-  // Belge yükleme yalnızca yetkili rollere açıktır (bkz. UPLOAD_DOCUMENT_ROLES)
+  // Taranmamış evrakta belge yükleme / belge yüklemeden kayda geçme yalnızca evrak
+  // kayıt yetkisi olan rollere açıktır (bkz. UPLOAD_DOCUMENT_ROLES)
   readonly canUploadDocument = computed(() => this.roleService.hasAny(UPLOAD_DOCUMENT_ROLES));
 
-  // ---- Belge Yükle penceresi ----
-  // Taranmamış evrağa tarayıcı hattı dışında dosya yüklenir; yükleme
-  // tamamlanınca kayıt ekranına geçilir.
+  // ---- Taranmamış evrak aksiyonları ----
+  // Belge yüklemek zorunlu değildir: kullanıcı dosyayı yükleyip ya da yüklemeden
+  // Evrak Kayıt ekranına geçebilir; dosya sonradan da eklenebilir.
   readonly uploadDoc = signal<IncomingDocumentModel | null>(null);
   readonly uploadLoading = signal(false);
 
+  private get canActOnUnscanned(): boolean {
+    return !!this.lastDoc() && this.canUploadDocument() && this.lastResult()?.kind === 'notscanned';
+  }
+
   openUpload(): void {
-    const doc = this.lastDoc();
-    if (!doc || !this.canUploadDocument() || this.lastResult()?.kind !== 'notscanned') return;
-    this.uploadDoc.set(doc);
+    if (!this.canActOnUnscanned) return;
+    this.uploadDoc.set(this.lastDoc());
+  }
+
+  // Belge olmadan kayda geç: dosya yüklenmeden Evrak Kayıt açılır
+  proceedWithoutFile(): void {
+    const code = this.lastResult()?.code;
+    if (!this.canActOnUnscanned || !code) return;
+    this.openEvrakKayit(code);
   }
 
   closeUpload(): void {
@@ -72,17 +87,35 @@ export default class Qrokut implements OnInit, AfterViewInit, OnDestroy {
     const code = this.lastResult()?.code;
     if (!source?.id || !code || this.uploadLoading()) return;
 
+    const userId = this.common.user()?.id;
+    if (!userId) {
+      this.#toast.showToast('Hata', 'Kullanıcı bulunamadı', 'error');
+      return;
+    }
+
+    // Akış: yükle -> evrak Kayıt Tamamlandı -> zimmet yükleyene Devir -> Evrak Kayıt ekranı
     this.uploadLoading.set(true);
-    this.incomingDocumentService.uploadFile(source.id, file, { qrCode: source.qrCode, userId: this.common.user()?.id }).subscribe({
-      next: () => {
+    this.uploadFlow.run(source.id, file, userId).subscribe({
+      next: (result) => {
         this.uploadLoading.set(false);
         this.uploadDoc.set(null);
+
+        if (result.transferFailed) {
+          this.#toast.showToast(
+            'Zimmet devri yapılamadı',
+            'Belge yüklendi ve evrak kaydı oluşturuldu ancak zimmet devredilemedi. Zimmet ekranından devir yapabilirsiniz.',
+            'warning'
+          );
+        } else {
+          this.#toast.showToast('Başarılı', 'Belge yüklendi, evrak kaydı oluşturuldu ve zimmet üzerinize geçti.', 'success');
+        }
+
         this.openEvrakKayit(code);
       },
       error: () => {
         this.uploadLoading.set(false);
         this.cdr.markForCheck();
-        this.#toast.showToast('Hata', 'Belge yüklenemedi.', 'error');
+        this.#toast.showToast('Hata', 'Belge yüklenemedi ya da evrak kaydı güncellenemedi.', 'error');
       }
     });
   }
@@ -155,8 +188,9 @@ export default class Qrokut implements OnInit, AfterViewInit, OnDestroy {
     this.focusQrInputSoon();
   }
 
-  // QR okunduğunda: evrak varsa ve taranmışsa kayıt ekranına geçilir,
-  // aksi halde neden geçilemediği sol panelde gösterilir.
+  // QR okunduğunda: evrak kaydı tamamlanmışsa (durum 2) doğrudan kayıt ekranına
+  // geçilir; ön kayıt (durum 1) ve diğer durumlarda belge dosyası kontrol edilir,
+  // dosya yoksa neden geçilemediği ve seçenekler sol panelde gösterilir.
   redirectEvrakKayit(result: string) {
     if (this.loading()) return;
 
@@ -190,13 +224,19 @@ export default class Qrokut implements OnInit, AfterViewInit, OnDestroy {
           return;
         }
 
+        // Kaydı tamamlanmış evrak dosyası olsun olmasın doğrudan açılır
+        if (doc.status === INCOMING_STATUS_KAYIT) {
+          this.openEvrakKayit(result);
+          return;
+        }
+
         if (!doc.documentName) {
           this.lastDoc.set(doc);
           this.lastResult.set({ code: result, kind: 'notscanned' });
           this.#toast.showToast(
             "Belge henüz taranmamış",
             this.canUploadDocument()
-              ? "Tarama tamamlanınca kayıt ekranına geçebilir ya da belgeyi kendiniz yükleyebilirsiniz."
+              ? "Belgeyi yükleyerek ya da yüklemeden evrak kaydına geçebilirsiniz."
               : "Tarama işlemi tamamlandıktan sonra belge kayıt ekranına geçiş yapabilirsiniz."
           );
           this.finishLoading();

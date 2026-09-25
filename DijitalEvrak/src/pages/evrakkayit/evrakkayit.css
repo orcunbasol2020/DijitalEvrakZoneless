@@ -50,11 +50,12 @@
 }
 
 .ek-tab {
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    padding: 9px 8px;
+    gap: 7px;
+    padding: 11px 10px;
     border: 1px solid transparent;
     border-radius: 11px;
     background: transparent;
@@ -67,7 +68,9 @@
 }
 
 .ek-tab .material-symbols-outlined {
-    font-size: 19px;
+    font-size: 20px;
+    color: #94a3b8;
+    transition: color 0.15s ease;
 }
 
 .ek-tab:hover {
@@ -75,11 +78,32 @@
     background: rgba(255, 255, 255, 0.6);
 }
 
+.ek-tab:hover .material-symbols-outlined {
+    color: #64748b;
+}
+
+/* Aktif sekme: alttaki evrak numarası kutusuyla aynı mavi aile (ikon + ince alt çizgi) */
 .ek-tab.is-active {
     background: #fff;
-    color: #0369a1;
+    color: #0c4a6e;
     border-color: #e2e8f0;
     box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.ek-tab.is-active .material-symbols-outlined {
+    color: #0284c7;
+}
+
+.ek-tab.is-active::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 4px;
+    width: 28px;
+    height: 3px;
+    border-radius: 999px;
+    transform: translateX(-50%);
+    background: linear-gradient(90deg, #0369a1, #38bdf8);
 }
 
 /* Sekme içerikleri: gövde flex-column olduğu için pane'ler de aynı aralıkla dizilir */
@@ -94,33 +118,67 @@
     display: none;
 }
 
-/* ---- Sistem No arama kutusu ---- */
+/* ---- Evrak numarası kutusu: koyu lacivert gradient, cam efektli ikon ve seçim ---- */
 .ek-lookup {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 14px;
     padding: 14px 16px;
-    border-radius: 14px;
-    background: linear-gradient(135deg, #f8fafc 0%, #ecfeff 100%);
-    border: 1px solid #cffafe;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    border-radius: 16px;
+    color: #fff;
+    background: linear-gradient(120deg, #0f172a 0%, #0c4a6e 55%, #0369a1 100%);
+    border: 1px solid rgba(125, 211, 252, 0.35);
+    box-shadow: 0 12px 28px rgba(3, 105, 161, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    overflow: hidden;
+    isolation: isolate;
+}
+
+/* Sağ üstte yumuşak ışık halesi */
+.ek-lookup::before {
+    content: "";
+    position: absolute;
+    width: 220px;
+    height: 220px;
+    right: -70px;
+    top: -120px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.45) 0%, rgba(56, 189, 248, 0) 70%);
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* Silik dekoratif numara işareti */
+.ek-lookup::after {
+    content: "tag";
+    font-family: 'Material Symbols Outlined';
+    font-size: 110px;
+    line-height: 1;
+    position: absolute;
+    right: 150px;
+    top: -26px;
+    color: rgba(255, 255, 255, 0.06);
+    pointer-events: none;
+    z-index: -1;
 }
 
 .ek-lookup-icon {
     flex: 0 0 auto;
-    width: 44px;
-    height: 44px;
-    border-radius: 13px;
+    width: 36px;
+    height: 36px;
+    border-radius: 11px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: #fff;
-    background: linear-gradient(135deg, #06b6d4, #0ea5e9);
-    box-shadow: 0 6px 14px rgba(6, 182, 212, 0.3);
+    color: #7dd3fc;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(6px);
 }
 
 .ek-lookup-icon .material-symbols-outlined {
-    font-size: 24px;
+    font-size: 20px;
 }
 
 .ek-lookup-body {
@@ -128,23 +186,53 @@
     min-width: 0;
 }
 
-.ek-lookup-body .zm-field-label {
-    margin-bottom: 2px;
-}
-
 .ek-lookup-no {
-    font-size: 18px;
-    font-weight: 700;
-    color: #0f172a;
+    font-size: 21px;
+    font-weight: 800;
+    color: #fff;
     font-variant-numeric: tabular-nums;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.08em;
+    line-height: 1.1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    text-shadow: 0 2px 10px rgba(2, 132, 199, 0.45);
 }
 
-[data-theme="dark"] .ek-lookup-no {
+/* Üst kutunun sağındaki gizlilik derecesi seçimi: cam efektli hap */
+.ek-lookup-select.form-select {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 150px;
+    padding: 7px 34px 7px 14px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.1);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23e0f2fe' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    background-position: right 12px center;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    color-scheme: dark;
+    transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ek-lookup-select.form-select:hover {
+    background-color: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.ek-lookup-select.form-select:focus {
+    background-color: rgba(255, 255, 255, 0.16);
+    border-color: #7dd3fc;
+    box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.3);
+}
+
+.ek-lookup-select.form-select option {
     color: #e2e8f0;
+    background: #0f172a;
 }
 
 /* ---- Form bölümleri ---- */
@@ -196,6 +284,37 @@
 
 .ek-span-2 {
     grid-column: span 2;
+}
+
+/* Form ayracı: alan gruplarını (ör. Kurum / Birim) ince çizgi ve küçük etiketle ayırır */
+.ek-divider {
+    grid-column: span 2;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #94a3b8;
+    white-space: nowrap;
+}
+
+.ek-divider::before,
+.ek-divider::after {
+    content: "";
+    flex: 1 1 auto;
+    height: 1px;
+    background: #eef2f7;
+}
+
+.ek-divider::before {
+    flex: 0 0 12px;
+}
+
+.ek-divider .material-symbols-outlined {
+    font-size: 15px;
+    color: #cbd5e1;
 }
 
 .ek-label-icon {
@@ -391,6 +510,7 @@ textarea.ok-input {
 
 /* ---- PDF önizleme ---- */
 .ek-pdf-body {
+    position: relative;
     display: flex;
     flex-direction: column;
     padding: 0;
@@ -414,6 +534,355 @@ textarea.ok-input {
     margin: 16px;
     flex: 1 1 auto;
     justify-content: center;
+}
+
+/* ============================================================
+   Belge sahnesi: belge yüklenmemişken önizleme paneli
+   Noktalı zemin üzerinde boş bir sayfa silueti; Gizli / Çok Gizli seçiliyse
+   sayfanın üzerinde mühür; altında durum hapı ve üç adım.
+   ============================================================ */
+.ek-stage {
+    flex: 1 1 auto;
+    min-height: calc(100vh - 210px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    padding: 36px 24px 32px;
+    background:
+        radial-gradient(circle, rgba(15, 23, 42, 0.09) 1px, transparent 1.4px) 0 0 / 18px 18px,
+        linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+}
+
+/* Sayfa silueti (tıklanabilir: yükleme penceresini açar) */
+.ek-sheet {
+    position: relative;
+    width: min(320px, 100%);
+    aspect-ratio: 1 / 1.28;
+    padding: 24px 26px;
+    border: 0;
+    border-radius: 6px;
+    background: #fff;
+    text-align: left;
+    cursor: default;
+    transform: rotate(-2deg);
+    box-shadow:
+        0 1px 2px rgba(15, 23, 42, 0.06),
+        0 18px 40px rgba(15, 23, 42, 0.14),
+        0 40px 80px -30px rgba(15, 23, 42, 0.25);
+    animation: ek-sheet-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    isolation: isolate;
+}
+
+/* Kâğıt üzerinde üstten gelen hafif ışık */
+.ek-sheet::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0) 40%);
+    pointer-events: none;
+}
+
+.ek-sheet.is-clickable {
+    cursor: pointer;
+}
+
+.ek-sheet.is-clickable:hover,
+.ek-sheet.is-clickable:focus-visible {
+    transform: rotate(0deg) translateY(-6px);
+    box-shadow:
+        0 1px 2px rgba(15, 23, 42, 0.06),
+        0 26px 50px rgba(2, 132, 199, 0.22),
+        0 50px 90px -30px rgba(15, 23, 42, 0.3);
+    outline: 0;
+}
+
+@keyframes ek-sheet-in {
+    from { opacity: 0; transform: rotate(-2deg) translateY(18px); }
+    to   { opacity: 1; transform: rotate(-2deg) translateY(0); }
+}
+
+.ek-sheet-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 22px;
+}
+
+.ek-sheet-logo {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+    border: 1px solid rgba(3, 105, 161, 0.14);
+}
+
+.ek-sheet-tag {
+    max-width: 60%;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    font-variant-numeric: tabular-nums;
+    color: #0369a1;
+    background: #f0f9ff;
+    border: 1px solid rgba(3, 105, 161, 0.14);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Satır desenleri */
+.ek-sheet-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.ek-sheet-lines.is-second {
+    margin-top: 18px;
+}
+
+.ek-sheet-lines i {
+    display: block;
+    height: 6px;
+    border-radius: 3px;
+    background: #e2e8f0;
+}
+
+.ek-sheet-lines i:nth-child(1) { width: 92%; }
+.ek-sheet-lines i:nth-child(2) { width: 78%; }
+.ek-sheet-lines i:nth-child(3) { width: 86%; }
+.ek-sheet-lines i:nth-child(4) { width: 64%; }
+.ek-sheet-lines i:nth-child(5) { width: 88%; }
+.ek-sheet-lines i:nth-child(6) { width: 72%; }
+.ek-sheet-lines i:nth-child(7) { width: 84%; }
+.ek-sheet-lines i:nth-child(8) { width: 40%; }
+
+.ek-sheet-lines.is-second i:nth-child(1) { width: 70%; }
+.ek-sheet-lines.is-second i:nth-child(2) { width: 88%; }
+.ek-sheet-lines.is-second i:nth-child(3) { width: 58%; }
+.ek-sheet-lines.is-second i:nth-child(4) { width: 80%; }
+.ek-sheet-lines.is-second i:nth-child(5) { width: 34%; }
+
+/* Sayfanın altında, üzerine gelince beliren yükleme çağrısı */
+.ek-sheet-cta {
+    position: absolute;
+    left: 50%;
+    bottom: 18px;
+    transform: translateX(-50%) translateY(6px);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, #0284c7, #0ea5e9);
+    box-shadow: 0 6px 14px rgba(14, 165, 233, 0.35);
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
+}
+
+.ek-sheet-cta .material-symbols-outlined {
+    font-size: 17px;
+}
+
+.ek-sheet.is-clickable:hover .ek-sheet-cta,
+.ek-sheet.is-clickable:focus-visible .ek-sheet-cta {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* Gizlilik mührü: sayfanın üzerine basılı */
+.ek-stamp {
+    position: absolute;
+    left: 50%;
+    top: 46%;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 16px 30px 14px;
+    border: 4px double #b91c1c;
+    border-radius: 10px;
+    color: #b91c1c;
+    transform: translate(-50%, -50%) rotate(-12deg);
+    background:
+        radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.55) 0, rgba(255, 255, 255, 0) 45%),
+        rgba(185, 28, 28, 0.04);
+    box-shadow: inset 0 0 0 2px rgba(185, 28, 28, 0.25);
+    opacity: 0.9;
+    user-select: none;
+    white-space: nowrap;
+    animation: ek-stamp-in 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+    mix-blend-mode: multiply;
+}
+
+@keyframes ek-stamp-in {
+    from { opacity: 0; transform: translate(-50%, -50%) rotate(-12deg) scale(1.5); }
+    to   { opacity: 0.9; transform: translate(-50%, -50%) rotate(-12deg) scale(1); }
+}
+
+.ek-stamp-text {
+    font-size: 32px;
+    font-weight: 900;
+    letter-spacing: 0.22em;
+    line-height: 1;
+    padding-left: 0.22em; /* harf aralığı sağa taştığı için görsel merkezleme */
+}
+
+.ek-stamp-sub {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.28em;
+    padding-left: 0.28em;
+    opacity: 0.85;
+}
+
+.ek-stamp[data-level="6"] {
+    border-color: #7f1d1d;
+    color: #7f1d1d;
+    box-shadow: inset 0 0 0 2px rgba(127, 29, 29, 0.3);
+}
+
+/* Durum hapı: nötr ton, "bekleniyor" ya da uyarı hissi vermez */
+.ek-stage-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px 6px 10px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #64748b;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
+}
+
+.ek-stage-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #94a3b8;
+}
+
+.ek-stage-status.is-secure {
+    color: #991b1b;
+    border-color: rgba(185, 28, 28, 0.25);
+    background: #fef2f2;
+}
+
+.ek-stage-status.is-secure .ek-stage-dot {
+    background: #dc2626;
+}
+
+/* Başlık sağındaki Belge Yükle butonu: kompakt birincil */
+.ek-head-upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px 6px 10px;
+    border: 0;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #0284c7, #0ea5e9);
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #fff;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ek-head-upload-btn .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.ek-head-upload-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(14, 165, 233, 0.38);
+}
+
+@media (max-width: 991.98px) {
+    .ek-stage {
+        min-height: 70vh;
+    }
+}
+
+/* ---- Belge sahnesi: koyu tema ---- */
+[data-theme="dark"] .ek-stage {
+    background:
+        radial-gradient(circle, rgba(148, 163, 184, 0.16) 1px, transparent 1.4px) 0 0 / 18px 18px,
+        linear-gradient(180deg, #0f172a 0%, #0b1220 100%);
+}
+
+[data-theme="dark"] .ek-sheet {
+    background: #1e293b;
+    box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.3),
+        0 18px 40px rgba(0, 0, 0, 0.45),
+        0 40px 80px -30px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="dark"] .ek-sheet::before {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 40%);
+}
+
+[data-theme="dark"] .ek-sheet-logo {
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.25), rgba(14, 165, 233, 0.12));
+    border-color: rgba(125, 211, 252, 0.25);
+}
+
+[data-theme="dark"] .ek-sheet-tag {
+    color: #7dd3fc;
+    background: rgba(14, 165, 233, 0.12);
+    border-color: rgba(125, 211, 252, 0.25);
+}
+
+[data-theme="dark"] .ek-sheet-lines i {
+    background: #334155;
+}
+
+[data-theme="dark"] .ek-stamp {
+    border-color: #f87171;
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.06);
+    box-shadow: inset 0 0 0 2px rgba(248, 113, 113, 0.28);
+    mix-blend-mode: normal;
+}
+
+[data-theme="dark"] .ek-stamp[data-level="6"] {
+    border-color: #fca5a5;
+    color: #fca5a5;
+    box-shadow: inset 0 0 0 2px rgba(252, 165, 165, 0.3);
+}
+
+[data-theme="dark"] .ek-stage-status {
+    color: #cbd5e1;
+    background: #1e293b;
+    border-color: rgba(148, 163, 184, 0.2);
+    box-shadow: none;
+}
+
+[data-theme="dark"] .ek-stage-status.is-secure {
+    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(248, 113, 113, 0.3);
+}
+
+[data-theme="dark"] .ek-stage-dot {
+    background: #64748b;
 }
 
 /* ---- Duyarlı ---- */
@@ -480,16 +949,37 @@ textarea.ok-input {
     color: #e2e8f0;
 }
 
+[data-theme="dark"] .ek-tab .material-symbols-outlined {
+    color: #64748b;
+}
+
 [data-theme="dark"] .ek-tab.is-active {
     background: #1e293b;
     border-color: rgba(14, 165, 233, 0.35);
+    color: #e0f2fe;
+}
+
+[data-theme="dark"] .ek-tab.is-active .material-symbols-outlined {
     color: #7dd3fc;
 }
 
+[data-theme="dark"] .ek-divider {
+    color: #64748b;
+}
+
+[data-theme="dark"] .ek-divider::before,
+[data-theme="dark"] .ek-divider::after {
+    background: rgba(148, 163, 184, 0.18);
+}
+
+[data-theme="dark"] .ek-divider .material-symbols-outlined {
+    color: #475569;
+}
+
 [data-theme="dark"] .ek-lookup {
-    background: linear-gradient(135deg, rgba(148, 163, 184, 0.08) 0%, rgba(6, 182, 212, 0.1) 100%);
-    border-color: rgba(6, 182, 212, 0.3);
-    box-shadow: none;
+    background: linear-gradient(120deg, #0b1220 0%, #0c3a57 55%, #075985 100%);
+    border-color: rgba(125, 211, 252, 0.28);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 [data-theme="dark"] .ek-section,

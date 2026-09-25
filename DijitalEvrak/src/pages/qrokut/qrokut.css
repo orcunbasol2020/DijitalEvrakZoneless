@@ -1,0 +1,164 @@
+/* ============================================================
+   Evrak Kayıt (QR Okut) ekranı
+   Ortak zm-* / ok-* sınıfları zimmet.css ve onkayit.css'ten gelir; burada
+   yalnızca "Belge henüz taranmamış" sonucunun altındaki aksiyon kartları var.
+   ============================================================ */
+
+.qk-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.qk-action {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+    border-radius: 14px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    text-align: left;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.qk-action:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+}
+
+.qk-action:focus-visible {
+    outline: 0;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.25);
+}
+
+.qk-action-icon {
+    flex: 0 0 auto;
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.qk-action-icon .material-symbols-outlined {
+    font-size: 26px;
+}
+
+.qk-action-body {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.qk-action-title {
+    font-size: 14.5px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: #1e293b;
+}
+
+.qk-action-text {
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+.qk-action-arrow {
+    flex: 0 0 auto;
+    color: #94a3b8;
+    transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.qk-action:hover .qk-action-arrow {
+    transform: translateX(3px);
+}
+
+/* Belge Yükle: birincil, mavi */
+.qk-action.is-primary {
+    border-color: #7dd3fc;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+}
+
+.qk-action.is-primary .qk-action-icon {
+    color: #fff;
+    background: linear-gradient(135deg, #0284c7, #38bdf8);
+    box-shadow: 0 6px 14px rgba(2, 132, 199, 0.3);
+}
+
+.qk-action.is-primary .qk-action-title {
+    color: #075985;
+}
+
+.qk-action.is-primary:hover {
+    border-color: #0ea5e9;
+}
+
+.qk-action.is-primary:hover .qk-action-arrow {
+    color: #0284c7;
+}
+
+/* Belge olmadan kayda geç: ikincil, nötr */
+.qk-action.is-secondary .qk-action-icon {
+    color: #475569;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+}
+
+.qk-action.is-secondary:hover {
+    border-color: #94a3b8;
+    background: #f8fafc;
+}
+
+.qk-action.is-secondary:hover .qk-action-arrow {
+    color: #475569;
+}
+
+@media (max-width: 767.98px) {
+    .qk-actions {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* ---- Koyu tema ---- */
+[data-theme="dark"] .qk-action {
+    background: rgba(148, 163, 184, 0.06);
+    border-color: rgba(148, 163, 184, 0.2);
+}
+
+[data-theme="dark"] .qk-action:hover {
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .qk-action-title {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .qk-action-text {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .qk-action.is-primary {
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.16) 0%, rgba(14, 165, 233, 0.08) 100%);
+    border-color: rgba(14, 165, 233, 0.4);
+}
+
+[data-theme="dark"] .qk-action.is-primary .qk-action-title {
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .qk-action.is-secondary .qk-action-icon {
+    color: #cbd5e1;
+    background: rgba(148, 163, 184, 0.12);
+    border-color: rgba(148, 163, 184, 0.2);
+}
+
+[data-theme="dark"] .qk-action.is-secondary:hover {
+    background: rgba(148, 163, 184, 0.1);
+    border-color: rgba(148, 163, 184, 0.35);
+}

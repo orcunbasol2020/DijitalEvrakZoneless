@@ -8,6 +8,11 @@ import { IncomingDocumentLast30DaysStats } from '../models/dashboard/IncomingDoc
 import { IncomingDocumentPendingScanStats } from '../models/dashboard/IncomingDocumentPendingScanStats.model';
 import { IncomingDocumentOcrQueueStats } from '../models/dashboard/IncomingDocumentOcrQueueStats.model';
 
+// Gelen evrak durumları (backend DocumentStatusEnum): 1 Ön Kayıt, 2 Kayıt Tamamlandı,
+// 6 Yayınlanma Sırasında, 10 Yayınlandı. Evrak Kayıt ekranındaki "Kaydet" 2 yazar.
+export const INCOMING_STATUS_ON_KAYIT = 1;
+export const INCOMING_STATUS_KAYIT = 2;
+
 @Injectable({ providedIn: 'root' })
 export class IncomingDocumentService {
 
@@ -96,13 +101,14 @@ export class IncomingDocumentService {
   }
 
   // BELGE YÜKLE: tarayıcı hattı dışında, henüz taranmamış ön kayıt evrakına
-  // dosya yükler (multipart/form-data). Evrak id ile birlikte qrCode ve yükleyen
-  // kullanıcı da gönderilir; backend hangisini bekliyorsa onu kullanır.
-  uploadFile(documentId: string, file: File, options?: { qrCode?: string; userId?: string }) {
+  // dosya yükler. Backend sözleşmesi (multipart/form-data):
+  //   incomingDocumentId : Guid   (ön kayıtlı evrakın Id'si)
+  //   file               : PDF    (en fazla 20 MB)
+  //   userId             : string (yükleyen kullanıcı)
+  uploadFile(incomingDocumentId: string, file: File, userId: string) {
     const formData = new FormData();
-    formData.append('id', documentId);
-    if (options?.qrCode) formData.append('qrCode', options.qrCode);
-    if (options?.userId) formData.append('userId', options.userId);
+    formData.append('incomingDocumentId', incomingDocumentId);
+    formData.append('userId', userId);
     formData.append('file', file, file.name);
 
     return this.httpService.post<any>(

@@ -60,14 +60,41 @@
               @if (r.kind === 'notfound') {
                 {{ r.code }} numarasına ait bir belge bulunamadı. Numarayı kontrol edip yeniden okutun.
               } @else if (canUploadDocument()) {
-                {{ r.code }} numaralı belgenin tarama işlemi tamamlandıktan sonra kayıt ekranına geçebilirsiniz.
-                Belge elinizdeyse "Belge Yükle" ile dosyayı yükleyip kayda hemen geçebilirsiniz.
+                {{ r.code }} numaralı belgenin taraması henüz yapılmamış. Belge yüklemek zorunlu değil:
+                dosyayı yükleyerek ya da yüklemeden evrak kaydına geçebilirsiniz.
               } @else {
                 {{ r.code }} numaralı belgenin tarama işlemi tamamlandıktan sonra kayıt ekranına geçebilirsiniz.
               }
             </div>
           </div>
         </div>
+
+        <!-- Taranmamış evrak: belge yükle ya da belge yüklemeden kayda geç -->
+        @if (!loading() && lastResult()?.kind === 'notscanned' && canUploadDocument()) {
+          <div class="qk-actions">
+            <button type="button" class="qk-action is-primary" (click)="openUpload()">
+              <span class="qk-action-icon">
+                <span class="material-symbols-outlined">upload_file</span>
+              </span>
+              <span class="qk-action-body">
+                <span class="qk-action-title">Belge Yükle</span>
+                <span class="qk-action-text">PDF dosyasını yükleyin, ardından evrak kaydına geçilir.</span>
+              </span>
+              <span class="material-symbols-outlined qk-action-arrow">arrow_forward</span>
+            </button>
+
+            <button type="button" class="qk-action is-secondary" (click)="proceedWithoutFile()">
+              <span class="qk-action-icon">
+                <span class="material-symbols-outlined">edit_document</span>
+              </span>
+              <span class="qk-action-body">
+                <span class="qk-action-title">Belge Yüklemeden Kayda Geç</span>
+                <span class="qk-action-text">Dosya yüklemeden evrak kaydını tamamlayın; belge sonradan eklenebilir.</span>
+              </span>
+              <span class="material-symbols-outlined qk-action-arrow">arrow_forward</span>
+            </button>
+          </div>
+        }
 
         <!-- Boş durum -->
         <div class="zm-empty" *ngIf="!loading() && !lastResult()">
@@ -93,14 +120,6 @@
             <span class="material-symbols-outlined">restart_alt</span>
             Temizle
           </button>
-          @if (lastResult()?.kind === 'notscanned' && canUploadDocument()) {
-            <button type="button" class="btn btn-primary zimmet-submit-btn" data-mode="self"
-              title="Belgeyi yükleyip kayda geç"
-              (click)="openUpload()">
-              <span class="zimmet-submit-icon material-symbols-outlined">upload_file</span>
-              <span class="zimmet-submit-text">Belge Yükle</span>
-            </button>
-          }
         </div>
       </div>
     </div>
@@ -127,7 +146,7 @@
             <span class="zm-step-no">2</span>
             <div class="zm-step-body">
               <div class="zm-step-title">Evrak doğrulanır</div>
-              <div class="zm-step-text">Evrakın sistemde kayıtlı ve taranmış olması gerekir. Henüz taranmamış evraklar için önce dijitalleştirme tamamlanmalıdır; evrak kayıt yetkisi olan kullanıcılar belgeyi "Belge Yükle" ile kendileri de yükleyebilir.</div>
+              <div class="zm-step-text">Evrak sistemde kayıtlı olmalıdır. Henüz taranmamış evraklarda evrak kayıt yetkisi olan kullanıcılar belgeyi kendileri yükleyebilir ya da belge yüklemeden kayda geçebilir; belge sonradan da eklenebilir.</div>
             </div>
           </div>
           <div class="zm-step">
