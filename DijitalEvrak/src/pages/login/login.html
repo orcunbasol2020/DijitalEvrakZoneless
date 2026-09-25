@@ -129,30 +129,26 @@
           <img class="login-right-mark" src="assets/images/dijital-evrak-mark-neon.png"
                width="690" height="530" alt="" />
           <div class="login-right-brand">
-            <span class="login-right-title">DİJİTAL <span class="login-brand-accent">EVRAK</span></span>
-            <span class="login-right-subtitle">Takip Sistemi</span>
+            <span class="login-right-org">T.C. DIŞİŞLERİ BAKANLIĞI</span>
+            <span class="login-right-title" aria-label="DİJİTAL EVRAK">
+              @for (c of titleChars; track $index) {
+                <span aria-hidden="true"
+                      [class.login-brand-accent]="c.accent"
+                      [class.is-space]="c.ch === ' '">{{ c.ch }}</span>
+              }
+            </span>
+            <span class="login-right-rule" aria-hidden="true"></span>
+            <span class="login-right-subtitle" aria-label="Takip Sistemi">
+              @for (ch of subtitleChars; track $index) {
+                <span aria-hidden="true" [class.is-space]="ch === ' '">{{ ch }}</span>
+              }
+            </span>
           </div>
-          <ul class="login-right-features">
-            <li>
-              <span class="material-symbols-outlined">inbox</span>
-              <span>Gelen ve giden evrakları tek ekrandan kaydedin</span>
-            </li>
-            <li>
-              <span class="material-symbols-outlined">assignment_ind</span>
-              <span>Zimmet devirlerini anlık olarak takip edin</span>
-            </li>
-            <li>
-              <span class="material-symbols-outlined">qr_code_scanner</span>
-              <span>Barkod ile saniyeler içinde belgeye ulaşın</span>
-            </li>
-          </ul>
         </div>
 
         <div class="login-version">{{ version }}</div>
       </aside>
 
     </div>
-
-    <p class="login-footer"><span>T.C. DIŞİŞLERİ BAKANLIĞI</span></p>
   </div>
 </div>

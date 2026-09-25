@@ -33,6 +33,10 @@ export default class Login {
 
   readonly version = 'v1.0.0';
 
+  /** Marka bloğu: başlık ve alt başlık harf harf dağıtılarak bakanlık adıyla aynı genişliğe yayılır. */
+  readonly titleChars = 'DİJİTAL EVRAK'.split('').map((ch, i) => ({ ch, accent: i > 7 }));
+  readonly subtitleChars = 'TAKİP SİSTEMİ'.split('');
+
   constructor() {
     // Oturum zaten açıksa login ekranını gösterme, doğrudan ana sayfaya geç.
     const existing = localStorage.getItem('user') ?? sessionStorage.getItem('user');
