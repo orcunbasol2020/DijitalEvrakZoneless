@@ -85,6 +85,50 @@ export default class Onkayitlar {
   readonly mineDocuments = signal<IncomingDocumentModel[]>([]);
   readonly loading = signal(false);
 
+  // Belge numarası kopyalanan satır; ikon kısa süreliğine "check" olur
+  readonly copiedId = signal<string | null>(null);
+  private copiedTimer: ReturnType<typeof setTimeout> | undefined;
+
+  /**
+   * Belge numarasının solundaki ikona tıklanınca numara panoya kopyalanır ve
+   * metin, fareyle seçilmiş gibi vurgulanır. Pano API'si yoksa (http, eski
+   * tarayıcı) seçili metin üzerinden execCommand('copy') ile kopyalanır.
+   */
+  copyDocNo(item: OnKayitRow, event: MouseEvent): void {
+    const text = (item.qrCode ?? '').trim();
+    if (!text) return;
+
+    // Numarayı görsel olarak seç
+    const host = event.currentTarget as HTMLElement | null;
+    const numberEl = host?.parentElement?.querySelector('.zl-doc-no');
+    if (numberEl) {
+      const range = document.createRange();
+      range.selectNodeContents(numberEl);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+    }
+
+    const markCopied = () => {
+      this.copiedId.set(item.id ?? null);
+      clearTimeout(this.copiedTimer);
+      this.copiedTimer = setTimeout(() => this.copiedId.set(null), 1500);
+    };
+
+    const fallbackCopy = () => {
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch { ok = false; }
+      if (ok) markCopied();
+      else this.toast.showToast('Hata', 'Belge numarası kopyalanamadı.', 'error');
+    };
+
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).then(markCopied).catch(fallbackCopy);
+    } else {
+      fallbackCopy();
+    }
+  }
+
   // "Kaydeden" ve "Atanan" sütunları için kullanıcı id -> kullanıcı eşlemesi.
   // Users/GetAll id'leri büyük harfli GUID, evraktaki createdUserId / currentAssignmentUserId
   // küçük harfli döndüğünden anahtarlar küçük harfe indirgenir.

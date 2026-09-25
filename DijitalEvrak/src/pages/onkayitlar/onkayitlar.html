@@ -162,9 +162,15 @@
                 <tr class="zl-row">
                   <td>
                     <span class="zl-doc">
-                      <span class="zl-doc-icon">
-                        <span class="material-symbols-outlined">app_registration</span>
-                      </span>
+                      <button type="button"
+                              class="zl-doc-icon okl-copy-btn"
+                              [class.is-copied]="copiedId() === item.id"
+                              [disabled]="!item.qrCode"
+                              [title]="copiedId() === item.id ? 'Kopyalandı' : 'Belge numarasını kopyala'"
+                              [attr.aria-label]="'Belge numarasını kopyala: ' + (item.qrCode || '')"
+                              (click)="copyDocNo(item, $event)">
+                        <span class="material-symbols-outlined">{{ copiedId() === item.id ? 'check' : 'app_registration' }}</span>
+                      </button>
                       <span>
                         <span class="zl-doc-no d-block">{{ item.qrCode || '-' }}</span>
                         @if (item.orginalNo) {
