@@ -1,0 +1,328 @@
+/* ============================================================
+   Kontrol Paneli: "Son girişleriniz" kartı
+   Girişten sonra bir kez görünür; başarısız deneme varsa uyarı
+   rengine (amber) döner. Kapatılınca oturum boyunca gizlenir.
+   ============================================================ */
+
+.rc-card {
+    --rc-accent: #0369a1;
+    --rc-accent-bg: #e0f2fe;
+    --rc-accent-border: rgba(3, 105, 161, 0.18);
+
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 20px;
+    border-radius: 16px;
+    background: #fff;
+    border: 1px solid #e7eaf0;
+    border-left: 4px solid var(--rc-accent);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    animation: rc-fade-in 0.3s ease;
+}
+
+.rc-card.is-warning {
+    --rc-accent: #d97706;
+    --rc-accent-bg: #fef3c7;
+    --rc-accent-border: rgba(217, 119, 6, 0.28);
+    background: #fffdf5;
+}
+
+@keyframes rc-fade-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- Başlık ---- */
+.rc-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid #eef2f7;
+}
+
+.rc-icon {
+    flex: 0 0 auto;
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--rc-accent-bg);
+    color: var(--rc-accent);
+    border: 1px solid var(--rc-accent-border);
+}
+
+.rc-icon .material-symbols-outlined {
+    font-size: 21px;
+}
+
+.rc-head-text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.rc-title {
+    margin: 0;
+    font-size: 14.5px;
+    font-weight: 700;
+    color: #1e293b;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+}
+
+.rc-card.is-warning .rc-title {
+    color: #92400e;
+}
+
+.rc-sub {
+    margin-top: 3px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #64748b;
+}
+
+.rc-close {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    margin: -4px -6px 0 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.rc-close .material-symbols-outlined {
+    font-size: 19px;
+}
+
+.rc-close:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+/* ---- Liste ---- */
+.rc-list {
+    list-style: none;
+    margin: 0;
+    padding: 6px 8px;
+    display: flex;
+    flex-direction: column;
+}
+
+.rc-item {
+    display: grid;
+    grid-template-columns: 28px 118px minmax(120px, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    font-size: 12.5px;
+    color: #334155;
+}
+
+.rc-item:hover {
+    background: #f8fafc;
+}
+
+.rc-item.is-fail {
+    color: #7f1d1d;
+}
+
+.rc-item.is-fail:hover {
+    background: #fef2f2;
+}
+
+.rc-result {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.rc-result .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.rc-item.is-fail .rc-result {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.rc-when {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.rc-date {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.rc-time {
+    font-size: 11.5px;
+    color: #94a3b8;
+}
+
+.rc-item.is-fail .rc-date {
+    color: #991b1b;
+}
+
+.rc-status {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rc-item.is-fail .rc-status {
+    color: #b91c1c;
+}
+
+.rc-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    justify-self: end;
+    white-space: nowrap;
+}
+
+.rc-ip {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11.5px;
+    color: #475569;
+}
+
+.rc-agent {
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+}
+
+/* ---- Dar ekran ---- */
+@media (max-width: 575.98px) {
+    .rc-item {
+        grid-template-columns: 28px 1fr;
+        row-gap: 4px;
+    }
+
+    .rc-status,
+    .rc-meta {
+        grid-column: 2;
+        justify-self: start;
+    }
+
+    .rc-meta {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .rc-card {
+        animation: none;
+    }
+}
+
+/* ============================================================
+   Koyu tema
+   ============================================================ */
+[data-theme="dark"] .rc-card {
+    --rc-accent: #7dd3fc;
+    --rc-accent-bg: rgba(14, 165, 233, 0.16);
+    --rc-accent-border: rgba(125, 211, 252, 0.3);
+    background: #2d3748;
+    border-color: #4a5568;
+    border-left-color: var(--rc-accent);
+}
+
+[data-theme="dark"] .rc-card.is-warning {
+    --rc-accent: #fbbf24;
+    --rc-accent-bg: rgba(245, 158, 11, 0.16);
+    --rc-accent-border: rgba(251, 191, 36, 0.35);
+    background: #2f2c26;
+}
+
+[data-theme="dark"] .rc-head {
+    border-bottom-color: rgba(148, 163, 184, 0.2);
+}
+
+[data-theme="dark"] .rc-title {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .rc-card.is-warning .rc-title {
+    color: #fcd34d;
+}
+
+[data-theme="dark"] .rc-sub {
+    color: #a0aec0;
+}
+
+[data-theme="dark"] .rc-close:hover {
+    background: rgba(148, 163, 184, 0.14);
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .rc-item {
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .rc-item:hover {
+    background: rgba(148, 163, 184, 0.08);
+}
+
+[data-theme="dark"] .rc-item.is-fail {
+    color: #fca5a5;
+}
+
+[data-theme="dark"] .rc-item.is-fail:hover {
+    background: rgba(220, 38, 38, 0.12);
+}
+
+[data-theme="dark"] .rc-result {
+    background: rgba(34, 197, 94, 0.18);
+    color: #86efac;
+}
+
+[data-theme="dark"] .rc-item.is-fail .rc-result {
+    background: rgba(220, 38, 38, 0.2);
+    color: #fca5a5;
+}
+
+[data-theme="dark"] .rc-date {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .rc-item.is-fail .rc-date,
+[data-theme="dark"] .rc-item.is-fail .rc-status {
+    color: #fca5a5;
+}
+
+[data-theme="dark"] .rc-ip {
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .rc-agent {
+    color: #cbd5e1;
+    background: rgba(148, 163, 184, 0.12);
+    border-color: rgba(148, 163, 184, 0.25);
+}

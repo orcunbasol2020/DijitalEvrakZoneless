@@ -1,0 +1,49 @@
+@if (visible()) {
+  <section class="rc-card" [class.is-warning]="hasFailure()" role="status" aria-live="polite">
+    <div class="rc-head">
+      <span class="rc-icon">
+        <span class="material-symbols-outlined">{{ hasFailure() ? 'gpp_maybe' : 'verified_user' }}</span>
+      </span>
+      <div class="rc-head-text">
+        <h4 class="rc-title">
+          @if (hasFailure()) {
+            Hesabınızda başarısız giriş denemesi var
+          } @else {
+            Son girişleriniz
+          }
+        </h4>
+        <div class="rc-sub">
+          @if (hasFailure()) {
+            Son {{ rows().length }} girişinizden {{ failedCount() }} tanesi başarısız. Bu denemeleri siz yapmadıysanız Bilgi İşlem ile iletişime geçin.
+          } @else {
+            Hesabınızla yapılan son {{ rows().length }} giriş. Tanımadığınız bir giriş görürseniz Bilgi İşlem ile iletişime geçin.
+          }
+        </div>
+      </div>
+      <button type="button" class="rc-close" title="Kapat" aria-label="Kapat" (click)="dismiss()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <ul class="rc-list">
+      @for (row of rows(); track row.id ?? $index) {
+        <li class="rc-item" [class.is-fail]="!row.isSuccess">
+          <span class="rc-result" [title]="row.isSuccess ? 'Başarılı' : (row.failureReasonText || 'Başarısız')">
+            <span class="material-symbols-outlined">{{ row.isSuccess ? 'check_circle' : 'cancel' }}</span>
+          </span>
+          <span class="rc-when">
+            <span class="rc-date">{{ toLocalDate(row.loginDate) | date:'dd.MM.yyyy' }}</span>
+            <span class="rc-time">{{ toLocalDate(row.loginDate) | date:'HH:mm' }}</span>
+          </span>
+          <span class="rc-status">
+            {{ row.isSuccess ? 'Başarılı' : (row.failureReasonText || 'Başarısız') }}
+          </span>
+          <span class="rc-meta">
+            <span class="rc-ip" title="IP adresi">{{ row.ipAddress || '-' }}</span>
+            <span class="rc-agent" [title]="row.userAgent || ''">{{ agentOf(row) }}</span>
+          </span>
+        </li>
+      }
+    </ul>
+  </section>
+}

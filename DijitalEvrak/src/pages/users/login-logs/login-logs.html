@@ -1,0 +1,264 @@
+<app-generic pageTitle="Giriş Kayıtları"
+  [breadcrumbs]="[{title: 'Giriş Kayıtları', url: 'users/login-logs', icon: ''}]">
+</app-generic>
+
+<div class="st-page">
+  <!-- İstatistik kutuları: aynı zamanda sonuç (başarılı / başarısız) filtresi -->
+  <div class="zl-stats">
+    <button type="button" class="zl-stat" [class.is-active]="resultFilter() === 'all'" (click)="setResultFilter('all')">
+      <span class="zl-stat-icon is-total">
+        <span class="material-symbols-outlined">login</span>
+      </span>
+      <span class="zl-stat-body">
+        <span class="zl-stat-label d-block">TÜM GİRİŞLER</span>
+        <span class="zl-stat-value d-block">{{ allCount() }}</span>
+      </span>
+      <span class="material-symbols-outlined zl-stat-check">{{ resultFilter() === 'all' ? 'check_circle' : 'radio_button_unchecked' }}</span>
+    </button>
+
+    <button type="button" class="zl-stat" [class.is-active]="resultFilter() === 'success'" (click)="setResultFilter('success')">
+      <span class="zl-stat-icon ll-stat-success">
+        <span class="material-symbols-outlined">verified_user</span>
+      </span>
+      <span class="zl-stat-body">
+        <span class="zl-stat-label d-block">BAŞARILI</span>
+        <span class="zl-stat-value d-block">{{ successCount() }}</span>
+      </span>
+      <span class="material-symbols-outlined zl-stat-check">{{ resultFilter() === 'success' ? 'check_circle' : 'radio_button_unchecked' }}</span>
+    </button>
+
+    <button type="button" class="zl-stat" [class.is-active]="resultFilter() === 'fail'" (click)="setResultFilter('fail')">
+      <span class="zl-stat-icon ll-stat-fail">
+        <span class="material-symbols-outlined">gpp_bad</span>
+      </span>
+      <span class="zl-stat-body">
+        <span class="zl-stat-label d-block">BAŞARISIZ</span>
+        <span class="zl-stat-value d-block">{{ failCount() }}</span>
+      </span>
+      <span class="material-symbols-outlined zl-stat-check">{{ resultFilter() === 'fail' ? 'check_circle' : 'radio_button_unchecked' }}</span>
+    </button>
+  </div>
+
+  <!-- Liste -->
+  <section class="st-card">
+    <div class="st-card-head ll-head">
+      <span class="st-card-icon">
+        <span class="material-symbols-outlined">history</span>
+      </span>
+      <div>
+        <h4 class="st-card-title">Giriş Kayıtları</h4>
+        <div class="st-card-sub">Sisteme yapılan başarılı ve başarısız giriş denemeleri, yeniden eskiye</div>
+      </div>
+      <div class="zl-head-tools ll-head-tools">
+        <span class="st-count" [class.is-none]="!loading() && totalCount() === 0">
+          <span class="material-symbols-outlined">filter_list</span>
+          {{ totalCount() }} kayıt
+        </span>
+        <button type="button" class="zl-icon-btn" title="Güncel Verileri Getir" (click)="refresh()">
+          <span class="material-symbols-outlined">refresh</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Filtre şeridi -->
+    <div class="ll-filters">
+      <div class="ll-filter ll-filter-grow">
+        <label class="ll-filter-label" for="llUserName">Kullanıcı Adı</label>
+        <div class="zl-search ll-search">
+          <span class="material-symbols-outlined">person_search</span>
+          <input
+            id="llUserName"
+            type="text"
+            placeholder="Kullanıcı adında ara..."
+            autocomplete="off"
+            [ngModel]="userNameInput()"
+            (ngModelChange)="setUserName($event)" />
+          @if (userNameInput().trim()) {
+            <button type="button" class="ll-search-clear" title="Aramayı temizle" (click)="clearUserName()">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="ll-filter">
+        <label class="ll-filter-label" for="llStart">Başlangıç</label>
+        <div class="zl-search ll-date">
+          <span class="material-symbols-outlined">calendar_today</span>
+          <input id="llStart" type="date" [ngModel]="startDate()" (ngModelChange)="setStartDate($event)" [max]="endDate() || null" />
+        </div>
+      </div>
+
+      <div class="ll-filter">
+        <label class="ll-filter-label" for="llEnd">Bitiş</label>
+        <div class="zl-search ll-date">
+          <span class="material-symbols-outlined">event</span>
+          <input id="llEnd" type="date" [ngModel]="endDate()" (ngModelChange)="setEndDate($event)" [min]="startDate() || null" />
+        </div>
+      </div>
+
+      <div class="ll-filter">
+        <label class="ll-filter-label" for="llPageSize">Sayfa Boyutu</label>
+        <div class="zl-search ll-select">
+          <span class="material-symbols-outlined">table_rows</span>
+          <select id="llPageSize" [ngModel]="pageSize()" (ngModelChange)="setPageSize($event)">
+            @for (size of pageSizeOptions; track size) {
+              <option [ngValue]="size">{{ size }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      @if (isFiltering()) {
+        <div class="ll-filter ll-filter-actions">
+          <button type="button" class="zl-btn-ghost" (click)="clearFilters()">
+            <span class="material-symbols-outlined">restart_alt</span>
+            Temizle
+          </button>
+        </div>
+      }
+    </div>
+
+    <div class="st-card-body zl-body">
+      @if (loading() && !rows().length) {
+        <div class="zl-loading">
+          <span class="spinner-border" role="status"></span>
+          Giriş kayıtları yükleniyor...
+        </div>
+      } @else if (error()) {
+        <div class="zl-empty-wrap">
+          <div class="sp-empty">
+            <span class="sp-empty-icon">
+              <span class="material-symbols-outlined">cloud_off</span>
+            </span>
+            <div class="sp-empty-title">Kayıtlar alınamadı</div>
+            <div class="sp-empty-text">Sunucuya ulaşılamadı ya da bir hata oluştu. Lütfen tekrar deneyin.</div>
+            <button type="button" class="sp-pill-btn" (click)="refresh()">
+              <span class="material-symbols-outlined">refresh</span>
+              Tekrar dene
+            </button>
+          </div>
+        </div>
+      } @else if (!rows().length) {
+        <div class="zl-empty-wrap">
+          <div class="sp-empty">
+            <span class="sp-empty-icon">
+              <span class="material-symbols-outlined">{{ isFiltering() ? 'search_off' : 'history' }}</span>
+            </span>
+            @if (isFiltering()) {
+              <div class="sp-empty-title">Sonuç bulunamadı</div>
+              <div class="sp-empty-text">Seçili filtrelerle eşleşen giriş kaydı yok. Aramayı ya da tarih aralığını değiştirin.</div>
+              <button type="button" class="sp-pill-btn" (click)="clearFilters()">
+                <span class="material-symbols-outlined">restart_alt</span>
+                Filtreleri temizle
+              </button>
+            } @else {
+              <div class="sp-empty-title">Henüz giriş kaydı yok</div>
+              <div class="sp-empty-text">Kullanıcılar giriş yaptıkça denemeler burada listelenir.</div>
+            }
+          </div>
+        </div>
+      } @else {
+        <div class="zl-table-wrap ll-table-wrap" [class.is-refreshing]="loading()">
+          <table class="zl-table ll-table">
+            <thead>
+              <tr>
+                <th>TARİH</th>
+                <th>KULLANICI ADI</th>
+                <th>AD SOYAD</th>
+                <th>BİRİM</th>
+                <th class="zl-center">SONUÇ</th>
+                <th>IP ADRESİ</th>
+                <th>TARAYICI</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (row of rows(); track row.id ?? $index) {
+                <tr class="ll-row" [class.is-fail]="!row.isSuccess">
+                  <td class="ll-date-cell">
+                    <span class="ll-date-main">{{ toLocalDate(row.loginDate) | date:'dd.MM.yyyy' }}</span>
+                    <span class="ll-date-time">{{ toLocalDate(row.loginDate) | date:'HH:mm:ss' }}</span>
+                  </td>
+                  <td>
+                    <span class="zl-doc">
+                      <span class="zl-doc-icon ll-avatar" [class.is-unknown]="!row.fullName">
+                        {{ initialsOf(row) }}
+                      </span>
+                      <span class="zl-doc-no ll-username">{{ row.userName || '-' }}</span>
+                    </span>
+                  </td>
+                  <td>
+                    @if (row.fullName) {
+                      {{ row.fullName }}
+                    } @else {
+                      <span class="ll-muted" title="Bu kullanıcı adıyla kayıtlı bir hesap bulunamadı">Kayıtlı değil</span>
+                    }
+                  </td>
+                  <td>
+                    @if (row.departmentName) {
+                      {{ row.departmentName }}
+                    } @else {
+                      <span class="ll-muted">-</span>
+                    }
+                  </td>
+                  <td class="zl-center">
+                    <span class="ll-result" [class.is-ok]="row.isSuccess" [class.is-fail]="!row.isSuccess">
+                      <span class="material-symbols-outlined">{{ row.isSuccess ? 'check_circle' : 'cancel' }}</span>
+                      {{ row.isSuccess ? 'Başarılı' : (row.failureReasonText || 'Başarısız') }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="ll-mono">{{ row.ipAddress || '-' }}</span>
+                  </td>
+                  <td>
+                    <span class="ll-agent" [title]="row.userAgent || ''">
+                      <span class="ll-agent-browser">{{ browserOf(row) }}</span>
+                      @if (osOf(row)) {
+                        <span class="ll-agent-os">{{ osOf(row) }}</span>
+                      }
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+
+    @if (!error() && totalCount() > 0) {
+      <div class="zl-footer">
+        <div class="zl-range">
+          Toplam <b>{{ totalCount() }}</b> kayıttan <b>{{ pageRangeStart() }}-{{ pageRangeEnd() }}</b> arası gösteriliyor
+        </div>
+
+        @if (totalPages() > 1) {
+          <div class="zl-pager">
+            <button type="button" class="zl-page" [disabled]="currentPage() === 1 || loading()" (click)="goToPage(currentPage() - 1)">
+              <span class="material-symbols-outlined">chevron_left</span>
+            </button>
+            @if (pageNumbers()[0] > 1) {
+              <button type="button" class="zl-page" [disabled]="loading()" (click)="goToPage(1)">1</button>
+            }
+            @if (pageNumbers()[0] > 2) {
+              <span class="zl-page-gap">…</span>
+            }
+            @for (p of pageNumbers(); track p) {
+              <button type="button" class="zl-page" [class.is-active]="p === currentPage()" [disabled]="loading()" (click)="goToPage(p)">{{ p }}</button>
+            }
+            @if (pageNumbers()[pageNumbers().length - 1] < totalPages() - 1) {
+              <span class="zl-page-gap">…</span>
+            }
+            @if (pageNumbers()[pageNumbers().length - 1] < totalPages()) {
+              <button type="button" class="zl-page" [disabled]="loading()" (click)="goToPage(totalPages())">{{ totalPages() }}</button>
+            }
+            <button type="button" class="zl-page" [disabled]="currentPage() === totalPages() || loading()" (click)="goToPage(currentPage() + 1)">
+              <span class="material-symbols-outlined">chevron_right</span>
+            </button>
+          </div>
+        }
+      </div>
+    }
+  </section>
+</div>

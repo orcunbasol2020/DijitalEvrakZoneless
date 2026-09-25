@@ -155,6 +155,13 @@ export default class Documents {
       icon: 'account_circle',
       url: '/users/profile',
       category: 'Kullanıcılar'
+    },
+    {
+      title: 'Giriş Kayıtları',
+      description: 'Sisteme yapılan başarılı ve başarısız giriş denemelerini inceleyin.',
+      icon: 'history',
+      url: '/users/login-logs',
+      category: 'Kullanıcılar'
     }
   ];
 

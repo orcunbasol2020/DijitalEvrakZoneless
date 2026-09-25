@@ -135,6 +135,12 @@ export const navigations: NavigationModel[] = [
         icon: "security",
         roles: ["Yönetici"]
     },
+    {
+        title: "Giriş Kayıtları",
+        url: "/users/login-logs",
+        icon: "history",
+        roles: ["Yönetici"]
+    },
 
     {
         category: "Parametreler",

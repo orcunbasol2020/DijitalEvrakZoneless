@@ -1,0 +1,342 @@
+/* ============================================================
+   Giriş Kayıtları sayfası
+   Görsel dil: Roller / Zimmetlerim ekranlarıyla aynı. Kart iskeleti
+   (st-*), boş durum (sp-*) ve tablo / istatistik / sayfalama (zl-*)
+   setleri paylaşılır; burada yalnızca bu ekrana özgü "ll-" sınıfları var.
+   ============================================================ */
+
+.zl-stat-icon.ll-stat-success { background: linear-gradient(135deg, #16a34a, #4ade80); }
+.zl-stat-icon.ll-stat-fail    { background: linear-gradient(135deg, #dc2626, #f87171); }
+
+/* ---- Kart başlığı ---- */
+.ll-head {
+    flex-wrap: wrap;
+}
+
+.ll-head-tools {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+/* ---- Filtre şeridi ---- */
+.ll-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 10px 12px;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e7eaf0;
+}
+
+.ll-filter {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 0 0 auto;
+}
+
+.ll-filter-grow {
+    flex: 1 1 260px;
+    min-width: 220px;
+}
+
+.ll-filter-actions {
+    align-self: flex-end;
+}
+
+.ll-filter-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #64748b;
+}
+
+.ll-search input {
+    padding-right: 32px;
+}
+
+.ll-search-clear {
+    position: absolute;
+    right: 5px;
+    width: 24px;
+    height: 24px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+/* zl-search ikonu mutlak konumlu sola yaslı; temizle butonundaki ikon bundan etkilenmesin */
+.ll-search .ll-search-clear .material-symbols-outlined {
+    position: static;
+    font-size: 16px;
+    color: inherit;
+}
+
+.ll-search-clear:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+/* Tarih ve sayfa boyutu kutuları zl-search görünümünü paylaşır */
+.ll-date {
+    width: 168px;
+}
+
+.ll-date input[type="date"] {
+    width: 100%;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 7px 10px 7px 34px;
+    font-size: 13px;
+    color: #0f172a;
+    background: #fff;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ll-date input[type="date"]:focus {
+    border-color: #7dd3fc;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+}
+
+.ll-select {
+    width: 120px;
+}
+
+.ll-select select {
+    width: 100%;
+    appearance: none;
+    -webkit-appearance: none;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 8px 30px 8px 34px;
+    font-size: 13px;
+    color: #0f172a;
+    background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ll-select select:focus {
+    border-color: #7dd3fc;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+}
+
+/* ---- Tablo ---- */
+.ll-table-wrap {
+    overflow-x: auto;
+    transition: opacity 0.15s ease;
+}
+
+.ll-table-wrap.is-refreshing {
+    opacity: 0.55;
+    pointer-events: none;
+}
+
+.ll-table td {
+    white-space: nowrap;
+}
+
+.ll-row.is-fail td {
+    background: #fffafa;
+}
+
+.ll-row.is-fail:hover td {
+    background: #fff1f2;
+}
+
+.ll-date-cell {
+    line-height: 1.2;
+}
+
+.ll-date-main {
+    display: block;
+    font-weight: 600;
+    color: #1e293b;
+    font-variant-numeric: tabular-nums;
+}
+
+.ll-date-time {
+    display: block;
+    margin-top: 2px;
+    font-size: 11.5px;
+    color: #94a3b8;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Kullanıcı: baş harf rozeti */
+.zl-doc-icon.ll-avatar {
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #0369a1;
+    background: #e0f2fe;
+}
+
+.zl-doc-icon.ll-avatar.is-unknown {
+    color: #64748b;
+    background: #f1f5f9;
+}
+
+.ll-username {
+    font-weight: 600;
+}
+
+.ll-muted {
+    color: #94a3b8;
+    font-style: italic;
+}
+
+.ll-mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    color: #475569;
+}
+
+/* Sonuç rozeti */
+.ll-result {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-width: 96px;
+    padding: 4px 10px 4px 8px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+.ll-result .material-symbols-outlined {
+    font-size: 15px;
+}
+
+.ll-result.is-ok {
+    color: #15803d;
+    background: #dcfce7;
+    border: 1px solid #86efac;
+}
+
+.ll-result.is-fail {
+    color: #b91c1c;
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+}
+
+/* Tarayıcı / işletim sistemi */
+.ll-agent {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: help;
+}
+
+.ll-agent-browser {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.ll-agent-os {
+    padding: 1px 7px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+}
+
+/* ---- Dar ekran ---- */
+@media (max-width: 767.98px) {
+    .ll-head-tools {
+        width: 100%;
+        margin-left: 0;
+        justify-content: flex-start;
+    }
+
+    .ll-filter,
+    .ll-date,
+    .ll-select {
+        width: 100%;
+        flex: 1 1 100%;
+    }
+}
+
+/* ============================================================
+   Koyu tema
+   ============================================================ */
+[data-theme="dark"] .ll-filters {
+    background: rgba(148, 163, 184, 0.06);
+    border-bottom-color: rgba(148, 163, 184, 0.2);
+}
+
+[data-theme="dark"] .ll-filter-label {
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .ll-search-clear:hover {
+    background: rgba(148, 163, 184, 0.12);
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .ll-date input[type="date"],
+[data-theme="dark"] .ll-select select {
+    color: #e2e8f0;
+    background-color: #2d3748;
+    border-color: #4a5568;
+    color-scheme: dark;
+}
+
+[data-theme="dark"] .ll-row.is-fail td {
+    background: rgba(220, 38, 38, 0.06);
+}
+
+[data-theme="dark"] .ll-row.is-fail:hover td {
+    background: rgba(220, 38, 38, 0.12);
+}
+
+[data-theme="dark"] .ll-date-main,
+[data-theme="dark"] .ll-agent-browser {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .ll-mono {
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .zl-doc-icon.ll-avatar {
+    color: #7dd3fc;
+    background: rgba(14, 165, 233, 0.18);
+}
+
+[data-theme="dark"] .zl-doc-icon.ll-avatar.is-unknown {
+    color: #cbd5e1;
+    background: rgba(148, 163, 184, 0.14);
+}
+
+[data-theme="dark"] .ll-result.is-ok {
+    color: #86efac;
+    background: rgba(34, 197, 94, 0.18);
+    border-color: rgba(34, 197, 94, 0.4);
+}
+
+[data-theme="dark"] .ll-result.is-fail {
+    color: #fca5a5;
+    background: rgba(220, 38, 38, 0.18);
+    border-color: rgba(220, 38, 38, 0.35);
+}
+
+[data-theme="dark"] .ll-agent-os {
+    color: #cbd5e1;
+    background: rgba(148, 163, 184, 0.12);
+    border-color: rgba(148, 163, 184, 0.25);
+}

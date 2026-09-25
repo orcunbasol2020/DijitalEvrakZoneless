@@ -36,6 +36,13 @@ const routes: Routes = [
         loadComponent: () => import('./role/role'),
         canActivate: [roleGuard],
         data: { roles: ["Yönetici"] }
+    },
+    {
+        // Sisteme giriş denemeleri (başarılı / başarısız); yalnızca yönetici görür
+        path: 'login-logs',
+        loadComponent: () => import('./login-logs/login-logs'),
+        canActivate: [roleGuard],
+        data: { roles: ["Yönetici"] }
     }
 ]
 
