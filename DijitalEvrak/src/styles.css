@@ -244,9 +244,10 @@ a {
 /* Amblemin dış zemini şeffaf; koyu menüde lacivert şekilleri ayırmak için hafif gölge */
 .sb-logo-mark {
     flex-shrink: 0;
-    width: 86px;
+    width: 65px;
     height: auto;
     display: block;
+    margin-left: 2px;
     filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.45));
     transition: width var(--sb-transition);
 }
@@ -258,6 +259,7 @@ a {
     line-height: 1.2;
     white-space: nowrap;
     overflow: hidden;
+    margin-top: 2px;
     transition: opacity var(--sb-fade) 0.12s;
 }
 
@@ -266,18 +268,26 @@ a {
     text-overflow: ellipsis;
 }
 
+/* Marka yazısı logonun tipografisini yankılar: beyaz "DİJİTAL", gök mavisi "EVRAK",
+   hafif neon ışıma, açık camgöbeği alt yazı ve altında ince gradyan çizgi */
 .sb-logo-title {
-    color: var(--sidebar-text-strong);
-    font-size: 0.875rem;
-    font-weight: 700;
+    color: #ffffff;
+    font-size: 0.9375rem;
+    font-weight: 800;
     letter-spacing: 0.04em;
+    text-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+}
+
+.sb-logo-title-accent {
+    color: #38bdf8;
+    text-shadow: 0 0 10px rgba(56, 189, 248, 0.55);
 }
 
 /* Harfler başlığın genişliğine eşit aralıklarla dağıtılır (tipografik lockup) */
 .sb-logo-subtitle {
     display: flex;
     justify-content: space-between;
-    color: rgba(255, 255, 255, 0.55);
+    color: rgba(186, 230, 253, 0.75);
     font-size: 0.6875rem;
     font-weight: 500;
 }
@@ -728,7 +738,8 @@ a {
     }
 
     body.sb-mini .sb-logo-mark {
-        width: 52px;
+        width: 40px;
+        margin-left: 0;
     }
 
     body.sb-mini .sb-logo-text,
@@ -1035,7 +1046,7 @@ h6 {
 }
 
 .footer-brand-mark {
-    width: 22px;
+    width: 27px;
     height: auto;
     filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.15));
 }
@@ -1055,6 +1066,14 @@ h6 {
     letter-spacing: 0.04em;
     white-space: nowrap;
     color: var(--text-color);
+}
+
+.footer-brand-title-accent {
+    color: #0ea5e9;
+}
+
+[data-theme="dark"] .footer-brand-title-accent {
+    color: #38bdf8;
 }
 
 /* Alt başlık: harfler üst satırın genişliğine yayılır (sol menüdeki logo ile aynı yöntem) */
@@ -4954,37 +4973,6 @@ body.login-page::before {
     }
 }
 
-.login-container {
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    max-width: 900px;
-    animation: slideInUp 0.6s ease-out;
-}
-
-@keyframes slideInUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-
-.brand-section {
-    text-align: center;
-    margin-bottom: 2rem;
-}
-
-.brand-logo {
-    margin-bottom: 1rem;
-    display: inline-block;
-}
-
 .brand-title {
     font-size: 1.5rem;
     font-weight: 700;
@@ -4995,85 +4983,6 @@ body.login-page::before {
 .brand-subtitle {
     color: var(--text-muted);
     font-size: 0.9rem;
-}
-
-.input-icon {
-    position: absolute;
-    left: 1rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-muted);
-    z-index: 210;
-}
-
-.form-control.with-icon {
-    padding-left: 2.75rem;
-}
-
-.password-toggle {
-    position: absolute;
-    right: 1rem;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    z-index: 2;
-    transition: color 0.2s;
-}
-
-.password-toggle:hover {
-    color: var(--primary-color);
-}
-
-.btn-login {
-    width: 100%;
-    padding: 0.75rem;
-    background: linear-gradient(135deg, #0570b3, #34596f);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: var(--font-size-base);
-    cursor: pointer;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-    margin-bottom: 1rem;
-}
-
-.btn-login:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(67, 97, 238, 0.3);
-    background: linear-gradient(135deg, #34596f, #1392e1);
-}
-
-.btn-login:active {
-    transform: translateY(0);
-}
-
-.btn-login:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-}
-
-.forgot-password {
-    text-align: center;
-    margin: 1rem 0;
-}
-
-.forgot-password a {
-    color: var(--primary-color);
-    text-decoration: none;
-    font-size: 0.85rem;
-    font-weight: 500;
-    transition: color 0.2s;
-}
-
-.forgot-password a:hover {
-    color: #5a78ff;
 }
 
 .divider {
@@ -5194,16 +5103,6 @@ body.login-page::before {
     100% {
         transform: rotate(360deg);
     }
-}
-
-/* Dark theme specific adjustments for login */
-[data-theme="dark"] .login-card {
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-    border-color: rgba(255, 255, 255, 0.1);
-}
-
-[data-theme="dark"] .btn-login:hover {
-    box-shadow: 0 8px 25px rgba(90, 120, 255, 0.4);
 }
 
 [data-theme="dark"] .btn-social:hover {
@@ -6172,98 +6071,6 @@ flexi-grid td:has(.flexi-button-primary) {
 .form-check-input:checked {
     background-color: #1fb6e0;
     border-color: #1fb6e0;
-}
-
-.login-card {
-    background: var(--card-bg);
-    border-radius: 16px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(177, 198, 212, 0.2);
-    position: relative;
-    overflow: hidden;
-    width: 900px;
-    /* Kart toplam genişliği */
-
-}
-
-.login-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 0;
-}
-
-
-.login-left {
-    width: 50%;
-    /* Sol taraf */
-    padding: 40px;
-    background: #fff;
-}
-
-.login-right {
-    width: 50%;
-    /* Sağ taraf */
-    background: linear-gradient(135deg, #3585b8, #2f546a);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 22px;
-    font-weight: 500;
-}
-
-
-.login-right-content {
-    text-align: center;
-    /* Başlık ve alt başlık ortalı */
-}
-
-.login-title {
-    font-size: 28px;
-    font-weight: 600;
-    margin-bottom: 8px;
-}
-
-.login-subtitle {
-    font-size: 18px;
-    opacity: 0.8;
-}
-
-.login-version {
-    position: absolute;
-    bottom: 15px;
-    /* En alta yapışık */
-    font-size: 14px;
-    opacity: 0.6;
-}
-
-.form-control.with-icon {
-    border-radius: 8px !important;
-    /* Oval köşeler */
-    background: #f4f8fa !important;
-    /* Açık gri arka plan */
-    border: 1px solid #cfe2ed !important;
-    padding-left: 40px !important;
-    /* Icon için boşluk */
-    height: 44px;
-    transition: all 0.2s ease;
-}
-
-/* Focus durumunda modern bir vurgu */
-.form-control.with-icon:focus {
-    background: #ffffff !important;
-    border-color: #cfe2ed !important;
-    /* Maviye yakın turkuaz */
-    box-shadow: 0 0 0 2px rgba(96, 159, 177, 0.2);
-}
-
-/* Hover da hafif parlama */
-.form-control.with-icon:hover {
-    background: #fafafa !important;
 }
 
 .right-image-panel {
@@ -9750,11 +9557,6 @@ button:disabled {
 
 /* Mobile responsive */
 @media (max-width: 576px) {
-    .login-card {
-        padding: 2rem 1.5rem;
-        border-radius: 12px;
-    }
-
     .brand-title {
         font-size: 1.3rem;
     }

@@ -1,0 +1,618 @@
+/* =========================================================
+   LOGIN EKRANI
+   Tema: lacivert → petrol gradyan, turkuaz vurgular
+   (sol menü / üst çubuk ile aynı renk ailesi)
+   ========================================================= */
+
+:root {
+  --login-bg: #eef3f8;
+  --login-card-bg: #ffffff;
+  --login-card-border: rgba(15, 23, 42, 0.08);
+  --login-card-shadow: 0 24px 60px rgba(15, 23, 42, 0.14);
+  --login-heading: #0f172a;
+  --login-text: #4a5568;
+  --login-muted: #718096;
+  --login-input-bg: #f4f8fa;
+  --login-input-bg-focus: #ffffff;
+  --login-input-border: #cfe2ed;
+  --login-input-border-hover: #a8cbe0;
+  --login-input-text: #1e293b;
+  --login-input-placeholder: #94a3b8;
+  --login-accent: #0369a1;
+  --login-accent-strong: #0ea5e9;
+  --login-accent-soft: rgba(14, 165, 233, 0.22);
+  --login-danger: #dc2626;
+  --login-danger-bg: #fef2f2;
+  --login-danger-border: #fecaca;
+  --login-hint: #b45309;
+  --login-hint-bg: #fffbeb;
+  --login-hint-border: #fde68a;
+  --login-footer-text: #334155;
+  --login-footer-line: rgba(51, 65, 85, 0.35);
+  --login-gradient: linear-gradient(135deg, #0f172a 0%, #0c4a6e 55%, #0369a1 100%);
+  --login-btn-gradient: linear-gradient(120deg, #0f172a 0%, #0c4a6e 55%, #0369a1 100%);
+  --login-btn-gradient-hover: linear-gradient(120deg, #0c4a6e 0%, #0369a1 55%, #0ea5e9 100%);
+}
+
+[data-theme="dark"] {
+  --login-bg: #0b1220;
+  --login-card-bg: #111a2c;
+  --login-card-border: rgba(125, 211, 252, 0.14);
+  --login-card-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  --login-heading: #f1f5f9;
+  --login-text: #cbd5e1;
+  --login-muted: #94a3b8;
+  --login-input-bg: #0f172a;
+  --login-input-bg-focus: #0b1220;
+  --login-input-border: #24334d;
+  --login-input-border-hover: #35507a;
+  --login-input-text: #f1f5f9;
+  --login-input-placeholder: #64748b;
+  --login-accent: #7dd3fc;
+  --login-accent-strong: #38bdf8;
+  --login-accent-soft: rgba(56, 189, 248, 0.25);
+  --login-danger: #fca5a5;
+  --login-danger-bg: rgba(220, 38, 38, 0.14);
+  --login-danger-border: rgba(252, 165, 165, 0.35);
+  --login-hint: #fcd34d;
+  --login-hint-bg: rgba(245, 158, 11, 0.12);
+  --login-hint-border: rgba(252, 211, 77, 0.35);
+  --login-footer-text: #cbd5e1;
+  --login-footer-line: rgba(203, 213, 225, 0.35);
+  --login-gradient: linear-gradient(135deg, #0b1220 0%, #0c3a57 55%, #075985 100%);
+}
+
+/* ---------- Sayfa ---------- */
+.login-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background:
+    radial-gradient(900px 480px at -10% -10%, rgba(3, 105, 161, 0.14), transparent 60%),
+    radial-gradient(700px 420px at 110% 110%, rgba(14, 165, 233, 0.12), transparent 60%),
+    var(--login-bg);
+}
+
+.login-container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 960px;
+  animation: loginSlideInUp 0.55s ease-out;
+}
+
+@keyframes loginSlideInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-container { animation: none; }
+}
+
+/* ---------- Kart ---------- */
+.login-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  background: var(--login-card-bg);
+  border: 1px solid var(--login-card-border);
+  border-radius: 18px;
+  box-shadow: var(--login-card-shadow);
+  overflow: hidden;
+}
+
+/* ---------- Sol panel: form ---------- */
+.login-left {
+  padding: 40px 44px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.login-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+/* PNG'nin beyaz zemini var; yuvarlak beyaz rozet içine alınca iki temada da temiz durur */
+.login-brand-logo {
+  width: 104px;
+  height: 104px;
+  padding: 6px;
+  object-fit: contain;
+  background: #ffffff;
+  border-radius: 50%;
+  border: 1px solid var(--login-card-border);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.14);
+}
+
+/* Sadece dar ekranda görünür (sağ panel gizlenince markayı taşır) */
+.login-brand-mobile {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.1;
+}
+
+.login-brand-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--login-heading);
+}
+
+.login-brand-accent {
+  color: var(--login-accent);
+}
+
+.login-brand-subtitle {
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  color: var(--login-muted);
+}
+
+.login-heading {
+  margin: 0 0 4px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--login-heading);
+  text-align: center;
+}
+
+.login-lead {
+  margin: 0 0 24px;
+  font-size: 0.9rem;
+  color: var(--login-muted);
+  text-align: center;
+}
+
+/* ---------- Alanlar ---------- */
+.login-field {
+  margin-bottom: 16px;
+}
+
+.login-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--login-text);
+}
+
+.login-input-wrap {
+  position: relative;
+}
+
+.login-input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 20px;
+  color: var(--login-muted);
+  pointer-events: none;
+  transition: color 0.2s ease;
+}
+
+.login-input {
+  width: 100%;
+  height: 46px;
+  padding: 0 14px 0 44px;
+  font-size: 0.95rem;
+  color: var(--login-input-text);
+  background: var(--login-input-bg);
+  border: 1px solid var(--login-input-border);
+  border-radius: 10px;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.login-input.has-toggle {
+  padding-right: 46px;
+}
+
+.login-input::placeholder {
+  color: var(--login-input-placeholder);
+}
+
+.login-input:hover {
+  border-color: var(--login-input-border-hover);
+}
+
+.login-input:focus {
+  background: var(--login-input-bg-focus);
+  border-color: var(--login-accent-strong);
+  box-shadow: 0 0 0 3px var(--login-accent-soft);
+}
+
+.login-input:focus ~ .login-input-icon,
+.login-input-wrap:focus-within .login-input-icon {
+  color: var(--login-accent);
+}
+
+/* Hatalı alan */
+.login-field.is-invalid .login-input {
+  border-color: var(--login-danger);
+}
+
+.login-field.is-invalid .login-input:focus {
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.18);
+}
+
+.login-field.is-invalid .login-input-icon {
+  color: var(--login-danger);
+}
+
+.login-field-error,
+.login-field-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+.login-field-error {
+  color: var(--login-danger);
+}
+
+.login-field-hint {
+  color: var(--login-hint);
+}
+
+.login-field-error .material-symbols-outlined,
+.login-field-hint .material-symbols-outlined {
+  font-size: 16px;
+}
+
+/* Şifre göster / gizle */
+.login-password-toggle {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--login-muted);
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.login-password-toggle .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.login-password-toggle:hover {
+  color: var(--login-accent);
+  background: var(--login-accent-soft);
+}
+
+.login-password-toggle:focus-visible {
+  outline: 2px solid var(--login-accent-strong);
+  outline-offset: 1px;
+}
+
+/* ---------- Seçenekler ---------- */
+.login-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 4px 0 16px;
+}
+
+.login-remember {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--login-text);
+  cursor: pointer;
+  user-select: none;
+}
+
+.login-remember .form-check-input {
+  margin: 0;
+  width: 17px;
+  height: 17px;
+  cursor: pointer;
+  border-color: var(--login-input-border-hover);
+}
+
+.login-remember .form-check-input:checked {
+  background-color: var(--login-accent);
+  border-color: var(--login-accent);
+}
+
+.login-remember .form-check-input:focus {
+  box-shadow: 0 0 0 3px var(--login-accent-soft);
+  border-color: var(--login-accent-strong);
+}
+
+/* ---------- Genel hata kutusu ---------- */
+.login-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  font-size: 0.83rem;
+  line-height: 1.35;
+  color: var(--login-danger);
+  background: var(--login-danger-bg);
+  border: 1px solid var(--login-danger-border);
+  border-radius: 10px;
+  animation: loginFadeIn 0.2s ease-out;
+}
+
+.login-alert .material-symbols-outlined {
+  font-size: 18px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+@keyframes loginFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- Giriş butonu ---------- */
+.btn-login {
+  width: 100%;
+  height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #e0f2fe;
+  background: var(--login-btn-gradient);
+  border: 1px solid rgba(125, 211, 252, 0.35);
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(3, 105, 161, 0.22);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.3s ease;
+}
+
+.btn-login .material-symbols-outlined {
+  font-size: 20px;
+  color: #7dd3fc;
+}
+
+.btn-login .spinner-border {
+  width: 18px;
+  height: 18px;
+  border-width: 2px;
+  color: #7dd3fc;
+}
+
+.btn-login:hover:not(:disabled) {
+  background: var(--login-btn-gradient-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px rgba(3, 105, 161, 0.32);
+}
+
+.btn-login:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-login:focus-visible {
+  outline: 2px solid var(--login-accent-strong);
+  outline-offset: 2px;
+}
+
+.btn-login:disabled {
+  opacity: 0.75;
+  cursor: progress;
+  transform: none;
+}
+
+/* ---------- Sağ panel: marka ---------- */
+.login-right {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 36px;
+  color: #e0f2fe;
+  background: var(--login-gradient);
+  border-left: 1px solid rgba(125, 211, 252, 0.18);
+}
+
+.login-right-glow {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(40px);
+}
+
+.login-right-glow-a {
+  width: 320px;
+  height: 320px;
+  top: -120px;
+  right: -100px;
+  background: rgba(14, 165, 233, 0.35);
+}
+
+.login-right-glow-b {
+  width: 260px;
+  height: 260px;
+  bottom: -110px;
+  left: -80px;
+  background: rgba(125, 211, 252, 0.22);
+}
+
+.login-right-content {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+}
+
+.login-right-mark {
+  width: 150px;
+  height: auto;
+  margin-bottom: 12px;
+  filter: drop-shadow(0 8px 22px rgba(0, 0, 0, 0.45));
+}
+
+.login-right-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.05;
+}
+
+.login-right-title {
+  font-size: 1.7rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #f8fafc;
+}
+
+.login-right .login-brand-accent {
+  color: #7dd3fc;
+}
+
+.login-right-subtitle {
+  margin-top: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  color: rgba(224, 242, 254, 0.75);
+}
+
+/* Kartın dışında, en altta: küçük ama okunur kurum satırı.
+   İki yanda ince çizgi, büyük harf ve harf aralığı ile sönük durmaz. */
+.login-footer {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 18px auto 0;
+  max-width: 520px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--login-footer-text);
+}
+
+.login-footer::before,
+.login-footer::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--login-footer-line));
+}
+
+.login-footer::after {
+  background: linear-gradient(90deg, var(--login-footer-line), transparent);
+}
+
+.login-footer span {
+  white-space: nowrap;
+}
+
+.login-right-features {
+  list-style: none;
+  margin: 26px 0 0;
+  padding: 0;
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+}
+
+.login-right-features li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  font-size: 0.82rem;
+  line-height: 1.3;
+  color: rgba(224, 242, 254, 0.9);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(125, 211, 252, 0.2);
+  border-radius: 10px;
+}
+
+.login-right-features .material-symbols-outlined {
+  flex-shrink: 0;
+  font-size: 20px;
+  color: #7dd3fc;
+}
+
+.login-version {
+  position: absolute;
+  bottom: 14px;
+  right: 18px;
+  z-index: 1;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: rgba(224, 242, 254, 0.55);
+}
+
+/* ---------- Duyarlı düzen ---------- */
+@media (max-width: 900px) {
+  .login-card {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  .login-right {
+    display: none;
+  }
+
+  .login-brand-mobile {
+    display: flex;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-page {
+    padding: 16px 12px;
+    align-items: flex-start;
+  }
+
+  .login-card {
+    border-radius: 14px;
+  }
+
+  .login-left {
+    padding: 28px 22px;
+  }
+
+  .login-brand-logo {
+    width: 88px;
+    height: 88px;
+  }
+
+  .login-heading {
+    font-size: 1.3rem;
+  }
+}
