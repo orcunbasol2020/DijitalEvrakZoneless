@@ -63,14 +63,15 @@ export class CenterChart implements AfterViewInit {
           fontSize: 12,
           color: '#333'
         },
-        // 🔥 Kritik seviyeye göre renk
+        // Yoğunluğa göre petrol tonu: yüksek = koyu, düşük = açık
         itemStyle: {
           color: (params: any) => {
             const value = params.value;
-            if (value >= 40) return '#d0021b';  // kırmızı (yüksek yoğunluk)
-            if (value >= 20) return '#f5a623';  // turuncu (orta)
-            return '#50bfa0';                   // yeşil (düşük)
-          }
+            if (value >= 40) return '#0c4a6e';  // yüksek yoğunluk
+            if (value >= 20) return '#0369a1';  // orta
+            return '#38bdf8';                   // düşük
+          },
+          borderRadius: [4, 4, 0, 0]
         },
 
         barWidth: 22

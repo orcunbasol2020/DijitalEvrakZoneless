@@ -1,152 +1,123 @@
-<div class="page-header d-flex justify-content-between align-items-center">
-    <h1 class="page-title d-flex align-items-center">
-        Gelen Evrak
-    </h1>
-    <div class="d-flex header-actions">
-        <a routerLink="/reports" class="btn btn-sm btn-outline-secondary me-2">
-            <span class="material-symbols-outlined">file_download</span> Rapor
+<!-- ===================== Üst şerit ===================== -->
+<section class="ad-hero">
+    <div class="ad-hero-glow ad-hero-glow-a"></div>
+    <div class="ad-hero-glow ad-hero-glow-b"></div>
+
+    <div class="ad-hero-text">
+        <div class="ad-hero-kicker">
+            <span class="material-symbols-outlined">inbox</span>
+            GELEN EVRAK PANELİ
+        </div>
+        <div class="ad-hero-sub">
+            <span class="ad-hero-date">{{ today | date:'EEEE, d MMMM yyyy' }}</span>
+            <span class="ad-hero-dot"></span>
+            <span>Son güncelleme {{ lastUpdated() | date:'HH:mm' }}</span>
+        </div>
+    </div>
+
+    <div class="ad-hero-actions">
+        <a routerLink="/evrakkayit" class="ad-hero-btn">
+            <span class="material-symbols-outlined">note_add</span>
+            Evrak Kayıt
         </a>
-        <button class="btn btn-sm btn-outline-info" (click)="loadAll()">
-            <span class="material-symbols-outlined"
-                title="Güncel Verileri Getir">refresh</span>
+        <a routerLink="/reports" class="ad-hero-btn">
+            <span class="material-symbols-outlined">file_download</span>
+            Rapor
+        </a>
+        <button type="button" class="ad-hero-btn ad-hero-btn-icon" title="Güncel Verileri Getir"
+            [class.is-spinning]="isLoading" [disabled]="isLoading" (click)="loadAll()">
+            <span class="material-symbols-outlined">refresh</span>
         </button>
     </div>
-</div>
-<!-- Stats Cards Row -->
-<div class="row g-3 mb-4">
+</section>
 
-    <!-- Bugün Gelen Evrak Kartı -->
-    <div class="col-md-6 col-lg-3">
-        <div class="card stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="card-subtitle text-muted">Bugün Gelen</h6>
-                        <h4 class="card-title mt-2">
-                            {{ statsSignal().todayCount }}
-                        </h4>
-                        <div class="stat-change positive mt-1">
-                            <span
-                                class="material-symbols-outlined">trending_up</span>
-                            <span>
-                                {{ statsSignal().changePercent | number:'1.1-1'
-                                }}%
-                            </span>
-                        </div>
-                    </div>
-                    <div class="stat-icon stat-icon-pro bg-gradient-warning">
-                        <span class="material-symbols-outlined"
-                            style="font-size: 22px;">article_shortcut</span>
-                    </div>
-                </div>
+<!-- ===================== İstatistik kartları ===================== -->
+<div class="ad-stats">
+    <a class="ad-stat" routerLink="/scanlist" title="Bugün kaydedilen gelen evrak">
+        <div class="ad-stat-body">
+            <div class="ad-stat-label">BUGÜN GELEN</div>
+            <div class="ad-stat-value">{{ statsSignal().todayCount }}</div>
+            <div class="ad-stat-foot">
+                <span class="ad-trend" [class.is-up]="statsSignal().changePercent >= 0" [class.is-down]="statsSignal().changePercent < 0">
+                    <span class="material-symbols-outlined">{{ statsSignal().changePercent >= 0 ? 'trending_up' : 'trending_down' }}</span>
+                    {{ statsSignal().changePercent >= 0 ? '+' : '' }}{{ statsSignal().changePercent | number:'1.1-1' }}%
+                </span>
+                <span class="ad-stat-period">Düne göre</span>
             </div>
         </div>
-    </div>
-    <div class="col-md-6 col-lg-3">
-        <div class="card stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="card-subtitle text-muted">Son 30 Gün</h6>
+        <span class="ad-stat-icon"><span class="material-symbols-outlined">article_shortcut</span></span>
+        <span class="material-symbols-outlined ad-stat-arrow">arrow_outward</span>
+    </a>
 
-                        <h4 class="card-title mt-2">
-                            {{ last30DaysStatsSignal().last30DaysCount }}
-                        </h4>
-
-                        <div class="stat-change positive mt-1">
-                            <span
-                                class="material-symbols-outlined">trending_up</span>
-                            <span>
-                                {{ last30DaysStatsSignal().changePercent |
-                                number:'1.1-1' }}%
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="stat-icon stat-icon-pro bg-gradient-smoke">
-                        <span
-                            class="material-symbols-outlined"
-                            style="font-size: 21px;">calendar_month</span>
-                    </div>
-                </div>
+    <a class="ad-stat" routerLink="/scanlist" title="Son 30 günde kaydedilen gelen evrak">
+        <div class="ad-stat-body">
+            <div class="ad-stat-label">SON 30 GÜN</div>
+            <div class="ad-stat-value">{{ last30DaysStatsSignal().last30DaysCount }}</div>
+            <div class="ad-stat-foot">
+                <span class="ad-trend" [class.is-up]="last30DaysStatsSignal().changePercent >= 0" [class.is-down]="last30DaysStatsSignal().changePercent < 0">
+                    <span class="material-symbols-outlined">{{ last30DaysStatsSignal().changePercent >= 0 ? 'trending_up' : 'trending_down' }}</span>
+                    {{ last30DaysStatsSignal().changePercent >= 0 ? '+' : '' }}{{ last30DaysStatsSignal().changePercent | number:'1.1-1' }}%
+                </span>
+                <span class="ad-stat-period">Önceki 30 güne göre</span>
             </div>
         </div>
-    </div>
+        <span class="ad-stat-icon"><span class="material-symbols-outlined">calendar_month</span></span>
+        <span class="material-symbols-outlined ad-stat-arrow">arrow_outward</span>
+    </a>
 
-    <div class="col-md-6 col-lg-3">
-        <div class="card stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="card-subtitle text-muted">Taranmayı
-                            Bekleyen</h6>
-                        <h4 class="card-title mt-2">
-                            {{ pendingScanStatsSignal().pendingScanCount }}
-                        </h4>
-                        <div class="stat-change positive">
-                            <span
-                                class="material-symbols-outlined">trending_up</span>
-                            <span>
-                                {{ pendingScanStatsSignal().changePercent |
-                                number:'1.1-1' }}%
-                            </span>
-                        </div>
-                    </div>
-                    <div class="stat-icon stat-icon-pro bg-gradient-info">
-                        <span class="material-symbols-outlined"
-                            style="font-size: 25px;">scanner</span>
-                    </div>
-                </div>
+    <a class="ad-stat" routerLink="/scanneddocument" title="Henüz taranmamış evraklar">
+        <div class="ad-stat-body">
+            <div class="ad-stat-label">TARANMAYI BEKLEYEN</div>
+            <div class="ad-stat-value">{{ pendingScanStatsSignal().pendingScanCount }}</div>
+            <div class="ad-stat-foot">
+                <span class="ad-trend" [class.is-up]="pendingScanStatsSignal().changePercent >= 0" [class.is-down]="pendingScanStatsSignal().changePercent < 0">
+                    <span class="material-symbols-outlined">{{ pendingScanStatsSignal().changePercent >= 0 ? 'trending_up' : 'trending_down' }}</span>
+                    {{ pendingScanStatsSignal().changePercent >= 0 ? '+' : '' }}{{ pendingScanStatsSignal().changePercent | number:'1.1-1' }}%
+                </span>
+                <span class="ad-stat-period">Düne göre</span>
             </div>
         </div>
-    </div>
-    <div class="col-md-6 col-lg-3">
-        <div class="card stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="card-subtitle text-muted">OCR Kuyruğunda</h6>
-                        <h4 class="card-title mt-2">
-                            {{ ocrQueueStatsSignal().ocrQueueCount }}
-                        </h4>
-                        <div class="stat-change positive">
-                            <span
-                                class="material-symbols-outlined">trending_up</span>
-                            <span>
-                                {{ ocrQueueStatsSignal().changePercent |
-                                number:'1.1-1' }}%
-                            </span>
-                        </div>
-                    </div>
-                    <div class="stat-icon stat-icon-pro bg-gradient-success">
-                        <span class="material-symbols-outlined"
-                            style="font-size: 20px;">document_scanner</span>
-                    </div>
-                </div>
+        <span class="ad-stat-icon"><span class="material-symbols-outlined">scanner</span></span>
+        <span class="material-symbols-outlined ad-stat-arrow">arrow_outward</span>
+    </a>
+
+    <a class="ad-stat" routerLink="/ocrtakip" title="OCR işlemi bekleyen evraklar">
+        <div class="ad-stat-body">
+            <div class="ad-stat-label">OCR KUYRUĞUNDA</div>
+            <div class="ad-stat-value">{{ ocrQueueStatsSignal().ocrQueueCount }}</div>
+            <div class="ad-stat-foot">
+                <span class="ad-trend" [class.is-up]="ocrQueueStatsSignal().changePercent >= 0" [class.is-down]="ocrQueueStatsSignal().changePercent < 0">
+                    <span class="material-symbols-outlined">{{ ocrQueueStatsSignal().changePercent >= 0 ? 'trending_up' : 'trending_down' }}</span>
+                    {{ ocrQueueStatsSignal().changePercent >= 0 ? '+' : '' }}{{ ocrQueueStatsSignal().changePercent | number:'1.1-1' }}%
+                </span>
+                <span class="ad-stat-period">Düne göre</span>
             </div>
         </div>
-    </div>
+        <span class="ad-stat-icon"><span class="material-symbols-outlined">document_scanner</span></span>
+        <span class="material-symbols-outlined ad-stat-arrow">arrow_outward</span>
+    </a>
 </div>
 
+<!-- ===================== Son gelen evraklar / Akıllı havale ===================== -->
 <div class="row g-3 mb-4">
-    <!-- Recent Orders -->
     <div class="col-lg-9">
         <div class="card premium-card orders-card h-100">
-            <div
-                class="card-header dashboard-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0 fw-semibold">
-                    Son Gelen Evraklar
-                </h5>
-                <div class="d-flex align-items-center gap-2">
-                    <span class="live-badge">
-                        <span class="blink-dot"></span>Canlı
-                    </span>
-                    <a class="btn btn-sm btn-light d-flex align-items-center gap-1"
-                        (click)="goToIncoming()">
-                        Tümü
-                        <span class="material-symbols-outlined" style="font-size: 16px;">arrow_forward</span>
-                    </a>
+            <div class="card-header dashboard-header ad-head">
+                <span class="ad-head-icon">
+                    <span class="material-symbols-outlined">inbox</span>
+                </span>
+                <div class="ad-head-text">
+                    <h5 class="ad-head-title">Son Gelen Evraklar</h5>
+                    <div class="ad-head-sub">Sisteme en son kaydedilen evraklar</div>
                 </div>
+                <span class="ad-live">
+                    <span class="ad-live-dot"></span>
+                    Canlı
+                </span>
+                <a class="ad-link" (click)="goToIncoming()" role="button" tabindex="0">
+                    Tümü
+                    <span class="material-symbols-outlined">chevron_right</span>
+                </a>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -196,8 +167,7 @@
                             </tr>
                             <tr *ngIf="recentDocumentsSignal().length === 0">
                                 <td colspan="5" class="text-center text-muted py-5">
-                                    <span class="material-symbols-outlined d-block mb-2"
-                                        style="font-size: 28px;">inbox</span>
+                                    <span class="material-symbols-outlined d-block mb-2" style="font-size: 28px;">inbox</span>
                                     Henüz gelen evrak bulunmuyor.
                                 </td>
                             </tr>
@@ -208,32 +178,66 @@
         </div>
     </div>
 
-    <!-- Recent Activity -->
     <div class="col-lg-3">
-        <div class="right-image-panel" title="Yapay Zeka Destekli Have Sistemi">
-            <h2 class="img-panel-title-top mt-3">
-                <span class="blink-dot"></span>
-                Akıllı Havale Sistemi</h2>
-            <h3 class="img-panel-title-bottom">v1.0 • Cosine Similarity
-                Engine</h3>
+        <div class="card premium-card h-100">
+            <div class="card-header dashboard-header ad-head">
+                <span class="ad-head-icon">
+                    <span class="material-symbols-outlined">smart_toy</span>
+                </span>
+                <div class="ad-head-text">
+                    <h5 class="ad-head-title">Akıllı Havale</h5>
+                </div>
+                <span class="ad-live">
+                    <span class="ad-live-dot"></span>
+                    Aktif
+                </span>
+            </div>
+            <div class="card-body ad-ai-body">
+                <p class="ad-ai-text">
+                    Gelen evrakın içeriğini önceki kayıtlarla karşılaştırarak havale edilecek birimi önerir.
+                </p>
+                <dl class="ad-ai-meta">
+                    <div class="ad-ai-row">
+                        <dt>Motor</dt>
+                        <dd>Cosine Similarity</dd>
+                    </div>
+                    <div class="ad-ai-row">
+                        <dt>Sürüm</dt>
+                        <dd>v1.0</dd>
+                    </div>
+                    <div class="ad-ai-row">
+                        <dt>Bugün önerilen</dt>
+                        <dd>14 evrak</dd>
+                    </div>
+                    <div class="ad-ai-row">
+                        <dt>Kabul oranı</dt>
+                        <dd>%86</dd>
+                    </div>
+                </dl>
+                <a routerLink="/havale" class="ad-ai-link">
+                    Havale ekranına git
+                    <span class="material-symbols-outlined">arrow_forward</span>
+                </a>
+            </div>
         </div>
-
     </div>
-
 </div>
 
-<div class="row g-3">
-    <!-- bekleyenler-->
+<!-- ===================== Bekleyenler / anlık durum ===================== -->
+<div class="row g-3 mb-4">
     <div class="col-lg-9">
         <div class="card premium-card h-100">
-            <div
-                class="card-header dashboard-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0 fw-semibold">Teslim Edilmeyi
-                    Bekleyenler</h5>
-                <a class="btn btn-sm btn-light d-flex align-items-center gap-1"
-                    (click)="goToIncoming()">
+            <div class="card-header dashboard-header ad-head">
+                <span class="ad-head-icon">
+                    <span class="material-symbols-outlined">pending_actions</span>
+                </span>
+                <div class="ad-head-text">
+                    <h5 class="ad-head-title">Teslim Edilmeyi Bekleyenler</h5>
+                    <div class="ad-head-sub">Birim evrak sorumlularına teslim edilmemiş evraklar</div>
+                </div>
+                <a class="ad-link" (click)="goToIncoming()" role="button" tabindex="0">
                     Tümü
-                    <span class="material-symbols-outlined" style="font-size: 16px;">arrow_forward</span>
+                    <span class="material-symbols-outlined">chevron_right</span>
                 </a>
             </div>
             <div class="card-body p-0">
@@ -245,150 +249,60 @@
                                 <th scope="col">EVRAK SORUMLULARI</th>
                                 <th scope="col">GELEN</th>
                                 <th scope="col">BEKLEYEN</th>
-                                <th scope="col">HATIRLAT</th>
+                                <th scope="col" class="text-center">HATIRLAT</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2 institution-cell">
-                                        <span class="avatar-circle avatar-indigo">EÇ</span>
-                                        <span class="institution-name" title="Emniyet Genel Müdürlüğü">EÇGM</span>
-                                    </div>
-                                </td>
-                                <td>Banu Gültekin</td>
-                                <td><span class="count-chip">217</span></td>
-                                <td><span class="count-chip count-chip-alert">18</span></td>
-                                <td class="text-center">
-                                    <button
-                                        class="btn btn-sm btn-icon reminder-btn"
-                                        (click)="sendReminder(row1)"
-                                        [disabled]="row1.loading || row1.mailSent"
-                                        [class.loading-bg]="row1.loading">
-                                        <span
-                                            class="material-symbols-outlined"
-                                            [class.spin]="row1.loading"
-                                            [class.loading-color]="row1.loading">
-                                            {{ row1.loading ? 'sync' :
-                                            (row1.mailSent ? 'check_circle' :
-                                            'mail') }}
-                                        </span>
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2 institution-cell">
-                                        <span class="avatar-circle avatar-teal">DS</span>
-                                        <span class="institution-name" title="Destek Hizmetleri Genel Müdürlüğü">DSGM</span>
-                                    </div>
-                                </td>
-                                <td><span
-                                        title="Aytül Özcan, Dahili: 1323">Aytül
-                                        Özcan</span><br>
-                                    <span
-                                        title="Zeynep Büşra Tatar, Dahili: 1323">Zeynep
-                                        Büşra Tatar</span></td>
-                                <td><span class="count-chip">376</span></td>
-                                <td><span class="count-chip count-chip-alert">15</span></td>
-                                <td>
-                                    <button
-                                        class="btn btn-sm btn-icon reminder-btn"
-                                        (click)="sendReminder(row2)"
-                                        [disabled]="row2.loading || row2.mailSent"
-                                        [class.loading-bg]="row2.loading">
-                                        <span
-                                            class="material-symbols-outlined"
-                                            [class.spin]="row2.loading"
-                                            [class.loading-color]="row2.loading">
-                                            {{ row2.loading ? 'sync' :
-                                            (row2.mailSent ? 'check_circle' :
-                                            'mail') }}
-                                        </span>
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2 institution-cell">
-                                        <span class="avatar-circle avatar-orange">KO</span>
-                                        <span class="institution-name" title="Konsolosluk Hizmetleri ve Yurtdışında Yaşayan Vatandaşlar Genel Müdürlüğü">KOGM</span>
-                                    </div>
-                                </td>
-                                <td><span
-                                        title="Didem Pekzorlu, Dahili: 2025">Didem
-                                        Pekzorlu</span></td>
-                                <td><span class="count-chip">450</span></td>
-                                <td><span class="count-chip count-chip-alert">12</span></td>
-                                <td>
-                                    <button
-                                        class="btn btn-sm btn-icon reminder-btn"
-                                        (click)="sendReminder(row3)"
-                                        [disabled]="row3.loading || row3.mailSent"
-                                        [class.loading-bg]="row3.loading">
-                                        <span
-                                            class="material-symbols-outlined"
-                                            [class.spin]="row3.loading"
-                                            [class.loading-color]="row3.loading">
-                                            {{ row3.loading ? 'sync' :
-                                            (row3.mailSent ? 'check_circle' :
-                                            'mail') }}
-                                        </span>
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2 institution-cell">
-                                        <span class="avatar-circle avatar-rose">TP</span>
-                                        <span class="institution-name" title="Bilim ve Teknoloji Politikaları Genel Müdürlüğü">TPGM</span>
-                                    </div>
-                                </td>
-                                <td><span
-                                        title="Cevşen Büşra Bahçecik, Dahili: 1116">Cevşen
-                                        Büşra Bahçecik</span></td>
-                                <td><span class="count-chip">78</span></td>
-                                <td><span class="count-chip count-chip-alert">9</span></td>
-                                <td>
-                                    <button
-                                        class="btn btn-sm btn-icon reminder-btn"
-                                        (click)="sendReminder(row4)"
-                                        [disabled]="row4.loading || row4.mailSent"
-                                        [class.loading-bg]="row4.loading">
-                                        <span
-                                            class="material-symbols-outlined"
-                                            [class.spin]="row4.loading"
-                                            [class.loading-color]="row4.loading">
-                                            {{ row4.loading ? 'sync' :
-                                            (row4.mailSent ? 'check_circle' :
-                                            'mail') }}
-                                        </span>
-                                    </button>
-                                </td>
-                            </tr>
+                        <tbody [attr.data-tick]="reminderTick()">
+                            @for (row of reminderRows; track row.code) {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2 institution-cell">
+                                            <span class="institution-name" [title]="row.fullName">{{ row.code }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @for (p of row.people; track p.name) {
+                                            <span [title]="p.name + ', Dahili: ' + p.ext">{{ p.name }}</span>@if (!$last) {<br>}
+                                        }
+                                    </td>
+                                    <td><span class="count-chip">{{ row.incoming }}</span></td>
+                                    <td><span class="count-chip count-chip-alert">{{ row.pending }}</span></td>
+                                    <td class="text-center">
+                                        <button type="button" class="ad-reminder"
+                                            [class.is-sent]="row.mailSent"
+                                            [title]="row.mailSent ? 'Bilgilendirme e-postası gönderildi' : 'Evrak sorumlusuna bilgilendirme e-postası gönder'"
+                                            (click)="sendReminder(row)"
+                                            [disabled]="row.loading || row.mailSent">
+                                            <span class="material-symbols-outlined" [class.spin]="row.loading">
+                                                {{ row.loading ? 'sync' : (row.mailSent ? 'check_circle' : 'mail') }}
+                                            </span>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
     </div>
-    <!-- anlık durum -->
+
     <div class="col-lg-3">
-        <!-- Premium Anlık Durum Kartı -->
         <div class="card premium-card h-100">
-
-            <div
-                class="card-header dashboard-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0 fw-semibold">Anlık Durum</h5>
-
+            <div class="card-header dashboard-header ad-head ad-head-compact">
+                <span class="ad-head-icon">
+                    <span class="material-symbols-outlined">monitoring</span>
+                </span>
+                <div class="ad-head-text">
+                    <h5 class="ad-head-title">Anlık Durum</h5>
+                </div>
+                <span class="ad-period">Bugün</span>
             </div>
             <div class="card-body">
-                <div class="activity-list">
-
+                <div class="activity-list ad-activity">
                     <div class="activity-item">
-                        <div class="activity-icon bg-gradient-warning pulse">
-                            <span
-                                class="material-symbols-outlined">add_home</span>
+                        <div class="activity-icon">
+                            <span class="material-symbols-outlined">add_home</span>
                         </div>
                         <div class="activity-content">
                             <div class="activity-title">Ön Kayıt</div>
@@ -401,9 +315,8 @@
                     </div>
 
                     <div class="activity-item">
-                        <div class="activity-icon bg-gradient-warning">
-                            <span
-                                class="material-symbols-outlined">airplane_ticket</span>
+                        <div class="activity-icon">
+                            <span class="material-symbols-outlined">airplane_ticket</span>
                         </div>
                         <div class="activity-content">
                             <div class="activity-title">Kurye Kayıt</div>
@@ -416,9 +329,8 @@
                     </div>
 
                     <div class="activity-item">
-                        <div class="activity-icon bg-gradient-info pulse">
-                            <span
-                                class="material-symbols-outlined">hourglass</span>
+                        <div class="activity-icon">
+                            <span class="material-symbols-outlined">hourglass</span>
                         </div>
                         <div class="activity-content">
                             <div class="activity-title">OCR Kuyruk</div>
@@ -430,9 +342,8 @@
                     </div>
 
                     <div class="activity-item">
-                        <div class="activity-icon bg-gradient-info">
-                            <span
-                                class="material-symbols-outlined">check_small</span>
+                        <div class="activity-icon">
+                            <span class="material-symbols-outlined">check_small</span>
                         </div>
                         <div class="activity-content">
                             <div class="activity-title">OCR Tamamlanan</div>
@@ -444,9 +355,8 @@
                     </div>
 
                     <div class="activity-item">
-                        <div class="activity-icon bg-gradient-danger">
-                            <span
-                                class="material-symbols-outlined">done_all</span>
+                        <div class="activity-icon">
+                            <span class="material-symbols-outlined">done_all</span>
                         </div>
                         <div class="activity-content">
                             <div class="activity-title">Kaydı Tamamlanan</div>
@@ -458,9 +368,8 @@
                     </div>
 
                     <div class="activity-item">
-                        <div class="activity-icon bg-gradient-danger">
-                            <span
-                                class="material-symbols-outlined">approval_delegation</span>
+                        <div class="activity-icon">
+                            <span class="material-symbols-outlined">approval_delegation</span>
                         </div>
                         <div class="activity-content">
                             <div class="activity-title">Teslim Edilen</div>
@@ -470,11 +379,8 @@
                             <span class="activity-value-label">Evrak</span>
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>
-
     </div>
-
 </div>

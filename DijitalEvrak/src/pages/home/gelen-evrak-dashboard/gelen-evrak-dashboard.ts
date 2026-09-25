@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal, ViewEncapsulation } from '@angular/core';
 import { IncomingDocumentTodayStats } from '../../../models/dashboard/IncomingDocumentTodayStats.model';
 import { IncomingDocumentService } from '../../../services/incomingdocument';
-import { CommonModule, DecimalPipe } from '@angular/common';
+import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import { IncomingDocumentLast30DaysStats } from '../../../models/dashboard/IncomingDocument30DaysStats.model';
 import { IncomingDocumentPendingScanStats } from '../../../models/dashboard/IncomingDocumentPendingScanStats.model';
 import { IncomingDocumentOcrQueueStats } from '../../../models/dashboard/IncomingDocumentOcrQueueStats.model';
@@ -17,20 +17,42 @@ interface RecentIncomingDocument {
   status: 'zimmet' | 'onkayit' | 'ocr' | 'yayinlandi';
 }
 
+interface ReminderPerson {
+  name: string;
+  ext: string;
+}
+
+interface ReminderRow {
+  code: string;
+  fullName: string;
+  people: ReminderPerson[];
+  incoming: number;
+  pending: number;
+  mailSent: boolean;
+  loading: boolean;
+}
+
 @Component({
   imports: [
     DecimalPipe,
+    DatePipe,
     CommonModule,
     RouterLink
   ],
   selector: 'app-gelen-evrak-dashboard',
   standalone: true,
   templateUrl: './gelen-evrak-dashboard.html',
+  styleUrl: '../dashboard.css',
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class GelenEvrakDashboard {
   private router = inject(Router);
+
+  // Üst şerit
+  readonly today = new Date();
+  readonly lastUpdated = signal(new Date());
+
   statsSignal = signal<IncomingDocumentTodayStats>({ todayCount: 0, changePercent: 0 });
   last30DaysStatsSignal = signal<IncomingDocumentLast30DaysStats>({ last30DaysCount: 0, changePercent: 0 });
   readonly #toast = inject(FlexiToastService);
@@ -59,7 +81,7 @@ export default class GelenEvrakDashboard {
   isLoading = false;
 
   updateCard() {
-    const cards = document.querySelectorAll('.stat-card');
+    const cards = document.querySelectorAll('.ad-stat');
 
     cards.forEach(card => {
       card.classList.add('updated');
@@ -72,6 +94,7 @@ export default class GelenEvrakDashboard {
     const stats = await this.incomingDocumentService.loadTodayStats();
     if (stats) this.statsSignal.set(stats);
     this.isLoading = false;
+    this.lastUpdated.set(new Date());
     this.updateCard();
   }
 
@@ -147,20 +170,28 @@ export default class GelenEvrakDashboard {
     return date.toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
 
-row1 = { mailSent: false, loading: false };
-row2 = { mailSent: true, loading: false };
-row3 = { mailSent: false, loading: false };
-row4 = { mailSent: false, loading: false };
+  // Teslim edilmeyi bekleyenler (veri bağlanana kadar örnek satırlar)
+  readonly reminderRows: ReminderRow[] = [
+    { code: 'EÇGM', fullName: 'Enerji, Çevre ve Sınıraşan Sular Genel Müdürlüğü', people: [{ name: 'Banu Gültekin', ext: '3420' }], incoming: 217, pending: 18, mailSent: false, loading: false },
+    { code: 'DSGM', fullName: 'Destek Hizmetleri Genel Müdürlüğü', people: [{ name: 'Aytül Özcan', ext: '1323' }, { name: 'Zeynep Büşra Tatar', ext: '1323' }], incoming: 376, pending: 15, mailSent: true, loading: false },
+    { code: 'KOGM', fullName: 'Konsolosluk Hizmetleri ve Yurtdışında Yaşayan Vatandaşlar Genel Müdürlüğü', people: [{ name: 'Didem Pekzorlu', ext: '2025' }], incoming: 450, pending: 12, mailSent: false, loading: false },
+    { code: 'TPGM', fullName: 'Bilim ve Teknoloji Politikaları Genel Müdürlüğü', people: [{ name: 'Cevşen Büşra Bahçecik', ext: '1116' }], incoming: 78, pending: 9, mailSent: false, loading: false },
+  ];
 
-sendReminder(row: any) {
-  if (row.mailSent) return;
+  sendReminder(row: ReminderRow) {
+    if (row.mailSent || row.loading) return;
 
-  row.loading = true;
+    row.loading = true;
+    this.reminderTick.update(v => v + 1);
 
-  // fake mail gönderme süresi
-  setTimeout(() => {
-    row.loading = false;
-    row.mailSent = true;
-  }, 400); // 0.8 saniye = daha gerçekçi
-}
+    // Sahte e-posta gönderim süresi
+    setTimeout(() => {
+      row.loading = false;
+      row.mailSent = true;
+      this.reminderTick.update(v => v + 1);
+    }, 400);
+  }
+
+  /** Zoneless değişiklik algılama için: satır nesneleri değişince görünümü tetikler */
+  readonly reminderTick = signal(0);
 }

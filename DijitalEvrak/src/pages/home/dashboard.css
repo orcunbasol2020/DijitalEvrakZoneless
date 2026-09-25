@@ -1,0 +1,797 @@
+/* ============================================================
+   Kontrol paneli ortak stilleri (Yönetici, Gelen Evrak, Misyon, Birim)
+   Görsel dil: login / sol menü ile aynı lacivert → petrol gradyan,
+   turkuaz vurgular; kart başlıkları Roller / Giriş Kayıtları
+   sayfalarındaki ikon + başlık + açıklama kalıbı. Tüm paneller bu
+   dosyayı styleUrl ile yükler; sınıflar "ad-" önekiyle başlar.
+   ============================================================ */
+
+/* ---------- Karşılama şeridi ---------- */
+.ad-hero {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding: 18px 26px;
+    border-radius: 18px;
+    color: #e0f2fe;
+    background: linear-gradient(120deg, #0f172a 0%, #0c4a6e 55%, #0369a1 100%);
+    border: 1px solid rgba(125, 211, 252, 0.28);
+    box-shadow: 0 14px 34px rgba(3, 105, 161, 0.22);
+}
+
+.ad-hero-glow {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    filter: blur(38px);
+}
+
+.ad-hero-glow-a {
+    width: 320px;
+    height: 320px;
+    top: -160px;
+    right: 120px;
+    background: rgba(14, 165, 233, 0.32);
+}
+
+.ad-hero-glow-b {
+    width: 220px;
+    height: 220px;
+    bottom: -140px;
+    left: 30%;
+    background: rgba(125, 211, 252, 0.18);
+}
+
+.ad-hero-text {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+}
+
+.ad-hero-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    color: #f8fafc;
+}
+
+.ad-hero-kicker .material-symbols-outlined {
+    font-size: 20px;
+    color: #7dd3fc;
+}
+
+.ad-hero-sub {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+    font-size: 12.5px;
+    color: rgba(224, 242, 254, 0.78);
+}
+
+.ad-hero-date {
+    text-transform: none;
+}
+
+.ad-hero-sub strong {
+    font-weight: 600;
+    color: #f8fafc;
+}
+
+.ad-hero-date::first-letter {
+    text-transform: uppercase;
+}
+
+.ad-hero-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: rgba(125, 211, 252, 0.6);
+}
+
+.ad-hero-actions {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.ad-hero-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 38px;
+    padding: 0 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #e0f2fe;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(125, 211, 252, 0.35);
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.ad-hero-btn .material-symbols-outlined {
+    font-size: 19px;
+    color: #7dd3fc;
+}
+
+.ad-hero-btn:hover {
+    color: #f0f9ff;
+    background: rgba(125, 211, 252, 0.16);
+    border-color: rgba(125, 211, 252, 0.6);
+    transform: translateY(-1px);
+}
+
+.ad-hero-btn:disabled {
+    cursor: progress;
+    opacity: 0.7;
+    transform: none;
+}
+
+.ad-hero-btn-icon {
+    width: 38px;
+    padding: 0;
+    justify-content: center;
+}
+
+.ad-hero-btn-icon.is-spinning .material-symbols-outlined {
+    animation: ad-spin 0.6s linear infinite;
+}
+
+@keyframes ad-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ---------- İstatistik kartları ---------- */
+.ad-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.ad-stats.ad-stats-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* Veri yenilenince kısa bir vurgu (Gelen Evrak paneli updateCard) */
+.ad-stat.updated {
+    animation: ad-stat-highlight 0.5s ease;
+}
+
+@keyframes ad-stat-highlight {
+    0%   { background-color: #eaf3f8; }
+    100% { background-color: #fff; }
+}
+
+.ad-stat {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px 18px;
+    border-radius: 16px;
+    background: #fff;
+    border: 1px solid #e7eaf0;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    color: inherit;
+    text-decoration: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.ad-stat:hover {
+    color: inherit;
+    border-color: #7dd3fc;
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
+    transform: translateY(-2px);
+}
+
+.ad-stat-body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.ad-stat-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #94a3b8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ad-stat-value {
+    margin-top: 6px;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    color: #0f172a;
+    font-variant-numeric: tabular-nums;
+}
+
+.ad-stat-foot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+/* Trend: sade, arka plansız; yalnızca metin rengiyle yön belirtir */
+.ad-trend {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.ad-trend .material-symbols-outlined {
+    font-size: 15px;
+}
+
+.ad-trend.is-up {
+    color: #15803d;
+}
+
+.ad-trend.is-down {
+    color: #b91c1c;
+}
+
+.ad-stat-period {
+    font-size: 11.5px;
+    color: #94a3b8;
+}
+
+.ad-stat-period::before {
+    content: '·';
+    margin-right: 8px;
+    color: #cbd5e1;
+}
+
+/* Belge numarası tek satırda kalsın */
+.orders-table .document-no {
+    white-space: nowrap;
+}
+
+/* Trend yoksa dönem metni ayraçsız başlar */
+.ad-stat-period-plain::before {
+    content: none;
+}
+
+/* Kullanıcı baş harfleri: tek tonda rozet */
+.customers-table .avatar-circle.ad-avatar {
+    color: #0c4a6e;
+    background: #eaf3f8;
+    border: 1px solid #d6e4ed;
+    box-shadow: none;
+}
+
+[data-theme="dark"] .customers-table .avatar-circle.ad-avatar {
+    color: #7dd3fc;
+    background: rgba(14, 165, 233, 0.14);
+    border-color: rgba(125, 211, 252, 0.28);
+}
+
+/* İkonlar tek tonda: açık petrol zemin, koyu petrol ikon */
+.ad-stat-icon {
+    flex: 0 0 auto;
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #0c4a6e;
+    background: #eaf3f8;
+    border: 1px solid #d6e4ed;
+}
+
+.ad-stat-icon .material-symbols-outlined {
+    font-size: 22px;
+}
+
+.ad-stat-arrow {
+    position: absolute;
+    right: 14px;
+    bottom: 12px;
+    font-size: 16px;
+    color: #cbd5e1;
+    opacity: 0;
+    transform: translate(-4px, 4px);
+    transition: opacity 0.15s ease, transform 0.15s ease, color 0.15s ease;
+}
+
+.ad-stat:hover .ad-stat-arrow {
+    opacity: 1;
+    transform: translate(0, 0);
+    color: #0369a1;
+}
+
+/* ---------- Kart başlıkları ---------- */
+.premium-card .card-header.ad-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: auto;
+    min-height: 67px;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e7eaf0;
+}
+
+.ad-head-icon {
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #e0f2fe;
+    color: #0369a1;
+    border: 1px solid rgba(3, 105, 161, 0.14);
+}
+
+.ad-head-icon .material-symbols-outlined {
+    font-size: 20px;
+}
+
+.ad-head-text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.ad-head-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e293b;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+}
+
+/* Dar kartlar (3 sütun): ikon ve sekmeler küçülür, başlık tek satırda kalır */
+.premium-card .card-header.ad-head-compact {
+    gap: 10px;
+    padding: 12px 14px;
+}
+
+.ad-head-compact .ad-head-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+}
+
+.ad-head-compact .ad-head-icon .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.ad-head-compact .ad-head-title {
+    white-space: nowrap;
+}
+
+.ad-head-compact .ad-tab {
+    padding: 0 10px;
+}
+
+.ad-head-sub {
+    margin-top: 2px;
+    font-size: 11.5px;
+    color: #94a3b8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ad-period {
+    flex: 0 0 auto;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    white-space: nowrap;
+}
+
+.ad-link {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 5px 6px 5px 12px;
+    border-radius: 9px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #0369a1;
+    text-decoration: none;
+    transition: background-color 0.15s ease;
+}
+
+.ad-link .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.ad-link:hover {
+    color: #0369a1;
+    background: #e0f2fe;
+}
+
+/* Gelen / Giden sekmeleri: kapsül; seçili olan lacivert-petrol gradyan */
+.ad-tabs {
+    flex: 0 0 auto;
+    display: inline-flex;
+    padding: 3px;
+    border-radius: 10px;
+    background: #eef2f7;
+    border: 1px solid #e2e8f0;
+}
+
+.ad-tab {
+    height: 26px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ad-tab:hover {
+    color: #0f172a;
+}
+
+.ad-tab.is-active {
+    color: #e0f2fe;
+    background: linear-gradient(120deg, #0f172a 0%, #0c4a6e 55%, #0369a1 100%);
+    box-shadow: 0 3px 8px rgba(3, 105, 161, 0.3);
+}
+
+/* ---------- Canlı / aktif rozeti ---------- */
+.ad-live {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px 3px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #15803d;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+}
+
+.ad-live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
+}
+
+/* ---------- Akıllı Havale bilgi kartı ---------- */
+.ad-ai-body {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.ad-ai-text {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: #475569;
+}
+
+.ad-ai-meta {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.ad-ai-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #eef2f7;
+}
+
+.ad-ai-row:last-child {
+    border-bottom: 0;
+}
+
+.ad-ai-row dt {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 500;
+    color: #94a3b8;
+}
+
+.ad-ai-row dd {
+    margin: 0;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #1e293b;
+    font-variant-numeric: tabular-nums;
+}
+
+.ad-ai-link {
+    margin-top: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 36px;
+    border-radius: 10px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #0c4a6e;
+    background: #eaf3f8;
+    border: 1px solid #d6e4ed;
+    text-decoration: none;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.ad-ai-link .material-symbols-outlined {
+    font-size: 17px;
+}
+
+.ad-ai-link:hover {
+    color: #0c4a6e;
+    background: #dcebf4;
+    border-color: #b9d3e3;
+}
+
+/* ---------- Anlık Durum: ikonlar tek tonda ---------- */
+.ad-activity .activity-icon {
+    background: #eaf3f8;
+    border: 1px solid #d6e4ed;
+    box-shadow: none;
+}
+
+.ad-activity .activity-icon .material-symbols-outlined {
+    color: #0c4a6e;
+}
+
+.ad-activity .activity-icon.pulse {
+    animation: none;
+}
+
+/* ---------- Hızlı erişim: ikonlar tek tonda ---------- */
+.ad-quick .quick-link-icon {
+    background: #eaf3f8;
+    border: 1px solid #d6e4ed;
+    color: #0c4a6e;
+    box-shadow: none;
+}
+
+.ad-quick .quick-link-icon .material-symbols-outlined {
+    color: #0c4a6e;
+}
+
+/* ---------- Tablo içi hatırlat butonu ---------- */
+.ad-reminder {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid #d6e4ed;
+    border-radius: 9px;
+    background: #eaf3f8;
+    color: #0c4a6e;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.ad-reminder .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.ad-reminder:hover:not(:disabled) {
+    background: #dcebf4;
+    border-color: #b9d3e3;
+}
+
+.ad-reminder:disabled {
+    cursor: default;
+    opacity: 0.85;
+}
+
+.ad-reminder.is-sent {
+    color: #15803d;
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+}
+
+.ad-reminder .spin {
+    animation: ad-spin 0.8s linear infinite;
+}
+
+/* ---------- Dar ekran ---------- */
+@media (max-width: 1199.98px) {
+    .ad-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 767.98px) {
+    .ad-hero {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 18px 18px;
+    }
+
+    .ad-hero-actions {
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .ad-stats {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .premium-card .card-header.ad-head {
+        flex-wrap: wrap;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ad-stat,
+    .ad-hero-btn,
+    .ad-stat-arrow {
+        transition: none;
+    }
+}
+
+/* ============================================================
+   Koyu tema
+   ============================================================ */
+[data-theme="dark"] .ad-hero {
+    background: linear-gradient(120deg, #0b1220 0%, #0c3a57 55%, #075985 100%);
+    border-color: rgba(125, 211, 252, 0.22);
+}
+
+[data-theme="dark"] .ad-stat {
+    background: #2d3748;
+    border-color: #4a5568;
+}
+
+[data-theme="dark"] .ad-stat:hover {
+    border-color: #7dd3fc;
+}
+
+[data-theme="dark"] .ad-stat-value {
+    color: #f1f5f9;
+}
+
+[data-theme="dark"] .ad-stat-label,
+[data-theme="dark"] .ad-stat-period {
+    color: #a0aec0;
+}
+
+[data-theme="dark"] .ad-trend.is-up {
+    color: #86efac;
+}
+
+[data-theme="dark"] .ad-trend.is-down {
+    color: #fca5a5;
+}
+
+[data-theme="dark"] .ad-stat-icon,
+[data-theme="dark"] .ad-ai-link,
+[data-theme="dark"] .ad-reminder,
+[data-theme="dark"] .ad-quick .quick-link-icon,
+[data-theme="dark"] .ad-activity .activity-icon {
+    color: #7dd3fc;
+    background: rgba(14, 165, 233, 0.14);
+    border-color: rgba(125, 211, 252, 0.28);
+}
+
+[data-theme="dark"] .ad-activity .activity-icon .material-symbols-outlined,
+[data-theme="dark"] .ad-quick .quick-link-icon .material-symbols-outlined {
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .ad-reminder.is-sent {
+    color: #86efac;
+    background: rgba(34, 197, 94, 0.14);
+    border-color: rgba(34, 197, 94, 0.35);
+}
+
+[data-theme="dark"] .ad-stat.updated {
+    animation: none;
+}
+
+[data-theme="dark"] .ad-live {
+    color: #86efac;
+    background: rgba(34, 197, 94, 0.14);
+    border-color: rgba(34, 197, 94, 0.35);
+}
+
+[data-theme="dark"] .ad-ai-text {
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .ad-ai-row {
+    border-bottom-color: rgba(148, 163, 184, 0.18);
+}
+
+[data-theme="dark"] .ad-ai-row dt {
+    color: #a0aec0;
+}
+
+[data-theme="dark"] .ad-ai-row dd {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .premium-card .card-header.ad-head {
+    background: rgba(255, 255, 255, 0.04);
+    border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .ad-head-icon {
+    background: rgba(14, 165, 233, 0.16);
+    color: #7dd3fc;
+    border-color: rgba(125, 211, 252, 0.3);
+}
+
+[data-theme="dark"] .ad-head-title {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .ad-head-sub {
+    color: #a0aec0;
+}
+
+[data-theme="dark"] .ad-period {
+    color: #cbd5e1;
+    background: rgba(148, 163, 184, 0.12);
+    border-color: rgba(148, 163, 184, 0.25);
+}
+
+[data-theme="dark"] .ad-link {
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .ad-link:hover {
+    background: rgba(14, 165, 233, 0.16);
+}
+
+[data-theme="dark"] .ad-tabs {
+    background: rgba(148, 163, 184, 0.1);
+    border-color: rgba(148, 163, 184, 0.2);
+}
+
+[data-theme="dark"] .ad-tab {
+    color: #a0aec0;
+}
+
+[data-theme="dark"] .ad-tab:hover {
+    color: #e2e8f0;
+}

@@ -1,273 +1,241 @@
-<div class="page-header d-flex justify-content-between align-items-center">
-    <h1 class="page-title d-flex align-items-center">
-        Yönetici
-    </h1>
-    <div class="d-flex header-actions">
-        <a routerLink="/reports" class="btn btn-sm btn-outline-secondary me-2">
-            <span class="material-symbols-outlined">file_download</span> Rapor
+<!-- ===================== Karşılama şeridi ===================== -->
+<section class="ad-hero">
+    <div class="ad-hero-glow ad-hero-glow-a"></div>
+    <div class="ad-hero-glow ad-hero-glow-b"></div>
+
+    <div class="ad-hero-text">
+        <div class="ad-hero-kicker">
+            <span class="material-symbols-outlined">shield_person</span>
+            YÖNETİCİ PANELİ
+        </div>
+        <div class="ad-hero-sub">
+            <span class="ad-hero-date">{{ today | date:'EEEE, d MMMM yyyy' }}</span>
+            <span class="ad-hero-dot"></span>
+            <span>Son güncelleme {{ lastUpdated() | date:'HH:mm' }}</span>
+        </div>
+    </div>
+
+    <div class="ad-hero-actions">
+        <a routerLink="/users/login-logs" class="ad-hero-btn">
+            <span class="material-symbols-outlined">history</span>
+            Giriş Kayıtları
         </a>
-        <button class="btn btn-sm btn-outline-secondary">
-            <span class="material-symbols-outlined"
-                title="Güncel Verileri Getir"
-                title="Verileri Yenile">refresh</span>
+        <a routerLink="/reports" class="ad-hero-btn">
+            <span class="material-symbols-outlined">file_download</span>
+            Rapor
+        </a>
+        <button type="button" class="ad-hero-btn ad-hero-btn-icon" title="Güncel Verileri Getir"
+            [class.is-spinning]="refreshing()" [disabled]="refreshing()" (click)="refresh()">
+            <span class="material-symbols-outlined">refresh</span>
         </button>
     </div>
-</div>
-<!-- Stats Cards Row -->
-<div class="row g-3 mb-4">
-    <div class="col-md-6 col-lg-3">
-        <div class="card stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="card-subtitle text-muted">Bugün
-                            (Gelen/Giden)</h6>
-                        <h4 class="card-title mt-2">237 / 168</h4>
-                        <div class="stat-change positive">
-                            <span
-                                class="material-symbols-outlined">trending_up</span>
-                            <span>+8.3%</span>
-                        </div>
-                    </div>
-                    <div class="stat-icon stat-icon-pro bg-gradient-success">
-                        <span
-                            class="material-symbols-outlined"
-                            style="font-size:21px">document_scanner</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6 col-lg-3">
-        <div class="card stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="card-subtitle text-muted"
-                            title="Son 30 Gün">Gelen Evrak</h6>
-                        <h4 class="card-title mt-2"
-                            title="Son 30 Gün">24.580</h4>
-                        <div class="stat-change positive mt-1">
-                            <span
-                                class="material-symbols-outlined">trending_up</span>
-                            <span>+12.5%</span>
-                        </div>
-                    </div>
-                    <div class="stat-icon stat-icon-pro bg-gradient-info">
-                        <span class="material-symbols-outlined"
-                            style="font-size:21px">folder_open</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+</section>
 
-    <div class="col-md-6 col-lg-3">
-        <div class="card stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="card-subtitle text-muted"
-                            title="Son 30 Gün">Giden Evrak</h6>
-                        <h4 class="card-title mt-2"
-                            title="Son 30 Gün">15.320</h4>
-                        <div class="stat-change negative">
-                            <span
-                                class="material-symbols-outlined">trending_down</span>
-                            <span>-2.1%</span>
-                        </div>
-                    </div>
-                    <div class="stat-icon stat-icon-pro bg-gradient-warning">
-                        <span
-                            class="material-symbols-outlined"
-                            style="font-size:21px">article_shortcut</span>
-                    </div>
+<!-- ===================== İstatistik kartları ===================== -->
+<div class="ad-stats">
+    @for (s of stats; track s.label) {
+        <a class="ad-stat" [routerLink]="s.url" [title]="s.hint">
+            <div class="ad-stat-body">
+                <div class="ad-stat-label">{{ s.label }}</div>
+                <div class="ad-stat-value">{{ s.value }}</div>
+                <div class="ad-stat-foot">
+                    <span class="ad-trend" [class.is-up]="s.trend >= 0" [class.is-down]="s.trend < 0">
+                        <span class="material-symbols-outlined">{{ s.trend >= 0 ? 'trending_up' : 'trending_down' }}</span>
+                        {{ s.trend >= 0 ? '+' : '' }}{{ s.trend | number:'1.1-1' }}%
+                    </span>
+                    <span class="ad-stat-period">{{ s.period }}</span>
                 </div>
             </div>
-        </div>
-    </div>
-    <div class="col-md-6 col-lg-3">
-        <div class="card stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="card-subtitle text-muted" title="Bugün">Nota
-                            (Gelen/Giden)</h6>
-                        <h4 class="card-title mt-2" title="Bugün">96 / 23</h4>
-                        <div class="stat-change positive">
-                            <span
-                                class="material-symbols-outlined">trending_up</span>
-                            <span>+15.7%</span>
-                        </div>
-                    </div>
-                    <div class="stat-icon stat-icon-pro bg-gradient-danger">
-                        <span class="material-symbols-outlined"
-                            style="font-size:24px">history_edu</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+            <span class="ad-stat-icon">
+                <span class="material-symbols-outlined">{{ s.icon }}</span>
+            </span>
+            <span class="material-symbols-outlined ad-stat-arrow">arrow_outward</span>
+        </a>
+    }
 </div>
 
-<!-- Recent Orders & Activity Row -->
+<!-- ===================== Son evraklar / anlık durum / AI ===================== -->
 <div class="row g-3 mb-4">
-    <!-- Recent Orders -->
-<div class="col-lg-6">
-    <app-currentdocument></app-currentdocument>
-</div>
+    <div class="col-lg-6">
+        <app-currentdocument></app-currentdocument>
+    </div>
+
     <div class="col-lg-3">
         <div class="card premium-card h-100">
-            <div
-                class="card-header dashboard-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0 fw-semibold">Anlık Durum</h5>
-                <div class="header-tabs d-flex align-items-center">
-                    <div
-                        class="header-tab-icon"
-                        [class.active]="selectedTab === 'incoming'"
-                        (click)="setTab('incoming')"> Gelen
-                    </div>
-                    <div
-                        class="header-tab-icon ms-2"
-                        [class.active]="selectedTab === 'outgoing'"
-                        (click)="setTab('outgoing')"> Giden
-                    </div>
+            <div class="card-header dashboard-header ad-head ad-head-compact">
+                <span class="ad-head-icon">
+                    <span class="material-symbols-outlined">monitoring</span>
+                </span>
+                <div class="ad-head-text">
+                    <h5 class="ad-head-title">Anlık Durum</h5>
+                </div>
+                <div class="ad-tabs">
+                    <button type="button" class="ad-tab" [class.is-active]="statusTab() === 'incoming'" (click)="statusTab.set('incoming')">Gelen</button>
+                    <button type="button" class="ad-tab" [class.is-active]="statusTab() === 'outgoing'" (click)="statusTab.set('outgoing')">Giden</button>
                 </div>
             </div>
 
             <div class="card-body">
-                <!-- TAB CONTENT -->
-                <div class="activity-list" *ngIf="selectedTab === 'incoming'">
-                    <div class="activity-item">
-                        <div class="activity-icon bg-gradient-info pulse">
-                            <span
-                                class="material-symbols-outlined">hourglass</span>
+                @if (statusTab() === 'incoming') {
+                    <div class="activity-list ad-activity">
+                        <div class="activity-item">
+                            <div class="activity-icon bg-gradient-info pulse">
+                                <span class="material-symbols-outlined">hourglass</span>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-title">OCR</div>
+                                <div class="activity-subtitle">Toplam <span class="text-number">237</span></div>
+                            </div>
+                            <div class="activity-value">
+                                <span class="count-chip count-chip-alert">26</span>
+                                <span class="activity-value-label">Bekleyen</span>
+                            </div>
                         </div>
-                        <div class="activity-content">
-                            <div class="activity-title">OCR</div>
-                            <div class="activity-subtitle">Toplam <span class="text-number">237</span></div>
-                        </div>
-                        <div class="activity-value">
-                            <span class="count-chip count-chip-alert">26</span>
-                            <span class="activity-value-label">Bekleyen</span>
-                        </div>
-                    </div>
 
-                    <div class="activity-item">
-                        <div class="activity-icon bg-gradient-warning">
-                            <span
-                                class="material-symbols-outlined">airplane_ticket</span>
+                        <div class="activity-item">
+                            <div class="activity-icon bg-gradient-warning">
+                                <span class="material-symbols-outlined">airplane_ticket</span>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-title">Kurye</div>
+                                <div class="activity-subtitle">Gelen <span class="text-number">112</span></div>
+                            </div>
+                            <div class="activity-value">
+                                <span class="count-chip count-chip-alert">14</span>
+                                <span class="activity-value-label">Bekleyen</span>
+                            </div>
                         </div>
-                        <div class="activity-content">
-                            <div class="activity-title">Kurye</div>
-                            <div class="activity-subtitle">Gelen <span class="text-number">112</span></div>
-                        </div>
-                        <div class="activity-value">
-                            <span class="count-chip count-chip-alert">14</span>
-                            <span class="activity-value-label">Bekleyen</span>
-                        </div>
-                    </div>
-                    <div class="activity-item">
-                        <div class="activity-icon bg-gradient-danger">
-                            <span
-                                class="material-symbols-outlined">done_all</span>
-                        </div>
-                        <div class="activity-content">
-                            <div class="activity-title">Kaydı Tamamlanan</div>
-                        </div>
-                        <div class="activity-value">
-                            <span class="count-chip count-chip-success">221</span>
-                            <span class="activity-value-label">Evrak</span>
-                        </div>
-                    </div>
 
-                    <div class="activity-item">
-                        <div class="activity-icon bg-gradient-smoke">
-                            <span
-                                class="material-symbols-outlined">approval_delegation</span>
+                        <div class="activity-item">
+                            <div class="activity-icon bg-gradient-danger">
+                                <span class="material-symbols-outlined">done_all</span>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-title">Kaydı Tamamlanan</div>
+                            </div>
+                            <div class="activity-value">
+                                <span class="count-chip count-chip-success">221</span>
+                                <span class="activity-value-label">Evrak</span>
+                            </div>
                         </div>
-                        <div class="activity-content">
-                            <div class="activity-title">Teslim Edilen</div>
-                        </div>
-                        <div class="activity-value">
-                            <span class="count-chip count-chip-info">56</span>
-                            <span class="activity-value-label">Evrak</span>
+
+                        <div class="activity-item">
+                            <div class="activity-icon bg-gradient-smoke">
+                                <span class="material-symbols-outlined">approval_delegation</span>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-title">Teslim Edilen</div>
+                            </div>
+                            <div class="activity-value">
+                                <span class="count-chip count-chip-info">56</span>
+                                <span class="activity-value-label">Evrak</span>
+                            </div>
                         </div>
                     </div>
-                </div>
+                } @else {
+                    <div class="activity-list ad-activity">
+                        <div class="activity-item">
+                            <div class="activity-icon bg-gradient-smoke">
+                                <span class="material-symbols-outlined">article</span>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-title">Toplam</div>
+                            </div>
+                            <div class="activity-value">
+                                <span class="count-chip">521</span>
+                                <span class="activity-value-label">Evrak</span>
+                            </div>
+                        </div>
 
-                <div class="activity-list" *ngIf="selectedTab === 'outgoing'">
-                    <div class="activity-item">
-                        <div class="activity-icon bg-gradient-smoke">
-                            <span
-                                class="material-symbols-outlined">article</span>
+                        <div class="activity-item">
+                            <div class="activity-icon bg-gradient-danger">
+                                <span class="material-symbols-outlined">approval_delegation</span>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-title">Teslim Edilen</div>
+                            </div>
+                            <div class="activity-value">
+                                <span class="count-chip count-chip-success">367</span>
+                                <span class="activity-value-label">Evrak</span>
+                            </div>
                         </div>
-                        <div class="activity-content">
-                            <div class="activity-title">Toplam</div>
-                        </div>
-                        <div class="activity-value">
-                            <span class="count-chip">521</span>
-                            <span class="activity-value-label">Evrak</span>
+
+                        <div class="activity-item">
+                            <div class="activity-icon bg-gradient-info">
+                                <span class="material-symbols-outlined">mail</span>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-title">Posta</div>
+                            </div>
+                            <div class="activity-value">
+                                <span class="count-chip count-chip-info">156</span>
+                                <span class="activity-value-label">Evrak</span>
+                            </div>
                         </div>
                     </div>
-
-                    <div class="activity-item">
-                        <div class="activity-icon bg-gradient-danger">
-                            <span
-                                class="material-symbols-outlined">approval_delegation</span>
-                        </div>
-                        <div class="activity-content">
-                            <div class="activity-title">Teslim Edilen</div>
-                        </div>
-                        <div class="activity-value">
-                            <span class="count-chip count-chip-success">367</span>
-                            <span class="activity-value-label">Evrak</span>
-                        </div>
-                    </div>
-
-                    <div class="activity-item">
-                        <div class="activity-icon bg-gradient-info">
-                            <span
-                                class="material-symbols-outlined">approval_delegation</span>
-                        </div>
-                        <div class="activity-content">
-                            <div class="activity-title">Posta</div>
-                        </div>
-                        <div class="activity-value">
-                            <span class="count-chip count-chip-info">156</span>
-                            <span class="activity-value-label">Evrak</span>
-                        </div>
-                    </div>
-                </div>
-
+                }
             </div>
         </div>
-
     </div>
 
-    <!-- Recent Activity -->
     <div class="col-lg-3">
-        <div class="right-image-panel"
-            title="Akıllı Havale Sistemi">
-            <h2 class="img-panel-title-top" style="margin-top: 20px;">
-                <span class="blink-dot"></span>
-                Akıllı Havale Sistemi</h2>
-            <h3 class="img-panel-title-bottom">v1.0 • Cosine Similarity
-                Engine</h3>
+        <div class="card premium-card h-100">
+            <div class="card-header dashboard-header ad-head">
+                <span class="ad-head-icon">
+                    <span class="material-symbols-outlined">smart_toy</span>
+                </span>
+                <div class="ad-head-text">
+                    <h5 class="ad-head-title">Akıllı Havale</h5>
+                </div>
+                <span class="ad-live">
+                    <span class="ad-live-dot"></span>
+                    Aktif
+                </span>
+            </div>
+            <div class="card-body ad-ai-body">
+                <p class="ad-ai-text">
+                    Gelen evrakın içeriğini önceki kayıtlarla karşılaştırarak havale edilecek birimi önerir.
+                </p>
+                <dl class="ad-ai-meta">
+                    <div class="ad-ai-row">
+                        <dt>Motor</dt>
+                        <dd>Cosine Similarity</dd>
+                    </div>
+                    <div class="ad-ai-row">
+                        <dt>Sürüm</dt>
+                        <dd>v1.0</dd>
+                    </div>
+                    <div class="ad-ai-row">
+                        <dt>Bugün önerilen</dt>
+                        <dd>14 evrak</dd>
+                    </div>
+                    <div class="ad-ai-row">
+                        <dt>Kabul oranı</dt>
+                        <dd>%86</dd>
+                    </div>
+                </dl>
+                <a routerLink="/havale" class="ad-ai-link">
+                    Havale ekranına git
+                    <span class="material-symbols-outlined">arrow_forward</span>
+                </a>
+            </div>
         </div>
-
     </div>
-
 </div>
 
+<!-- ===================== Harita / bekleyenler ===================== -->
 <div class="row g-3 mb-4">
-    <!-- bekleyenler-->
     <div class="col-lg-6">
         <div class="card premium-card h-100">
-            <div
-                class="card-header dashboard-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0 fw-semibold">Misyon Evrak Yoğunluk Haritası</h5>
-                <span class="text-muted small">Son 10 Gün</span>
+            <div class="card-header dashboard-header ad-head">
+                <span class="ad-head-icon">
+                    <span class="material-symbols-outlined">public</span>
+                </span>
+                <div class="ad-head-text">
+                    <h5 class="ad-head-title">Misyon Evrak Yoğunluk Haritası</h5>
+                    <div class="ad-head-sub">Dış temsilciliklerden gelen evrak dağılımı</div>
+                </div>
+                <span class="ad-period">Son 10 gün</span>
             </div>
             <div class="card-body">
                 <app-map-world></app-map-world>
@@ -276,25 +244,39 @@
     </div>
     <div class="col-lg-6">
         <div class="card premium-card h-100">
-            <div class="card-header dashboard-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0 fw-semibold">Bekleyenler</h5>
+            <div class="card-header dashboard-header ad-head">
+                <span class="ad-head-icon">
+                    <span class="material-symbols-outlined">pending_actions</span>
+                </span>
+                <div class="ad-head-text">
+                    <h5 class="ad-head-title">Bekleyenler</h5>
+                    <div class="ad-head-sub">İşlem bekleyen evrakların aşamalara göre dağılımı</div>
+                </div>
             </div>
-
             <div class="card-body">
                 <pending-chart></pending-chart>
             </div>
         </div>
     </div>
-
 </div>
+
+<!-- ===================== Nota / birimler ===================== -->
 <div class="row g-3 mb-4">
     <div class="col-lg-6">
         <div class="card premium-card h-100">
-            <div
-                class="card-header dashboard-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0 fw-semibold">Diplomatik Nota Sayıları (Son 7
-                    Gün)</h5>
-                <a href="#" class="btn btn-sm btn-light">Tümü</a>
+            <div class="card-header dashboard-header ad-head">
+                <span class="ad-head-icon">
+                    <span class="material-symbols-outlined">history_edu</span>
+                </span>
+                <div class="ad-head-text">
+                    <h5 class="ad-head-title">Diplomatik Nota Sayıları</h5>
+                    <div class="ad-head-sub">Temsilciliklere göre gelen ve gönderilen notalar</div>
+                </div>
+                <span class="ad-period">Son 7 gün</span>
+                <a routerLink="/documentlist" class="ad-link">
+                    Tümü
+                    <span class="material-symbols-outlined">chevron_right</span>
+                </a>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -303,258 +285,194 @@
                             <tr>
                                 <th scope="col"></th>
                                 <th scope="col">Temsilcilik</th>
-                                <th scope="col"
-                                    style="width: 100px;">Gelen</th>
-                                <th scope="col"
-                                    style="width: 100px;">Gönderilen</th>
-                                <th scope="col"
-                                    title="AI Destekli Gündem Notları Özeti">Notlar</th>
+                                <th scope="col" style="width: 100px;">Gelen</th>
+                                <th scope="col" style="width: 100px;">Gönderilen</th>
+                                <th scope="col" title="AI Destekli Gündem Notları Özeti">Notlar</th>
                             </tr>
                         </thead>
-                            <tbody>
-                                <tr>
-                                    <td>
-                                        <div class="avatar" title="Almanya">
-                                            <img
-                                                src="assets/images/bayraklar/almanya.png" />
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <div class="avatar" title="Almanya">
+                                        <img src="assets/images/bayraklar/almanya.png" />
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="country-cell">
+                                        <div class="country-name">Almanya</div>
+                                        <div class="mission-name" title="Almanya Federal Cumhuriyeti Ankara Büyükelçiliği">
+                                            Botschaft der Bundesrepublik Deutschland Ankara
                                         </div>
-                                    </td>
-                                    <td>
-                                        <div class="country-cell">
-                                            <div
-                                                class="country-name">Almanya</div>
-                                            <div class="mission-name"
-                                                title="Almanya Federal Cumhuriyeti Ankara Büyükelçiliği">
-                                                Botschaft der Bundesrepublik
-                                                Deutschland Ankara
-                                            </div>
+                                    </div>
+                                </td>
+                                <td><span class="count-chip">28</span></td>
+                                <td><span class="count-chip">35</span></td>
+                                <td><div class="nota-detail" title="AI Destekli Gündem Notları Özeti">Konsolosluk & diaspora yoğunluğu</div></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="avatar" title="Rusya">
+                                        <img src="assets/images/bayraklar/rusya.png" />
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="country-cell">
+                                        <div class="country-name">Rusya</div>
+                                        <div class="mission-name" title="Rusya Federasyonu Ankara Büyükelçiliği">
+                                            Embassy of the Russian Federation in Ankara
                                         </div>
-                                    </td>
-                                    <td><span class="count-chip">28</span></td>
-                                    <td><span class="count-chip">35</span></td>
-                                    <td>
-                                        <div class="nota-detail"
-                                            title="AI Destekli Gündem Notları Özeti">Konsolosluk
-                                            & diaspora yoğunluğu</div></td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div class="avatar" title="Rusya">
-                                            <img
-                                                src="assets/images/bayraklar/rusya.png" />
+                                    </div>
+                                </td>
+                                <td><span class="count-chip">15</span></td>
+                                <td><span class="count-chip">22</span></td>
+                                <td><div class="nota-detail" title="AI Destekli Gündem Notları Özeti">Enerji ve bölgesel gündem</div></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="avatar" title="Amerika Birleşik Devletleri">
+                                        <img src="assets/images/bayraklar/abd.png" />
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="country-cell">
+                                        <div class="country-name">ABD</div>
+                                        <div class="mission-name" title="Amerika Birleşik Devletleri Ankara Büyükelçiliği">
+                                            U.S. Embassy Ankara
                                         </div>
-                                    </td>
-                                    <td> <div class="country-cell">
-                                            <div
-                                                class="country-name">Rusya</div>
-                                            <div class="mission-name"
-                                                title="Rusya Federasyonu Ankara Büyükelçiliği">
-                                                Embassy of the Russian
-                                                Federation in Ankara
-                                            </div>
+                                    </div>
+                                </td>
+                                <td><span class="count-chip">14</span></td>
+                                <td><span class="count-chip">10</span></td>
+                                <td><div class="nota-detail" title="AI Destekli Gündem Notları Özeti">Güvenlik, siyaset, savunma, konsolosluk</div></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="avatar" title="Birleşik Krallık">
+                                        <img src="assets/images/bayraklar/eng.png" />
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="country-cell">
+                                        <div class="country-name">Birleşik Krallık</div>
+                                        <div class="mission-name" title="Birleşik Krallık Ankara Büyükelçiliği">
+                                            British Embassy Ankara
                                         </div>
-                                    </td>
-                                    <td><span class="count-chip">15</span></td>
-                                    <td><span class="count-chip">22</span></td>
-                                    <td>
-                                        <div class="nota-detail"
-                                            title="AI Destekli Gündem Notları Özeti">Enerji
-                                            ve bölgesel gündem</div></td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div class="avatar"
-                                            title="Amerika Birleşik Devletleri">
-                                            <img
-                                                src="assets/images/bayraklar/abd.png" />
-                                        </div></td>
-                                    <td>
-                                        <div class="country-cell">
-                                            <div class="country-name">ABD</div>
-                                            <div class="mission-name"
-                                                title="Amerika Birleşik Devletleri Ankara Büyükelçiliği">
-                                                U.S. Embassy Ankara
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td><span class="count-chip">14</span></td>
-                                    <td><span class="count-chip">10</span></td>
-                                    <td>
-                                        <div class="nota-detail"
-                                            title="AI Destekli Gündem Notları Özeti">Güvenlik,
-                                            siyaset, savunma,
-                                            konsolosluk</div></td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div class="avatar"
-                                            title="Birleşik Krallık">
-                                            <img
-                                                src="assets/images/bayraklar/eng.png" />
-                                        </div></td>
-                                    <td>
-                                        <div class="country-cell">
-                                            <div class="country-name">Birleşik
-                                                Krallık</div>
-                                            <div class="mission-name"
-                                                title="Birleşik Krallık Ankara Büyükelçiliği">
-                                                British Embassy Ankara
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td><span class="count-chip">12</span></td>
-                                    <td><span class="count-chip">18</span></td>
-                                    <td>
-                                        <div class="nota-detail"
-                                            title="AI Destekli Gündem Notları Özeti">Vize
-                                            ve NATO ilişkileri</div></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-6">
-            <div class="card premium-card h-100">
-                <div
-                    class="card-header dashboard-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0 fw-semibold">En Çok Bekleyen Evrakı Olan
-                        Birimler</h5>
-                    <a href="#" class="btn btn-sm btn-light">Tümü</a>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table customers-table">
-                            <thead>
-                                <tr>
-                                    <th scope="col">Birim</th>
-                                    <th scope="col">Evrak
-                                        Sorumluları</th>
-                                    <th scope="col">Bekleyen
-                                        Evrak Sayısı</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>
-                                        <div
-                                            title="Enerji, Çevre ve Sınıraşan Sular Genel Müdürlüğü">EÇGM</div>
-                                    </td>
-                                    <td><span class="nota-detail"
-                                            title="Dahili: 3420">Banu
-                                            Gültekin</span></td>
-                                    <td><span class="count-chip count-chip-alert">18</span></td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div
-                                            title="Destek Hizmetleri Genel Müdürlüğü">DSGM</div>
-                                    </td>
-                                    <td><span class="nota-detail"
-                                            title="Dahili: 1323">Aytül
-                                            Özcan</span>,
-                                        <span class="nota-detail"
-                                            title="Dahili: 1323">Zeynep
-                                            Büşra Tatar</span></td>
-                                    <td><span class="count-chip count-chip-alert">15</span></td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div
-                                            title="Konsolosluk Hizmetleri ve Yurtdışında Yaşayan Vatandaşlar Genel Müdürlüğü">KOGM</div>
-                                    </td>
-                                    <td><span class="nota-detail"
-                                            title="Dahili: 2025">Didem
-                                            Pekzorlu</span></td>
-                                    <td><span class="count-chip count-chip-alert">12</span></td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div
-                                            title="Bilim ve Teknoloji Politikaları Genel Müdürlüğü">TPGM</div>
-                                    </td>
-                                    <td><span class="nota-detail"
-                                            title="Dahili: 1116">Cevşen
-                                            Büşra Bahçecik</span></td>
-                                    <td><span class="count-chip count-chip-alert">11</span></td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div
-                                            title="BYMB Bakan Yardımcılığı">BYMB</div>
-                                    </td>
-                                    <td><span class="nota-detail"
-                                            title="Dahili: 2219">Eda Tokan
-                                            Akkuş</span></td>
-                                    <td><span class="count-chip">9</span></td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div
-                                            title="BYMB Bakan Yardımcılığı">BYMB</div>
-                                    </td>
-                                    <td><span class="nota-detail"
-                                            title="Dahili: 2219">Eda Tokan
-                                            Akkuş</span></td>
-                                    <td><span class="count-chip">5</span></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                                    </div>
+                                </td>
+                                <td><span class="count-chip">12</span></td>
+                                <td><span class="count-chip">18</span></td>
+                                <td><div class="nota-detail" title="AI Destekli Gündem Notları Özeti">Vize ve NATO ilişkileri</div></td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
-    <div class="row g-3 mb-4">
-        <div class="col-lg-6">
-            <div class="card premium-card h-100">
-                <div
-                    class="card-header dashboard-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0 fw-semibold">En Çok Evrak Gelen Birimler</h5>
 
-                    <div class="header-tabs d-flex align-items-center">
-                        <div
-                            class="header-tab-icon"
-                            [class.active]="selectedTab === 'incoming'"
-                            (click)="setTab('incoming')"> Gelen
-                        </div>
-                        <div
-                            class="header-tab-icon ms-2"
-                            [class.active]="selectedTab === 'outgoing'"
-                            (click)="setTab('outgoing')"> Giden
-                        </div>
-                    </div>
+    <div class="col-lg-6">
+        <div class="card premium-card h-100">
+            <div class="card-header dashboard-header ad-head">
+                <span class="ad-head-icon">
+                    <span class="material-symbols-outlined">apartment</span>
+                </span>
+                <div class="ad-head-text">
+                    <h5 class="ad-head-title">En Çok Bekleyen Evrakı Olan Birimler</h5>
+                    <div class="ad-head-sub">Birim evrak sorumluları ve bekleyen evrak sayıları</div>
                 </div>
-                <div class="card-body">
-                    <center-chart></center-chart>
+                <a routerLink="/birimler" class="ad-link">
+                    Tümü
+                    <span class="material-symbols-outlined">chevron_right</span>
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table customers-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Birim</th>
+                                <th scope="col">Evrak Sorumluları</th>
+                                <th scope="col">Bekleyen Evrak Sayısı</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><div title="Enerji, Çevre ve Sınıraşan Sular Genel Müdürlüğü">EÇGM</div></td>
+                                <td><span class="nota-detail" title="Dahili: 3420">Banu Gültekin</span></td>
+                                <td><span class="count-chip count-chip-alert">18</span></td>
+                            </tr>
+                            <tr>
+                                <td><div title="Destek Hizmetleri Genel Müdürlüğü">DSGM</div></td>
+                                <td>
+                                    <span class="nota-detail" title="Dahili: 1323">Aytül Özcan</span>,
+                                    <span class="nota-detail" title="Dahili: 1323">Zeynep Büşra Tatar</span>
+                                </td>
+                                <td><span class="count-chip count-chip-alert">15</span></td>
+                            </tr>
+                            <tr>
+                                <td><div title="Konsolosluk Hizmetleri ve Yurtdışında Yaşayan Vatandaşlar Genel Müdürlüğü">KOGM</div></td>
+                                <td><span class="nota-detail" title="Dahili: 2025">Didem Pekzorlu</span></td>
+                                <td><span class="count-chip count-chip-alert">12</span></td>
+                            </tr>
+                            <tr>
+                                <td><div title="Bilim ve Teknoloji Politikaları Genel Müdürlüğü">TPGM</div></td>
+                                <td><span class="nota-detail" title="Dahili: 1116">Cevşen Büşra Bahçecik</span></td>
+                                <td><span class="count-chip count-chip-alert">11</span></td>
+                            </tr>
+                            <tr>
+                                <td><div title="BYMB Bakan Yardımcılığı">BYMB</div></td>
+                                <td><span class="nota-detail" title="Dahili: 2219">Eda Tokan Akkuş</span></td>
+                                <td><span class="count-chip">9</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-
-        </div>
-        <div class="col-lg-6">
-            <div class="card premium-card h-100">
-
-                <div
-                    class="card-header dashboard-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0 fw-semibold">En Çok Evrak Gelen Misyonlar</h5>
-                             <div class="header-tabs d-flex align-items-center">
-                                <div
-                                    class="header-tab-icon"
-                                    [class.active]="selectedTab === 'incoming'"
-                                    (click)="setTab('incoming')"> Gelen
-                                </div>
-                                <div
-                                    class="header-tab-icon ms-2"
-                                    [class.active]="selectedTab === 'outgoing'"
-                                    (click)="setTab('outgoing')"> Giden
-                                </div>
-                            </div>
-                </div>
-                <div class="card-body p-2">
-                    <mission-chart></mission-chart>
-                </div>
-            </div>
-
         </div>
     </div>
+</div>
+
+<!-- ===================== Birim / misyon grafikleri ===================== -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-6">
+        <div class="card premium-card h-100">
+            <div class="card-header dashboard-header ad-head">
+                <span class="ad-head-icon">
+                    <span class="material-symbols-outlined">bar_chart</span>
+                </span>
+                <div class="ad-head-text">
+                    <h5 class="ad-head-title">En Çok Evrak Gelen Birimler</h5>
+                    <div class="ad-head-sub">Birimlere göre evrak hacmi</div>
+                </div>
+                <div class="ad-tabs">
+                    <button type="button" class="ad-tab" [class.is-active]="centerTab() === 'incoming'" (click)="centerTab.set('incoming')">Gelen</button>
+                    <button type="button" class="ad-tab" [class.is-active]="centerTab() === 'outgoing'" (click)="centerTab.set('outgoing')">Giden</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <center-chart></center-chart>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card premium-card h-100">
+            <div class="card-header dashboard-header ad-head">
+                <span class="ad-head-icon">
+                    <span class="material-symbols-outlined">flag</span>
+                </span>
+                <div class="ad-head-text">
+                    <h5 class="ad-head-title">En Çok Evrak Gelen Misyonlar</h5>
+                    <div class="ad-head-sub">Dış temsilciliklere göre evrak hacmi</div>
+                </div>
+                <div class="ad-tabs">
+                    <button type="button" class="ad-tab" [class.is-active]="missionTab() === 'incoming'" (click)="missionTab.set('incoming')">Gelen</button>
+                    <button type="button" class="ad-tab" [class.is-active]="missionTab() === 'outgoing'" (click)="missionTab.set('outgoing')">Giden</button>
+                </div>
+            </div>
+            <div class="card-body p-2">
+                <mission-chart></mission-chart>
+            </div>
+        </div>
+    </div>
+</div>

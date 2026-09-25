@@ -1,74 +1,76 @@
-<div class="page-header d-flex justify-content-between align-items-center">
-    <h1 class="page-title d-flex align-items-center">
-        {{ user()?.departmentName || 'Birim Evrak Paneli' }}
-    </h1>
-    <div class="d-flex header-actions">
-        <button class="btn btn-sm btn-outline-info" (click)="loadAll()">
-            <span class="material-symbols-outlined" title="Güncel Verileri Getir">refresh</span>
+<!-- ===================== Üst şerit ===================== -->
+<section class="ad-hero">
+    <div class="ad-hero-glow ad-hero-glow-a"></div>
+    <div class="ad-hero-glow ad-hero-glow-b"></div>
+
+    <div class="ad-hero-text">
+        <div class="ad-hero-kicker">
+            <span class="material-symbols-outlined">apartment</span>
+            BİRİM EVRAK PANELİ
+        </div>
+        <div class="ad-hero-sub">
+            @if (user()?.departmentName) {
+                <strong>{{ user()?.departmentName }}</strong>
+                <span class="ad-hero-dot"></span>
+            }
+            <span class="ad-hero-date">{{ today | date:'EEEE, d MMMM yyyy' }}</span>
+            <span class="ad-hero-dot"></span>
+            <span>Son güncelleme {{ lastUpdated() | date:'HH:mm' }}</span>
+        </div>
+    </div>
+
+    <div class="ad-hero-actions">
+        <a routerLink="/zimmetlerim" class="ad-hero-btn">
+            <span class="material-symbols-outlined">inventory_2</span>
+            Zimmetlerim
+        </a>
+        <button type="button" class="ad-hero-btn ad-hero-btn-icon" title="Güncel Verileri Getir" (click)="loadAll()">
+            <span class="material-symbols-outlined">refresh</span>
         </button>
     </div>
-</div>
+</section>
 
-<div class="row g-3 mb-4">
-
-    <div class="col-md-6 col-lg-4">
-        <div class="card stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="card-subtitle text-muted">Bugün Gelen Evrak</h6>
-                        <h4 class="card-title mt-2">
-                            {{ statsSignal().todayCount }}
-                        </h4>
-                        <div class="stat-change positive mt-1">
-                            <span class="material-symbols-outlined">trending_up</span>
-                            <span>{{ statsSignal().changePercent | number:'1.1-1' }}%</span>
-                        </div>
-                    </div>
-                    <div class="stat-icon stat-icon-pro bg-gradient-warning">
-                        <span class="material-symbols-outlined" style="font-size: 22px;">add_notes</span>
-                    </div>
-                </div>
+<!-- ===================== İstatistik kartları ===================== -->
+<div class="ad-stats ad-stats-3">
+    <a class="ad-stat" routerLink="/scanlist" title="Bugün birime gelen evraklar">
+        <div class="ad-stat-body">
+            <div class="ad-stat-label">BUGÜN GELEN EVRAK</div>
+            <div class="ad-stat-value">{{ statsSignal().todayCount }}</div>
+            <div class="ad-stat-foot">
+                <span class="ad-trend" [class.is-up]="statsSignal().changePercent >= 0" [class.is-down]="statsSignal().changePercent < 0">
+                    <span class="material-symbols-outlined">{{ statsSignal().changePercent >= 0 ? 'trending_up' : 'trending_down' }}</span>
+                    {{ statsSignal().changePercent >= 0 ? '+' : '' }}{{ statsSignal().changePercent | number:'1.1-1' }}%
+                </span>
+                <span class="ad-stat-period">Düne göre</span>
             </div>
         </div>
-    </div>
+        <span class="ad-stat-icon"><span class="material-symbols-outlined">add_notes</span></span>
+        <span class="material-symbols-outlined ad-stat-arrow">arrow_outward</span>
+    </a>
 
-    <div class="col-md-6 col-lg-4">
-        <div class="card stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="card-subtitle text-muted">Giden Evrak</h6>
-                        <h4 class="card-title mt-2">
-                            {{ outgoingCount() }}
-                        </h4>
-                    </div>
-                    <div class="stat-icon stat-icon-pro bg-gradient-info">
-                        <span class="material-symbols-outlined" style="font-size: 22px;">local_post_office</span>
-                    </div>
-                </div>
+    <a class="ad-stat" routerLink="/gidenevrak/outgoing" title="Birimin giden evrakları">
+        <div class="ad-stat-body">
+            <div class="ad-stat-label">GİDEN EVRAK</div>
+            <div class="ad-stat-value">{{ outgoingCount() }}</div>
+            <div class="ad-stat-foot">
+                <span class="ad-stat-period ad-stat-period-plain">Toplam</span>
             </div>
         </div>
-    </div>
+        <span class="ad-stat-icon"><span class="material-symbols-outlined">local_post_office</span></span>
+        <span class="material-symbols-outlined ad-stat-arrow">arrow_outward</span>
+    </a>
 
-    <div class="col-md-6 col-lg-4">
-        <div class="card stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="card-subtitle text-muted">Zimmet</h6>
-                        <h4 class="card-title mt-2">
-                            {{ zimmetCount() }}
-                        </h4>
-                    </div>
-                    <div class="stat-icon stat-icon-pro bg-gradient-danger">
-                        <span class="material-symbols-outlined" style="font-size: 22px;">inventory_2</span>
-                    </div>
-                </div>
+    <a class="ad-stat" routerLink="/zimmetlerim" title="Üzerinizdeki aktif zimmetler">
+        <div class="ad-stat-body">
+            <div class="ad-stat-label">ZİMMET</div>
+            <div class="ad-stat-value">{{ zimmetCount() }}</div>
+            <div class="ad-stat-foot">
+                <span class="ad-stat-period ad-stat-period-plain">Üzerinizdeki aktif evrak</span>
             </div>
         </div>
-    </div>
-
+        <span class="ad-stat-icon"><span class="material-symbols-outlined">inventory_2</span></span>
+        <span class="material-symbols-outlined ad-stat-arrow">arrow_outward</span>
+    </a>
 </div>
 
 <div class="row g-3 mb-4">
@@ -76,10 +78,16 @@
     <!-- Birimdeki Kullanıcılar -->
     <div class="col-lg-8">
         <div class="card premium-card h-100">
-            <div class="card-header dashboard-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0 fw-semibold">Birimimdeki Kullanıcılar</h5>
-                <span class="count-chip count-chip-info" title="Aktif / Toplam">
-                    {{ departmentActiveUserCount() }} / {{ departmentUsers().length }}
+            <div class="card-header dashboard-header ad-head">
+                <span class="ad-head-icon">
+                    <span class="material-symbols-outlined">group</span>
+                </span>
+                <div class="ad-head-text">
+                    <h5 class="ad-head-title">Birimimdeki Kullanıcılar</h5>
+                    <div class="ad-head-sub">Biriminize kayıtlı kullanıcılar ve durumları</div>
+                </div>
+                <span class="ad-period" title="Aktif / Toplam">
+                    {{ departmentActiveUserCount() }} / {{ departmentUsers().length }} aktif
                 </span>
             </div>
             <div class="card-body p-0">
@@ -96,7 +104,7 @@
                             <tr *ngFor="let u of departmentUsers()" [class.table-active]="isCurrentUser(u)">
                                 <td>
                                     <div class="d-flex align-items-center gap-2 institution-cell">
-                                        <span class="avatar-circle" [ngClass]="getAvatarClass(u)">{{ getInitials(u) }}</span>
+                                        <span class="avatar-circle ad-avatar">{{ getInitials(u) }}</span>
                                         <div class="d-flex flex-column">
                                             <span class="fw-semibold">
                                                 {{ u.name }} {{ u.surname }}
@@ -138,14 +146,19 @@
     <!-- Hızlı Erişim -->
     <div class="col-lg-4">
         <div class="card premium-card h-100">
-            <div class="card-header dashboard-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0 fw-semibold">Hızlı Erişim</h5>
-                <span class="material-symbols-outlined text-muted" style="font-size: 20px;">bolt</span>
+            <div class="card-header dashboard-header ad-head">
+                <span class="ad-head-icon">
+                    <span class="material-symbols-outlined">bolt</span>
+                </span>
+                <div class="ad-head-text">
+                    <h5 class="ad-head-title">Hızlı Erişim</h5>
+                    <div class="ad-head-sub">Sık kullanılan ekranlar</div>
+                </div>
             </div>
             <div class="card-body">
-                <div class="quick-links">
+                <div class="quick-links ad-quick">
                     <a routerLink="/zimmetlerim" class="quick-link">
-                        <span class="quick-link-icon bg-gradient-primary">
+                        <span class="quick-link-icon">
                             <span class="material-symbols-outlined">inventory_2</span>
                         </span>
                         <span class="quick-link-text">
@@ -156,7 +169,7 @@
                     </a>
 
                     <a routerLink="/evrakkayit" class="quick-link">
-                        <span class="quick-link-icon bg-gradient-success">
+                        <span class="quick-link-icon">
                             <span class="material-symbols-outlined">note_add</span>
                         </span>
                         <span class="quick-link-text">
@@ -167,7 +180,7 @@
                     </a>
 
                     <a routerLink="/gidenevrak/outgoing" class="quick-link">
-                        <span class="quick-link-icon bg-gradient-info">
+                        <span class="quick-link-icon">
                             <span class="material-symbols-outlined">local_post_office</span>
                         </span>
                         <span class="quick-link-text">

@@ -1,191 +1,109 @@
-<div class="page-header d-flex justify-content-between align-items-center">
-    <h1 class="page-title">Kontrol Paneli</h1>
-    <div class="d-flex header-actions">
-        <a routerLink="/reports" class="btn btn-sm btn-outline-secondary me-2">
-            <span class="material-symbols-outlined">file_download</span> Rapor
+<!-- ===================== Üst şerit ===================== -->
+<section class="ad-hero">
+    <div class="ad-hero-glow ad-hero-glow-a"></div>
+    <div class="ad-hero-glow ad-hero-glow-b"></div>
+
+    <div class="ad-hero-text">
+        <div class="ad-hero-kicker">
+            <span class="material-symbols-outlined">flag</span>
+            MİSYON PANELİ
+        </div>
+        <div class="ad-hero-sub">
+            <span class="ad-hero-date">{{ today | date:'EEEE, d MMMM yyyy' }}</span>
+            <span class="ad-hero-dot"></span>
+            <span>Son güncelleme {{ lastUpdated() | date:'HH:mm' }}</span>
+        </div>
+    </div>
+
+    <div class="ad-hero-actions">
+        <a routerLink="/reports" class="ad-hero-btn">
+            <span class="material-symbols-outlined">file_download</span>
+            Rapor
         </a>
-        <button class="btn btn-sm btn-outline-secondary">
-            <span class="material-symbols-outlined"
-                title="Güncel Verileri Getir">refresh</span>
+        <button type="button" class="ad-hero-btn ad-hero-btn-icon" title="Güncel Verileri Getir"
+            [class.is-spinning]="refreshing()" [disabled]="refreshing()" (click)="refresh()">
+            <span class="material-symbols-outlined">refresh</span>
         </button>
     </div>
-</div>
-<!-- Stats Cards Row -->
-<div class="row g-3 mb-4">
-    <div class="col-md-6 col-lg-3">
-        <div class="card stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="card-subtitle text-muted">Gelen Evrak / Son
-                            30 Gün</h6>
-                        <h4 class="card-title mt-2">24.580</h4>
-                        <div class="stat-change positive mt-1">
-                            <span
-                                class="material-symbols-outlined">trending_up</span>
-                            <span>+12.5%</span>
-                        </div>
-                    </div>
-                    <div class="stat-icon bg-primary-light">
-                        <span
-                            class="material-symbols-outlined text-primary">folder_open</span>
-                    </div>
+</section>
+
+<!-- ===================== İstatistik kartları ===================== -->
+<div class="ad-stats">
+    @for (s of stats; track s.label) {
+        <a class="ad-stat" [routerLink]="s.url" [title]="s.hint">
+            <div class="ad-stat-body">
+                <div class="ad-stat-label">{{ s.label }}</div>
+                <div class="ad-stat-value">{{ s.value }}</div>
+                <div class="ad-stat-foot">
+                    <span class="ad-trend" [class.is-up]="s.trend >= 0" [class.is-down]="s.trend < 0">
+                        <span class="material-symbols-outlined">{{ s.trend >= 0 ? 'trending_up' : 'trending_down' }}</span>
+                        {{ s.trend >= 0 ? '+' : '' }}{{ s.trend | number:'1.1-1' }}%
+                    </span>
+                    <span class="ad-stat-period">{{ s.period }}</span>
                 </div>
             </div>
-        </div>
-    </div>
-    <div class="col-md-6 col-lg-3">
-        <div class="card stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="card-subtitle text-muted">OCR Bekleyen</h6>
-                        <h4 class="card-title mt-2">23</h4>
-                        <div class="stat-change positive">
-                            <span
-                                class="material-symbols-outlined">trending_up</span>
-                            <span>+8.3%</span>
-                        </div>
-                    </div>
-                    <div class="stat-icon bg-success-light">
-                        <span
-                            class="material-symbols-outlined text-success">document_scanner</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6 col-lg-3">
-        <div class="card stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="card-subtitle text-muted">Kurye ile
-                            Gelen</h6>
-                        <h4 class="card-title mt-2">132</h4>
-                        <div class="stat-change positive">
-                            <span
-                                class="material-symbols-outlined">trending_up</span>
-                            <span>+15.7%</span>
-                        </div>
-                    </div>
-                    <div class="stat-icon bg-info-light">
-                        <span
-                            class="material-symbols-outlined text-info">person_pin_circle</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6 col-lg-3">
-        <div class="card stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="card-subtitle text-muted">Giden Evrak</h6>
-                        <h4 class="card-title mt-2">15,320</h4>
-                        <div class="stat-change negative">
-                            <span
-                                class="material-symbols-outlined">trending_down</span>
-                            <span>-2.1%</span>
-                        </div>
-                    </div>
-                    <div class="stat-icon bg-warning-light">
-                        <span
-                            class="material-symbols-outlined text-warning">article_shortcut</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+            <span class="ad-stat-icon">
+                <span class="material-symbols-outlined">{{ s.icon }}</span>
+            </span>
+            <span class="material-symbols-outlined ad-stat-arrow">arrow_outward</span>
+        </a>
+    }
 </div>
 
-<!-- Recent Orders & Activity Row -->
+<!-- ===================== Son gelen evraklar / akıllı arama ===================== -->
 <div class="row g-3 mb-4">
-    <!-- Recent Orders -->
     <div class="col-lg-9">
-        <div class="card h-100">
-            <div
-                class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Son Gelen Evraklar</h5>
-                <!-- <a href="#" class="btn btn-sm btn-link">Tümü</a>-->
+        <div class="card premium-card orders-card h-100">
+            <div class="card-header dashboard-header ad-head">
+                <span class="ad-head-icon">
+                    <span class="material-symbols-outlined">inbox</span>
+                </span>
+                <div class="ad-head-text">
+                    <h5 class="ad-head-title">Son Gelen Evraklar</h5>
+                    <div class="ad-head-sub">Misyonunuza en son kaydedilen evraklar</div>
+                </div>
+                <span class="ad-live">
+                    <span class="ad-live-dot"></span>
+                    Canlı
+                </span>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover orders-table">
+                    <table class="table table-hover orders-table align-middle">
                         <thead>
                             <tr>
-                                <th scope="col">Belge No</th>
-                                <th scope="col">Kurum</th>
-                                <th scope="col">Durum</th>
-                                <th scope="col">Tarih</th>
-                                <th scope="col">Zimmet</th>
-                                <th scope="col"></th>
+                                <th scope="col">KURUM</th>
+                                <th scope="col">BELGE NO</th>
+                                <th scope="col">DURUM</th>
+                                <th scope="col">TARİH</th>
+                                <th scope="col">ZİMMET</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td>2025/41851325/40472808</td>
-                                <td>Emniyet Genel Müd.</td>
-                                <td><span
-                                        class="badge bg-warning">Zimmet</span></td>
-                                <td>18.11.2025 14:25</td>
-                                <td>Murat Kale</td>
-                                <td>
-                                    <button class="btn btn-sm btn-icon"><span
-                                            class="material-symbols-outlined">visibility</span></button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>2025/31851350/20472800</td>
-                                <td>Türkiye Noterler Birliği</td>
-                                <td><span
-                                        class="badge bg-info text-dark">Ön
-                                        Kayıt</span></td>
-                                <td>17.11.2025 17:26</td>
-                                <td>Murat Kale</td>
-                                <td>
-                                    <button class="btn btn-sm btn-icon"><span
-                                            class="material-symbols-outlined">visibility</span></button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>2025/91851329/40472809</td>
-                                <td>Rusya Federasyonu, Moskova BE</td>
-                                <td><span
-                                        class="badge bg-warning">Zimmet</span></td>
-                                <td>17.11.2025 12:26</td>
-                                <td>Bülent Arslan</td>
-                                <td>
-                                    <button class="btn btn-sm btn-icon"><span
-                                            class="material-symbols-outlined">visibility</span></button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>2025/48851328/40472807</td>
-                                <td>İçişleri Bakanlığı</td>
-                                <td><span
-                                        class="badge bg-primary">OCR</span></td>
-                                <td>16.11.2025 17:18</td>
-                                <td>Oral Akçakoyun</td>
-                                <td>
-                                    <button class="btn btn-sm btn-icon"><span
-                                            class="material-symbols-outlined">visibility</span></button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>2025/71851325/70472804</td>
-                                <td>Adalet Bakanlığı</td>
-                                <td><span
-                                        class="badge bg-success">Kayıt</span></td>
-                                <td>16.11.2025 17:16</td>
-                                <td>Bülent Arslan</td>
-                                <td>
-                                    <button class="btn btn-sm btn-icon"><span
-                                            class="material-symbols-outlined">visibility</span></button>
-                                </td>
-                            </tr>
-
+                            @for (doc of recentDocuments; track doc.documentNo) {
+                                <tr class="clickable-row" title="Evrak detayına git">
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2 institution-cell" [title]="doc.institution">
+                                            <span class="institution-name text-truncate">{{ doc.institution }}</span>
+                                        </div>
+                                    </td>
+                                    <td><span class="document-no">{{ doc.documentNo }}</span></td>
+                                    <td>
+                                        <span class="badge rounded-pill py-2 d-inline-flex align-items-center gap-1"
+                                            [ngClass]="statusConfig[doc.status].badgeClass">
+                                            <span class="material-symbols-outlined" style="font-size: 14px;">{{ statusConfig[doc.status].icon }}</span>
+                                            {{ statusConfig[doc.status].label }}
+                                        </span>
+                                    </td>
+                                    <td><div class="date-cell">{{ doc.date }}</div></td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <span class="material-symbols-outlined text-muted" style="font-size: 16px;">person</span>
+                                            {{ doc.custodian }}
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
                         </tbody>
                     </table>
                 </div>
@@ -193,202 +111,140 @@
         </div>
     </div>
 
-    <!-- Recent Activity -->
     <div class="col-lg-3">
-        <div class="right-image-panel" title="Yapay Zeka Destekli Have Sistemi">
-            <h2 class="img-panel-title-top">
-                <span class="blink-dot"></span>
-                AI-Powered  <br>Semantic Search</h2>
-            <h3 class="img-panel-title-bottom">v1.0 • Cosine Similarity Engine</h3>
+        <div class="card premium-card h-100">
+            <div class="card-header dashboard-header ad-head">
+                <span class="ad-head-icon">
+                    <span class="material-symbols-outlined">manage_search</span>
+                </span>
+                <div class="ad-head-text">
+                    <h5 class="ad-head-title">Akıllı Arama</h5>
+                </div>
+                <span class="ad-live">
+                    <span class="ad-live-dot"></span>
+                    Aktif
+                </span>
+            </div>
+            <div class="card-body ad-ai-body">
+                <p class="ad-ai-text">
+                    Evrakları anahtar kelimeyle değil, anlamıyla bulur. Benzer içerikli belgeleri tek aramada listeler.
+                </p>
+                <dl class="ad-ai-meta">
+                    <div class="ad-ai-row">
+                        <dt>Motor</dt>
+                        <dd>Cosine Similarity</dd>
+                    </div>
+                    <div class="ad-ai-row">
+                        <dt>Sürüm</dt>
+                        <dd>v1.0</dd>
+                    </div>
+                    <div class="ad-ai-row">
+                        <dt>Dizinlenen evrak</dt>
+                        <dd>24.580</dd>
+                    </div>
+                </dl>
+                <a routerLink="/documents" class="ad-ai-link">
+                    Nasıl kullanılır
+                    <span class="material-symbols-outlined">arrow_forward</span>
+                </a>
+            </div>
         </div>
-
     </div>
-
 </div>
 
-<div class="row g-3">
-    <!-- bekleyenler-->
+<!-- ===================== Bekleyenler / anlık durum ===================== -->
+<div class="row g-3 mb-4">
     <div class="col-lg-9">
-        <div class="card h-100">
-            <div
-                class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Teslim Edilmeyi Bekleyenler</h5>
-                <span>Son 30 Gün</span>
-                <!-- <a href="#" class="btn btn-sm btn-link">View All</a>-->
+        <div class="card premium-card h-100">
+            <div class="card-header dashboard-header ad-head">
+                <span class="ad-head-icon">
+                    <span class="material-symbols-outlined">pending_actions</span>
+                </span>
+                <div class="ad-head-text">
+                    <h5 class="ad-head-title">Teslim Edilmeyi Bekleyenler</h5>
+                    <div class="ad-head-sub">Birim evrak sorumlularına teslim edilmemiş evraklar</div>
+                </div>
+                <span class="ad-period">Son 30 gün</span>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table customers-table">
                         <thead>
                             <tr>
-                                <th scope="col">Birim</th>
-                                <th scope="col">Evrak Sorumluları</th>
-                                <th scope="col">Gelen</th>
-                                <th scope="col">Bekleyen</th>
-                                <th scope="col">Hatırlat</th>
+                                <th scope="col">BİRİM</th>
+                                <th scope="col">EVRAK SORUMLULARI</th>
+                                <th scope="col">GELEN</th>
+                                <th scope="col">BEKLEYEN</th>
+                                <th scope="col" class="text-center">HATIRLAT</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div
-                                            title="Enerji, Çevre ve Sınıraşan Sular Genel Müdürlüğü">EÇGM</div>
-                                    </div>
-                                </td>
-                                <td><span
-                                        title="Banu Gültekin, Dahili: 3420">Banu
-                                        Gültekin</span></td>
-                                <td>217</td>
-                                <td>18</td>
-                                <td>
-                                    <button class="btn btn-sm btn-icon"><span
-                                            class="material-symbols-outlined"
-                                            title="Evrak Sorumlusuna Bilgilendirme Epostası Gönder">email</span></button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div
-                                            title="Destek Hizmetleri Genel Müdürlüğü">DSGM</div>
-                                    </div>
-                                </td>
-                                <td><span
-                                        title="Aytül Özcan, Dahili: 1323">Aytül
-                                        Özcan</span><br>
-                                    <span
-                                        title="Zeynep Büşra Tatar, Dahili: 1323">Zeynep
-                                        Büşra Tatar</span></td>
-                                <td>376</td>
-                                <td>15</td>
-                                <td>
-                                    <button class="btn btn-sm btn-icon"><span
-                                            class="material-symbols-outlined"
-                                            title="Bilgilendirme Epostası Gönderildi">check</span></button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div
-                                            title="Konsolosluk Hizmetleri ve Yurtdışında Yaşayan Vatandaşlar Genel Müdürlüğü">KOGM</div>
-                                    </div>
-                                </td>
-                                <td><span
-                                        title="Didem Pekzorlu, Dahili: 2025">Didem
-                                        Pekzorlu</span></td>
-                                <td>450</td>
-                                <td>12</td> <td>
-                                    <button class="btn btn-sm btn-icon"><span
-                                            class="material-symbols-outlined"
-                                            title="Evrak Sorumlusuna Bilgilendirme Epostası Gönder">email</span></button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div
-                                            title="Bilim ve Teknoloji Politikaları Genel Müdürlüğü">TPGM</div>
-                                    </div>
-                                </td>
-                                <td><span
-                                        title="Cevşen Büşra Bahçecik, Dahili: 1116">Cevşen
-                                        Büşra Bahçecik</span></td>
-                                <td>78</td>
-                                <td>9</td>
-                                <td>
-                                    <button class="btn btn-sm btn-icon"><span
-                                            class="material-symbols-outlined"
-                                            title="Evrak Sorumlusuna Bilgilendirme Epostası Gönder">email</span></button>
-                                </td>
-                            </tr>
+                        <tbody [attr.data-tick]="reminderTick()">
+                            @for (row of reminderRows; track row.code) {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2 institution-cell">
+                                            <span class="institution-name" [title]="row.fullName">{{ row.code }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @for (p of row.people; track p.name) {
+                                            <span [title]="p.name + ', Dahili: ' + p.ext">{{ p.name }}</span>@if (!$last) {<br>}
+                                        }
+                                    </td>
+                                    <td><span class="count-chip">{{ row.incoming }}</span></td>
+                                    <td><span class="count-chip count-chip-alert">{{ row.pending }}</span></td>
+                                    <td class="text-center">
+                                        <button type="button" class="ad-reminder"
+                                            [class.is-sent]="row.mailSent"
+                                            [title]="row.mailSent ? 'Bilgilendirme e-postası gönderildi' : 'Evrak sorumlusuna bilgilendirme e-postası gönder'"
+                                            (click)="sendReminder(row)"
+                                            [disabled]="row.loading || row.mailSent">
+                                            <span class="material-symbols-outlined" [class.spin]="row.loading">
+                                                {{ row.loading ? 'sync' : (row.mailSent ? 'check_circle' : 'mail') }}
+                                            </span>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
     </div>
-    <!-- anlık durum -->
+
     <div class="col-lg-3">
-        <div class="card h-100">
-            <div
-                class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Anlık Durum</h5>
-                <!-- <a href="#" class="btn btn-sm btn-link">Tümü</a>-->
+        <div class="card premium-card h-100">
+            <div class="card-header dashboard-header ad-head ad-head-compact">
+                <span class="ad-head-icon">
+                    <span class="material-symbols-outlined">monitoring</span>
+                </span>
+                <div class="ad-head-text">
+                    <h5 class="ad-head-title">Anlık Durum</h5>
+                </div>
+                <span class="ad-period">Bugün</span>
             </div>
             <div class="card-body">
-                <div class="activity-item">
-                    <div class="activity-icon bg-warning mt-1 mb-2">
-                        <span
-                            class="material-symbols-outlined">add_home</span>
-                    </div>
-                    <div class="activity-content">
-                        <div class="activity-title">Ön Kayıt</div>
-                        <div class="activity-subtitle">Giriş Yapan Evrak Sayısı
-                            : 48</div>
-                    </div>
-                </div>
-                <div class="activity-list mt-1">
-                    <div class="activity-item">
-                        <div class="activity-icon bg-warning mt-1">
-                            <span
-                                class="material-symbols-outlined">airplane_ticket</span>
-                        </div>
-                        <div class="activity-content mb-1">
-                            <div class="activity-title">Kurye Kayıt</div>
-                            <div class="activity-subtitle">Kurye İle Gelen Evrak
-                                Sayısı : 14</div>
-                        </div>
-                    </div>
-
-                    <div class="activity-item mt-1">
-                        <div class="activity-icon bg-info mt-1 mb-2">
-                            <span
-                                class="material-symbols-outlined">hourglass</span>
-                        </div>
-                        <div class="activity-content">
-                            <div class="activity-title">OCR Kuyruk</div>
-                            <div class="activity-subtitle">Bekleyen Evrak Sayısı
-                                : 23</div>
-                        </div>
-                    </div>
-                    <div class="activity-item mt-2">
-                        <div class="activity-icon bg-info mb-1">
-                            <span
-                                class="material-symbols-outlined">check_small</span>
-                        </div>
-                        <div class="activity-content">
-                            <div class="activity-title">OCR Tamamlanan</div>
-                            <div class="activity-subtitle">Evrak Sayısı : 20
+                <div class="activity-list ad-activity">
+                    @for (a of activity; track a.title) {
+                        <div class="activity-item">
+                            <div class="activity-icon">
+                                <span class="material-symbols-outlined">{{ a.icon }}</span>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-title">{{ a.title }}</div>
+                                @if (a.subtitle) {
+                                    <div class="activity-subtitle">{{ a.subtitle }}</div>
+                                }
+                            </div>
+                            <div class="activity-value">
+                                <span class="count-chip" [ngClass]="a.chip">{{ a.value }}</span>
+                                <span class="activity-value-label">{{ a.unit }}</span>
                             </div>
                         </div>
-                    </div>
-                    <div class="activity-item mt-2">
-                        <div class="activity-icon bg-danger mt-1">
-                            <span
-                                class="material-symbols-outlined">done_all</span>
-                        </div>
-                        <div class="activity-content">
-                            <div class="activity-title">Kaydı Tamamlanan</div>
-                            <div class="activity-subtitle">Evrak Sayısı : 21
-                            </div>
-                        </div>
-                    </div>
-                    <div class="activity-item mt-2">
-                        <div class="activity-icon bg-danger mt-1">
-                            <span
-                                class="material-symbols-outlined">approval_delegation</span>
-                        </div>
-                        <div class="activity-content">
-                            <div class="activity-title">Teslim Edilen</div>
-                            <div class="activity-subtitle">Evrak Sayısı : 56
-                            </div>
-                        </div>
-                    </div>
+                    }
                 </div>
             </div>
         </div>
     </div>
-
 </div>

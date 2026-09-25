@@ -69,14 +69,15 @@ export class MissionChart implements AfterViewInit {
           fontSize: 12,
           color: '#333'
         },
-        // 🔥 Kritik seviyelere göre renkler:
+        // Yoğunluğa göre petrol tonu: yüksek = koyu, düşük = açık
         itemStyle: {
           color: (params: any) => {
             const value = params.value;
-            if (value >= 100) return '#d04e02ff';  // kırmızı (çok yoğun)
-            if (value >= 70) return '#e0f523ff';   // turuncu (orta)
-            return '#50a7bfff';                   // yeşil (düşük)
-          }
+            if (value >= 100) return '#0c4a6e';  // çok yoğun
+            if (value >= 70) return '#0369a1';   // orta
+            return '#38bdf8';                    // düşük
+          },
+          borderRadius: [4, 4, 0, 0]
         },
 
         barWidth: 22

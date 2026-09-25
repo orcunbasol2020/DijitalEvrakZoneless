@@ -57,18 +57,20 @@ ngAfterViewInit() {
         color: '#333'
       },
 
+      // Petrol tonlarında tek rampa: en yüksek değer en koyu (sistemin lacivert-petrol dili)
       itemStyle: {
         color: (params: any) => {
           const palette = [
-            '#4a90e2',
-            '#50bfa0',
-            '#f5a623',
-            '#d0021b',
-            '#9013fe',
-            '#7ed321'
+            '#0c4a6e',
+            '#0369a1',
+            '#0284c7',
+            '#0ea5e9',
+            '#38bdf8',
+            '#7dd3fc'
           ];
           return palette[params.dataIndex % palette.length];
-        }
+        },
+        borderRadius: [4, 4, 0, 0]
       },
 
       barWidth: 30

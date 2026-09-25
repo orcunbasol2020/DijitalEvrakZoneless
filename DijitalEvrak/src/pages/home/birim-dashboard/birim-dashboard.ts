@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
-import { CommonModule, DecimalPipe } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal, ViewEncapsulation } from '@angular/core';
+import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import { httpResource } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { Common } from '../../../services/common';
@@ -9,13 +9,13 @@ import { DocumentAllocation } from '../../../services/documentallocation';
 import { IncomingDocumentTodayStats } from '../../../models/dashboard/IncomingDocumentTodayStats.model';
 import { UserModel } from '../../users/users';
 
-const AVATAR_CLASSES = ['avatar-indigo', 'avatar-teal', 'avatar-orange', 'avatar-rose', 'avatar-blue'];
-
 @Component({
   selector: 'app-birim-dashboard',
   standalone: true,
-  imports: [CommonModule, DecimalPipe, RouterLink],
+  imports: [CommonModule, DatePipe, DecimalPipe, RouterLink],
   templateUrl: './birim-dashboard.html',
+  styleUrl: '../dashboard.css',
+  encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class BirimDashboard implements OnInit {
@@ -25,6 +25,10 @@ export default class BirimDashboard implements OnInit {
   private readonly documentAllocation = inject(DocumentAllocation);
 
   readonly user = computed(() => this.common.user());
+
+  // Üst şerit
+  readonly today = new Date();
+  readonly lastUpdated = signal(new Date());
 
   readonly statsSignal = signal<IncomingDocumentTodayStats>({ todayCount: 0, changePercent: 0 });
 
@@ -59,13 +63,6 @@ export default class BirimDashboard implements OnInit {
     return `${first}${last}`.toLocaleUpperCase('tr');
   }
 
-  getAvatarClass(u: UserModel): string {
-    const key = u.id ?? u.userName ?? '';
-    let hash = 0;
-    for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) | 0;
-    return AVATAR_CLASSES[Math.abs(hash) % AVATAR_CLASSES.length];
-  }
-
   isCurrentUser(u: UserModel): boolean {
     return !!u.id && u.id === this.user()?.id;
   }
@@ -75,6 +72,7 @@ export default class BirimDashboard implements OnInit {
 
     this.incomingDocumentService.loadTodayStats().then(stats => {
       if (stats) this.statsSignal.set(stats);
+      this.lastUpdated.set(new Date());
     });
 
     this.outgoingResult.reload();
