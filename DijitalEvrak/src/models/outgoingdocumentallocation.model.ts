@@ -7,7 +7,7 @@ export interface OutgoingDocumentAllocationModel {
   fullName: string;               // Teslim alan kişi Ad Soyad, backend'ten geliyor
   createdUserId: string;          // Teslim eden kullanıcı ID (Guid)
   createdFullName: string;        // Teslim eden kullanıcı Ad Soyad, backend'ten geliyor
-  status: AllocationStatusEnum;   // Allocation durumu (1 İlk Kayıt, 2 Devir, 3 Teslim, 4 Arşiv)
+  status: AllocationStatusEnum;   // Allocation durumu (1 Ön Kayıt, 2 Devir, 3 Teslim Edildi, 4 Arşiv, 5 Teslim Alındı)
   isActive: boolean;              // Aktif allocation mı
   createdDate: string;            // Oluşturulma tarihi
   updateDate?: string;            // Güncellenme tarihi (opsiyonel)

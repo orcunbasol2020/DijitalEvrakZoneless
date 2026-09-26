@@ -5,7 +5,7 @@ export interface DocumentAllocationModel {
   incomingDocumentId: string;     // Evrak ID (Guid)
   userId: string;                 // Kullanıcı ID (Guid)
   fullName: string;               // Kullanıcı Ad Soyad, backend’ten geliyor
-  status: AllocationStatusEnum;   // Zimmet durumu (1 İlk Kayıt, 2 Devir, 3 Teslim, 4 Arşiv)
+  status: AllocationStatusEnum;   // Zimmet durumu (1 Ön Kayıt, 2 Devir, 3 Teslim Edildi, 4 Arşiv, 5 Teslim Alındı)
   isActive: boolean;              // Aktif zimmet mi
   isPreRegistered: boolean;       // Ön kayıt bilgisi
   isAllocated: boolean;           // Zimmetleme yapıldı mı

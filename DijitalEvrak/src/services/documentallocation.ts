@@ -59,7 +59,7 @@ export class DocumentAllocation {
 
   // Yeni zimmet oluşturma
   // userType: zimmetlenen kişinin tipi - 1 = iç sistem kullanıcısı (Users), 2 = dış kurum kullanıcısı (ExternalUsers)
-  // status: AllocationStatusEnum (1 İlk Kayıt, 2 Devir, 3 Teslim, 4 Arşiv);
+  // status: AllocationStatusEnum (1 Ön Kayıt, 2 Devir, 3 Teslim Edildi, 4 Arşiv, 5 Teslim Alındı);
   // backend bugüne kadar string olarak kabul ettiği için tel üzerinde string gönderilir.
   createAllocation(allocation: {
     incomingDocumentId: string;

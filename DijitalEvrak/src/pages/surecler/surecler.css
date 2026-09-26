@@ -8,6 +8,307 @@
    İşlem adı kutunun dışında, soldaki durum ikonunun yanında yazar.
    ============================================================ */
 
+/* ============================================================
+   Sayfa düzeni: özet şeridi → kapanabilir detaylar → tam genişlik akış
+   ============================================================ */
+.sc-page {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* Akış kartı sayfa yüksekliğine uzamaz; sayfa kendi kaydırır. */
+.sc-page .sc-timeline-card.zm-card {
+    min-height: auto;
+}
+
+.sc-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 999px;
+    padding: 3px 12px;
+    white-space: nowrap;
+}
+
+/* ---- Özet şeridi: Evrak Kayıt'taki numara kutusuyla aynı lacivert-petrol dil ---- */
+.sc-hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 16px 18px;
+    border-radius: 16px;
+    color: #fff;
+    /* Evrak Kayıt'taki numara kutusundan bir ton açık lacivert-petrol kademesi */
+    background: linear-gradient(120deg, #26395f 0%, #176b9c 55%, #1592d6 100%);
+    border: 1px solid rgba(125, 211, 252, 0.4);
+    box-shadow: 0 12px 28px rgba(3, 105, 161, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    overflow: hidden;
+    isolation: isolate;
+    animation: zm-fade-in 0.25s ease;
+}
+
+.sc-hero::before {
+    content: "";
+    position: absolute;
+    width: 260px;
+    height: 260px;
+    right: -80px;
+    top: -140px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.45) 0%, rgba(56, 189, 248, 0) 70%);
+    pointer-events: none;
+    z-index: -1;
+}
+
+.sc-hero::after {
+    content: "conversion_path";
+    font-family: 'Material Symbols Outlined';
+    font-size: 120px;
+    line-height: 1;
+    position: absolute;
+    right: 170px;
+    top: -30px;
+    color: rgba(255, 255, 255, 0.05);
+    pointer-events: none;
+    z-index: -1;
+}
+
+.sc-hero.is-loading {
+    justify-content: center;
+    gap: 10px;
+    font-size: 13px;
+    color: #e0f2fe;
+    min-height: 92px;
+}
+
+.sc-hero-main {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.sc-hero-icon {
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #7dd3fc;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.sc-hero-icon .material-symbols-outlined {
+    font-size: 24px;
+}
+
+.sc-hero-text {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.sc-hero-no {
+    font-size: 21px;
+    font-weight: 800;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.08em;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 2px 10px rgba(2, 132, 199, 0.45);
+}
+
+
+/* Güncel durum çipleri */
+.sc-hero-stats {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+    flex: 0 0 auto;
+}
+
+.sc-stat {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 160px;
+    max-width: 260px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+.sc-stat-icon {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #7dd3fc;
+    background: rgba(125, 211, 252, 0.14);
+}
+
+.sc-stat-icon .material-symbols-outlined {
+    font-size: 17px;
+}
+
+.sc-stat[data-tone="success"] .sc-stat-icon { color: #86efac; background: rgba(134, 239, 172, 0.16); }
+.sc-stat[data-tone="warning"] .sc-stat-icon { color: #fcd34d; background: rgba(252, 211, 77, 0.16); }
+
+.sc-stat.is-empty .sc-stat-icon {
+    color: rgba(224, 242, 254, 0.55);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.sc-stat-text {
+    min-width: 0;
+}
+
+.sc-stat-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: rgba(224, 242, 254, 0.7);
+}
+
+.sc-stat-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sc-stat.is-empty .sc-stat-value {
+    font-weight: 500;
+    color: rgba(224, 242, 254, 0.7);
+}
+
+.sc-hero-back {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px 7px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.1);
+    color: #e0f2fe;
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.sc-hero-back:hover {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.45);
+}
+
+.sc-hero-back .material-symbols-outlined {
+    font-size: 18px;
+}
+
+/* ---- Sağ kart: evrak bilgileri (her zaman açık, kompakt) ---- */
+.sc-page .sc-details-card.zm-card {
+    min-height: auto;
+}
+
+/* Geniş ekranda sağ kart kaydırırken görünür kalır */
+@media (min-width: 992px) {
+    .sc-details-card {
+        position: sticky;
+        top: 84px;
+    }
+}
+
+/* İki sütunlu ızgara; geniş alanlar (Konu, Birim, Kurum, Dosya) tam satır */
+.sc-details-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+/* Etiket ve değer arasında nefes: hücre daha yüksek, satırlar aralıklı */
+.sc-details-grid .iz-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 11px 13px 12px;
+    background: #f8fafc;
+    box-shadow: none;
+}
+
+.sc-details-grid .iz-detail-label {
+    font-size: 11px;
+    line-height: 1.2;
+    margin-bottom: 0;
+}
+
+.sc-details-grid .iz-detail-value {
+    font-size: 13.5px;
+    line-height: 1.35;
+    white-space: nowrap;
+}
+
+.sc-details-grid .iz-detail-wide .iz-detail-value {
+    white-space: normal;
+    line-height: 1.5;
+}
+
+/* Rozet değerli hücre: rozet metin satırı gibi değil, kendi boyunda durur */
+.sc-details-grid .sc-detail-badge .iz-detail-value {
+    overflow: visible;
+}
+
+/* Yan yana iki rozet hücresi: rozet taşarsa hücre içinde sarar */
+.sc-details-grid .sc-detail-badge .iz-badge {
+    white-space: normal;
+    line-height: 1.2;
+}
+
+/* Dar ekran: şerit dikey akar, çipler sarar */
+@media (max-width: 991.98px) {
+    .sc-hero {
+        flex-wrap: wrap;
+    }
+
+    .sc-hero-main {
+        flex: 1 1 100%;
+    }
+
+    .sc-hero-stats {
+        flex: 1 1 auto;
+        flex-wrap: wrap;
+    }
+
+    .sc-stat {
+        flex: 1 1 150px;
+        max-width: none;
+    }
+
+    .sc-hero::after {
+        display: none;
+    }
+}
+
 /* Tüm satırlar tek ızgarada: sol sütun en uzun işlem adına göre daralır,
    böylece kartlar hizalı kalır ve sabit genişlikten doğan boşluk oluşmaz. */
 .sc-timeline {
@@ -167,12 +468,239 @@
     box-shadow: 0 6px 18px rgba(15, 23, 42, 0.1);
 }
 
+/* ============================================================
+   Kilometre taşı adımlar (data-milestone: publish / deliver / archive)
+   Metin rozeti yok; önem yalnızca daha büyük düğüm, halka efekti,
+   kalın başlık ve gradyan çerçeveli kartla anlatılır.
+   ============================================================ */
+.sc-item[data-milestone] {
+    --ms: #64748b;
+    --ms-2: #94a3b8;
+    --ms-text: #334155;
+    --ms-soft: rgba(100, 116, 139, 0.14);
+}
+
+/* Yayınla: lacivert → petrol gradyan, turkuaz vurgu (uygulamanın premium paleti). */
+.sc-item[data-milestone="publish"] {
+    --ms: #0369a1;
+    --ms-2: #0f172a;
+    --ms-text: #0c4a6e;
+    --ms-soft: rgba(3, 105, 161, 0.16);
+}
+
+.sc-item[data-milestone="deliver"] {
+    --ms: #16a34a;
+    --ms-2: #059669;
+    --ms-text: #166534;
+    --ms-soft: rgba(22, 163, 74, 0.16);
+}
+
+.sc-item[data-milestone="archive"] {
+    --ms: #7c3aed;
+    --ms-2: #4c1d95;
+    --ms-text: #5b21b6;
+    --ms-soft: rgba(124, 58, 237, 0.16);
+}
+
+.sc-item[data-milestone] .sc-node {
+    width: 48px;
+    height: 48px;
+    margin-left: -4px;
+    background: linear-gradient(135deg, var(--ms-2), var(--ms));
+    color: #fff;
+    border-width: 3px;
+    box-shadow: 0 0 0 2px var(--ms), 0 0 0 7px var(--ms-soft), 0 6px 16px var(--ms-soft);
+}
+
+.sc-item[data-milestone="publish"] .sc-node {
+    background: linear-gradient(120deg, #0f172a 0%, #0c4a6e 55%, #0369a1 100%);
+    color: #7dd3fc;
+}
+
+.sc-item[data-milestone] .sc-node .material-symbols-outlined {
+    font-size: 23px;
+    font-variation-settings: 'FILL' 1, 'wght' 500;
+}
+
+.sc-item[data-milestone] .sc-step-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--ms-text);
+}
+
+/* Güncel halkası kilometre taşı renginin üstüne biner */
+.sc-item[data-milestone].is-latest .sc-node {
+    box-shadow: 0 0 0 2px var(--ms), 0 0 0 7px var(--ms-soft), 0 0 0 10px rgba(14, 165, 233, 0.12), 0 6px 16px var(--ms-soft);
+}
+
+/* Kart: gradyan çerçeve (border-image yerine çift arka plan), kalın sol şerit, gölge */
+.sc-item[data-milestone] .sc-card {
+    border: 1px solid transparent;
+    border-left: 5px solid var(--ms);
+    background:
+        linear-gradient(#fff, #fff) padding-box,
+        linear-gradient(135deg, var(--ms), var(--ms-2)) border-box;
+    box-shadow: 0 6px 20px var(--ms-soft);
+    padding: 11px 16px;
+}
+
+.sc-item[data-milestone="publish"] .sc-card {
+    background:
+        linear-gradient(90deg, #eff8ff 0%, #f5fbff 60%, #fff 100%) padding-box,
+        linear-gradient(120deg, #0f172a 0%, #0c4a6e 55%, #0369a1 100%) border-box;
+}
+
+.sc-item[data-milestone="deliver"] .sc-card {
+    background:
+        linear-gradient(90deg, #ecfdf5 0%, #f0fdf4 60%, #fff 100%) padding-box,
+        linear-gradient(135deg, #16a34a, #059669) border-box;
+}
+
+.sc-item[data-milestone="archive"] .sc-card {
+    background:
+        linear-gradient(90deg, #f5f3ff 0%, #faf5ff 60%, #fff 100%) padding-box,
+        linear-gradient(135deg, #7c3aed, #4c1d95) border-box;
+}
+
+.sc-item[data-milestone] .sc-card:hover {
+    box-shadow: 0 10px 26px var(--ms-soft);
+}
+
+.sc-item[data-milestone] .sc-date {
+    color: var(--ms-text);
+}
+
+.sc-item[data-milestone] .sc-person .zm-avatar {
+    color: #fff;
+    background: linear-gradient(135deg, var(--ms), var(--ms-2));
+    box-shadow: 0 0 0 3px var(--ms-soft);
+}
+
+.sc-item[data-milestone="publish"] .sc-person .zm-avatar {
+    background: linear-gradient(120deg, #0f172a 0%, #0c4a6e 55%, #0369a1 100%);
+    color: #7dd3fc;
+}
+
+.sc-item[data-milestone] .sc-person .zm-person-meta {
+    color: var(--ms);
+}
+
+.sc-item[data-milestone] .sc-people-arrow {
+    color: var(--ms);
+    opacity: 0.6;
+}
+
+/* ============================================================
+   Alt adım (yayınlamayla açılan otomatik zimmet)
+   Ana adımın hemen altında, küçük düğüm + girintili kompakt kart.
+   Renk değişkenleri (--ms*) ana adımdan (li) miras alınır.
+   ============================================================ */
+.sc-sub-step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding-right: 6px;
+    margin-top: -4px;
+    animation: zm-fade-in 0.25s ease;
+}
+
+/* Küçük düğüm, zaman çizgisinin (20px) üstüne oturur */
+.sc-sub-node {
+    flex: 0 0 auto;
+    width: 24px;
+    height: 24px;
+    margin-left: 8px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    color: var(--ms, #64748b);
+    border: 2px solid var(--ms, #94a3b8);
+    box-shadow: 0 0 0 3px #fff;
+    position: relative;
+    z-index: 1;
+}
+
+.sc-sub-node .material-symbols-outlined {
+    font-size: 13px;
+}
+
+.sc-sub-title {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #64748b;
+    letter-spacing: 0.01em;
+    line-height: 1.2;
+}
+
+.sc-sub-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    margin-top: -4px;
+    margin-left: 18px;
+    padding: 6px 12px 6px 8px;
+    border-radius: 10px;
+    background: #fff;
+    border: 1px dashed color-mix(in srgb, var(--ms, #94a3b8) 45%, #fff);
+    border-left: 3px solid var(--ms, #cbd5e1);
+    animation: zm-fade-in 0.25s ease;
+}
+
+.sc-sub-arrow {
+    flex: 0 0 auto;
+    font-size: 18px;
+    color: var(--ms, #94a3b8);
+    opacity: 0.55;
+}
+
+.sc-sub-card > .sc-person {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.sc-sub-card .zm-avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 10.5px;
+    color: var(--ms-text, #334155);
+    background: var(--ms-soft, rgba(100, 116, 139, 0.14));
+}
+
+.sc-sub-card .zm-person-meta {
+    font-size: 10px;
+}
+
+.sc-sub-card .zm-person-name {
+    font-size: 13px;
+}
+
+.sc-sub-card .sc-date {
+    font-size: 11.5px;
+}
+
+/* Alt adım varken ana kart ile alt kart arasındaki boşluk daralır */
+.sc-item.has-children .sc-card {
+    margin-bottom: 2px;
+}
+
+/* Kartın sağ ucu: Güncel rozeti + tarih yan yana */
+.sc-card-side {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    flex: 0 0 auto;
+    margin-left: auto;
+}
+
 .sc-date {
     display: inline-flex;
     align-items: center;
     gap: 4px;
     flex: 0 0 auto;
-    margin-left: auto;
     font-size: 12.5px;
     font-weight: 600;
     color: #64748b;
@@ -267,9 +795,20 @@
         flex-wrap: wrap;
     }
 
-    .sc-date {
+    .sc-sub-card {
+        margin-left: 50px;
+        margin-bottom: 8px;
+        flex-wrap: wrap;
+    }
+
+    .sc-sub-step {
+        margin-top: 0;
+    }
+
+    .sc-card-side {
         margin-left: 0;
         width: 100%;
+        justify-content: space-between;
     }
 
     .sc-people-arrow {
@@ -280,6 +819,21 @@
 /* ============================================================
    Koyu tema
    ============================================================ */
+[data-theme="dark"] .sc-count {
+    background: rgba(148, 163, 184, 0.1);
+    color: #cbd5e1;
+    border-color: rgba(148, 163, 184, 0.22);
+}
+
+[data-theme="dark"] .sc-hero {
+    background: linear-gradient(120deg, #1c2b4a 0%, #115b87 55%, #0b7fc4 100%);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .sc-details-grid .iz-detail {
+    background: rgba(148, 163, 184, 0.06);
+}
+
 [data-theme="dark"] .sc-card {
     background: rgba(148, 163, 184, 0.06);
     border-color: rgba(148, 163, 184, 0.18);
@@ -354,4 +908,70 @@
     background: rgba(14, 165, 233, 0.18);
     border-color: rgba(14, 165, 233, 0.35);
     color: #7dd3fc;
+}
+
+/* Koyu tema: kilometre taşları */
+[data-theme="dark"] .sc-item[data-milestone="publish"] { --ms: #38bdf8; --ms-2: #0369a1; --ms-text: #7dd3fc; --ms-soft: rgba(56, 189, 248, 0.18); }
+[data-theme="dark"] .sc-item[data-milestone="deliver"] { --ms: #4ade80; --ms-2: #15803d; --ms-text: #86efac; --ms-soft: rgba(74, 222, 128, 0.18); }
+[data-theme="dark"] .sc-item[data-milestone="archive"] { --ms: #a78bfa; --ms-2: #6d28d9; --ms-text: #c4b5fd; --ms-soft: rgba(167, 139, 250, 0.18); }
+
+[data-theme="dark"] .sc-item[data-milestone] .sc-node {
+    border-color: #2d3748;
+    background: linear-gradient(135deg, var(--ms-2), var(--ms));
+    color: #fff;
+    box-shadow: 0 0 0 2px var(--ms), 0 0 0 7px var(--ms-soft), 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .sc-item[data-milestone="publish"] .sc-node,
+[data-theme="dark"] .sc-item[data-milestone="publish"] .sc-person .zm-avatar {
+    background: linear-gradient(120deg, #0f172a 0%, #0c4a6e 55%, #0369a1 100%);
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .sc-item[data-milestone] .sc-step-title {
+    color: var(--ms-text);
+}
+
+[data-theme="dark"] .sc-item[data-milestone] .sc-card,
+[data-theme="dark"] .sc-item[data-milestone="publish"] .sc-card,
+[data-theme="dark"] .sc-item[data-milestone="deliver"] .sc-card,
+[data-theme="dark"] .sc-item[data-milestone="archive"] .sc-card {
+    border-left-color: var(--ms);
+    background:
+        linear-gradient(90deg, color-mix(in srgb, var(--ms) 14%, #1a2030), #1a2030 70%) padding-box,
+        linear-gradient(135deg, var(--ms), var(--ms-2)) border-box;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .sc-item[data-milestone] .sc-date,
+[data-theme="dark"] .sc-item[data-milestone] .sc-person .zm-person-meta {
+    color: var(--ms-text);
+}
+
+[data-theme="dark"] .sc-item[data-milestone] .sc-person .zm-avatar {
+    background: linear-gradient(135deg, var(--ms), var(--ms-2));
+    color: #fff;
+    box-shadow: 0 0 0 3px var(--ms-soft);
+}
+
+/* Koyu tema: alt adım */
+[data-theme="dark"] .sc-sub-node {
+    background: #1a2030;
+    box-shadow: 0 0 0 3px #2d3748;
+}
+
+[data-theme="dark"] .sc-sub-title {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .sc-sub-card {
+    background: rgba(148, 163, 184, 0.05);
+    border-color: color-mix(in srgb, var(--ms, #94a3b8) 40%, transparent);
+    border-left-color: var(--ms, #94a3b8);
+}
+
+[data-theme="dark"] .sc-item[data-milestone] .sc-sub-card .zm-avatar {
+    background: var(--ms-soft);
+    color: var(--ms-text);
+    box-shadow: none;
 }

@@ -48,7 +48,7 @@ export class OutgoingDocumentAllocation {
   }
 
   // Yeni outgoing document allocation oluşturma
-  // status: AllocationStatusEnum (1 İlk Kayıt, 2 Devir, 3 Teslim, 4 Arşiv);
+  // status: AllocationStatusEnum (1 Ön Kayıt, 2 Devir, 3 Teslim Edildi, 4 Arşiv, 5 Teslim Alındı);
   // backend bugüne kadar string olarak kabul ettiği için tel üzerinde string gönderilir.
   createAllocation(allocation: OutgoingAllocationRequest) {
     return this.httpService.post(

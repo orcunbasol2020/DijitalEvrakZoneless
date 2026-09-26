@@ -9,7 +9,8 @@ export enum AllocationStatusEnum {
 }
 
 export const AllocationStatusLabels: Record<AllocationStatusEnum, string> = {
-  [AllocationStatusEnum.IlkKayit]: 'İlk Kayıt',
+  // Kullanıcı isteğiyle (2026-09-26) ekranda "Ön Kayıt" olarak gösterilir; enum üyesi değişmedi.
+  [AllocationStatusEnum.IlkKayit]: 'Ön Kayıt',
   [AllocationStatusEnum.Devir]: 'Devir',
   [AllocationStatusEnum.Teslim]: 'Teslim Edildi',
   [AllocationStatusEnum.Arsiv]: 'Arşiv',

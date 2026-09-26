@@ -12,13 +12,26 @@ import { Router, RouterLink } from '@angular/router';
 import GenericModel from '../../../components/generic-model/generic-model';
 import { CommonModule, NgStyle } from '@angular/common';
 import { FlexiToastService } from 'flexi-toast';
-import { FormsModule } from '@angular/forms';
 import { IncomingDocumentService } from '../../services/incomingdocument';
 import { IncomingDocumentModel } from '../../models/incoming-document/incoming-document.model';
 import { DocumentAssignmentService } from '../../services/documentassignment';
 import { Common } from '../../services/common';
 import { RoleService } from '../../services/role-service';
-import { identity } from 'rxjs';
+import { DocumentAllocation } from '../../services/documentallocation';
+import { DocumentAllocationModel } from '../../models/documentallocation.model';
+import { AllocationStatusEnum, AllocationStatusLabels } from '../../models/allocationstatus.model';
+import { HttpService } from '../../services/http';
+import { UserRoleService } from '../../services/user-role';
+import { normalizeRoleName } from '../../services/role-service';
+import { UserModel } from '../users/users';
+import { forkJoin, map, of, catchError, switchMap } from 'rxjs';
+
+// Atama popup'ında yalnızca evrak kaydı yapabilen (Gelen Evrak rolündeki) personel listelenir.
+const ASSIGNABLE_ROLE = 'Gelen Evrak';
+
+// Grid satırları backend'den gelen evrak alanlarına ek olarak atanan personelin
+// adını (currentAssignmentUser) taşır; atama popup'ının başlığında gösterilir.
+type ScanListRow = IncomingDocumentModel & { currentAssignmentUser?: string | null };
 
 @Component({
   imports: [
@@ -26,11 +39,10 @@ import { identity } from 'rxjs';
     GenericModel,
     RouterLink,
     NgStyle,
-    FormsModule,
-    CommonModule,
-    NgStyle
+    CommonModule
   ],
   templateUrl: './scanlist.html',
+  styleUrls: ['./scanlist.css'],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -45,10 +57,12 @@ export default class Scanlist {
   readonly #toast = inject(FlexiToastService);
   private readonly router = inject(Router);
   private readonly incomingDocumentService = inject(IncomingDocumentService);
+  private readonly allocationService = inject(DocumentAllocation);
+  private readonly httpService = inject(HttpService);
+  private readonly userRoleService = inject(UserRoleService);
   readonly loading = computed(() => this.documentsResourceSig()?.isLoading?.() ?? false);
 
   showFilters = false;
-  modalVisible = false;
 
   private emptyToastShown = false;
 
@@ -58,16 +72,6 @@ export default class Scanlist {
     this.showPending = false;
     this.onOcrFilterChange();
   }
-
-  personList = [
-    { id: 0, name: 'Personel Seçiniz' },
-    { id: '0e73004e-f243-414e-86eb-77cc21dc7454', name: 'Bahadır Tunçay' },
-    { id: '0e73004e-f243-414e-86eb-77cc21dc7455', name: 'Bülent Arslan' },
-    { id: '0e73004e-f243-414e-86eb-77cc21dc7453', name: 'Oral Akçakoyun' },
-    { id: '0e73004e-f243-414e-86eb-77cc21dc7452', name: 'Ömer Ersoy' },
-    { id: '0e73004e-f243-414e-86eb-77cc21dc7448', name: 'Yener Şahin' },
-    { id: '0e73004e-f243-414e-86eb-77cc21dc7451', name: 'Murat Kale' }
-  ];
 
   readonly personFilter = signal<FlexiGridFilterDataModel[]>([
     { name: 'Bahadır Tunçay', value: 'Bahadır Tunçay' },
@@ -84,8 +88,36 @@ export default class Scanlist {
     { name: 'Beklemede', value: '2' }
   ]);
 
-  selectedPerson: any = null;
-  activeDocId: string | null = null;
+  // ---- Personel atama popup ----
+  // Başka bir personele atanmış evrakı yeni bir personele aktarır. Personel listesi
+  // popup ilk açıldığında bir kez çekilir ve yalnızca Gelen Evrak rolündeki aktif
+  // kullanıcıları içerir (users sinyaline süzülmüş hali yazılır); mevcut atanan kişi
+  // aday listesine girmez.
+  readonly assignModalVisible = signal(false);
+  readonly assignDoc = signal<ScanListRow | null>(null);
+  readonly assignSelectedId = signal<string | null>(null);
+  readonly assignSaving = signal(false);
+  readonly usersLoading = signal(false);
+  readonly users = signal<UserModel[]>([]);
+  private usersLoaded = false;
+
+  readonly assignCandidates = computed(() => {
+    // Users/GetAll id'leri büyük harfli GUID, evraktaki currentAssignmentUserId küçük harfli
+    // gelebildiğinden karşılaştırma küçük harfe indirgenerek yapılır.
+    const currentAssignee = (this.assignDoc()?.currentAssignmentUserId ?? '').toLowerCase();
+    return this.users()
+      .filter((u): u is UserModel & { id: string } => !!u.id && u.isActive && !u.isDeleted)
+      .filter(u => u.id.toLowerCase() !== currentAssignee)
+      .sort((a, b) => this.userFullName(a).localeCompare(this.userFullName(b), 'tr'));
+  });
+
+  readonly assignSelected = computed(() =>
+    this.users().find(u => u.id === this.assignSelectedId()) ?? null
+  );
+
+  userFullName(u: UserModel): string {
+    return `${u.name ?? ''} ${u.surname ?? ''}`.trim();
+  }
 
   constructor() {
     this.setupDocumentsEffect();
@@ -164,46 +196,88 @@ export default class Scanlist {
     );
   }
 
-  openPersonModal(docId: string) {
-    this.activeDocId = docId;
-    this.selectedPerson = this.personList[0];
-    this.modalVisible = true;
+  openPersonModal(item: ScanListRow) {
+    if (!item.id) return;
+    this.assignDoc.set(item);
+    this.assignSelectedId.set(null);
+    this.assignSaving.set(false);
+    this.assignModalVisible.set(true);
+    this.loadUsersOnce();
   }
 
   closePersonModal() {
-    this.modalVisible = false;
+    if (this.assignSaving()) return;
+    this.assignModalVisible.set(false);
+  }
+
+  selectAssignee(user: UserModel) {
+    if (!user.id) return;
+    // Seçili kişiye tekrar tıklanınca seçim kaldırılır.
+    this.assignSelectedId.update(current => current === user.id ? null : user.id!);
+  }
+
+  // Backend'de kullanıcıları role göre getiren bir uç olmadığından önce tüm aktif
+  // kullanıcılar çekilir, ardından her biri için UserRole/GetRolesByUserId sorgulanıp
+  // Gelen Evrak rolü olanlar tutulur. Rolü alınamayan kullanıcı listeye girmez.
+  private loadUsersOnce() {
+    if (this.usersLoaded) return;
+    this.usersLoading.set(true);
+    this.httpService.get<UserModel[]>('api/Users/GetAll').pipe(
+      switchMap(res => {
+        const active = (res ?? []).filter((u): u is UserModel & { id: string } => !!u.id && u.isActive && !u.isDeleted);
+        if (!active.length) return of([] as UserModel[]);
+        return forkJoin(
+          active.map(u =>
+            this.userRoleService.getRolesByUserId(u.id).pipe(
+              map(roles => (roles ?? []).map(normalizeRoleName).includes(ASSIGNABLE_ROLE) ? u : null),
+              catchError(() => of(null))
+            )
+          )
+        ).pipe(map(list => list.filter((u): u is UserModel & { id: string } => !!u)));
+      })
+    ).subscribe({
+      next: (assignable) => {
+        this.users.set(assignable);
+        this.usersLoaded = true;
+        this.usersLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Personel listesi alınamadı:', err);
+        this.usersLoading.set(false);
+        this.#toast.showToast('Hata', 'Personel listesi alınamadı', 'error');
+      }
+    });
   }
 
   savePerson() {
-    //console.log('Evrak ID:', this.activeDocId);
-    if (this.selectedPerson?.id && this.selectedPerson.id !== 0) {
+    const docId = this.assignDoc()?.id;
+    const person = this.assignSelected();
 
-      if (!this.activeDocId) {
-        this.#toast.showToast(
-          'Bilgi',
-          'Evrak bulunamadı.',
-          'info'
-        );
-        return;
-      }
-      this.assignmentService.createAssignment({
-        documentId: this.activeDocId,
-        userId: this.selectedPerson.id
-      }).subscribe({
-        next: () => {
-          this.modalVisible = false;
-          this.loadDocuments();
-        },
-        error: () => {
-          this.#toast.showToast('Hata', 'Atama oluşturulamadı', 'error');
-        }
-      });
-
-
+    if (!docId) {
+      this.#toast.showToast('Bilgi', 'Evrak bulunamadı.', 'info');
+      return;
     }
-    else {
+    if (!person?.id) {
       this.#toast.showToast('Bilgi', 'Atama yapmak istediğiniz personeli seçiniz.', 'info');
+      return;
     }
+
+    this.assignSaving.set(true);
+    this.assignmentService.createAssignment({
+      documentId: docId,
+      userId: person.id
+    }).subscribe({
+      next: () => {
+        this.assignSaving.set(false);
+        this.assignModalVisible.set(false);
+        this.#toast.showToast('Başarılı', `Evrak ${this.userFullName(person)} personeline atandı`, 'success');
+        this.loadDocuments();
+      },
+      error: () => {
+        this.assignSaving.set(false);
+        this.#toast.showToast('Hata', 'Atama oluşturulamadı', 'error');
+      }
+    });
   }
 
   toggleFilter() {
@@ -247,6 +321,81 @@ export default class Scanlist {
   goToZimmet(id: string) {
     this.incomingDocumentService.setZimmetIncomingDocument(id);
     this.router.navigate(['/zimmet']);
+  }
+
+  // ---- Zimmet Geçmişi popup (tüm roller) ----
+  // Giden Evraklar listesindeki popup'ın gelen evrak karşılığı: evrakın mevcut ve
+  // geçmiş zimmetleri salt okunur bir popup'ta gösterilir. Gelen evrak zimmet kaydında
+  // "teslim eden" (createdFullName) alanı bulunmadığından o satır burada yoktur.
+
+  readonly zimmetHistoryVisible = signal(false);
+  readonly zimmetHistoryLoading = signal(false);
+  readonly zimmetHistoryDoc = signal<IncomingDocumentModel | null>(null);
+  readonly zimmetHistory = signal<DocumentAllocationModel[]>([]);
+  readonly activeZimmet = computed(() => this.zimmetHistory().find(h => h.isActive) ?? null);
+  // Hareketler bölümü açılır/kapanır; popup her açılışta açık başlar.
+  readonly zimmetHistoryExpanded = signal(true);
+  readonly allocationStatusLabels: Record<number, string> = AllocationStatusLabels;
+
+  // Zaman çizelgesindeki nokta ikonu ve renk sınıfı zimmet durumuna göre değişir.
+  readonly allocationStatusIcons: Record<number, string> = {
+    [AllocationStatusEnum.IlkKayit]: 'post_add',
+    [AllocationStatusEnum.Devir]: 'swap_horiz',
+    [AllocationStatusEnum.Teslim]: 'handshake',
+    [AllocationStatusEnum.Arsiv]: 'inventory_2',
+    [AllocationStatusEnum.TeslimAlindi]: 'move_to_inbox'
+  };
+
+  readonly allocationStatusClass: Record<number, string> = {
+    [AllocationStatusEnum.IlkKayit]: 'is-ilkkayit',
+    [AllocationStatusEnum.Devir]: 'is-devir',
+    [AllocationStatusEnum.Teslim]: 'is-teslim',
+    [AllocationStatusEnum.Arsiv]: 'is-arsiv',
+    [AllocationStatusEnum.TeslimAlindi]: 'is-teslimalindi'
+  };
+
+  initials(fullName?: string | null): string {
+    const parts = (fullName ?? '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '?';
+    const first = parts[0].charAt(0);
+    const last = parts.length > 1 ? parts[parts.length - 1].charAt(0) : '';
+    return `${first}${last}`.toLocaleUpperCase('tr');
+  }
+
+  openZimmetHistory(item: IncomingDocumentModel): void {
+    if (!item.id) return;
+    this.zimmetHistoryDoc.set(item);
+    this.zimmetHistory.set([]);
+    this.zimmetHistoryExpanded.set(true);
+    this.zimmetHistoryVisible.set(true);
+    this.zimmetHistoryLoading.set(true);
+
+    this.allocationService.getByDocumentId(item.id).subscribe({
+      next: (history) => {
+        // Aktif zimmet en üstte, ardından en yeniden eskiye.
+        const sorted = (history ?? [])
+          .filter(h => !h.isDeleted)
+          .sort((a, b) => {
+            if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
+            return new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime();
+          });
+        this.zimmetHistory.set(sorted);
+        this.zimmetHistoryLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Zimmet geçmişi alınamadı:', err);
+        this.zimmetHistoryLoading.set(false);
+        this.#toast.showToast('Hata', 'Zimmet geçmişi alınamadı', 'error');
+      }
+    });
+  }
+
+  closeZimmetHistory(): void {
+    this.zimmetHistoryVisible.set(false);
+  }
+
+  toggleZimmetHistoryExpanded(): void {
+    this.zimmetHistoryExpanded.update(v => !v);
   }
 
   delete(id: string) {

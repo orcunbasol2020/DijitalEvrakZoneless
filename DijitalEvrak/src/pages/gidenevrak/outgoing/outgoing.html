@@ -164,11 +164,8 @@
               </div>
               <div class="zh-hero-name">{{ a.fullName || '-' }}</div>
             </div>
+            <!-- Aktif zimmette durum çipi gösterilmez; durum zaten hareket listesinde görünür. -->
             <div class="zh-hero-side">
-              <span class="zh-status-chip {{ allocationStatusClass[a.status] || '' }}">
-                <span class="material-symbols-outlined">{{ allocationStatusIcons[a.status] || 'label' }}</span>
-                {{ allocationStatusLabels[a.status] || '-' }}
-              </span>
               <span class="zh-date">
                 <span class="material-symbols-outlined">schedule</span>
                 {{ a.createdDate | date:'dd.MM.yyyy HH:mm' }}

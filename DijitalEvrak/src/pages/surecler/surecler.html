@@ -1,157 +1,246 @@
 <app-generic pageTitle="Evrak Süreç Akışı" [breadcrumbs]="[
-  {title: 'Taranmış Evraklar', url: 'scanlist', icon: ''},
+  {title: 'Gelen Evraklar', url: 'scanlist', icon: ''},
   {title: 'Evrak Süreç Akışı', url: 'surecler', icon: 'conversion_path'}
   ]">
 </app-generic>
 
-<div class="row">
-    <!-- SOL PANEL: süreç akışı -->
-    <div class="col-lg-7 col-12">
-        <div class="card zm-card d-flex flex-column">
-            <div class="card-header dashboard-header d-flex align-items-center justify-content-between">
-                <div class="d-flex align-items-center">
-                    <span class="material-symbols-outlined me-2 text-info">conversion_path</span>
-                    <h5 class="card-title mb-0 fw-semibold">Evrak Süreç Akışı</h5>
+<div class="sc-page">
+    <!-- ===== Özet şeridi: evrak kimliği + güncel durum ===== -->
+    <section class="sc-hero" *ngIf="documentDetail() as doc; else heroLoading">
+        <div class="sc-hero-main">
+            <span class="sc-hero-icon">
+                <span class="material-symbols-outlined">description</span>
+            </span>
+            <div class="sc-hero-text">
+                <div class="sc-hero-no">{{ doc.qrCode || '-' }}</div>
+            </div>
+        </div>
+
+        <!-- Güncel durum çipleri -->
+        <div class="sc-hero-stats">
+            <div class="sc-stat" [attr.data-tone]="docStatus().tone">
+                <span class="sc-stat-icon">
+                    <span class="material-symbols-outlined">{{ docStatus().tone === 'success' ? 'verified' : (docStatus().tone === 'warning' ? 'hourglass_top' : 'edit_document') }}</span>
+                </span>
+                <div class="sc-stat-text">
+                    <div class="sc-stat-label">Durum</div>
+                    <div class="sc-stat-value">{{ docStatus().label }}</div>
                 </div>
-                <button type="button" class="zm-pill-btn" (click)="backToList()">
-                    <span class="material-symbols-outlined">arrow_back</span>
-                    <span>Listeye Dön</span>
-                </button>
+            </div>
+            <div class="sc-stat" [class.is-empty]="!activeZimmet()">
+                <span class="sc-stat-icon">
+                    <span class="material-symbols-outlined">contract_edit</span>
+                </span>
+                <div class="sc-stat-text">
+                    <div class="sc-stat-label">Zimmet Sahibi</div>
+                    <div class="sc-stat-value">{{ activeZimmet()?.fullName || 'Kimsenin üzerinde değil' }}</div>
+                </div>
+            </div>
+        </div>
+
+        <button type="button" class="sc-hero-back" (click)="backToList()">
+            <span class="material-symbols-outlined">arrow_back</span>
+            <span>Listeye Dön</span>
+        </button>
+    </section>
+    <ng-template #heroLoading>
+        <section class="sc-hero is-loading">
+            <div class="spinner-border spinner-border-sm"></div>
+            <span>Evrak bilgileri getiriliyor</span>
+        </section>
+    </ng-template>
+
+    <div class="row g-3">
+    <!-- ===== SOL: Zaman çizelgesi ===== -->
+    <div class="col-lg-8 col-12">
+    <div class="card zm-card sc-timeline-card d-flex flex-column">
+        <div class="card-header dashboard-header d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center">
+                <span class="material-symbols-outlined me-2 text-info">conversion_path</span>
+                <h5 class="card-title mb-0 fw-semibold">İşlem Geçmişi</h5>
+            </div>
+            <span class="sc-count" *ngIf="!loading() && transactions().length">{{ transactions().length }} işlem</span>
+        </div>
+
+        <div class="card-body zm-body">
+            <!-- Yükleniyor -->
+            <div class="zm-empty" *ngIf="loading()">
+                <div class="zm-empty-icon">
+                    <div class="spinner-border text-primary"></div>
+                </div>
+                <div class="zm-empty-title">Yükleniyor...</div>
+                <div class="zm-empty-text">Evrakın işlem kayıtları getiriliyor.</div>
             </div>
 
-            <div class="card-body zm-body">
-                <!-- Yükleniyor -->
-                <div class="zm-empty" *ngIf="loading()">
-                    <div class="zm-empty-icon">
-                        <div class="spinner-border text-primary"></div>
-                    </div>
-                    <div class="zm-empty-title">Yükleniyor...</div>
-                    <div class="zm-empty-text">Evrakın işlem kayıtları getiriliyor.</div>
+            <!-- Boş durum -->
+            <div class="zm-empty" *ngIf="!loading() && !transactions().length">
+                <div class="zm-empty-icon">
+                    <span class="material-symbols-outlined">history_toggle_off</span>
                 </div>
+                <div class="zm-empty-title">Henüz işlem kaydı yok</div>
+                <div class="zm-empty-text">Bu evrak için sistemde kayıtlı bir süreç hareketi bulunmuyor.</div>
+            </div>
 
-                <!-- Boş durum -->
-                <div class="zm-empty" *ngIf="!loading() && !transactions().length">
-                    <div class="zm-empty-icon">
-                        <span class="material-symbols-outlined">history_toggle_off</span>
-                    </div>
-                    <div class="zm-empty-title">Henüz işlem kaydı yok</div>
-                    <div class="zm-empty-text">Bu evrak için sistemde kayıtlı bir süreç hareketi bulunmuyor.</div>
-                </div>
-
-                <!-- Zaman çizelgesi -->
-                <ng-container *ngIf="!loading() && transactions().length">
-                    <div class="zm-list-title">İşlem Geçmişi</div>
-                    <ol class="sc-timeline">
-                        <li class="sc-item" *ngFor="let t of transactions(); let last = last"
-                            [class.is-latest]="last" [attr.data-tone]="typeTone(t.transactionType)">
-                            <!-- Sol: durum ikonu + işlem adı (kutunun dışında) -->
-                            <div class="sc-step">
-                                <span class="sc-node">
-                                    <span class="material-symbols-outlined">{{ typeIcon(t.transactionType) }}</span>
-                                </span>
-                                <div class="sc-step-text">
-                                    <div class="sc-step-title">{{ t.transactionTypeName }}</div>
-                                    <span class="sc-latest" *ngIf="last">Güncel</span>
+            <!-- Zaman çizelgesi -->
+            <ng-container *ngIf="!loading() && transactions().length">
+                <ol class="sc-timeline">
+                    <!-- Kilometre taşı adımlar (Yayınla, Teslim, Arşiv) data-milestone ile
+                         daha büyük düğüm ve vurgulu kartla çizilir; ayrı bir metin rozeti yok.
+                         Yayınlamayla birlikte açılan otomatik zimmet, yayınlama satırının
+                         altında alt adım (sc-sub-*) olarak gösterilir. -->
+                    <li class="sc-item" *ngFor="let step of steps(); let last = last"
+                        [class.is-latest]="last"
+                        [class.has-children]="step.children.length"
+                        [attr.data-tone]="typeTone(step.t)"
+                        [attr.data-milestone]="milestoneKind(step.t)">
+                        <ng-container *ngIf="step.t as t">
+                        <!-- Sol: durum ikonu + işlem adı (kutunun dışında) -->
+                        <div class="sc-step">
+                            <span class="sc-node">
+                                <span class="material-symbols-outlined">{{ typeIcon(t) }}</span>
+                            </span>
+                            <div class="sc-step-text">
+                                <div class="sc-step-title">{{ t.transactionTypeName }}</div>
+                            </div>
+                        </div>
+                        <div class="sc-card">
+                            <!-- Teslim: alan ve eden birlikte -->
+                            <div class="sc-people" *ngIf="t.transactionType === 7; else singlePerson">
+                                <div class="sc-person">
+                                    <span class="zm-avatar">{{ initials(t.userFullName) }}</span>
+                                    <div class="zm-person-info">
+                                        <div class="zm-person-meta">Teslim Alan</div>
+                                        <div class="zm-person-name">{{ t.userFullName || '-' }}</div>
+                                    </div>
+                                </div>
+                                <span class="material-symbols-outlined sc-people-arrow">arrow_back</span>
+                                <div class="sc-person">
+                                    <span class="zm-avatar">{{ initials(t.createdUserFullName) }}</span>
+                                    <div class="zm-person-info">
+                                        <div class="zm-person-meta">Teslim Eden</div>
+                                        <div class="zm-person-name">{{ t.createdUserFullName || '-' }}</div>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="sc-card">
-                                <!-- Teslim: alan ve eden birlikte -->
-                                <div class="sc-people" *ngIf="t.transactionType === 7; else singlePerson">
-                                    <div class="sc-person">
-                                        <span class="zm-avatar">{{ initials(t.userFullName) }}</span>
-                                        <div class="zm-person-info">
-                                            <div class="zm-person-meta">Teslim Alan</div>
-                                            <div class="zm-person-name">{{ t.userFullName || '-' }}</div>
-                                        </div>
-                                    </div>
-                                    <span class="material-symbols-outlined sc-people-arrow">arrow_back</span>
-                                    <div class="sc-person">
-                                        <span class="zm-avatar">{{ initials(t.createdUserFullName) }}</span>
-                                        <div class="zm-person-info">
-                                            <div class="zm-person-meta">Teslim Eden</div>
-                                            <div class="zm-person-name">{{ t.createdUserFullName || '-' }}</div>
-                                        </div>
+                            <ng-template #singlePerson>
+                                <div class="sc-person" *ngIf="t.transactionType !== 8; else systemStep">
+                                    <span class="zm-avatar">{{ initials(t.userFullName) }}</span>
+                                    <div class="zm-person-info">
+                                        <div class="zm-person-meta">{{ personLabel(t) }}</div>
+                                        <div class="zm-person-name">{{ t.userFullName || '-' }}</div>
                                     </div>
                                 </div>
-                                <ng-template #singlePerson>
-                                    <div class="sc-person" *ngIf="t.transactionType !== 8; else systemStep">
-                                        <span class="zm-avatar">{{ initials(t.userFullName) }}</span>
+                                <ng-template #systemStep>
+                                    <div class="sc-person">
+                                        <span class="zm-avatar is-system">
+                                            <span class="material-symbols-outlined">smart_toy</span>
+                                        </span>
                                         <div class="zm-person-info">
-                                            <div class="zm-person-meta">{{ personLabel(t.transactionType) }}</div>
-                                            <div class="zm-person-name">{{ t.userFullName || '-' }}</div>
+                                            <div class="zm-person-meta">Sistem</div>
+                                            <div class="zm-person-name">Tamamlandı</div>
                                         </div>
                                     </div>
-                                    <ng-template #systemStep>
-                                        <div class="sc-person">
-                                            <span class="zm-avatar is-system">
-                                                <span class="material-symbols-outlined">smart_toy</span>
-                                            </span>
-                                            <div class="zm-person-info">
-                                                <div class="zm-person-meta">Sistem</div>
-                                                <div class="zm-person-name">Tamamlandı</div>
-                                            </div>
-                                        </div>
-                                    </ng-template>
                                 </ng-template>
+                            </ng-template>
 
+                            <!-- Sağ uç: "Güncel" rozeti tarihin solunda -->
+                            <div class="sc-card-side">
+                                <span class="sc-latest" *ngIf="last">Güncel</span>
                                 <span class="sc-date">
                                     <span class="material-symbols-outlined">schedule</span>
                                     {{ t.createdDate | date:'dd.MM.yyyy HH:mm' }}
                                 </span>
                             </div>
-                        </li>
-                    </ol>
-                </ng-container>
-            </div>
+                        </div>
+                        </ng-container>
+
+                        <!-- Alt adımlar: yayınlamayla açılan otomatik zimmet -->
+                        <ng-container *ngFor="let c of step.children">
+                            <div class="sc-sub-step">
+                                <span class="sc-sub-node">
+                                    <span class="material-symbols-outlined">{{ typeIcon(c) }}</span>
+                                </span>
+                                <div class="sc-sub-title">{{ c.transactionTypeName }}</div>
+                            </div>
+                            <div class="sc-sub-card">
+                                <span class="material-symbols-outlined sc-sub-arrow">subdirectory_arrow_right</span>
+                                <div class="sc-person">
+                                    <span class="zm-avatar">{{ initials(c.userFullName) }}</span>
+                                    <div class="zm-person-info">
+                                        <div class="zm-person-meta">{{ personLabel(c) }}</div>
+                                        <div class="zm-person-name">{{ c.userFullName || '-' }}</div>
+                                    </div>
+                                </div>
+                                <span class="sc-date">
+                                    <span class="material-symbols-outlined">schedule</span>
+                                    {{ c.createdDate | date:'dd.MM.yyyy HH:mm' }}
+                                </span>
+                            </div>
+                        </ng-container>
+                    </li>
+                </ol>
+            </ng-container>
         </div>
     </div>
+    </div>
 
-    <!-- SAĞ PANEL: evrak bilgileri -->
-    <div class="col-lg-5 col-12">
-        <div class="card zm-card d-flex flex-column">
+    <!-- ===== SAĞ: Evrak bilgileri (her zaman açık, kompakt) ===== -->
+    <div class="col-lg-4 col-12">
+        <div class="card zm-card sc-details-card d-flex flex-column">
             <div class="card-header dashboard-header d-flex align-items-center">
                 <span class="material-symbols-outlined me-2 text-info">description</span>
                 <h5 class="card-title mb-0 fw-semibold">Evrak Bilgileri</h5>
             </div>
-
             <div class="card-body zm-body">
                 <ng-container *ngIf="documentDetail() as doc; else docLoading">
-                    <div class="ok-doc">
-                        <div class="ok-doc-icon">
-                            <span class="material-symbols-outlined">description</span>
-                        </div>
-                        <div class="ok-doc-body">
-                            <div class="ok-doc-no">{{ doc.qrCode || '-' }}</div>
-                            <div class="ok-doc-meta">{{ doc.documentName || 'Evrak numarası' }}</div>
-                        </div>
-                        <div class="ok-checks ok-checks-side">
-                            <span class="iz-badge" [ngClass]="securityDegreeStyle[doc.securityDegree]">
-                                <span class="material-symbols-outlined">shield</span>
-                                {{ securityDegreeMap[doc.securityDegree] || 'Gizlilik yok' }}
-                            </span>
-                            <span class="iz-badge" [ngClass]="actionRequiredBadgeClass(doc.actionRequired)">
-                                <span class="material-symbols-outlined">flag</span>
-                                {{ actionRequiredLabel(doc.actionRequired) }}
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="iz-detail-grid">
-                        <div class="iz-detail iz-detail-wide">
-                            <div class="iz-detail-label"><span class="material-symbols-outlined">subject</span>Konu</div>
-                            <div class="iz-detail-value">{{ doc.subject || '-' }}</div>
+                    <div class="sc-details-grid">
+                        <!-- En üstte belge türü ve tarihi yan yana -->
+                        <div class="iz-detail">
+                            <div class="iz-detail-label">Belge Türü</div>
+                            <div class="iz-detail-value">{{ documentTypeLabel() }}</div>
                         </div>
                         <div class="iz-detail">
-                            <div class="iz-detail-label"><span class="material-symbols-outlined">tag</span>Belge Orijinal No</div>
-                            <div class="iz-detail-value">{{ doc.orginalNo || '-' }}</div>
-                        </div>
-                        <div class="iz-detail">
-                            <div class="iz-detail-label"><span class="material-symbols-outlined">calendar_month</span>Tarih</div>
+                            <div class="iz-detail-label">Belge Tarihi</div>
                             <div class="iz-detail-value">{{ doc.documentDate ? (doc.documentDate | date:'dd.MM.yyyy') : '-' }}</div>
                         </div>
-                        <div class="iz-detail">
-                            <div class="iz-detail-label"><span class="material-symbols-outlined">auto_stories</span>Sayfa Sayısı</div>
-                            <div class="iz-detail-value">{{ doc.pageCount ?? '-' }}</div>
+                        <!-- Gizlilik derecesi ve Gereği/Bilgi: metin yerine renkli rozet, etiketli -->
+                        <div class="iz-detail sc-detail-badge">
+                            <div class="iz-detail-label">Gizlilik Derecesi</div>
+                            <div class="iz-detail-value">
+                                <span class="iz-badge" [ngClass]="securityDegreeStyle[doc.securityDegree]">
+                                    <span class="material-symbols-outlined">shield</span>
+                                    {{ securityDegreeMap[doc.securityDegree] || 'Gizlilik yok' }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="iz-detail sc-detail-badge">
+                            <div class="iz-detail-label">Gereği / Bilgi</div>
+                            <div class="iz-detail-value">
+                                <span class="iz-badge" [ngClass]="actionRequiredBadgeClass(doc.actionRequired)">
+                                    <span class="material-symbols-outlined">flag</span>
+                                    {{ actionRequiredLabel(doc.actionRequired) === '-' ? 'Belirtilmemiş' : actionRequiredLabel(doc.actionRequired) }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="iz-detail iz-detail-wide">
+                            <div class="iz-detail-label">Konu</div>
+                            <div class="iz-detail-value">{{ doc.subject || '-' }}</div>
+                        </div>
+                        <div class="iz-detail iz-detail-wide">
+                            <div class="iz-detail-label">Belge Orijinal No</div>
+                            <div class="iz-detail-value">{{ doc.orginalNo || '-' }}</div>
+                        </div>
+                        <div class="iz-detail iz-detail-wide">
+                            <div class="iz-detail-label">Birim</div>
+                            <div class="iz-detail-value">{{ departmentName() }}</div>
+                        </div>
+                        <div class="iz-detail iz-detail-wide">
+                            <div class="iz-detail-label">Dış Kurum</div>
+                            <div class="iz-detail-value">{{ externalInstitutionName() }}</div>
+                        </div>
+                        <div class="iz-detail iz-detail-wide" *ngIf="doc.notes">
+                            <div class="iz-detail-label">Notlar</div>
+                            <div class="iz-detail-value">{{ doc.notes }}</div>
                         </div>
                     </div>
                 </ng-container>
@@ -166,5 +255,6 @@
                 </ng-template>
             </div>
         </div>
+    </div>
     </div>
 </div>

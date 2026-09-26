@@ -176,7 +176,7 @@
     ? (item.currentAssignmentUserId === currentUserId
         ? goToDetail(item.id)
         : item.currentAssignmentUserId
-          ? openPersonModal(item.id)
+          ? openPersonModal(item)
           : goToDetail(item.id))
     : goToDetail(item.id)
 ">
@@ -203,6 +203,17 @@
         </flexi-button>
       </ng-template>
     </flexi-grid-column>
+    <!-- Zimmet geçmişi: Giden Evraklar listesindeki popup'ın aynısı, tüm roller için görünür. -->
+    <flexi-grid-column title="Geçmiş" textAlign="center" width="70px" [filterable]="false" [sortable]="false">
+      <ng-template flexiGridCellTemplate let-item>
+        <flexi-button
+          btnIcon="history"
+          title="Zimmet Geçmişi"
+          btnColor="light"
+          (click)="openZimmetHistory(item)">
+        </flexi-button>
+      </ng-template>
+    </flexi-grid-column>
     <flexi-grid-column textAlign="center" width="50px">
       <ng-template flexiGridCellTemplate let-item>
         <flexi-button
@@ -216,23 +227,244 @@
   </flexi-grid>
 </div>
 
-<div *ngIf="modalVisible" class="modal-overlay">
-  <div class="modal-box">
-    <div class="modal-header">
-      <h5>Atanacak Personel</h5>
-      <span class="material-symbols-outlined close-btn"
-        (click)="closePersonModal()">close</span>
-    </div>
-    <div class="modal-body">
-      <select id="personSelect" class="form-select"
-        [(ngModel)]="selectedPerson">
-        <option *ngFor="let p of personList" [ngValue]="p">{{ p.name }}</option>
-      </select>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary"
-        (click)="closePersonModal()">İptal</button>
-      <button class="btn btn-primary" (click)="savePerson()">Kaydet</button>
+<!-- Personel Atama Popup: başka personele atanmış evrakı yeni bir personele aktarır -->
+@if (assignModalVisible()) {
+  <div class="modal-overlay" (click)="closePersonModal()">
+    <div class="modal-box pa-modal" (click)="$event.stopPropagation()">
+      <!-- Başlık -->
+      <div class="pa-header">
+        <div class="pa-header-top">
+          <div class="pa-title">Personel Ataması</div>
+          <button type="button" class="pa-close" title="Kapat" [disabled]="assignSaving()" (click)="closePersonModal()">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <div class="pa-header-main">
+          <div class="pa-header-icon">
+            <span class="material-symbols-outlined">person_add</span>
+          </div>
+          <div class="pa-header-text">
+            <div class="pa-doc-no">{{ assignDoc()?.qrCode || '-' }}</div>
+            @if (assignDoc()?.documentName) {
+              <div class="pa-doc-sub" [title]="assignDoc()?.documentName">{{ assignDoc()?.documentName }}</div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Mevcut atama -> yeni atama -->
+      <div class="pa-flow">
+        <div class="pa-flow-card">
+          <span class="pa-avatar is-muted">
+            @if (assignDoc()?.currentAssignmentUser) {
+              {{ initials(assignDoc()?.currentAssignmentUser) }}
+            } @else {
+              <span class="material-symbols-outlined">person_off</span>
+            }
+          </span>
+          <div class="pa-flow-text">
+            <div class="pa-flow-label">Mevcut Atama</div>
+            <div class="pa-flow-name">{{ assignDoc()?.currentAssignmentUser || 'Atanmamış' }}</div>
+          </div>
+        </div>
+        <span class="material-symbols-outlined pa-flow-arrow">arrow_forward</span>
+        <div class="pa-flow-card" [class.is-ready]="assignSelected()">
+          @if (assignSelected(); as p) {
+            <span class="pa-avatar is-active">{{ initials(userFullName(p)) }}</span>
+            <div class="pa-flow-text">
+              <div class="pa-flow-label">Yeni Atama</div>
+              <div class="pa-flow-name">{{ userFullName(p) }}</div>
+            </div>
+          } @else {
+            <span class="pa-avatar is-dashed">
+              <span class="material-symbols-outlined">person_search</span>
+            </span>
+            <div class="pa-flow-text">
+              <div class="pa-flow-label">Yeni Atama</div>
+              <div class="pa-flow-name is-placeholder">Personel seçilmedi</div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Aday listesi -->
+      <div class="pa-body">
+        <div class="pa-list-label">Evrak kayıt personeli</div>
+        <div class="pa-list">
+          @if (usersLoading()) {
+            <div class="pa-state">
+              <div class="spinner-border spinner-border-sm text-primary"></div>
+              <span>Personel listesi yükleniyor</span>
+            </div>
+          } @else if (assignCandidates().length) {
+            @for (u of assignCandidates(); track u.id) {
+              <button
+                type="button"
+                class="pa-person"
+                [class.is-selected]="u.id === assignSelectedId()"
+                (click)="selectAssignee(u)">
+                <span class="pa-avatar">{{ initials(userFullName(u)) }}</span>
+                <div class="pa-person-info">
+                  <div class="pa-person-name">{{ userFullName(u) }}</div>
+                  <div class="pa-person-meta">{{ u.departmentName || u.departmentShortName || '-' }}</div>
+                </div>
+                <span class="material-symbols-outlined pa-person-check">check_circle</span>
+              </button>
+            }
+          } @else {
+            <div class="pa-state is-empty">
+              <span class="pa-state-icon">
+                <span class="material-symbols-outlined">person_search</span>
+              </span>
+              <div class="pa-state-title">Personel bulunamadı</div>
+              <div class="pa-state-desc">Atanabilecek evrak kayıt personeli yok.</div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Alt şerit: özet + aksiyonlar -->
+      <div class="pa-footer">
+        <div class="pa-summary" [class.is-ready]="assignSelected()">
+          @if (assignSelected(); as p) {
+            <span class="material-symbols-outlined">task_alt</span>
+            <span>Evrak <strong>{{ userFullName(p) }}</strong> personeline atanacak</span>
+          } @else {
+            <span class="material-symbols-outlined">info</span>
+            <span>Listeden bir personel seçin</span>
+          }
+        </div>
+        <div class="pa-actions">
+          <button type="button" class="pa-btn pa-btn-ghost" [disabled]="assignSaving()" (click)="closePersonModal()">
+            Vazgeç
+          </button>
+          <button type="button" class="pa-btn pa-btn-primary" [disabled]="!assignSelected() || assignSaving()" (click)="savePerson()">
+            @if (assignSaving()) {
+              <span class="spinner-border spinner-border-sm"></span>
+            } @else {
+              <span class="material-symbols-outlined">person_add</span>
+            }
+            Ata
+          </button>
+        </div>
+      </div>
     </div>
   </div>
-</div>
+}
+
+<!-- Zimmet Geçmişi Popup (tüm roller: evrakın mevcut ve geçmiş zimmetleri) -->
+@if (zimmetHistoryVisible()) {
+  <div class="modal-overlay" (click)="closeZimmetHistory()">
+    <div class="modal-box zh-modal" (click)="$event.stopPropagation()">
+      <!-- Başlık -->
+      <div class="zh-header">
+        <div class="zh-header-top">
+          <div class="zh-title">Zimmet Geçmişi</div>
+          <button type="button" class="zh-close" title="Kapat" (click)="closeZimmetHistory()">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <div class="zh-header-main">
+          <div class="zh-header-icon">
+            <span class="material-symbols-outlined">history</span>
+          </div>
+          <div class="zh-header-text">
+            <div class="zh-doc-no">{{ zimmetHistoryDoc()?.qrCode }}</div>
+          </div>
+          @if (!zimmetHistoryLoading() && zimmetHistory().length) {
+            <span class="zh-count">{{ zimmetHistory().length }} kayıt</span>
+          }
+        </div>
+      </div>
+
+      <!-- Aktif zimmet özeti -->
+      @if (!zimmetHistoryLoading()) {
+        @if (activeZimmet(); as a) {
+          <div class="zh-hero is-active">
+            <span class="zh-avatar">{{ initials(a.fullName) }}</span>
+            <div class="zh-hero-text">
+              <div class="zh-hero-label">
+                <span class="zh-pulse"></span>
+                Aktif Zimmet
+              </div>
+              <div class="zh-hero-name">{{ a.fullName || '-' }}</div>
+            </div>
+            <!-- Aktif zimmette durum çipi gösterilmez; durum zaten hareket listesinde görünür. -->
+            <div class="zh-hero-side">
+              <span class="zh-date">
+                <span class="material-symbols-outlined">schedule</span>
+                {{ a.createdDate | date:'dd.MM.yyyy HH:mm' }}
+              </span>
+            </div>
+          </div>
+        } @else if (zimmetHistory().length) {
+          <div class="zh-hero is-empty">
+            <span class="zh-avatar is-muted">
+              <span class="material-symbols-outlined">person_off</span>
+            </span>
+            <div class="zh-hero-text">
+              <div class="zh-hero-label">Aktif Zimmet</div>
+              <div class="zh-hero-name">Şu an kimsenin üzerinde değil</div>
+            </div>
+          </div>
+        }
+      }
+
+      <!-- Zaman çizelgesi -->
+      <div class="zh-body">
+        @if (zimmetHistoryLoading()) {
+          <div class="zh-state">
+            <div class="spinner-border spinner-border-sm text-primary"></div>
+            <span>Zimmet geçmişi yükleniyor</span>
+          </div>
+        } @else if (zimmetHistory().length) {
+          <button
+            type="button"
+            class="zh-section-title zh-section-toggle"
+            [class.is-open]="zimmetHistoryExpanded()"
+            [attr.aria-expanded]="zimmetHistoryExpanded()"
+            [title]="zimmetHistoryExpanded() ? 'Hareketleri gizle' : 'Hareketleri göster'"
+            (click)="toggleZimmetHistoryExpanded()">
+            <span class="material-symbols-outlined">timeline</span>
+            Hareketler
+            <span class="material-symbols-outlined zh-section-chevron">expand_more</span>
+          </button>
+          @if (zimmetHistoryExpanded()) {
+          <div class="zh-timeline">
+            @for (h of zimmetHistory(); track h.id) {
+              <div class="zh-row" [class.is-active]="h.isActive">
+                <span class="zh-dot {{ allocationStatusClass[h.status] || '' }}" [class.is-past]="!h.isActive">
+                  <span class="material-symbols-outlined">{{ allocationStatusIcons[h.status] || 'person' }}</span>
+                </span>
+                <div class="zh-card">
+                  <div class="zh-card-main">
+                    <div class="zh-name" [title]="h.fullName">{{ h.fullName || '-' }}</div>
+                  </div>
+                  <div class="zh-card-side">
+                    <span class="zh-status-chip {{ allocationStatusClass[h.status] || '' }}">
+                      <span class="material-symbols-outlined">{{ allocationStatusIcons[h.status] || 'label' }}</span>
+                      {{ allocationStatusLabels[h.status] || '-' }}
+                    </span>
+                    <span class="zh-date">
+                      <span class="material-symbols-outlined">schedule</span>
+                      {{ h.createdDate | date:'dd.MM.yyyy HH:mm' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+          }
+        } @else {
+          <div class="zh-state is-empty">
+            <span class="zh-state-icon">
+              <span class="material-symbols-outlined">history_toggle_off</span>
+            </span>
+            <div class="zh-state-title">Zimmet kaydı yok</div>
+            <div class="zh-state-desc">Bu evrak için henüz bir zimmet hareketi oluşmamış.</div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}
