@@ -7,13 +7,14 @@ import { DocumentTransactionModel } from '../../models/documenttransaction.model
 import { DocumentTransaction } from '../../services/documenttransaction';
 import { FlexiToastService } from 'flexi-toast';
 import { SecurityDegreeLabels, SecurityDegreeBadgeClass } from '../../models/securitydegree.model';
-import { actionRequiredLabel, actionRequiredBadgeClass } from '../../models/actionrequired.model';
+import { actionRequiredLabel, actionRequiredBadgeClass, actionRequiredIcon } from '../../models/actionrequired.model';
 import { DocumentTypeLabels } from '../../models/documenttype.model';
 import { IncomingDocumentModel } from '../../models/incoming-document/incoming-document.model';
 import { DocumentAllocation } from '../../services/documentallocation';
 import { DocumentAllocationModel } from '../../models/documentallocation.model';
 import { Department, DepartmentModel } from '../../services/department';
 import { ExternalInstitution, ExternalInstitutionModel } from '../../services/external-institution';
+import { RoleService } from '../../services/role-service';
 
 // Gelen evrak durumu (backend DocumentStatusEnum) için özet şeridindeki etiket ve ton.
 const DOC_STATUS: Record<number, { label: string; tone: 'info' | 'success' | 'warning' | 'neutral' }> = {
@@ -97,10 +98,19 @@ export default class Surecler implements OnInit {
   private allocationService = inject(DocumentAllocation);
   private departmentService = inject(Department);
   private externalInstitutionService = inject(ExternalInstitution);
+  private roleService = inject(RoleService);
+
+  // Geri dönülecek liste: evrak kayıt rolleri Gelen Evraklar (scanlist), yalnızca
+  // Birim Evrak Sorumlusu olanlar Birim Gelen Evrakları (incomingDepartmentDocument).
+  readonly listUrl = this.roleService.hasAny(['Gelen Evrak', 'Ön Kayıt'])
+    ? '/scanlist'
+    : (this.roleService.has('Birim Evrak Sorumlusu') ? '/incomingDepartmentDocument' : '/scanlist');
+
   securityDegreeMap: Record<number, string> = SecurityDegreeLabels;
   securityDegreeStyle: Record<number, string> = SecurityDegreeBadgeClass;
   readonly actionRequiredLabel = actionRequiredLabel;
   readonly actionRequiredBadgeClass = actionRequiredBadgeClass;
+  readonly actionRequiredIcon = actionRequiredIcon;
   readonly documentTypeLabels: Record<number, string> = DocumentTypeLabels;
 
   // ---- Özet şeridi: evrakın güncel durumu ----
@@ -160,7 +170,7 @@ export default class Surecler implements OnInit {
     this.id = this.documentService.currentIncomingDocumentId;
 
     if (!this.id) {
-      this.router.navigate(['/scanlist']);
+      this.router.navigate([this.listUrl]);
       return;
     }
 
@@ -191,7 +201,7 @@ export default class Surecler implements OnInit {
   }
 
   backToList() {
-    this.router.navigate(['/scanlist']);
+    this.router.navigate([this.listUrl]);
   }
 
   // Adımın kilometre taşı türü; kilometre taşı değilse null.

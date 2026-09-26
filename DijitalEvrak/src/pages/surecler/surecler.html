@@ -1,5 +1,5 @@
 <app-generic pageTitle="Evrak Süreç Akışı" [breadcrumbs]="[
-  {title: 'Gelen Evraklar', url: 'scanlist', icon: ''},
+  {title: 'Gelen Evraklar', url: listUrl.slice(1), icon: ''},
   {title: 'Evrak Süreç Akışı', url: 'surecler', icon: 'conversion_path'}
   ]">
 </app-generic>
@@ -217,7 +217,7 @@
                             <div class="iz-detail-label">Gereği / Bilgi</div>
                             <div class="iz-detail-value">
                                 <span class="iz-badge" [ngClass]="actionRequiredBadgeClass(doc.actionRequired)">
-                                    <span class="material-symbols-outlined">flag</span>
+                                    <span class="material-symbols-outlined">{{ actionRequiredIcon(doc.actionRequired) }}</span>
                                     {{ actionRequiredLabel(doc.actionRequired) === '-' ? 'Belirtilmemiş' : actionRequiredLabel(doc.actionRequired) }}
                                 </span>
                             </div>

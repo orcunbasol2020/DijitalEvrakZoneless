@@ -16,6 +16,7 @@ import { Common } from '../../services/common';
 import { DocumentTransaction } from '../../services/documenttransaction';
 import { DocumentTransactionModel } from '../../models/documenttransaction.model';
 import { SecurityDegreeEnum, SecurityDegreeLabels } from '../../models/securitydegree.model';
+import { UrgencyDegreeEnum, UrgencyDegreeLabels } from '../../models/urgencydegree.model';
 import { actionRequiredOptions } from '../../models/actionrequired.model';
 import { DocumentTypeEnum, DocumentTypeLabels } from '../../models/documenttype.model';
 import { DocumentAllocation } from '../../services/documentallocation';
@@ -24,9 +25,10 @@ import { UPLOAD_DOCUMENT_ROLES, UploadDocumentModal } from '../../../components/
 import { DocumentUploadFlow } from '../../services/document-upload-flow';
 import { INCOMING_STATUS_ON_KAYIT } from '../../services/incomingdocument';
 
-// "Diğer Bilgiler" sekmesinin varsayılanları: Hizmete Özel, elektronik kopya yok, Türkçe (1)
+// "Diğer Bilgiler" sekmesinin varsayılanları: Hizmete Özel, Normal ivedilik, elektronik kopya yok, Türkçe (1)
 const DETAIL_DEFAULTS = {
   securityDegree: SecurityDegreeEnum.ServiceUseOnly,
+  urgencyDegree: UrgencyDegreeEnum.Normal,
   electronicCopy: false,
   languageId: 1,
 } as const;
@@ -243,6 +245,12 @@ export default class Evrakkayit implements OnInit {
     label
   }));
 
+  // İvedilik derecesi: Giden Evrak oluşturma ekranındaki combo ile aynı değerler (UrgencyDegreeLabels)
+  readonly urgencyDegreeOptions = Object.entries(UrgencyDegreeLabels).map(([value, label]) => ({
+    value: Number(value) as UrgencyDegreeEnum,
+    label
+  }));
+
   readonly actionRequiredOptions = actionRequiredOptions;
 
   // Gelen evrak kaydında seçilemeyen türler (enum'da kalır, listede görünmez)
@@ -274,8 +282,9 @@ export default class Evrakkayit implements OnInit {
       externalInstitutionId: new FormControl<ExternalInstitutionModel | null>(null),
       departmentId: new FormControl<DepartmentModel | null>(null),
       documentTypeId: [null as DocumentTypeEnum | null],
-      // Gizlilik derecesi ve Gereği/Bilgi "Evrak Kayıt" sekmesinde girilir
+      // Gizlilik derecesi, ivedilik derecesi ve Gereği/Bilgi "Evrak Kayıt" sekmesinde girilir
       securityDegree: [DETAIL_DEFAULTS.securityDegree],
+      urgencyDegree: [DETAIL_DEFAULTS.urgencyDegree],
       actionRequired: [null],
     });
 
@@ -333,6 +342,7 @@ export default class Evrakkayit implements OnInit {
           externalInstitutionId: null,
           documentDate: doc.documentDate?.split('T')[0],
           securityDegree: doc.securityDegree ?? DETAIL_DEFAULTS.securityDegree,
+          urgencyDegree: doc.urgencyDegree ?? DETAIL_DEFAULTS.urgencyDegree,
           actionRequired: doc.actionRequired ?? null
         });
 
@@ -454,6 +464,7 @@ export default class Evrakkayit implements OnInit {
       // Evrak Kayıt sekmesine taşınan alanlar detay güncellemesinde de gönderilir;
       // aksi halde Update bu alanları boşaltabilir.
       securityDegree: this.form.value.securityDegree,
+      urgencyDegree: this.form.value.urgencyDegree,
       actionRequired: this.form.value.actionRequired,
       userId: userId
     };
@@ -570,6 +581,7 @@ export default class Evrakkayit implements OnInit {
         externalInstitutionId: null,
         documentDate: doc.documentDate?.split('T')[0],
         securityDegree: doc.securityDegree ?? DETAIL_DEFAULTS.securityDegree,
+        urgencyDegree: doc.urgencyDegree ?? DETAIL_DEFAULTS.urgencyDegree,
         actionRequired: doc.actionRequired ?? null
       });
 
@@ -658,9 +670,19 @@ export default class Evrakkayit implements OnInit {
       case 2: return 'Kayıt Tamamlandı';
       case 3: return 'Yayınlandı';
       case 4: return 'Teslim Edildi';
-      case 6: return 'Yayınlama Sırasında';
+      case 6: return 'Yayınla';
+      case 10: return 'Yayınlandı';
       default: return '-';
     }
+  }
+
+  // İşlem Takip sekmesindeki DURUM değeri: yayın akışına girmiş evrakta docStatus
+  // esas alınır (6 = Yayınla, 10 = Yayınlandı); aksi halde formdaki kayıt durumu.
+  durumText(): string {
+    const status = this.docStatus();
+    if (status === 10) return 'Yayınlandı';
+    if (status === 6) return 'Yayınla';
+    return this.getStatusText();
   }
   getSecurityDegreeText(): string {
     const value = this.form.get('securityDegree')?.value;
@@ -676,9 +698,9 @@ export default class Evrakkayit implements OnInit {
 
   // İşlem Takip sekmesi: durum özet çipleri için renk sınıfı (metne göre belirlenir).
   statusChipClass(): string {
-    const text = this.activeStatus() ? 'Yayınlandı' : this.getStatusText();
+    const text = this.durumText();
     if (text === 'Yayınlandı' || text === 'Teslim Edildi') return 'chip-success';
-    if (text === 'Yayınlama Sırasında' || text === 'Kayıt Tamamlandı') return 'chip-warning';
+    if (text === 'Yayınla' || text === 'Kayıt Tamamlandı') return 'chip-warning';
     if (text === 'Ön Kayıt') return 'chip-info';
     return 'chip-muted';
   }

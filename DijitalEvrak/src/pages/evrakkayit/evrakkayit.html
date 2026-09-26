@@ -62,14 +62,20 @@
                 <input type="date" id="belgeTarihi" class="form-control ok-input" formControlName="documentDate">
               </div>
               <div class="zm-field">
-                <label for="orjBelge" class="zm-field-label">Orjinal Belge No</label>
-                <input type="text" id="orjBelge" class="form-control ok-input" formControlName="orginalNo">
+                <label for="ivedilik" class="zm-field-label">İvedilik Derecesi</label>
+                <select id="ivedilik" class="form-select ok-input" formControlName="urgencyDegree">
+                  <option *ngFor="let opt of urgencyDegreeOptions" [ngValue]="opt.value">{{ opt.label }}</option>
+                </select>
               </div>
               <div class="zm-field">
                 <label for="geregiBilgi" class="zm-field-label">Gereği / Bilgi</label>
                 <select id="geregiBilgi" class="form-select ok-input" formControlName="actionRequired">
                   <option *ngFor="let opt of actionRequiredOptions" [ngValue]="opt.value">{{ opt.label }}</option>
                 </select>
+              </div>
+              <div class="zm-field ek-span-2">
+                <label for="orjBelge" class="zm-field-label">Orjinal Belge No</label>
+                <input type="text" id="orjBelge" class="form-control ok-input" formControlName="orginalNo">
               </div>
               <div class="zm-field ek-span-2">
                 <label for="konusu" class="zm-field-label">Konusu</label>
@@ -156,7 +162,7 @@
               </span>
               <span class="ek-stat-body">
                 <span class="ek-stat-label">DURUM</span>
-                <span class="ek-stat-value">{{ activeStatus() ? 'Yayınlandı' : getStatusText() }}</span>
+                <span class="ek-stat-value">{{ durumText() }}</span>
               </span>
             </div>
             <div class="ek-stat" [ngClass]="ocrChipClass()">

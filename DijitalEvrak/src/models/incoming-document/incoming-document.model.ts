@@ -5,6 +5,8 @@ export interface IncomingDocumentModel {
   qrCode?: string;
 
   securityDegree: number;
+  // İvedilik derecesi (bkz. UrgencyDegreeEnum); eski kayıtlarda boş olabilir
+  urgencyDegree?: number;
   documentTypeId: number;
   languageId: number;
 

@@ -50,7 +50,15 @@ export const routes: Routes = [
                 path: 'scanlist',
                 loadChildren: () => import('./pages/scanlist/route'),
                 canActivate: [roleGuard],
-                data: { roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Ön Kayıt"] }
+                data: { roles: ["Gelen Evrak", "Ön Kayıt"] }
+            },
+            {
+                // Birim Evrak Sorumlusu'nun "Gelen Evraklar"ı: kendi birimine gelen
+                // evrakların salt okunur, hafif listesi (scanlist'in birim sürümü).
+                path: 'incomingDepartmentDocument',
+                loadComponent: () => import('./pages/incoming-department-document/incoming-department-document'),
+                canActivate: [roleGuard],
+                data: { roles: ["Birim Evrak Sorumlusu"] }
             },
             {
                 path: 'documentlist',

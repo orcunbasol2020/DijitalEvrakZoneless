@@ -6,10 +6,18 @@ export function actionRequiredLabel(value: boolean | null | undefined): string {
   return '-';
 }
 
+// Rozet rengi: Gereği = mavi-turkuaz, Bilgi = yeşil (sınıflar styles.css'te)
 export function actionRequiredBadgeClass(value: boolean | null | undefined): string {
-  if (value === true) return 'bg-warning text-dark';
-  if (value === false) return 'bg-info-subtle text-info border border-info-subtle';
+  if (value === true) return 'ar-badge-geregi';
+  if (value === false) return 'ar-badge-bilgi';
   return 'bg-secondary-subtle text-secondary border border-secondary-subtle';
+}
+
+// Rozet ikonu: Gereği = yapılacak iş (pending_actions), Bilgi = bilgilendirme (info)
+export function actionRequiredIcon(value: boolean | null | undefined): string {
+  if (value === true) return 'pending_actions';
+  if (value === false) return 'info';
+  return 'help';
 }
 
 export const actionRequiredOptions = [

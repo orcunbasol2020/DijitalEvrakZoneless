@@ -10996,3 +10996,31 @@ body {
 [data-theme="dark"] .envelope-status-birimde { --st-text: #fcd34d; }
 [data-theme="dark"] .envelope-status-teslim { --st-text: #86efac; }
 [data-theme="dark"] .envelope-status-devir { --st-text: #c4b5fd; }
+
+/* ============================================================
+   Bilgi / Gereği rozetleri (actionRequiredBadgeClass)
+   Gereği = mavi-turkuaz, Bilgi = yeşil
+   ============================================================ */
+.ar-badge-geregi {
+    color: #155e75;
+    background: linear-gradient(135deg, #bae6fd, #a5f3fc);
+    border: 1px solid #67e8f9;
+}
+
+.ar-badge-bilgi {
+    color: #15803d;
+    background: #dcfce7;
+    border: 1px solid #bbf7d0;
+}
+
+[data-theme="dark"] .ar-badge-geregi {
+    color: #67e8f9;
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.18), rgba(34, 211, 238, 0.18));
+    border-color: rgba(34, 211, 238, 0.4);
+}
+
+[data-theme="dark"] .ar-badge-bilgi {
+    color: #86efac;
+    background: rgba(22, 163, 74, 0.16);
+    border-color: rgba(74, 222, 128, 0.4);
+}

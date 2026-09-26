@@ -5,16 +5,8 @@
     <!-- SOL PANEL: QR okutma + evrak bilgileri -->
     <div class="col-lg-6 col-12">
         <div class="card zm-card d-flex flex-column">
-            <div class="card-header dashboard-header d-flex align-items-center justify-content-between">
-                <div class="d-flex align-items-center">
-                    <span class="material-symbols-outlined me-2 text-info">assignment_ind</span>
-                    <h5 class="card-title mb-0 fw-semibold">Gelen Evrak Zimmet</h5>
-                </div>
-                <button type="button" class="zm-pill-btn" *ngIf="detailsVisible()" (click)="backToQrScan()">
-                    <span class="material-symbols-outlined">qr_code_scanner</span>
-                    <span>Yeni Okutma</span>
-                </button>
-            </div>
+            <!-- Kart başlığı ("Gelen Evrak Zimmet") gizlendi; sayfa başlığı zaten üst şeritte var.
+                 Yeni okutma için alt şeritteki "Temizle" kullanılır. -->
 
             <div class="card-body zm-body">
                 <!-- QR okutma bloğu (Ön Kayıt / Giden Evrak Teslim Al ekranlarıyla aynı dil) -->
@@ -129,42 +121,67 @@
 
                     <!-- EVRAK BİLGİLERİ -->
                     <ng-container *ngIf="activeTab() === 'bilgi'">
-                    <div class="ok-doc">
+                    <div class="ok-doc iz-doc">
                         <div class="ok-doc-icon">
-                            <span class="material-symbols-outlined">description</span>
+                            <span class="material-symbols-outlined">tag</span>
                         </div>
                         <div class="ok-doc-body">
                             <div class="ok-doc-no">{{ scannedDocumentNo() }}</div>
-                            <div class="ok-doc-meta">{{ doc.documentName || 'Evrak numarası' }}</div>
-                        </div>
-                        <div class="ok-checks ok-checks-side">
-                            <span class="iz-badge" [ngClass]="securityDegreeStyle[doc.securityDegree]">
-                                <span class="material-symbols-outlined">shield</span>
-                                {{ securityDegreeMap[doc.securityDegree] || 'Gizlilik yok' }}
-                            </span>
-                            <span class="iz-badge" [ngClass]="actionRequiredBadgeClass(doc.actionRequired)">
-                                <span class="material-symbols-outlined">flag</span>
-                                {{ actionRequiredLabel(doc.actionRequired) }}
-                            </span>
                         </div>
                     </div>
 
                     <div class="iz-detail-grid">
-                        <div class="iz-detail iz-detail-wide">
-                            <div class="iz-detail-label"><span class="material-symbols-outlined">subject</span>Konu</div>
-                            <div class="iz-detail-value">{{ doc.subject || '-' }}</div>
+                        <!-- Sıra: Belge Türü + Tarih / Gizlilik + İvedilik / Orijinal No + Bilgi-Gereği / Konu / Nereden + Nereye -->
+                        <div class="iz-detail">
+                            <div class="iz-detail-label">Belge Türü</div>
+                            <div class="iz-detail-value">{{ (doc.documentTypeId != null && documentTypeLabels[doc.documentTypeId]) || '-' }}</div>
                         </div>
                         <div class="iz-detail">
-                            <div class="iz-detail-label"><span class="material-symbols-outlined">tag</span>Belge Orijinal No</div>
-                            <div class="iz-detail-value">{{ doc.orginalNo || '-' }}</div>
-                        </div>
-                        <div class="iz-detail">
-                            <div class="iz-detail-label"><span class="material-symbols-outlined">calendar_month</span>Tarih</div>
+                            <div class="iz-detail-label">Tarih</div>
                             <div class="iz-detail-value">{{ doc.documentDate ? (doc.documentDate | date:'dd.MM.yyyy') : '-' }}</div>
                         </div>
                         <div class="iz-detail">
-                            <div class="iz-detail-label"><span class="material-symbols-outlined">auto_stories</span>Sayfa Sayısı</div>
-                            <div class="iz-detail-value">{{ doc.pageCount ?? '-' }}</div>
+                            <div class="iz-detail-label">Gizlilik Derecesi</div>
+                            <div class="iz-detail-value">
+                                <span class="iz-badge" [ngClass]="securityDegreeStyle[doc.securityDegree]">
+                                    <span class="material-symbols-outlined">shield</span>
+                                    {{ securityDegreeMap[doc.securityDegree] || 'Gizlilik yok' }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="iz-detail">
+                            <div class="iz-detail-label">İvedilik Derecesi</div>
+                            <div class="iz-detail-value">
+                                <span class="iz-badge" [ngClass]="doc.urgencyDegree != null ? urgencyDegreeStyle[doc.urgencyDegree] : 'bg-secondary-subtle text-secondary border border-secondary-subtle'">
+                                    <span class="material-symbols-outlined">bolt</span>
+                                    {{ (doc.urgencyDegree != null && urgencyDegreeMap[doc.urgencyDegree]) || 'Belirtilmemiş' }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="iz-detail">
+                            <div class="iz-detail-label">Belge Orijinal No</div>
+                            <div class="iz-detail-value">{{ doc.orginalNo || '-' }}</div>
+                        </div>
+                        <div class="iz-detail">
+                            <div class="iz-detail-label">Bilgi / Gereği</div>
+                            <div class="iz-detail-value">
+                                <span class="iz-badge" [ngClass]="actionRequiredBadgeClass(doc.actionRequired)">
+                                    <span class="material-symbols-outlined">{{ actionRequiredIcon(doc.actionRequired) }}</span>
+                                    {{ actionRequiredLabel(doc.actionRequired) }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="iz-detail iz-detail-wide">
+                            <div class="iz-detail-label">Konu</div>
+                            <div class="iz-detail-value">{{ doc.subject || '-' }}</div>
+                        </div>
+                        <div class="iz-detail">
+                            <div class="iz-detail-label">Nereden</div>
+                            <div class="iz-detail-value">{{ externalInstitutionNameOf(doc.externalInstitutionId) }}</div>
+                        </div>
+                        <div class="iz-detail">
+                            <div class="iz-detail-label">Nereye</div>
+                            <div class="iz-detail-value">{{ departmentNameOf(doc.departmentId) }}</div>
                         </div>
                     </div>
                     </ng-container>
@@ -202,6 +219,45 @@
                     <span class="material-symbols-outlined me-2 text-info">person_check</span>
                     <h5 class="card-title mb-0 fw-semibold">Zimmetle</h5>
                 </div>
+
+                <!-- Aktif zimmet sahibi: evrak okutulunca başlığın sağında kompakt çip olarak görünür -->
+                <ng-container *ngIf="detailsVisible()">
+                    <div class="iz-owner" *ngIf="activeAllocation() as a; else ownerEmpty"
+                        [class.is-me]="isActiveOnCurrentUser()" tabindex="0">
+                        <span class="zm-avatar iz-owner-avatar">{{ initials(a.fullName) }}</span>
+                        <div class="iz-owner-info">
+                            <div class="iz-owner-label">Aktif zimmet</div>
+                            <div class="iz-owner-name">
+                                {{ a.fullName }}
+                                <span class="iz-owner-me" *ngIf="isActiveOnCurrentUser()">Siz</span>
+                            </div>
+                        </div>
+                        <!-- Üzerine gelince / odaklanınca: zimmet durumu ve tarihi -->
+                        <div class="iz-owner-tip" role="tooltip">
+                            <div class="iz-owner-tip-row">
+                                <span class="material-symbols-outlined">label</span>
+                                <span class="iz-owner-tip-key">Durum</span>
+                                <span class="iz-owner-tip-val">{{ allocationStatusLabels[a.status] || 'Zimmet' }}</span>
+                            </div>
+                            <div class="iz-owner-tip-row">
+                                <span class="material-symbols-outlined">schedule</span>
+                                <span class="iz-owner-tip-key">Tarih</span>
+                                <span class="iz-owner-tip-val">{{ a.createdDate ? (a.createdDate | date:'dd.MM.yyyy HH:mm') : '-' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <ng-template #ownerEmpty>
+                        <div class="iz-owner is-empty">
+                            <span class="zm-avatar iz-owner-avatar">
+                                <span class="material-symbols-outlined">person_off</span>
+                            </span>
+                            <div class="iz-owner-info">
+                                <div class="iz-owner-label">Aktif zimmet</div>
+                                <div class="iz-owner-name">Zimmet yok</div>
+                            </div>
+                        </div>
+                    </ng-template>
+                </ng-container>
             </div>
 
             <!-- Henüz evrak yokken: nasıl çalıştığını anlatan adımlar -->

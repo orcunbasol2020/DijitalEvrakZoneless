@@ -371,9 +371,6 @@
           <div class="zh-header-text">
             <div class="zh-doc-no">{{ zimmetHistoryDoc()?.qrCode }}</div>
           </div>
-          @if (!zimmetHistoryLoading() && zimmetHistory().length) {
-            <span class="zh-count">{{ zimmetHistory().length }} kayıt</span>
-          }
         </div>
       </div>
 
@@ -427,6 +424,7 @@
             (click)="toggleZimmetHistoryExpanded()">
             <span class="material-symbols-outlined">timeline</span>
             Hareketler
+            <span class="zh-section-count">{{ zimmetHistory().length }}</span>
             <span class="material-symbols-outlined zh-section-chevron">expand_more</span>
           </button>
           @if (zimmetHistoryExpanded()) {

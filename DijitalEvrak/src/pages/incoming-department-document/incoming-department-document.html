@@ -1,0 +1,426 @@
+<app-generic pageTitle="Birim Gelen Evrakları"
+  [breadcrumbs]="[{title: 'Gelen Evraklar', url: 'incomingDepartmentDocument', icon: ''}]">
+</app-generic>
+
+<div class="st-page">
+  <!-- Üst kart: solda sayfa kimliği, sağda birim çipi ve yenile -->
+  <section class="sp-hero zl-hero zl-hero-split idd-hero">
+    <div class="sp-hero-top">
+      <span class="sp-hero-icon">
+        <span class="material-symbols-outlined">move_to_inbox</span>
+      </span>
+      <div>
+        <h4 class="sp-hero-title">Birim Gelen Evrakları</h4>
+        <div class="sp-hero-text">
+          Biriminize gelen evrakları izleyin, süreç akışına gidin ve zimmet geçmişini inceleyin.
+        </div>
+      </div>
+    </div>
+
+    <div class="zl-hero-side">
+      <span class="st-chip" [title]="departmentName()">
+        <span class="material-symbols-outlined">apartment</span>
+        {{ departmentName() }}
+      </span>
+      <button type="button" class="st-hero-btn" [disabled]="loading() || !departmentId()" (click)="loadDocuments()">
+        Yenile
+        <span class="material-symbols-outlined" [class.zl-spin]="loading()">refresh</span>
+      </button>
+    </div>
+  </section>
+
+  @if (!departmentId()) {
+    <!-- Kullanıcıya birim tanımlı değilse liste çekilemez -->
+    <section class="st-card">
+      <div class="st-card-body">
+        <div class="sp-empty">
+          <span class="sp-empty-icon">
+            <span class="material-symbols-outlined">domain_disabled</span>
+          </span>
+          <div class="sp-empty-title">Birim bilgisi bulunamadı</div>
+          <div class="sp-empty-text">
+            Hesabınıza bağlı bir birim tanımlı olmadığı için birim evrakları listelenemiyor. Yöneticinizle iletişime geçin.
+          </div>
+        </div>
+      </div>
+    </section>
+  } @else {
+    <!-- İstatistik kutuları: aynı zamanda liste filtresi -->
+    <div class="zl-stats idd-stats">
+      <button type="button" class="zl-stat" [class.is-active]="listFilter() === 'all'" (click)="setListFilter('all')">
+        <span class="zl-stat-icon is-total">
+          <span class="material-symbols-outlined">move_to_inbox</span>
+        </span>
+        <span class="zl-stat-body">
+          <span class="zl-stat-label d-block">TOPLAM EVRAK</span>
+          <span class="zl-stat-value d-block">{{ totalCount() }}</span>
+        </span>
+        <span class="material-symbols-outlined zl-stat-check">{{ listFilter() === 'all' ? 'check_circle' : 'radio_button_unchecked' }}</span>
+      </button>
+
+      <button type="button" class="zl-stat" [class.is-active]="listFilter() === 'published'" (click)="setListFilter('published')">
+        <span class="zl-stat-icon idd-published">
+          <span class="material-symbols-outlined">check_circle</span>
+        </span>
+        <span class="zl-stat-body">
+          <span class="zl-stat-label d-block">YAYINLANAN</span>
+          <span class="zl-stat-value d-block">{{ publishedCount() }}</span>
+        </span>
+        <span class="material-symbols-outlined zl-stat-check">{{ listFilter() === 'published' ? 'check_circle' : 'radio_button_unchecked' }}</span>
+      </button>
+
+      <button type="button" class="zl-stat" [class.is-active]="listFilter() === 'publishing'" (click)="setListFilter('publishing')">
+        <span class="zl-stat-icon is-out">
+          <span class="material-symbols-outlined">hourglass_bottom</span>
+        </span>
+        <span class="zl-stat-body">
+          <span class="zl-stat-label d-block">YAYINLANMA SIRASINDA</span>
+          <span class="zl-stat-value d-block">{{ publishingCount() }}</span>
+        </span>
+        <span class="material-symbols-outlined zl-stat-check">{{ listFilter() === 'publishing' ? 'check_circle' : 'radio_button_unchecked' }}</span>
+      </button>
+
+      <button type="button" class="zl-stat" [class.is-active]="listFilter() === 'inprocess'" (click)="setListFilter('inprocess')">
+        <span class="zl-stat-icon idd-inprocess">
+          <span class="material-symbols-outlined">pending</span>
+        </span>
+        <span class="zl-stat-body">
+          <span class="zl-stat-label d-block">İŞLEMDE</span>
+          <span class="zl-stat-value d-block">{{ inProcessCount() }}</span>
+        </span>
+        <span class="material-symbols-outlined zl-stat-check">{{ listFilter() === 'inprocess' ? 'check_circle' : 'radio_button_unchecked' }}</span>
+      </button>
+    </div>
+
+    <!-- Liste -->
+    <section class="st-card">
+      <div class="st-card-head zl-list-head">
+        <span class="st-card-icon">
+          <span class="material-symbols-outlined">list_alt</span>
+        </span>
+        <div>
+          <h4 class="st-card-title">Evrak Listesi</h4>
+        </div>
+        <div class="zl-head-tools">
+          <div class="sp-search zl-head-search">
+            <span class="material-symbols-outlined sp-search-icon">search</span>
+            <input
+              type="text"
+              class="sp-search-input"
+              placeholder="Belge no, konu veya kurum ara..."
+              [ngModel]="searchQuery()"
+              (ngModelChange)="setSearchQuery($event)" />
+            <div class="sp-search-end">
+              @if (searchQuery().trim()) {
+                <button type="button" class="sp-search-clear" title="Aramayı temizle" (click)="setSearchQuery('')">
+                  <span class="material-symbols-outlined">close</span>
+                </button>
+              }
+            </div>
+          </div>
+          <span class="st-count"
+            [class.is-none]="isFiltering() && !filteredRows().length">
+            <span class="material-symbols-outlined">filter_list</span>
+            {{ filteredRows().length }} / {{ totalCount() }}
+          </span>
+          <button type="button" class="zl-icon-btn" title="Güncel Verileri Getir" (click)="loadDocuments()">
+            <span class="material-symbols-outlined">refresh</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="st-card-body zl-body">
+        @if (loading()) {
+          <div class="zl-loading">
+            <span class="spinner-border" role="status"></span>
+            Birim evrakları yükleniyor...
+          </div>
+        } @else if (!filteredRows().length) {
+          <div class="zl-empty-wrap">
+            <div class="sp-empty">
+              <span class="sp-empty-icon">
+                <span class="material-symbols-outlined">{{ isFiltering() ? 'search_off' : 'move_to_inbox' }}</span>
+              </span>
+              @if (isFiltering()) {
+                <div class="sp-empty-title">Sonuç bulunamadı</div>
+                <div class="sp-empty-text">
+                  @if (searchQuery().trim()) {
+                    "{{ searchQuery() }}" ile eşleşen bir evrak yok. Farklı bir ifade deneyin ya da filtreyi değiştirin.
+                  } @else {
+                    Seçili filtrede evrak bulunmuyor.
+                  }
+                </div>
+                <button type="button" class="sp-pill-btn" (click)="clearFilters()">
+                  <span class="material-symbols-outlined">restart_alt</span>
+                  Filtreleri temizle
+                </button>
+              } @else {
+                <div class="sp-empty-title">Birime gelen evrak bulunmuyor</div>
+                <div class="sp-empty-text">
+                  Biriminize kayıtlı bir gelen evrak yok. Yeni bir evrak kaydedildiğinde burada listelenir.
+                </div>
+              }
+            </div>
+          </div>
+        } @else {
+          <div class="zl-table-wrap">
+            <table class="zl-table">
+              <thead>
+                <tr>
+                  <th class="zl-th-sort" [class.is-active]="sortColumn() === 'qrCode'" (click)="toggleSort('qrCode')">
+                    <span class="zl-th-inner">BELGE NO <span class="material-symbols-outlined zl-sort-icon">{{ sortIcon('qrCode') }}</span></span>
+                  </th>
+                  <th>NEREDEN</th>
+                  <th class="zl-th-sort" [class.is-active]="sortColumn() === 'subject'" (click)="toggleSort('subject')">
+                    <span class="zl-th-inner">KONU <span class="material-symbols-outlined zl-sort-icon">{{ sortIcon('subject') }}</span></span>
+                  </th>
+                  <th class="zl-center">İVEDİLİK</th>
+                  <th class="zl-th-sort" [class.is-active]="sortColumn() === 'documentDate'" (click)="toggleSort('documentDate')">
+                    <span class="zl-th-inner">BELGE TARİHİ <span class="material-symbols-outlined zl-sort-icon">{{ sortIcon('documentDate') }}</span></span>
+                  </th>
+                  <th class="zl-center">GİZLİLİK</th>
+                  <th class="zl-center">DURUM</th>
+                  <th class="zl-center">SÜREÇ</th>
+                  <th class="zl-center">ZİMMET</th>
+                  <th class="zl-center">GEÇMİŞ</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                @for (item of pagedRows(); track item.id) {
+                  <tr class="zl-row idd-row">
+                    <td>
+                      <span class="zl-doc">
+                        <span class="zl-doc-icon">
+                          <span class="material-symbols-outlined">description</span>
+                        </span>
+                        <span>
+                          <span class="zl-doc-no d-block">{{ item.qrCode || '-' }}</span>
+                          @if (item.orginalNo) {
+                            <span class="zl-doc-sub">{{ item.orginalNo }}</span>
+                          }
+                        </span>
+                      </span>
+                    </td>
+                    <td>
+                      <span class="idd-dest" [title]="externalInstitutionNameOf(item)">
+                        @if (externalInstitutionNameOf(item)) {
+                          {{ externalInstitutionNameOf(item) }}
+                        } @else {
+                          <span class="idd-muted">-</span>
+                        }
+                      </span>
+                    </td>
+                    <td>
+                      <div class="zl-doc-name idd-subject" [title]="item.subject ?? ''">{{ item.subject || '-' }}</div>
+                    </td>
+                    <td class="zl-center">
+                      @if (item.urgencyDegree != null && urgencyDegreeInitialMap[item.urgencyDegree]) {
+                        <span class="degree-badge-circle {{ urgencyDegreeBadgeClassMap[item.urgencyDegree] || 'degree-tier-1' }}"
+                          [title]="urgencyDegreeMap[item.urgencyDegree] || '-'">
+                          {{ urgencyDegreeInitialMap[item.urgencyDegree] }}
+                        </span>
+                      } @else {
+                        <span class="idd-muted">-</span>
+                      }
+                    </td>
+                    <td>
+                      <span class="zl-date">
+                        <span class="material-symbols-outlined">calendar_today</span>
+                        {{ item.documentDate ? (item.documentDate | date:'dd.MM.yyyy') : '-' }}
+                      </span>
+                    </td>
+                    <td class="zl-center">
+                      @if (item.securityDegree != null && securityDegreeMap[item.securityDegree]) {
+                        <span class="degree-badge-circle {{ securityDegreeBadgeClassMap[item.securityDegree] || 'degree-tier-1' }}"
+                          [title]="securityDegreeMap[item.securityDegree]">
+                          <span class="material-symbols-outlined" style="font-size: 16px;">{{ securityDegreeIconMap[item.securityDegree] || 'help' }}</span>
+                        </span>
+                      } @else {
+                        <span class="idd-muted">-</span>
+                      }
+                    </td>
+                    <td class="zl-center">
+                      <span class="idd-status {{ statusClass(item) }}" [title]="statusLabel(item)">
+                        <span class="material-symbols-outlined">{{ statusIcon(item) }}</span>
+                        {{ statusLabel(item) }}
+                      </span>
+                    </td>
+                    <td class="zl-center">
+                      <button type="button" class="zl-act" title="Süreçler" (click)="goToProcess(item.id)">
+                        <span class="material-symbols-outlined">conversion_path</span>
+                      </button>
+                    </td>
+                    <td class="zl-center">
+                      <button type="button" class="zl-act" title="Zimmetleme" (click)="goToZimmet(item.id)">
+                        <span class="material-symbols-outlined">article_person</span>
+                      </button>
+                    </td>
+                    <td class="zl-center">
+                      <button type="button" class="zl-act" title="Zimmet Geçmişi" (click)="openZimmetHistory(item)">
+                        <span class="material-symbols-outlined">history</span>
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+
+      @if (!loading() && filteredRows().length) {
+        <div class="zl-footer">
+          <div class="zl-range">
+            Toplam <b>{{ filteredRows().length }}</b> kayıttan <b>{{ pageRangeStart() }}-{{ pageRangeEnd() }}</b> arası gösteriliyor
+          </div>
+
+          @if (totalPages() > 1) {
+            <div class="zl-pager">
+              <button type="button" class="zl-page" [disabled]="currentPage() === 1" (click)="goToPage(currentPage() - 1)">
+                <span class="material-symbols-outlined">chevron_left</span>
+              </button>
+              @if (pageNumbers()[0] > 1) {
+                <button type="button" class="zl-page" (click)="goToPage(1)">1</button>
+              }
+              @if (pageNumbers()[0] > 2) {
+                <span class="zl-page-gap">…</span>
+              }
+              @for (p of pageNumbers(); track p) {
+                <button type="button" class="zl-page" [class.is-active]="p === currentPage()" (click)="goToPage(p)">{{ p }}</button>
+              }
+              @if (pageNumbers()[pageNumbers().length - 1] < totalPages() - 1) {
+                <span class="zl-page-gap">…</span>
+              }
+              @if (pageNumbers()[pageNumbers().length - 1] < totalPages()) {
+                <button type="button" class="zl-page" (click)="goToPage(totalPages())">{{ totalPages() }}</button>
+              }
+              <button type="button" class="zl-page" [disabled]="currentPage() === totalPages()" (click)="goToPage(currentPage() + 1)">
+                <span class="material-symbols-outlined">chevron_right</span>
+              </button>
+            </div>
+          }
+        </div>
+
+        <div class="zl-footnote">
+          <span class="material-symbols-outlined">info</span>
+          Sıralamak için sütun başlığına tıklayın; süreç akışı, zimmetleme ve zimmet geçmişi satırdaki düğmelerden açılır
+        </div>
+      }
+    </section>
+  }
+</div>
+
+<!-- Zimmet Geçmişi Popup: evrakın mevcut ve geçmiş zimmetleri (Gelen Evraklar ekranıyla aynı) -->
+@if (zimmetHistoryVisible()) {
+  <div class="modal-overlay" (click)="closeZimmetHistory()">
+    <div class="modal-box zh-modal" (click)="$event.stopPropagation()">
+      <!-- Başlık -->
+      <div class="zh-header">
+        <div class="zh-header-top">
+          <div class="zh-title">Zimmet Geçmişi</div>
+          <button type="button" class="zh-close" title="Kapat" (click)="closeZimmetHistory()">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <div class="zh-header-main">
+          <div class="zh-header-icon">
+            <span class="material-symbols-outlined">history</span>
+          </div>
+          <div class="zh-header-text">
+            <div class="zh-doc-no">{{ zimmetHistoryDoc()?.qrCode }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Aktif zimmet özeti -->
+      @if (!zimmetHistoryLoading()) {
+        @if (activeZimmet(); as a) {
+          <div class="zh-hero is-active">
+            <span class="zh-avatar">{{ initials(a.fullName) }}</span>
+            <div class="zh-hero-text">
+              <div class="zh-hero-label">
+                <span class="zh-pulse"></span>
+                Aktif Zimmet
+              </div>
+              <div class="zh-hero-name">{{ a.fullName || '-' }}</div>
+            </div>
+            <div class="zh-hero-side">
+              <span class="zh-date">
+                <span class="material-symbols-outlined">schedule</span>
+                {{ a.createdDate | date:'dd.MM.yyyy HH:mm' }}
+              </span>
+            </div>
+          </div>
+        } @else if (zimmetHistory().length) {
+          <div class="zh-hero is-empty">
+            <span class="zh-avatar is-muted">
+              <span class="material-symbols-outlined">person_off</span>
+            </span>
+            <div class="zh-hero-text">
+              <div class="zh-hero-label">Aktif Zimmet</div>
+              <div class="zh-hero-name">Şu an kimsenin üzerinde değil</div>
+            </div>
+          </div>
+        }
+      }
+
+      <!-- Zaman çizelgesi -->
+      <div class="zh-body">
+        @if (zimmetHistoryLoading()) {
+          <div class="zh-state">
+            <div class="spinner-border spinner-border-sm text-primary"></div>
+            <span>Zimmet geçmişi yükleniyor</span>
+          </div>
+        } @else if (zimmetHistory().length) {
+          <button
+            type="button"
+            class="zh-section-title zh-section-toggle"
+            [class.is-open]="zimmetHistoryExpanded()"
+            [attr.aria-expanded]="zimmetHistoryExpanded()"
+            [title]="zimmetHistoryExpanded() ? 'Hareketleri gizle' : 'Hareketleri göster'"
+            (click)="toggleZimmetHistoryExpanded()">
+            <span class="material-symbols-outlined">timeline</span>
+            Hareketler
+            <span class="zh-section-count">{{ zimmetHistory().length }}</span>
+            <span class="material-symbols-outlined zh-section-chevron">expand_more</span>
+          </button>
+          @if (zimmetHistoryExpanded()) {
+            <div class="zh-timeline">
+              @for (h of zimmetHistory(); track h.id) {
+                <div class="zh-row" [class.is-active]="h.isActive">
+                  <span class="zh-dot {{ allocationStatusClass[h.status] || '' }}" [class.is-past]="!h.isActive">
+                    <span class="material-symbols-outlined">{{ allocationStatusIcons[h.status] || 'person' }}</span>
+                  </span>
+                  <div class="zh-card">
+                    <div class="zh-card-main">
+                      <div class="zh-name" [title]="h.fullName">{{ h.fullName || '-' }}</div>
+                    </div>
+                    <div class="zh-card-side">
+                      <span class="zh-status-chip {{ allocationStatusClass[h.status] || '' }}">
+                        <span class="material-symbols-outlined">{{ allocationStatusIcons[h.status] || 'label' }}</span>
+                        {{ allocationStatusLabels[h.status] || '-' }}
+                      </span>
+                      <span class="zh-date">
+                        <span class="material-symbols-outlined">schedule</span>
+                        {{ h.createdDate | date:'dd.MM.yyyy HH:mm' }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        } @else {
+          <div class="zh-state is-empty">
+            <span class="zh-state-icon">
+              <span class="material-symbols-outlined">history_toggle_off</span>
+            </span>
+            <div class="zh-state-title">Zimmet kaydı yok</div>
+            <div class="zh-state-desc">Bu evrak için henüz bir zimmet hareketi oluşmamış.</div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}

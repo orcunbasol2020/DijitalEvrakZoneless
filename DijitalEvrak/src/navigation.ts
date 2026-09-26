@@ -42,7 +42,16 @@ export const navigations: NavigationModel[] = [
         title: "Gelen Evraklar",
         url: "/scanlist",
         icon: "add_notes",
-        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Ön Kayıt"]
+        roles: ["Gelen Evrak", "Ön Kayıt"]
+    },
+    {
+        // Birim Evrak Sorumlusu için birim evraklarının hafif listesi; evrak kayıt
+        // rolü de olan kullanıcı yukarıdaki tam sürümü görür, bu madde gizlenir.
+        title: "Gelen Evraklar",
+        url: "/incomingDepartmentDocument",
+        icon: "add_notes",
+        roles: ["Birim Evrak Sorumlusu"],
+        excludeRoles: ["Gelen Evrak", "Ön Kayıt"]
     },
     {
         title: "Gelen Evraklar",

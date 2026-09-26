@@ -9,12 +9,16 @@ import { Common } from '../../services/common';
 import { IncomingDocumentService } from '../../services/incomingdocument';
 import { AllocationFlowComponent } from '../dynamics/allocation-flow/allocation-flow';
 import { DocumentAllocationModel } from '../../models/documentallocation.model';
-import { AllocationStatusEnum } from '../../models/allocationstatus.model';
+import { AllocationStatusEnum, AllocationStatusLabels } from '../../models/allocationstatus.model';
 import { httpResource } from '@angular/common/http';
 import { UserModel } from '../users/users';
 import { SimpleAutocompleteComponent } from '../simpleautocomplete/simpleautocomplete';
 import { SecurityDegreeLabels, SecurityDegreeBadgeClass } from '../../models/securitydegree.model';
-import { actionRequiredLabel, actionRequiredBadgeClass } from '../../models/actionrequired.model';
+import { actionRequiredLabel, actionRequiredBadgeClass, actionRequiredIcon } from '../../models/actionrequired.model';
+import { UrgencyDegreeLabels, UrgencyDegreeBadgeClass } from '../../models/urgencydegree.model';
+import { DocumentTypeLabels } from '../../models/documenttype.model';
+import { Department, DepartmentModel } from '../../services/department';
+import { ExternalInstitution, ExternalInstitutionModel } from '../../services/external-institution';
 
 type ZimmetType = 'self' | 'other';
 // Sol paneldeki sekmeler: evrak bilgileri / zimmet geçmişi
@@ -40,6 +44,8 @@ type ZimmetTab = 'bilgi' | 'gecmis';
 export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
   // Şablondaki Zimmetle / Teslim Et butonları için.
   readonly AllocationStatus = AllocationStatusEnum;
+  // Sağ paneldeki "Aktif zimmet sahibi" şeridinde durum adı için.
+  readonly allocationStatusLabels: Record<number, string> = AllocationStatusLabels;
 
   // === QR READER ===
   private buffer: string = '';
@@ -53,14 +59,32 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
   documentDetail = signal<any | null>(null);
   securityDegreeMap: Record<number, string> = SecurityDegreeLabels;
   securityDegreeStyle: Record<number, string> = SecurityDegreeBadgeClass;
+  urgencyDegreeMap: Record<number, string> = UrgencyDegreeLabels;
+  urgencyDegreeStyle: Record<number, string> = UrgencyDegreeBadgeClass;
+  documentTypeLabels: Record<number, string> = DocumentTypeLabels;
   readonly actionRequiredLabel = actionRequiredLabel;
   readonly actionRequiredBadgeClass = actionRequiredBadgeClass;
+  readonly actionRequiredIcon = actionRequiredIcon;
 
   readonly #toast = inject(FlexiToastService);
   readonly #common = inject(Common);
   readonly user = computed(() => this.#common.user());
   private allocationService = inject(DocumentAllocation);
   private incomingDocumentService = inject(IncomingDocumentService);
+  private departmentService = inject(Department);
+  private externalInstitutionService = inject(ExternalInstitution);
+
+  // Nereden / Nereye: evraktaki id'ler kurum ve birim adına çevrilir (Süreçler ekranıyla aynı yaklaşım).
+  readonly departments = signal<DepartmentModel[]>([]);
+  readonly externalInstitutions = signal<ExternalInstitutionModel[]>([]);
+
+  departmentNameOf(id?: string | null): string {
+    return (id && this.departments().find(d => d.id?.toLowerCase() === id.toLowerCase())?.name) || '-';
+  }
+
+  externalInstitutionNameOf(id?: string | null): string {
+    return (id && this.externalInstitutions().find(i => i.id?.toLowerCase() === id.toLowerCase())?.name) || '-';
+  }
 
   detailsVisible = signal(false);
   scannedDocumentNo = signal<string | null>(null);
@@ -120,6 +144,15 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit() {
     this.id = this.incomingDocumentService.currentZimmetDocumentId;
+
+    this.departmentService.getDepartments().subscribe({
+      next: (res) => this.departments.set(res ?? []),
+      error: (err) => console.error('Birimler yüklenemedi:', err)
+    });
+    this.externalInstitutionService.getExternalInstitutions().subscribe({
+      next: (res) => this.externalInstitutions.set(res ?? []),
+      error: (err) => console.error('Dış kurumlar yüklenemedi:', err)
+    });
 
     if (this.id) {
       this.detailsVisible.set(true);
