@@ -33,8 +33,6 @@ interface OnKayitRow extends IncomingDocumentModel {
   // Ön kaydı yapan kullanıcı: yalnızca createdUserId (eski kayıtlarda boş olabilir)
   createdById: string | undefined;
   createdByName: string;
-  createdByDepartment: string;
-  createdByInitials: string;
   assignedToName: string;
   isScanned: boolean;
 }
@@ -156,15 +154,10 @@ export default class Onkayitlar {
 
     return docs.map(doc => {
       const createdById = doc.createdUserId ?? undefined;
-      const creator = this.findUser(createdById);
       return {
         ...doc,
         createdById,
         createdByName: fullName(createdById) || '-',
-        createdByDepartment: creator?.departmentName ?? '',
-        createdByInitials: creator
-          ? `${creator.name?.[0] ?? ''}${creator.surname?.[0] ?? ''}`.toLocaleUpperCase('tr')
-          : '?',
         assignedToName: fullName(doc.currentAssignmentUserId) || '',
         isScanned: !!doc.documentName
       };

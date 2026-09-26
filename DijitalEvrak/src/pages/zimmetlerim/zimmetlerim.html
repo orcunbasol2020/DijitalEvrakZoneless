@@ -4,17 +4,28 @@
 
 <div class="st-page">
   <!-- Üst kart: başlık (arama liste kartının başlığında) -->
-  <section class="sp-hero zl-hero">
+  <section class="sp-hero zl-hero zl-hero-split">
     <div class="sp-hero-top">
       <span class="sp-hero-icon">
         <span class="material-symbols-outlined">inventory_2</span>
       </span>
       <div>
-        <h4 class="sp-hero-title">Üzerimdeki Zimmetler</h4>
+        <h4 class="sp-hero-title">Zimmetlerim</h4>
         <div class="sp-hero-text">
           Üzerinizdeki gelen ve giden evrak zimmetlerini tek listede görün, geçmişini inceleyin ya da başka bir personele devredin.
         </div>
       </div>
+    </div>
+
+    <div class="zl-hero-side">
+      <span class="st-chip">
+        <span class="material-symbols-outlined">inventory_2</span>
+        {{ totalCount() }} zimmet
+      </span>
+      <button type="button" class="st-hero-btn" [disabled]="loading()" (click)="loadZimmetlerim()">
+        Yenile
+        <span class="material-symbols-outlined" [class.zl-spin]="loading()">refresh</span>
+      </button>
     </div>
   </section>
 

@@ -1,0 +1,41 @@
+<div class="card premium-card h-100">
+    <div class="card-header dashboard-header ad-head ad-head-accent">
+        <span class="ad-head-icon">
+            <span class="material-symbols-outlined">smart_toy</span>
+        </span>
+        <div class="ad-head-text">
+            <h5 class="ad-head-title">Akıllı Havale</h5>
+        </div>
+        <span class="ad-live">
+            <span class="ad-live-dot"></span>
+            Aktif
+        </span>
+    </div>
+    <div class="card-body ad-ai-body">
+        <p class="ad-ai-text">
+            Gelen evrakın içeriğini önceki kayıtlarla karşılaştırarak havale edilecek birimi önerir.
+        </p>
+        <dl class="ad-ai-meta">
+            <div class="ad-ai-row">
+                <dt>Motor</dt>
+                <dd>{{ engine }}</dd>
+            </div>
+            <div class="ad-ai-row">
+                <dt>Sürüm</dt>
+                <dd>{{ version }}</dd>
+            </div>
+            <div class="ad-ai-row">
+                <dt>Bugün önerilen</dt>
+                <dd>{{ suggestedToday }} evrak</dd>
+            </div>
+            <div class="ad-ai-row">
+                <dt>Kabul oranı</dt>
+                <dd>%{{ acceptRate }}</dd>
+            </div>
+        </dl>
+        <a routerLink="/havale" class="ad-ai-link">
+            Havale ekranına git
+            <span class="material-symbols-outlined">arrow_forward</span>
+        </a>
+    </div>
+</div>

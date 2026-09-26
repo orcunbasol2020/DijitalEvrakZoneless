@@ -1,0 +1,41 @@
+<div class="card premium-card h-100">
+    <div class="card-header dashboard-header ad-head ad-head-compact">
+        <span class="ad-head-icon">
+            <span class="material-symbols-outlined">monitoring</span>
+        </span>
+        <div class="ad-head-text">
+            <h5 class="ad-head-title">Anlık Durum</h5>
+        </div>
+        <div class="ad-tabs">
+            <button type="button" class="ad-tab" [class.is-active]="statusTab() === 'incoming'" (click)="statusTab.set('incoming')">Gelen</button>
+            <button type="button" class="ad-tab" [class.is-active]="statusTab() === 'outgoing'" (click)="statusTab.set('outgoing')">Giden</button>
+        </div>
+    </div>
+
+    <div class="card-body">
+        <!-- Yatay çubuklar: Kullanıcı Profili "Yetki Kapsamı" ile aynı görsel dil -->
+        <div class="ad-status">
+            <div class="ad-status-top">
+                <div class="ad-status-num">{{ statusView().total }}<small>{{ statusView().totalLabel }}</small></div>
+                <div class="ad-status-pct">%{{ pct(statusView().done, statusView().total) }} {{ statusView().doneLabel }}</div>
+            </div>
+
+            <div class="ad-status-rows">
+                @for (bar of statusView().bars; track bar.label) {
+                    <div class="ad-status-row">
+                        <div class="ad-status-head">
+                            <span class="ad-status-label">
+                                <span class="material-symbols-outlined">{{ bar.icon }}</span>
+                                {{ bar.label }}
+                            </span>
+                            <span class="ad-status-val">{{ bar.value }}<small>/ {{ bar.total }}</small></span>
+                        </div>
+                        <div class="ad-bar">
+                            <div class="ad-bar-fill is-{{ bar.tone }}" [style.width.%]="pct(bar.value, bar.total)"></div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

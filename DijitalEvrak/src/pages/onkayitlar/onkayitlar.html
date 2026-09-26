@@ -149,8 +149,6 @@
                 <th class="zl-th-sort" [class.is-active]="sortColumn() === 'createdDate'" (click)="toggleSort('createdDate')">
                   <span class="zl-th-inner">ÖN KAYIT TARİHİ <span class="material-symbols-outlined zl-sort-icon">{{ sortIcon('createdDate') }}</span></span>
                 </th>
-                <th class="zl-center">TARAMA</th>
-                <th class="zl-center">OCR</th>
                 <th class="zl-center">EVRAK KAYIT</th>
                 <th class="zl-center">SÜREÇ</th>
                 <th class="zl-center">ZİMMET</th>
@@ -180,37 +178,12 @@
                     </span>
                   </td>
                   <td>
-                    <span class="okl-person">
-                      <span class="okl-avatar">{{ item.createdByInitials }}</span>
-                      <span class="min-w-0">
-                        <span class="okl-person-name d-block">{{ item.createdByName }}</span>
-                        @if (item.createdByDepartment) {
-                          <span class="okl-person-meta d-block">{{ item.createdByDepartment }}</span>
-                        }
-                      </span>
-                    </span>
+                    <span class="okl-person-name">{{ item.createdByName }}</span>
                   </td>
                   <td>
                     <span class="zl-date">
                       <span class="material-symbols-outlined">calendar_today</span>
                       {{ item.createdDate ? (item.createdDate | date:'dd.MM.yyyy HH:mm') : '-' }}
-                    </span>
-                  </td>
-                  <td class="zl-center">
-                    <span class="okl-scan" [class.is-done]="item.isScanned" [class.is-wait]="!item.isScanned">
-                      <span class="material-symbols-outlined">{{ item.isScanned ? 'task_alt' : 'hourglass_top' }}</span>
-                      {{ item.isScanned ? 'Taranmış' : 'Bekliyor' }}
-                    </span>
-                  </td>
-                  <td class="zl-center">
-                    <span class="okl-ocr"
-                      [class.is-done]="item.ocrStatus === 1"
-                      [class.is-error]="item.ocrStatus === 2"
-                      [class.is-wait]="item.ocrStatus !== 1 && item.ocrStatus !== 2"
-                      [title]="item.ocrStatus === 1 ? 'OCR tamamlandı' : item.ocrStatus === 2 ? 'OCR hatalı' : 'OCR bekliyor'">
-                      <span class="material-symbols-outlined">
-                        {{ item.ocrStatus === 1 ? 'check_circle' : item.ocrStatus === 2 ? 'error' : 'hourglass_bottom' }}
-                      </span>
                     </span>
                   </td>
                   <td class="zl-center">

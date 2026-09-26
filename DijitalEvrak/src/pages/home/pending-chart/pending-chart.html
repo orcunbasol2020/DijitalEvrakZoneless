@@ -1,1 +1,24 @@
-<div #chart style="width: 100%; height: 350px;"></div>
+<!-- Bileşim çubuğu + açıklama listesi: tek çubukta aşamaların payı, altında sayı ve yüzde -->
+<div class="pc">
+  <div class="pc-top">
+    <div class="pc-total">{{ total }}<small>bekleyen evrak</small></div>
+    <div class="pc-count">{{ stages.length }} aşama</div>
+  </div>
+
+  <div class="pc-bar" role="img" [attr.aria-label]="'Bekleyen evrakların aşamalara göre dağılımı, toplam ' + total">
+    @for (stage of stages; track stage.name; let i = $index) {
+      <span class="pc-seg" [style.width.%]="share(stage)" [style.background]="color(i)" [title]="stage.name + ': ' + stage.value"></span>
+    }
+  </div>
+
+  <ul class="pc-legend">
+    @for (stage of stages; track stage.name; let i = $index) {
+      <li class="pc-item" [title]="shareTitle(stage)">
+        <span class="pc-dot" [style.background]="color(i)"></span>
+        <span class="pc-label">{{ stage.name }}</span>
+        <span class="pc-val">{{ stage.value }}</span>
+        <span class="pc-pct">%{{ share(stage) }}</span>
+      </li>
+    }
+  </ul>
+</div>

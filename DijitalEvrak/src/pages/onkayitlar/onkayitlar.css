@@ -30,77 +30,16 @@
     background: linear-gradient(135deg, #7c3aed, #a78bfa);
 }
 
-/* Kaydeden personel: baş harf avatarı + ad / birim */
-.okl-person {
-    display: inline-flex;
-    align-items: center;
-    gap: 9px;
-    min-width: 0;
-}
-
-.okl-avatar {
-    flex: 0 0 auto;
-    width: 30px;
-    height: 30px;
-    border-radius: 9px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 0.02em;
-    color: #fff;
-    background: linear-gradient(135deg, #0284c7, #22d3ee);
-    box-shadow: 0 3px 8px rgba(2, 132, 199, 0.22);
-}
-
+/* Kaydeden personel: yalnızca ad soyad */
 .okl-person-name {
+    display: inline-block;
+    max-width: 100%;
     font-size: 13px;
     font-weight: 600;
     color: #1e293b;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-}
-
-.okl-person-meta {
-    font-size: 11.5px;
-    color: #94a3b8;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* Tarama rozeti */
-.okl-scan {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    min-width: 96px;
-    justify-content: center;
-    padding: 4px 10px 4px 7px;
-    border-radius: 999px;
-    font-size: 11.5px;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    white-space: nowrap;
-    border: 1px solid transparent;
-}
-
-.okl-scan .material-symbols-outlined {
-    font-size: 15px;
-}
-
-.okl-scan.is-done {
-    color: #15803d;
-    background: #f0fdf4;
-    border-color: rgba(21, 128, 61, 0.2);
-}
-
-.okl-scan.is-wait {
-    color: #b45309;
-    background: #fffbeb;
-    border-color: rgba(180, 83, 9, 0.2);
 }
 
 /* Evrak Kayıt hücresi: işleme al + belge yükle yan yana */
@@ -124,25 +63,6 @@
     box-shadow: 0 4px 10px rgba(109, 40, 217, 0.25);
 }
 
-
-/* OCR durum ikonu */
-.okl-ocr {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-    border-radius: 9px;
-}
-
-.okl-ocr .material-symbols-outlined {
-    font-size: 20px;
-}
-
-.okl-ocr.is-done  { color: #16a34a; background: #f0fdf4; }
-.okl-ocr.is-error { color: #dc2626; background: #fef2f2; }
-.okl-ocr.is-wait  { color: #94a3b8; background: #f8fafc; }
-
 /* Evrak Kayıt aksiyonu: birincil vurgu */
 .zl-act.okl-act-primary:not(:disabled) {
     background: #0ea5e9;
@@ -162,22 +82,6 @@
     color: #e2e8f0;
 }
 
-[data-theme="dark"] .okl-person-meta {
-    color: #64748b;
-}
-
-[data-theme="dark"] .okl-scan.is-done {
-    color: #4ade80;
-    background: rgba(34, 197, 94, 0.12);
-    border-color: rgba(74, 222, 128, 0.25);
-}
-
-[data-theme="dark"] .okl-scan.is-wait {
-    color: #fbbf24;
-    background: rgba(245, 158, 11, 0.12);
-    border-color: rgba(251, 191, 36, 0.25);
-}
-
 [data-theme="dark"] .zl-act.okl-act-upload {
     color: #c4b5fd;
     background: rgba(139, 92, 246, 0.14);
@@ -189,10 +93,6 @@
     border-color: #7c3aed;
     color: #fff;
 }
-
-[data-theme="dark"] .okl-ocr.is-done  { color: #4ade80; background: rgba(34, 197, 94, 0.12); }
-[data-theme="dark"] .okl-ocr.is-error { color: #f87171; background: rgba(239, 68, 68, 0.12); }
-[data-theme="dark"] .okl-ocr.is-wait  { color: #64748b; background: rgba(148, 163, 184, 0.08); }
 
 /* ---- Belge no kopyalama butonu (belge ikonunun kendisi) ---- */
 .okl-copy-btn {

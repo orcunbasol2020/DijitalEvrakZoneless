@@ -4,45 +4,30 @@
 </app-generic>
 
 <div class="st-page">
-  <!-- Üst kart: kullanıcı özeti -->
-  <section class="st-hero">
-    <div class="st-hero-avatar">
-      @if (userAvatar(); as avatar) {
-        <img [src]="avatar" alt="Kullanıcı Avatarı" />
-      } @else {
-        <span class="st-hero-initials" aria-label="Kullanıcı Avatarı">{{ userInitials() }}</span>
-      }
-    </div>
-
-    <div class="st-hero-body">
-      <h4 class="st-hero-name">{{ user()?.name }} {{ user()?.surname }}</h4>
-      <div class="st-hero-mail">
-        <span class="material-symbols-outlined">mail</span>
-        {{ user()?.email || user()?.userName }}
-      </div>
-
-      <div class="st-hero-chips">
-        @if (user()?.departmentName) {
-          <span class="st-chip">
-            <span class="material-symbols-outlined">apartment</span>
-            {{ user()?.departmentName }}
-          </span>
-        }
-        <span class="st-chip">
-          <span class="material-symbols-outlined">verified_user</span>
-          {{ roles().length }} yetki
-        </span>
-        <span class="st-chip">
-          <span class="st-chip-dot"></span>
-          Aktif oturum
-        </span>
+  <!-- Üst kart: sayfa kimliği (kullanıcı bilgisi zaten sağ üst menüde ve sol menüde var) -->
+  <section class="sp-hero st-hero-page">
+    <div class="sp-hero-top">
+      <span class="sp-hero-icon">
+        <span class="material-symbols-outlined">settings</span>
+      </span>
+      <div>
+        <h4 class="sp-hero-title">Ayarlar</h4>
+        <div class="sp-hero-text">
+          Hesap bilgilerinizi, görünüm ve bildirim tercihlerinizi buradan yönetebilirsiniz.
+        </div>
       </div>
     </div>
 
-    <a routerLink="/users/profile" class="st-hero-btn">
-      Yetkilerimi Görüntüle
-      <span class="material-symbols-outlined">arrow_forward</span>
-    </a>
+    <div class="st-hero-side">
+      <span class="st-chip">
+        <span class="material-symbols-outlined">verified_user</span>
+        {{ roles().length }} yetki
+      </span>
+      <a routerLink="/users/profile" class="st-hero-btn">
+        Yetkilerimi Görüntüle
+        <span class="material-symbols-outlined">arrow_forward</span>
+      </a>
+    </div>
   </section>
 
   <div class="st-grid">

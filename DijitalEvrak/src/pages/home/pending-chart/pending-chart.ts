@@ -1,81 +1,47 @@
-import { Component, AfterViewInit, ElementRef, ViewChild } from '@angular/core';
-import * as echarts from 'echarts';
+import { ChangeDetectionStrategy, Component, ViewEncapsulation } from '@angular/core';
 
+interface PendingStage {
+  name: string;
+  value: number;
+}
+
+/**
+ * Bekleyenler: aşamalara göre bekleyen evrak sayıları.
+ * Tek bileşim çubuğu (aşamaların payı) + açıklama listesi (sayı ve yüzde).
+ * pc-* stilleri dashboard.css'ten gelir.
+ */
 @Component({
   selector: 'pending-chart',
   standalone: true,
-  templateUrl: './pending-chart.html'
+  templateUrl: './pending-chart.html',
+  encapsulation: ViewEncapsulation.None,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class PendingChart implements AfterViewInit {
-
-  @ViewChild('chart') chartContainer!: ElementRef;
-  chart!: echarts.ECharts;
-
-  pendingData = [
-    { name: 'Teslim Alınmayı', value: 32 },
-    { name: 'Kurye Teslimi', value: 14 },
-    { name: 'Nota', value: 9 },
-    { name: 'Dış Kuruma Gönderilmeyi', value: 5 },
-    { name: 'OCR Kuyruğunda', value: 17 },
-    { name: 'Kayıt/İşlem', value: 28 }
+export class PendingChart {
+  private readonly pendingData: PendingStage[] = [
+    { name: 'Kurum içinde teslim alınmayı bekleyen', value: 32 },
+    { name: 'Teslim alınmayı bekleyen notalar', value: 9 },
+    { name: 'Posta / kargo bekleyen', value: 7 },
+    { name: 'Dış kuruma gönderilmeyi bekleyen', value: 5 }
   ];
 
-ngAfterViewInit() {
-  this.chart = echarts.init(this.chartContainer.nativeElement);
+  /** Çoktan aza sıralı */
+  readonly stages = [...this.pendingData].sort((a, b) => b.value - a.value);
+  readonly total = this.stages.reduce((sum, s) => sum + s.value, 0);
 
-  // 🔥 Çoktan aza sıralama
-  const sorted = [...this.pendingData].sort((a, b) => b.value - a.value);
+  /** Petrol rampası: en yüksek aşama en koyu (sistemin lacivert-petrol dili) */
+  private readonly palette = ['#0c4a6e', '#0369a1', '#0ea5e9', '#7dd3fc', '#bae6fd'];
 
-  this.chart.setOption({
-    tooltip: {
-      trigger: 'item',
-      formatter: (p: any) => `${p.value}`
-    },
+  color(index: number): string {
+    return this.palette[Math.min(index, this.palette.length - 1)];
+  }
 
-    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+  /** Toplam içindeki pay (ipucu) */
+  share(stage: PendingStage): number {
+    return this.total > 0 ? Math.round((stage.value / this.total) * 100) : 0;
+  }
 
-    xAxis: {
-      type: 'category',
-      data: sorted.map(x => x.name),   // ← 🔥 BURAYA DİKKAT
-      axisLabel: {
-        rotate: 35,
-        fontSize: 11
-      }
-    },
-
-    yAxis: { type: 'value' },
-
-    series: [{
-      type: 'bar',
-      data: sorted.map(x => x.value),  // ← 🔥 BURAYA DİKKAT
-
-      label: {
-        show: true,
-        position: 'top',
-        formatter: '{c}',
-        fontSize: 12,
-        color: '#333'
-      },
-
-      // Petrol tonlarında tek rampa: en yüksek değer en koyu (sistemin lacivert-petrol dili)
-      itemStyle: {
-        color: (params: any) => {
-          const palette = [
-            '#0c4a6e',
-            '#0369a1',
-            '#0284c7',
-            '#0ea5e9',
-            '#38bdf8',
-            '#7dd3fc'
-          ];
-          return palette[params.dataIndex % palette.length];
-        },
-        borderRadius: [4, 4, 0, 0]
-      },
-
-      barWidth: 30
-    }]
-  });
-}
-
+  shareTitle(stage: PendingStage): string {
+    return `Bekleyenlerin %${this.share(stage)}'i`;
+  }
 }

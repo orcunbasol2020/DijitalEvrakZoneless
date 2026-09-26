@@ -3296,8 +3296,8 @@ app-allocation-card:nth-child(even) .zt-row:hover {
         overflow-x: auto;
     }
 
-    .orders-table th:nth-child(4),
-    .orders-table td:nth-child(4) {
+    /* Dar ekranda önce Zimmet sütunu gizlenir (Kurum, Belge No, Durum, Tarih kalır) */
+    .orders-table .col-custodian {
         display: none;
     }
 }
@@ -6573,12 +6573,21 @@ table .grid-header {
     text-align: center;
 }
 
+.user-toggle-name {
+    font-size: 0.82rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--text-color);
+    white-space: nowrap;
+}
+
 .user-department {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 500;
-    opacity: 0.85;
-    letter-spacing: 0.4px;
-    color: #4f7d85;
+    line-height: 1.2;
+    letter-spacing: 0.3px;
+    color: var(--text-muted);
+    white-space: nowrap;
 }
 
 
@@ -8148,44 +8157,98 @@ button:disabled {
 }
 
 .user-toggle-avatar {
-    box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.25);
+    box-shadow: 0 0 0 2px rgba(3, 105, 161, 0.28);
     transition: box-shadow 0.2s ease;
 }
 
 .user-toggle-btn:hover .user-toggle-avatar,
 .user-toggle-btn[aria-expanded="true"] .user-toggle-avatar {
-    box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.55);
+    box-shadow: 0 0 0 2px rgba(3, 105, 161, 0.65);
+}
+
+[data-theme="dark"] .user-toggle-avatar {
+    box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.3);
+}
+
+[data-theme="dark"] .user-toggle-btn:hover .user-toggle-avatar,
+[data-theme="dark"] .user-toggle-btn[aria-expanded="true"] .user-toggle-avatar {
+    box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.7);
 }
 
 .user-dropdown-menu {
     min-width: 300px;
     border-radius: 16px;
-    padding: 0.4rem 0 0.5rem;
-    box-shadow: 0 16px 40px rgba(17, 24, 39, 0.14), 0 2px 8px rgba(17, 24, 39, 0.06);
+    padding: 0 0 0.5rem;
+    box-shadow: 0 18px 44px rgba(15, 23, 42, 0.16), 0 3px 10px rgba(15, 23, 42, 0.07);
     background: var(--card-bg);
-    border: 1px solid var(--border-light);
-    transition: all .22s ease;
-    transform: translateY(-8px) scale(0.98);
-    opacity: 0;
-    will-change: transform, opacity;
+    border: 1px solid rgba(12, 74, 110, 0.22);
+    transform-origin: top right;
     overflow: hidden;
 }
 
 [data-theme="dark"] .user-dropdown-menu {
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.3);
+    border-color: rgba(125, 211, 252, 0.18);
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5), 0 3px 10px rgba(0, 0, 0, 0.3);
 }
 
+/* Açılış: Bootstrap display:none → block geçişinde transition çalışmadığı için
+   keyframe animasyonu; expo-out eğrisi ile yumuşak, satırlar sırayla belirir */
 .user-dropdown-menu.show {
-    transform: translateY(0) scale(1);
-    opacity: 1;
+    animation: userMenuOpen 0.34s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.user-dropdown-menu.show > li {
+    animation: userMenuItem 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.user-dropdown-menu.show > li:nth-child(1) { animation-delay: 0.02s; }
+.user-dropdown-menu.show > li:nth-child(2) { animation-delay: 0.05s; }
+.user-dropdown-menu.show > li:nth-child(3) { animation-delay: 0.08s; }
+.user-dropdown-menu.show > li:nth-child(4) { animation-delay: 0.11s; }
+.user-dropdown-menu.show > li:nth-child(5) { animation-delay: 0.14s; }
+.user-dropdown-menu.show > li:nth-child(6) { animation-delay: 0.17s; }
+.user-dropdown-menu.show > li:nth-child(7) { animation-delay: 0.20s; }
+
+@keyframes userMenuOpen {
+    from {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.96);
+        filter: blur(3px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0);
+    }
+}
+
+@keyframes userMenuItem {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .user-dropdown-menu.show,
+    .user-dropdown-menu.show > li {
+        animation: none;
+    }
 }
 
 .user-dropdown-header {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 1rem 1.1rem 0.9rem;
-    background: linear-gradient(135deg, rgba(67, 97, 238, 0.1), rgba(67, 97, 238, 0));
+    padding: 1.05rem 1.1rem 1rem;
+    margin-bottom: 0.35rem;
+    /* Kontrol Paneli üst şeridiyle aynı zemin */
+    background: linear-gradient(135deg, #0369a1 0%, #0284c7 45%, #06b6d4 100%);
+    border-bottom: 2px solid var(--border-light);
 }
 
 .user-dropdown-avatar {
@@ -8194,7 +8257,12 @@ button:disabled {
     height: 46px;
     border-radius: 50%;
     overflow: hidden;
-    box-shadow: 0 0 0 2px var(--card-bg), 0 0 0 4px rgba(67, 97, 238, 0.35);
+    box-shadow: 0 0 0 2px rgba(3, 105, 161, 0.5), 0 0 0 4px rgba(255, 255, 255, 0.45);
+}
+
+.user-dropdown-avatar .avatar-fallback {
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
 }
 
 .user-dropdown-avatar img {
@@ -8230,7 +8298,7 @@ button:disabled {
 .user-dropdown-name {
     font-size: 14px;
     font-weight: 700;
-    color: var(--text-color);
+    color: #f8fafc;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -8238,7 +8306,7 @@ button:disabled {
 
 .user-dropdown-email {
     font-size: 12px;
-    color: var(--text-muted);
+    color: rgba(255, 255, 255, 0.85);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -8246,8 +8314,11 @@ button:disabled {
 
 .user-dropdown-dept {
     font-size: 11px;
-    color: var(--text-muted);
+    color: rgba(255, 255, 255, 0.72);
     margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .user-dropdown-item {
@@ -8255,7 +8326,7 @@ button:disabled {
     align-items: center;
     gap: 12px;
     border-radius: 10px;
-    transition: background 0.2s ease, transform 0.2s ease;
+    transition: background 0.2s ease;
     padding: 0.55rem 1.1rem;
     margin: 0.15rem 0.5rem;
     width: calc(100% - 1rem);
@@ -8263,12 +8334,11 @@ button:disabled {
 }
 
 .user-dropdown-item:hover {
-    background: rgba(67, 97, 238, 0.08);
-    transform: translateX(2px);
+    background: rgba(12, 74, 110, 0.08);
 }
 
 [data-theme="dark"] .user-dropdown-item:hover {
-    background: rgba(90, 120, 255, 0.14);
+    background: rgba(125, 211, 252, 0.12);
 }
 
 /* Aktif sayfa (routerLinkActive): Bootstrap'in koyu .dropdown-item.active
@@ -8277,19 +8347,24 @@ button:disabled {
 .user-dropdown-item.active,
 .user-dropdown-item.active:hover,
 .user-dropdown-item.active:focus {
-    background: rgba(67, 97, 238, 0.12);
+    background: rgba(12, 74, 110, 0.12);
     color: var(--text-color);
-    box-shadow: inset 3px 0 0 var(--primary-color);
+    box-shadow: inset 3px 0 0 #0369a1;
 }
 
 [data-theme="dark"] .user-dropdown-item.active,
 [data-theme="dark"] .user-dropdown-item.active:hover,
 [data-theme="dark"] .user-dropdown-item.active:focus {
-    background: rgba(90, 120, 255, 0.2);
+    background: rgba(125, 211, 252, 0.16);
+    box-shadow: inset 3px 0 0 #7dd3fc;
 }
 
 .user-dropdown-item.active .user-dropdown-item-title {
-    color: var(--primary-color);
+    color: #0369a1;
+}
+
+[data-theme="dark"] .user-dropdown-item.active .user-dropdown-item-title {
+    color: #7dd3fc;
 }
 
 .user-dropdown-item.active .user-dropdown-item-sub {
@@ -8313,7 +8388,7 @@ button:disabled {
 }
 
 .user-dropdown-icon-primary {
-    background: linear-gradient(135deg, var(--primary-color), #6c8cff);
+    background: linear-gradient(135deg, #0c4a6e, #0369a1);
 }
 
 .user-dropdown-icon-info {
@@ -8754,13 +8829,15 @@ button:disabled {
     transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
+/* Hover: site paletindeki petrol vurgusu (eski indigo çizgi yerine) */
 .orders-table tbody tr.clickable-row:hover {
-    background: #f8fafc;
-    box-shadow: inset 3px 0 0 0 #6366f1;
+    background: #f0f9ff;
+    box-shadow: inset 3px 0 0 0 #0369a1;
 }
 
 [data-theme="dark"] .orders-table tbody tr.clickable-row:hover {
-    background: rgba(99, 102, 241, 0.1);
+    background: rgba(14, 165, 233, 0.1);
+    box-shadow: inset 3px 0 0 0 #7dd3fc;
 }
 
 .orders-table tbody tr.clickable-row:nth-child(1) { animation-delay: 0.02s; }
@@ -8780,51 +8857,45 @@ button:disabled {
 }
 
 /* Son Gelen Evraklar - Durum rozetleri */
+/* Sade rozet: nötr çerçeve + tek renkli durum noktası; ikon gizlenir,
+   renk yalnızca noktada taşınır (aynı sınıflar tüm panellerde geçerli) */
 .orders-table .doc-status {
-    border: none;
+    --st-dot: #94a3b8;
     width: 112px;
     box-sizing: border-box;
     justify-content: center;
+    gap: 6px;
+    padding: 4px 10px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: #334155;
+    background: #fff;
+    border: 1px solid #e2e8f0;
 }
 
-.orders-table .doc-status.doc-status-zimmet {
-    background: rgba(245, 158, 11, 0.14);
-    color: #b45309;
+.orders-table .doc-status::before {
+    content: "";
+    flex: 0 0 auto;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--st-dot);
 }
 
-.orders-table .doc-status.doc-status-onkayit {
-    background: rgba(100, 116, 139, 0.14);
-    color: #475569;
+.orders-table .doc-status .material-symbols-outlined {
+    display: none;
 }
 
-.orders-table .doc-status.doc-status-ocr {
-    background: rgba(59, 130, 246, 0.14);
-    color: #1d4ed8;
-}
+.orders-table .doc-status.doc-status-zimmet     { --st-dot: #f59e0b; }
+.orders-table .doc-status.doc-status-onkayit    { --st-dot: #94a3b8; }
+.orders-table .doc-status.doc-status-ocr        { --st-dot: #0ea5e9; }
+.orders-table .doc-status.doc-status-yayinlandi { --st-dot: #22c55e; }
 
-.orders-table .doc-status.doc-status-yayinlandi {
-    background: rgba(16, 185, 129, 0.14);
-    color: #047857;
-}
-
-[data-theme="dark"] .orders-table .doc-status.doc-status-zimmet {
-    background: rgba(245, 158, 11, 0.22);
-    color: #fbbf24;
-}
-
-[data-theme="dark"] .orders-table .doc-status.doc-status-onkayit {
-    background: rgba(148, 163, 184, 0.2);
+[data-theme="dark"] .orders-table .doc-status {
     color: #cbd5e1;
-}
-
-[data-theme="dark"] .orders-table .doc-status.doc-status-ocr {
-    background: rgba(59, 130, 246, 0.22);
-    color: #93c5fd;
-}
-
-[data-theme="dark"] .orders-table .doc-status.doc-status-yayinlandi {
-    background: rgba(16, 185, 129, 0.22);
-    color: #6ee7b7;
+    background: rgba(148, 163, 184, 0.06);
+    border-color: rgba(148, 163, 184, 0.25);
 }
 
 /* Teslim Edilmeyi Bekleyenler - premium geliştirmeler */
@@ -8840,12 +8911,16 @@ button:disabled {
 }
 
 .customers-table tbody tr:hover {
-    box-shadow: inset 3px 0 0 0 #6366f1;
+    box-shadow: inset 3px 0 0 0 #0369a1;
 }
 
 [data-theme="dark"] .customers-table tbody tr:hover,
 [data-theme="dark"] .customers-table tbody tr:hover > td {
-    background-color: rgba(99, 102, 241, 0.14) !important;
+    background-color: rgba(14, 165, 233, 0.1) !important;
+}
+
+[data-theme="dark"] .customers-table tbody tr:hover {
+    box-shadow: inset 3px 0 0 0 #7dd3fc;
 }
 
 .customers-table tbody tr:nth-child(1) { animation-delay: 0.02s; }
@@ -8899,24 +8974,62 @@ button:disabled {
     border-bottom-color: #374151 !important;
 }
 
+/* Hücreler: başlıkla aynı sol hizada, satırlar biraz daha ferah */
+.orders-table th:first-child,
+.orders-table td:first-child {
+    padding-left: 16px;
+}
+
+.orders-table th:last-child,
+.orders-table td:last-child {
+    padding-right: 16px;
+}
+
+.orders-table tbody td {
+    padding-top: 11px;
+    padding-bottom: 11px;
+    border-bottom-color: #eef2f7;
+}
+
+.orders-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+[data-theme="dark"] .orders-table tbody td {
+    border-bottom-color: rgba(148, 163, 184, 0.14);
+}
+
+.orders-table .institution-name {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+[data-theme="dark"] .orders-table .institution-name {
+    color: #e2e8f0;
+}
+
+/* Belge no: renkli hap yerine sade, tablo verisi gibi tek renk eş aralıklı yazı */
 .orders-table .document-no {
     display: inline-block;
-    box-sizing: border-box;
-    width: 132px;
-    text-align: center;
     font-family: 'Cascadia Code', Consolas, 'SFMono-Regular', 'Courier New', monospace;
-    font-weight: 700;
+    font-weight: 600;
     font-size: 0.82rem;
-    letter-spacing: 0.02em;
-    color: #57534e;
-    background: rgba(20, 184, 166, 0.1);
-    padding: 4px 10px;
-    border-radius: 6px;
+    letter-spacing: 0.04em;
+    color: #334155;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.orders-table tbody tr.clickable-row:hover .document-no {
+    color: #0369a1;
 }
 
 [data-theme="dark"] .orders-table .document-no {
-    color: #d6d3d1;
-    background: rgba(45, 212, 191, 0.18);
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .orders-table tbody tr.clickable-row:hover .document-no {
+    color: #7dd3fc;
 }
 
 .btn-icon {
@@ -8962,6 +9075,14 @@ button:disabled {
     background: #f8fafc;
     border-bottom: 1px solid #e5e7eb;
     height: 67px;
+}
+
+/* Koyu tema: yukarıdaki kural [data-theme="dark"] .dashboard-header ile aynı
+   özgüllükte ve ondan sonra geldiği için açık zemin kalıyordu (ör. Yönetici
+   Paneli'ndeki "Son Gelen Evraklar"). */
+[data-theme="dark"] .premium-card .card-header {
+    background: rgba(255, 255, 255, 0.04);
+    border-bottom-color: var(--border-color);
 }
 
 .activity-list {

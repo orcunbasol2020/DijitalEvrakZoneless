@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal, ViewEncapsulation } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { httpResource } from '@angular/common/http';
 import { Common } from '../../../services/common';
@@ -6,7 +6,7 @@ import { LoginLogRow, PagedResultDto } from '../../users/login-logs/login-logs';
 
 /** Kart kapatıldığında bu oturum boyunca (sekme kapanana kadar) bir daha gösterilmez. */
 const DISMISS_KEY = 'recentLoginsDismissed';
-const SHOWN_COUNT = 5;
+const SHOWN_COUNT = 10;
 
 /** userAgent'tan kısa tarayıcı / işletim sistemi etiketi */
 function describeUserAgent(ua: string | null | undefined): string {
@@ -45,14 +45,18 @@ function readDismissed(): boolean {
 export class RecentLogins {
   readonly #common = inject(Common);
 
+  /** false: kapatma düğmesi yok, kart her zaman görünür (ör. Kullanıcı Profili sayfası). */
+  readonly dismissible = input(true);
+
   readonly dismissed = signal(readDismissed());
+  readonly #hidden = computed(() => this.dismissible() && this.dismissed());
 
   readonly #userId = computed(() => this.#common.user()?.id ?? null);
 
   /** Son SHOWN_COUNT + 1 kayıt: en yenisi bu oturumun kendi girişi olduğu için atlanır. */
   readonly #result = httpResource<PagedResultDto<LoginLogRow>>(() => {
     const id = this.#userId();
-    if (!id || this.dismissed()) return undefined;
+    if (!id || this.#hidden()) return undefined;
     return `api/UserLoginLogs/GetAll?userId=${encodeURIComponent(id)}&page=1&pageSize=${SHOWN_COUNT + 1}`;
   });
 
@@ -69,7 +73,7 @@ export class RecentLogins {
 
   /** Veri yoksa ya da hata varsa kart hiç görünmez; kullanıcıya boş kart göstermeye gerek yok. */
   readonly visible = computed(() =>
-    !this.dismissed() && this.#result.hasValue() && this.rows().length > 0);
+    !this.#hidden() && this.#result.hasValue() && this.rows().length > 0);
 
   dismiss(): void {
     this.dismissed.set(true);

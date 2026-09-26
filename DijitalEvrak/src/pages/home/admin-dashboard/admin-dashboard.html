@@ -57,175 +57,24 @@
 <!-- ===================== Son evraklar / anlık durum / AI ===================== -->
 <div class="row g-3 mb-4">
     <div class="col-lg-6">
-        <app-currentdocument></app-currentdocument>
+        <!-- Son Gelen Evraklar: Gelen Evrak paneliyle ortak bileşen -->
+        <app-currentdocument allLink="/documentlist" [showCustodian]="false" class="d-block h-100"></app-currentdocument>
     </div>
 
     <div class="col-lg-3">
-        <div class="card premium-card h-100">
-            <div class="card-header dashboard-header ad-head ad-head-compact">
-                <span class="ad-head-icon">
-                    <span class="material-symbols-outlined">monitoring</span>
-                </span>
-                <div class="ad-head-text">
-                    <h5 class="ad-head-title">Anlık Durum</h5>
-                </div>
-                <div class="ad-tabs">
-                    <button type="button" class="ad-tab" [class.is-active]="statusTab() === 'incoming'" (click)="statusTab.set('incoming')">Gelen</button>
-                    <button type="button" class="ad-tab" [class.is-active]="statusTab() === 'outgoing'" (click)="statusTab.set('outgoing')">Giden</button>
-                </div>
-            </div>
-
-            <div class="card-body">
-                @if (statusTab() === 'incoming') {
-                    <div class="activity-list ad-activity">
-                        <div class="activity-item">
-                            <div class="activity-icon bg-gradient-info pulse">
-                                <span class="material-symbols-outlined">hourglass</span>
-                            </div>
-                            <div class="activity-content">
-                                <div class="activity-title">OCR</div>
-                                <div class="activity-subtitle">Toplam <span class="text-number">237</span></div>
-                            </div>
-                            <div class="activity-value">
-                                <span class="count-chip count-chip-alert">26</span>
-                                <span class="activity-value-label">Bekleyen</span>
-                            </div>
-                        </div>
-
-                        <div class="activity-item">
-                            <div class="activity-icon bg-gradient-warning">
-                                <span class="material-symbols-outlined">airplane_ticket</span>
-                            </div>
-                            <div class="activity-content">
-                                <div class="activity-title">Kurye</div>
-                                <div class="activity-subtitle">Gelen <span class="text-number">112</span></div>
-                            </div>
-                            <div class="activity-value">
-                                <span class="count-chip count-chip-alert">14</span>
-                                <span class="activity-value-label">Bekleyen</span>
-                            </div>
-                        </div>
-
-                        <div class="activity-item">
-                            <div class="activity-icon bg-gradient-danger">
-                                <span class="material-symbols-outlined">done_all</span>
-                            </div>
-                            <div class="activity-content">
-                                <div class="activity-title">Kaydı Tamamlanan</div>
-                            </div>
-                            <div class="activity-value">
-                                <span class="count-chip count-chip-success">221</span>
-                                <span class="activity-value-label">Evrak</span>
-                            </div>
-                        </div>
-
-                        <div class="activity-item">
-                            <div class="activity-icon bg-gradient-smoke">
-                                <span class="material-symbols-outlined">approval_delegation</span>
-                            </div>
-                            <div class="activity-content">
-                                <div class="activity-title">Teslim Edilen</div>
-                            </div>
-                            <div class="activity-value">
-                                <span class="count-chip count-chip-info">56</span>
-                                <span class="activity-value-label">Evrak</span>
-                            </div>
-                        </div>
-                    </div>
-                } @else {
-                    <div class="activity-list ad-activity">
-                        <div class="activity-item">
-                            <div class="activity-icon bg-gradient-smoke">
-                                <span class="material-symbols-outlined">article</span>
-                            </div>
-                            <div class="activity-content">
-                                <div class="activity-title">Toplam</div>
-                            </div>
-                            <div class="activity-value">
-                                <span class="count-chip">521</span>
-                                <span class="activity-value-label">Evrak</span>
-                            </div>
-                        </div>
-
-                        <div class="activity-item">
-                            <div class="activity-icon bg-gradient-danger">
-                                <span class="material-symbols-outlined">approval_delegation</span>
-                            </div>
-                            <div class="activity-content">
-                                <div class="activity-title">Teslim Edilen</div>
-                            </div>
-                            <div class="activity-value">
-                                <span class="count-chip count-chip-success">367</span>
-                                <span class="activity-value-label">Evrak</span>
-                            </div>
-                        </div>
-
-                        <div class="activity-item">
-                            <div class="activity-icon bg-gradient-info">
-                                <span class="material-symbols-outlined">mail</span>
-                            </div>
-                            <div class="activity-content">
-                                <div class="activity-title">Posta</div>
-                            </div>
-                            <div class="activity-value">
-                                <span class="count-chip count-chip-info">156</span>
-                                <span class="activity-value-label">Evrak</span>
-                            </div>
-                        </div>
-                    </div>
-                }
-            </div>
-        </div>
+        <!-- Anlık Durum: Gelen Evrak paneliyle ortak bileşen -->
+        <status-overview class="d-block h-100"></status-overview>
     </div>
 
     <div class="col-lg-3">
-        <div class="card premium-card h-100">
-            <div class="card-header dashboard-header ad-head">
-                <span class="ad-head-icon">
-                    <span class="material-symbols-outlined">smart_toy</span>
-                </span>
-                <div class="ad-head-text">
-                    <h5 class="ad-head-title">Akıllı Havale</h5>
-                </div>
-                <span class="ad-live">
-                    <span class="ad-live-dot"></span>
-                    Aktif
-                </span>
-            </div>
-            <div class="card-body ad-ai-body">
-                <p class="ad-ai-text">
-                    Gelen evrakın içeriğini önceki kayıtlarla karşılaştırarak havale edilecek birimi önerir.
-                </p>
-                <dl class="ad-ai-meta">
-                    <div class="ad-ai-row">
-                        <dt>Motor</dt>
-                        <dd>Cosine Similarity</dd>
-                    </div>
-                    <div class="ad-ai-row">
-                        <dt>Sürüm</dt>
-                        <dd>v1.0</dd>
-                    </div>
-                    <div class="ad-ai-row">
-                        <dt>Bugün önerilen</dt>
-                        <dd>14 evrak</dd>
-                    </div>
-                    <div class="ad-ai-row">
-                        <dt>Kabul oranı</dt>
-                        <dd>%86</dd>
-                    </div>
-                </dl>
-                <a routerLink="/havale" class="ad-ai-link">
-                    Havale ekranına git
-                    <span class="material-symbols-outlined">arrow_forward</span>
-                </a>
-            </div>
-        </div>
+        <!-- Akıllı Havale: Gelen Evrak paneliyle ortak bileşen -->
+        <smart-routing class="d-block h-100"></smart-routing>
     </div>
 </div>
 
 <!-- ===================== Harita / bekleyenler ===================== -->
 <div class="row g-3 mb-4">
-    <div class="col-lg-6">
+    <div class="col-lg-8">
         <div class="card premium-card h-100">
             <div class="card-header dashboard-header ad-head">
                 <span class="ad-head-icon">
@@ -242,15 +91,15 @@
             </div>
         </div>
     </div>
-    <div class="col-lg-6">
+    <div class="col-lg-4">
         <div class="card premium-card h-100">
-            <div class="card-header dashboard-header ad-head">
+            <div class="card-header dashboard-header ad-head ad-head-compact">
                 <span class="ad-head-icon">
                     <span class="material-symbols-outlined">pending_actions</span>
                 </span>
                 <div class="ad-head-text">
                     <h5 class="ad-head-title">Bekleyenler</h5>
-                    <div class="ad-head-sub">İşlem bekleyen evrakların aşamalara göre dağılımı</div>
+                    <div class="ad-head-sub">Aşamalara göre dağılım</div>
                 </div>
             </div>
             <div class="card-body">
@@ -280,89 +129,37 @@
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table customers-table mb-3">
+                    <!-- Bayrak temsilcilik hücresinde, sayılar düz ve sağa hizalı, sağda gelen/gönderilen dağılım çubuğu -->
+                    <table class="table customers-table ad-list-table mb-3">
                         <thead>
                             <tr>
-                                <th scope="col"></th>
-                                <th scope="col">Temsilcilik</th>
-                                <th scope="col" style="width: 100px;">Gelen</th>
-                                <th scope="col" style="width: 100px;">Gönderilen</th>
-                                <th scope="col" title="AI Destekli Gündem Notları Özeti">Notlar</th>
+                                <th scope="col">TEMSİLCİLİK</th>
+                                <th scope="col" class="ad-num-col">GELEN</th>
+                                <th scope="col" class="ad-num-col">GÖNDERİLEN</th>
+                                <th scope="col" class="ad-share-col" title="Gelen ve gönderilen notaların payı">DAĞILIM</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td>
-                                    <div class="avatar" title="Almanya">
-                                        <img src="assets/images/bayraklar/almanya.png" />
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="country-cell">
-                                        <div class="country-name">Almanya</div>
-                                        <div class="mission-name" title="Almanya Federal Cumhuriyeti Ankara Büyükelçiliği">
-                                            Botschaft der Bundesrepublik Deutschland Ankara
+                            @for (row of notaRows; track row.flag) {
+                                <tr>
+                                    <td>
+                                        <div class="ad-nota-mission">
+                                            <img class="ad-nota-flag" [src]="'assets/images/bayraklar/' + row.flag + '.png'" [alt]="row.country" />
+                                            <div class="ad-nota-text">
+                                                <div class="ad-nota-country">{{ row.country }}</div>
+                                                <div class="ad-nota-name" [title]="row.missionOfficial">{{ row.mission }}</div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </td>
-                                <td><span class="count-chip">28</span></td>
-                                <td><span class="count-chip">35</span></td>
-                                <td><div class="nota-detail" title="AI Destekli Gündem Notları Özeti">Konsolosluk & diaspora yoğunluğu</div></td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div class="avatar" title="Rusya">
-                                        <img src="assets/images/bayraklar/rusya.png" />
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="country-cell">
-                                        <div class="country-name">Rusya</div>
-                                        <div class="mission-name" title="Rusya Federasyonu Ankara Büyükelçiliği">
-                                            Embassy of the Russian Federation in Ankara
+                                    </td>
+                                    <td class="ad-num-col"><span class="ad-num">{{ row.incoming }}</span></td>
+                                    <td class="ad-num-col"><span class="ad-num">{{ row.outgoing }}</span></td>
+                                    <td class="ad-share-col">
+                                        <div class="ad-share" [title]="'%' + incomingShare(row) + ' gelen, %' + (100 - incomingShare(row)) + ' gönderilen'">
+                                            <span class="ad-share-in" [style.width.%]="incomingShare(row)"></span>
                                         </div>
-                                    </div>
-                                </td>
-                                <td><span class="count-chip">15</span></td>
-                                <td><span class="count-chip">22</span></td>
-                                <td><div class="nota-detail" title="AI Destekli Gündem Notları Özeti">Enerji ve bölgesel gündem</div></td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div class="avatar" title="Amerika Birleşik Devletleri">
-                                        <img src="assets/images/bayraklar/abd.png" />
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="country-cell">
-                                        <div class="country-name">ABD</div>
-                                        <div class="mission-name" title="Amerika Birleşik Devletleri Ankara Büyükelçiliği">
-                                            U.S. Embassy Ankara
-                                        </div>
-                                    </div>
-                                </td>
-                                <td><span class="count-chip">14</span></td>
-                                <td><span class="count-chip">10</span></td>
-                                <td><div class="nota-detail" title="AI Destekli Gündem Notları Özeti">Güvenlik, siyaset, savunma, konsolosluk</div></td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div class="avatar" title="Birleşik Krallık">
-                                        <img src="assets/images/bayraklar/eng.png" />
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="country-cell">
-                                        <div class="country-name">Birleşik Krallık</div>
-                                        <div class="mission-name" title="Birleşik Krallık Ankara Büyükelçiliği">
-                                            British Embassy Ankara
-                                        </div>
-                                    </div>
-                                </td>
-                                <td><span class="count-chip">12</span></td>
-                                <td><span class="count-chip">18</span></td>
-                                <td><div class="nota-detail" title="AI Destekli Gündem Notları Özeti">Vize ve NATO ilişkileri</div></td>
-                            </tr>
+                                    </td>
+                                </tr>
+                            }
                         </tbody>
                     </table>
                 </div>
@@ -387,43 +184,44 @@
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table customers-table">
+                    <!-- Birim kodu + tam ad, sorumlular alt alta (dahili ipucunda), bekleyen sayısı + en yükseğe oranlı çubuk -->
+                    <table class="table customers-table ad-list-table mb-3">
                         <thead>
                             <tr>
-                                <th scope="col">Birim</th>
-                                <th scope="col">Evrak Sorumluları</th>
-                                <th scope="col">Bekleyen Evrak Sayısı</th>
+                                <th scope="col">BİRİM</th>
+                                <th scope="col">EVRAK SORUMLUSU</th>
+                                <th scope="col" class="ad-pending-col">BEKLEYEN</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td><div title="Enerji, Çevre ve Sınıraşan Sular Genel Müdürlüğü">EÇGM</div></td>
-                                <td><span class="nota-detail" title="Dahili: 3420">Banu Gültekin</span></td>
-                                <td><span class="count-chip count-chip-alert">18</span></td>
-                            </tr>
-                            <tr>
-                                <td><div title="Destek Hizmetleri Genel Müdürlüğü">DSGM</div></td>
-                                <td>
-                                    <span class="nota-detail" title="Dahili: 1323">Aytül Özcan</span>,
-                                    <span class="nota-detail" title="Dahili: 1323">Zeynep Büşra Tatar</span>
-                                </td>
-                                <td><span class="count-chip count-chip-alert">15</span></td>
-                            </tr>
-                            <tr>
-                                <td><div title="Konsolosluk Hizmetleri ve Yurtdışında Yaşayan Vatandaşlar Genel Müdürlüğü">KOGM</div></td>
-                                <td><span class="nota-detail" title="Dahili: 2025">Didem Pekzorlu</span></td>
-                                <td><span class="count-chip count-chip-alert">12</span></td>
-                            </tr>
-                            <tr>
-                                <td><div title="Bilim ve Teknoloji Politikaları Genel Müdürlüğü">TPGM</div></td>
-                                <td><span class="nota-detail" title="Dahili: 1116">Cevşen Büşra Bahçecik</span></td>
-                                <td><span class="count-chip count-chip-alert">11</span></td>
-                            </tr>
-                            <tr>
-                                <td><div title="BYMB Bakan Yardımcılığı">BYMB</div></td>
-                                <td><span class="nota-detail" title="Dahili: 2219">Eda Tokan Akkuş</span></td>
-                                <td><span class="count-chip">9</span></td>
-                            </tr>
+                            @for (unit of pendingUnits; track unit.code) {
+                                <tr>
+                                    <td>
+                                        <div class="ad-unit">
+                                            <div class="ad-unit-code">{{ unit.code }}</div>
+                                            <div class="ad-unit-name" [title]="unit.name">{{ unit.name }}</div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="ad-unit-owners">
+                                            @for (owner of unit.owners; track owner.name) {
+                                                <div class="ad-unit-owner" [title]="'Dahili: ' + owner.ext">
+                                                    <span class="material-symbols-outlined">person</span>
+                                                    {{ owner.name }}
+                                                </div>
+                                            }
+                                        </div>
+                                    </td>
+                                    <td class="ad-pending-col">
+                                        <div class="ad-pending">
+                                            <span class="ad-share ad-pending-bar" [title]="unit.pending + ' bekleyen evrak'">
+                                                <span class="ad-share-in" [style.width.%]="pendingShare(unit)"></span>
+                                            </span>
+                                            <span class="ad-num">{{ unit.pending }}</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
                         </tbody>
                     </table>
                 </div>

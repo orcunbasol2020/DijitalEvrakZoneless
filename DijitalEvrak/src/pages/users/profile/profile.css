@@ -6,9 +6,77 @@
    "pf-" sınıfları var.
    ============================================================ */
 
-/* Üst karttaki filigran: dişli yerine kalkan */
-.st-hero.pf-hero::after {
+/* ---- Üst kart: sayfa kimliği (ikon + etiket + başlık), sağda yetki sayısı ve
+   Ayarlar bağlantısı. Zemin Kontrol Paneli üst şeridiyle aynı. ---- */
+.sp-hero.pf-hero {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: linear-gradient(135deg, #0369a1 0%, #0284c7 45%, #06b6d4 100%);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: 0 10px 26px rgba(3, 105, 161, 0.28);
+}
+
+/* Filigran: destek ikonu yerine kalkan */
+.sp-hero.pf-hero::after {
     content: "verified_user";
+}
+
+.pf-hero-side {
+    position: relative;
+    z-index: 1;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* "Son girişlerim" rozeti: tıklanabilir çip, sağında sayı; başarısız deneme varsa amber */
+.pf-chip-btn {
+    cursor: pointer;
+    font: inherit;
+    line-height: inherit;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.pf-chip-btn:hover {
+    background: rgba(255, 255, 255, 0.28);
+    border-color: rgba(255, 255, 255, 0.55);
+}
+
+.pf-chip-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    color: #0369a1;
+    background: #fff;
+}
+
+.pf-chip-btn.is-warning {
+    background: rgba(251, 191, 36, 0.3);
+    border-color: rgba(253, 230, 138, 0.75);
+}
+
+.pf-chip-btn.is-warning:hover {
+    background: rgba(251, 191, 36, 0.42);
+}
+
+.pf-chip-btn.is-warning .pf-chip-badge {
+    color: #78350f;
+    background: #fbbf24;
+}
+
+/* Son girişleriniz kartı: sayfa dikey boşluğu st-page'in gap'inden gelir */
+.st-page app-recent-logins .rc-card {
+    margin-bottom: 0;
 }
 
 /* ---- Araç çubuğu: arama + filtre segmenti ---- */
@@ -354,6 +422,15 @@
 
 /* ---- Dar ekran ---- */
 @media (max-width: 767.98px) {
+    .sp-hero.pf-hero {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .pf-hero-side {
+        justify-content: space-between;
+    }
+
     .pf-roles {
         grid-template-columns: 1fr;
     }

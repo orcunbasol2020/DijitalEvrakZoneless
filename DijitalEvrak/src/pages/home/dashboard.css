@@ -17,10 +17,49 @@
     margin-bottom: 20px;
     padding: 18px 26px;
     border-radius: 18px;
-    color: #e0f2fe;
-    background: linear-gradient(120deg, #0f172a 0%, #0c4a6e 55%, #0369a1 100%);
-    border: 1px solid rgba(125, 211, 252, 0.28);
-    box-shadow: 0 14px 34px rgba(3, 105, 161, 0.22);
+    color: #fff;
+    /* Ayarlar'daki açık mavi başlığın bir ton koyusu, yalnızca Kontrol Paneli'ne özel */
+    background: linear-gradient(135deg, #0369a1 0%, #0284c7 45%, #06b6d4 100%);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: 0 10px 26px rgba(3, 105, 161, 0.28);
+    /* Sayfa açılışı: şerit yukarıdan çok hafif inerek belirir; belirgin değil, sadece hissedilir */
+    animation: ad-hero-in 0.9s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+/* İçerik şeritten çok az sonra, aynı yumuşaklıkta belirir */
+.ad-hero-text,
+.ad-hero-actions {
+    animation: ad-hero-item-in 0.8s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+.ad-hero-text {
+    animation-delay: 0.08s;
+}
+
+.ad-hero-actions {
+    animation-delay: 0.14s;
+}
+
+@keyframes ad-hero-in {
+    from {
+        opacity: 0.6;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes ad-hero-item-in {
+    from {
+        opacity: 0.6;
+        transform: translateY(-3px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .ad-hero-glow {
@@ -35,7 +74,7 @@
     height: 320px;
     top: -160px;
     right: 120px;
-    background: rgba(14, 165, 233, 0.32);
+    background: rgba(255, 255, 255, 0.22);
 }
 
 .ad-hero-glow-b {
@@ -43,19 +82,26 @@
     height: 220px;
     bottom: -140px;
     left: 30%;
-    background: rgba(125, 211, 252, 0.18);
+    background: rgba(255, 255, 255, 0.16);
 }
 
+/* Sol: büyük rozet (2 satır boyunca), sağ: başlık üstte, tarih satırı altında
+   başlıkla aynı hizada. Kicker display:contents ile ikon ve başlık metni
+   doğrudan grid hücrelerine yerleşir. */
 .ad-hero-text {
     position: relative;
     z-index: 1;
     min-width: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    column-gap: 14px;
+    row-gap: 3px;
+    align-items: center;
 }
 
 .ad-hero-kicker {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
+    display: contents;
     font-size: 14px;
     font-weight: 700;
     letter-spacing: 0.16em;
@@ -63,18 +109,31 @@
 }
 
 .ad-hero-kicker .material-symbols-outlined {
-    font-size: 20px;
-    color: #7dd3fc;
+    grid-column: 1;
+    grid-row: 1 / 3;
+    align-self: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    font-size: 28px;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    box-shadow: 0 6px 18px rgba(3, 105, 161, 0.3);
 }
 
 .ad-hero-sub {
+    grid-column: 2;
+    grid-row: 2;
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     gap: 8px;
-    margin-top: 6px;
     font-size: 12.5px;
-    color: rgba(224, 242, 254, 0.78);
+    color: rgba(255, 255, 255, 0.85);
 }
 
 .ad-hero-date {
@@ -94,7 +153,7 @@
     width: 4px;
     height: 4px;
     border-radius: 50%;
-    background: rgba(125, 211, 252, 0.6);
+    background: rgba(255, 255, 255, 0.6);
 }
 
 .ad-hero-actions {
@@ -115,9 +174,9 @@
     border-radius: 10px;
     font-size: 13px;
     font-weight: 600;
-    color: #e0f2fe;
-    background: rgba(255, 255, 255, 0.07);
-    border: 1px solid rgba(125, 211, 252, 0.35);
+    color: #fff;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.35);
     text-decoration: none;
     cursor: pointer;
     transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
@@ -125,13 +184,13 @@
 
 .ad-hero-btn .material-symbols-outlined {
     font-size: 19px;
-    color: #7dd3fc;
+    color: #fff;
 }
 
 .ad-hero-btn:hover {
-    color: #f0f9ff;
-    background: rgba(125, 211, 252, 0.16);
-    border-color: rgba(125, 211, 252, 0.6);
+    color: #fff;
+    background: rgba(255, 255, 255, 0.24);
+    border-color: rgba(255, 255, 255, 0.6);
     transform: translateY(-1px);
 }
 
@@ -177,11 +236,16 @@
     100% { background-color: #fff; }
 }
 
+/* Izgara: sol sütun etiket + değer, sağ sütun ikon; alt satır (trend + dönem)
+   kartın tüm genişliğine yayılır, dönem bilgisi sağa dayanır. Gövde
+   display:contents ile çocuklarını doğrudan ızgaraya bırakır. */
 .ad-stat {
     position: relative;
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto auto;
     align-items: flex-start;
-    gap: 12px;
+    column-gap: 12px;
     padding: 16px 18px;
     border-radius: 16px;
     background: #fff;
@@ -200,11 +264,13 @@
 }
 
 .ad-stat-body {
-    flex: 1 1 auto;
-    min-width: 0;
+    display: contents;
 }
 
 .ad-stat-label {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.08em;
@@ -215,6 +281,8 @@
 }
 
 .ad-stat-value {
+    grid-column: 1;
+    grid-row: 2;
     margin-top: 6px;
     font-size: 26px;
     font-weight: 700;
@@ -225,8 +293,11 @@
 }
 
 .ad-stat-foot {
+    grid-column: 1 / -1;
+    grid-row: 3;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 8px;
     margin-top: 10px;
 }
@@ -254,14 +325,10 @@
 }
 
 .ad-stat-period {
+    margin-left: auto;
     font-size: 11.5px;
     color: #94a3b8;
-}
-
-.ad-stat-period::before {
-    content: '·';
-    margin-right: 8px;
-    color: #cbd5e1;
+    white-space: nowrap;
 }
 
 /* Belge numarası tek satırda kalsın */
@@ -290,7 +357,8 @@
 
 /* İkonlar tek tonda: açık petrol zemin, koyu petrol ikon */
 .ad-stat-icon {
-    flex: 0 0 auto;
+    grid-column: 2;
+    grid-row: 1 / 3;
     width: 42px;
     height: 42px;
     border-radius: 11px;
@@ -306,21 +374,10 @@
     font-size: 22px;
 }
 
+/* Sağ alt köşedeki hover oku kaldırıldı: dönem bilgisi artık orada duruyor;
+   kartın tıklanabilirliği hover'daki yükselme ve turkuaz kenarlıkla zaten belli. */
 .ad-stat-arrow {
-    position: absolute;
-    right: 14px;
-    bottom: 12px;
-    font-size: 16px;
-    color: #cbd5e1;
-    opacity: 0;
-    transform: translate(-4px, 4px);
-    transition: opacity 0.15s ease, transform 0.15s ease, color 0.15s ease;
-}
-
-.ad-stat:hover .ad-stat-arrow {
-    opacity: 1;
-    transform: translate(0, 0);
-    color: #0369a1;
+    display: none;
 }
 
 /* ---------- Kart başlıkları ---------- */
@@ -667,6 +724,12 @@
     .ad-stat-arrow {
         transition: none;
     }
+
+    .ad-hero,
+    .ad-hero-text,
+    .ad-hero-actions {
+        animation: none;
+    }
 }
 
 /* ============================================================
@@ -794,4 +857,499 @@
 
 [data-theme="dark"] .ad-tab:hover {
     color: #e2e8f0;
+}
+
+/* ---------- Akıllı Havale kart başlığı: üst şeritle aynı mavi gradyan ----------
+   Koyu tema kuralları yukarıda olduğu için bu blok dosyanın sonunda; her iki
+   temada da aynı görünür. */
+.premium-card .card-header.ad-head.ad-head-accent,
+[data-theme="dark"] .premium-card .card-header.ad-head.ad-head-accent {
+    background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 45%, #22d3ee 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.ad-head-accent .ad-head-icon,
+[data-theme="dark"] .ad-head-accent .ad-head-icon {
+    /* Üst şeritteki rozetle aynı değerler */
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 6px 18px rgba(3, 105, 161, 0.3);
+}
+
+.ad-head-accent .ad-head-title,
+[data-theme="dark"] .ad-head-accent .ad-head-title {
+    /* Üst şeritteki "YÖNETİCİ PANELİ" başlığıyla aynı renk */
+    color: #f8fafc;
+}
+
+.ad-head-accent .ad-live,
+[data-theme="dark"] .ad-head-accent .ad-live {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.35);
+}
+
+.ad-head-accent .ad-live-dot {
+    background: #86efac;
+    box-shadow: 0 0 0 3px rgba(134, 239, 172, 0.3);
+}
+
+/* ---------- Diplomatik Nota Sayıları tablosu ---------- */
+.ad-list-table tbody tr {
+    cursor: default;
+}
+
+.ad-list-table th:first-child,
+.ad-list-table td:first-child {
+    padding-left: 16px;
+}
+
+.ad-list-table th:last-child,
+.ad-list-table td:last-child {
+    padding-right: 16px;
+}
+
+.ad-list-table tbody td {
+    padding-top: 11px;
+    padding-bottom: 11px;
+    border-bottom-color: #eef2f7;
+    vertical-align: middle;
+}
+
+.ad-list-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.ad-nota-mission {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.ad-nota-flag {
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.ad-nota-text {
+    min-width: 0;
+}
+
+.ad-nota-country {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #1e293b;
+    line-height: 1.25;
+}
+
+.ad-nota-name {
+    margin-top: 1px;
+    font-size: 11.5px;
+    color: #94a3b8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ad-num-col {
+    width: 96px;
+    text-align: right;
+}
+
+.ad-num {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    font-variant-numeric: tabular-nums;
+}
+
+.ad-share-col {
+    width: 120px;
+}
+
+/* Dağılım çubuğu: sol dolgu gelen (petrol), kalan gönderilen (açık turkuaz) */
+.ad-share {
+    display: flex;
+    height: 6px;
+    border-radius: 999px;
+    background: #bae6fd;
+    overflow: hidden;
+}
+
+.ad-share-in {
+    display: block;
+    height: 100%;
+    background: #0369a1;
+    border-radius: 999px 0 0 999px;
+    transition: width 0.4s ease;
+}
+
+[data-theme="dark"] .ad-list-table tbody td {
+    border-bottom-color: rgba(148, 163, 184, 0.14);
+}
+
+[data-theme="dark"] .ad-nota-flag {
+    border-color: rgba(148, 163, 184, 0.3);
+}
+
+[data-theme="dark"] .ad-nota-country,
+[data-theme="dark"] .ad-num {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .ad-nota-name {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .ad-share {
+    background: rgba(125, 211, 252, 0.25);
+}
+
+[data-theme="dark"] .ad-share-in {
+    background: #7dd3fc;
+}
+
+/* ---------- En Çok Bekleyen Evrakı Olan Birimler tablosu ---------- */
+.ad-unit {
+    min-width: 0;
+}
+
+.ad-unit-code {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #1e293b;
+    line-height: 1.25;
+}
+
+.ad-unit-name {
+    margin-top: 1px;
+    max-width: 260px;
+    font-size: 11.5px;
+    color: #94a3b8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ad-unit-owners {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.ad-unit-owner {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12.5px;
+    color: #334155;
+    white-space: nowrap;
+}
+
+.ad-unit-owner .material-symbols-outlined {
+    font-size: 15px;
+    color: #94a3b8;
+}
+
+.ad-pending-col {
+    width: 150px;
+    text-align: right;
+}
+
+.ad-pending {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.ad-pending-bar {
+    flex: 0 0 80px;
+}
+
+.ad-pending .ad-num {
+    flex: 0 0 auto;
+    min-width: 24px;
+    text-align: right;
+}
+
+[data-theme="dark"] .ad-unit-code {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .ad-unit-name {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .ad-unit-owner {
+    color: #cbd5e1;
+}
+
+/* ---------- Bekleyenler: bileşim çubuğu + açıklama listesi ---------- */
+.pc {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.pc-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.pc-total {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: #0369a1;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.pc-total small {
+    margin-left: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0;
+    color: #94a3b8;
+}
+
+.pc-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+}
+
+/* Tek çubuk: her aşama toplam içindeki payı kadar yer kaplar */
+.pc-bar {
+    display: flex;
+    gap: 2px;
+    height: 14px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: #e2e8f0;
+}
+
+.pc-seg {
+    display: block;
+    height: 100%;
+    min-width: 3px;
+    transition: width 0.4s ease;
+}
+
+.pc-legend {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.pc-item {
+    display: grid;
+    grid-template-columns: 10px minmax(0, 1fr) auto 44px;
+    align-items: center;
+    column-gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid #eef2f7;
+    font-size: 12.5px;
+}
+
+.pc-item:last-child {
+    border-bottom: 0;
+}
+
+.pc-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+}
+
+.pc-label {
+    color: #334155;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pc-val {
+    font-weight: 700;
+    color: #1e293b;
+    font-variant-numeric: tabular-nums;
+}
+
+.pc-pct {
+    text-align: right;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #94a3b8;
+    font-variant-numeric: tabular-nums;
+}
+
+[data-theme="dark"] .pc-total {
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .pc-count,
+[data-theme="dark"] .pc-label {
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .pc-bar {
+    background: rgba(148, 163, 184, 0.2);
+}
+
+[data-theme="dark"] .pc-item {
+    border-bottom-color: rgba(148, 163, 184, 0.14);
+}
+
+[data-theme="dark"] .pc-val {
+    color: #e2e8f0;
+}
+
+/* ---------- Anlık Durum: yatay çubuklar (Profil "Yetki Kapsamı" ile aynı dil) ---------- */
+.ad-status {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.ad-status-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f8fafc 0%, #eef4fc 100%);
+    border: 1px solid #dbe3ef;
+}
+
+.ad-status-num {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: #0369a1;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.ad-status-num small {
+    margin-left: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0;
+    color: #94a3b8;
+}
+
+.ad-status-pct {
+    font-size: 12px;
+    font-weight: 700;
+    color: #475569;
+    text-align: right;
+}
+
+.ad-status-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding-top: 10px;
+}
+
+.ad-status-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 5px;
+}
+
+.ad-status-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: #334155;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ad-status-label .material-symbols-outlined {
+    font-size: 16px;
+    color: #0c4a6e;
+}
+
+.ad-status-val {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #1e293b;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.ad-status-val small {
+    margin-left: 2px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #94a3b8;
+}
+
+.ad-bar {
+    height: 8px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    overflow: hidden;
+}
+
+.ad-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #0284c7, #22d3ee);
+    transition: width 0.4s ease;
+}
+
+.ad-bar-fill.is-alert   { background: linear-gradient(90deg, #dc2626, #f87171); }
+.ad-bar-fill.is-warning { background: linear-gradient(90deg, #d97706, #fbbf24); }
+.ad-bar-fill.is-success { background: linear-gradient(90deg, #16a34a, #4ade80); }
+.ad-bar-fill.is-info    { background: linear-gradient(90deg, #0284c7, #22d3ee); }
+
+[data-theme="dark"] .ad-status-top {
+    background: linear-gradient(135deg, rgba(148, 163, 184, 0.08) 0%, rgba(14, 165, 233, 0.08) 100%);
+    border-color: rgba(148, 163, 184, 0.2);
+}
+
+[data-theme="dark"] .ad-status-num {
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .ad-status-pct,
+[data-theme="dark"] .ad-status-label {
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .ad-status-label .material-symbols-outlined {
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .ad-status-val {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .ad-bar {
+    background: rgba(148, 163, 184, 0.2);
 }

@@ -1,7 +1,7 @@
 /* ============================================================
-   Kontrol Paneli: "Son girişleriniz" kartı
-   Girişten sonra bir kez görünür; başarısız deneme varsa uyarı
-   rengine (amber) döner. Kapatılınca oturum boyunca gizlenir.
+   "Son girişleriniz" kartı (Kullanıcı Profili sayfası)
+   Başarısız deneme varsa uyarı rengine (amber) döner. dismissible
+   girdisi açıksa kapatılabilir ve oturum boyunca gizlenir.
    ============================================================ */
 
 .rc-card {

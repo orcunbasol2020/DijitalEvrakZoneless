@@ -3,7 +3,6 @@ import { RouterLink } from '@angular/router';
 import GenericModel from '../../../components/generic-model/generic-model';
 import { Common } from '../../services/common';
 import { RoleService } from '../../services/role-service';
-import { getUserAvatar, getUserInitials } from '../../services/user-avatar';
 
 type Theme = 'light' | 'dark';
 
@@ -16,7 +15,8 @@ const MAX_VISIBLE_ROLES = 6;
     RouterLink
   ],
   templateUrl: './settings.html',
-  styleUrl: './settings.css',
+  // Üst kart (sp-hero) Destek sayfasıyla ortak
+  styleUrls: ['../support/support.css', './settings.css'],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -25,9 +25,6 @@ export default class Settings {
   readonly #roleService = inject(RoleService);
 
   readonly user = computed(() => this.#common.user());
-  // Eşleşen profil resmi yoksa başka birinin fotoğrafı yerine baş harfler gösterilir.
-  readonly userAvatar = computed(() => getUserAvatar(this.user()));
-  readonly userInitials = computed(() => getUserInitials(this.user()));
 
   // Roller oturum açılırken localStorage'a yazılır; kullanıcı sinyali değişince yeniden okunur
   readonly roles = computed(() => {

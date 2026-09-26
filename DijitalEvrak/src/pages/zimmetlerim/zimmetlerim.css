@@ -21,6 +21,93 @@
     border-radius: 14px;
 }
 
+/* Zemin: Kontrol Paneli üst şeridiyle aynı. Ön Kayıtlar bu dosyayı paylaştığı
+   için okl-hero hariç tutulur, orası Destek'teki açık maviyle kalır. */
+.sp-hero.zl-hero:not(.okl-hero) {
+    background: linear-gradient(135deg, #0369a1 0%, #0284c7 45%, #06b6d4 100%);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: 0 10px 26px rgba(3, 105, 161, 0.28);
+}
+
+/* Profil sayfasındaki düzen: solda sayfa kimliği, sağda sayaç çipi ve eylem.
+   Kompakt ölçüler geri alınır; Kullanıcı Profili başlığıyla aynı yükseklik. */
+.sp-hero.zl-hero.zl-hero-split {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 24px;
+    border-radius: 16px;
+}
+
+.sp-hero.zl-hero.zl-hero-split::after {
+    font-size: 150px;
+    right: -22px;
+    top: -30px;
+}
+
+.zl-hero.zl-hero-split .sp-hero-top {
+    gap: 16px;
+}
+
+.zl-hero.zl-hero-split .sp-hero-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+}
+
+.zl-hero.zl-hero-split .sp-hero-icon .material-symbols-outlined {
+    font-size: 30px;
+}
+
+.zl-hero.zl-hero-split .sp-hero-title {
+    font-size: 22px;
+}
+
+.zl-hero.zl-hero-split .sp-hero-text {
+    margin-top: 4px;
+    font-size: 13px;
+}
+
+.zl-hero-side {
+    position: relative;
+    z-index: 1;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.zl-hero-side .st-hero-btn {
+    border: 0;
+}
+
+.zl-hero-side .st-hero-btn:disabled {
+    cursor: progress;
+    opacity: 0.75;
+    transform: none;
+}
+
+.zl-spin {
+    animation: zl-spin 0.6s linear infinite;
+}
+
+@keyframes zl-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 767.98px) {
+    .sp-hero.zl-hero.zl-hero-split {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 18px;
+    }
+
+    .zl-hero-side {
+        justify-content: space-between;
+    }
+}
+
 .zl-hero .sp-hero-top {
     gap: 12px;
 }

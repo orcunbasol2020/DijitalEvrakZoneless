@@ -20,9 +20,11 @@
           }
         </div>
       </div>
-      <button type="button" class="rc-close" title="Kapat" aria-label="Kapat" (click)="dismiss()">
-        <span class="material-symbols-outlined">close</span>
-      </button>
+      @if (dismissible()) {
+        <button type="button" class="rc-close" title="Kapat" aria-label="Kapat" (click)="dismiss()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      }
     </div>
 
     <ul class="rc-list">

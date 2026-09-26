@@ -1,11 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, signal, viewChild, ViewEncapsulation } from '@angular/core';
 import GenericModel from '../../../../components/generic-model/generic-model';
 import { Common } from '../../../services/common';
 import { httpResource } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { RoleService, normalizeRoleName } from '../../../services/role-service';
-import { getUserAvatar, getUserInitials } from '../../../services/user-avatar';
+import { RecentLogins } from '../../home/recent-logins/recent-logins';
 
 export interface RoleModel {
   id?: string;
@@ -24,7 +24,8 @@ type RoleFilter = 'all' | 'granted' | 'missing';
   imports: [
     GenericModel,
     FormsModule,
-    RouterLink
+    RouterLink,
+    RecentLogins
   ],
   templateUrl: './profile.html',
   // Üst kart ve kart iskeleti (st-*) Ayarlar, arama / boş durum / iletişim bloğu (sp-*)
@@ -40,9 +41,16 @@ export default class Profile {
   readonly search = signal<string>('');
   readonly filter = signal<RoleFilter>('all');
   readonly user = computed(() => this.#common.user());
-  // Eşleşen profil resmi yoksa başka birinin fotoğrafı yerine baş harfler gösterilir.
-  readonly userAvatar = computed(() => getUserAvatar(this.user()));
-  readonly userInitials = computed(() => getUserInitials(this.user()));
+
+  // Üst karttaki "Son girişlerim" rozeti: sayfanın altındaki karttan sayı/uyarı okur, tıklanınca oraya kaydırır
+  // Not: sinyal sorguları Angular derleyicisi tarafından kaydedildiği için "#" özel alan olamaz
+  readonly recentLogins = viewChild(RecentLogins);
+  protected readonly recentLoginsEl = viewChild(RecentLogins, { read: ElementRef });
+
+  scrollToLogins(): void {
+    (this.recentLoginsEl()?.nativeElement as HTMLElement | undefined)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   readonly result = httpResource<RoleModel[]>(() => "api/Roles/GetAll", {});
   readonly data = computed(() =>

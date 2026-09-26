@@ -1,9 +1,5 @@
 <app-generic pageTitle="Ana Sayfa" [breadcrumbs]="[]" />
 
-<!-- Girişten sonra bir kez: kullanıcının kendi son girişleri (başarısız deneme varsa uyarı).
-     Yönetici panelinde gösterilmez; yönetici tüm kayıtları Giriş Kayıtları sayfasından görür. -->
-<app-recent-logins *ngIf="!roleService.has('Yönetici')" />
-
 <app-admin-dashboard *ngIf="roleService.has('Yönetici')" />
 
 <!-- Ön Kayıt rolü, Gelen Evrak sorumlusuyla aynı kontrol panelini görür. -->

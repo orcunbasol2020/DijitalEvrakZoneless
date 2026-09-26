@@ -98,132 +98,20 @@
     </a>
 </div>
 
-<!-- ===================== Son gelen evraklar / Akıllı havale ===================== -->
+<!-- ===================== Son gelen evraklar / Anlık durum ===================== -->
 <div class="row g-3 mb-4">
     <div class="col-lg-9">
-        <div class="card premium-card orders-card h-100">
-            <div class="card-header dashboard-header ad-head">
-                <span class="ad-head-icon">
-                    <span class="material-symbols-outlined">inbox</span>
-                </span>
-                <div class="ad-head-text">
-                    <h5 class="ad-head-title">Son Gelen Evraklar</h5>
-                    <div class="ad-head-sub">Sisteme en son kaydedilen evraklar</div>
-                </div>
-                <span class="ad-live">
-                    <span class="ad-live-dot"></span>
-                    Canlı
-                </span>
-                <a class="ad-link" (click)="goToIncoming()" role="button" tabindex="0">
-                    Tümü
-                    <span class="material-symbols-outlined">chevron_right</span>
-                </a>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover orders-table align-middle">
-                        <thead>
-                            <tr>
-                                <th scope="col">KURUM</th>
-                                <th scope="col">TARİH</th>
-                                <th scope="col">BELGE NO</th>
-                                <th scope="col">ZİMMET</th>
-                                <th scope="col">DURUM</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="clickable-row" tabindex="0"
-                                title="Evrak detayına git"
-                                *ngFor="let doc of recentDocumentsSignal()"
-                                (click)="goDetail(doc.id)"
-                                (keydown.enter)="goDetail(doc.id)">
-                                <td>
-                                    <div class="d-flex align-items-center gap-2 institution-cell" [title]="doc.institution">
-                                        <span class="institution-name text-truncate">{{ doc.institution }}</span>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="date-cell" [title]="getFullDateTime(doc.date)">
-                                        {{ getRelativeDateLabel(doc.date) }}
-                                    </div>
-                                </td>
-                                <td>
-                                    <span class="document-no">{{ doc.documentNo }}</span>
-                                </td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-1">
-                                        <span class="material-symbols-outlined text-muted" style="font-size: 16px;">person</span>
-                                        {{ doc.custodian }}
-                                    </div>
-                                </td>
-                                <td>
-                                    <span class="badge rounded-pill py-2 mt-1 d-inline-flex align-items-center gap-1"
-                                        [ngClass]="getStatusConfig(doc.status).badgeClass">
-                                        <span class="material-symbols-outlined"
-                                            style="font-size: 14px;">{{ getStatusConfig(doc.status).icon }}</span>
-                                        {{ getStatusConfig(doc.status).label }}
-                                    </span>
-                                </td>
-                            </tr>
-                            <tr *ngIf="recentDocumentsSignal().length === 0">
-                                <td colspan="5" class="text-center text-muted py-5">
-                                    <span class="material-symbols-outlined d-block mb-2" style="font-size: 28px;">inbox</span>
-                                    Henüz gelen evrak bulunmuyor.
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+        <!-- Son Gelen Evraklar: Yönetici paneliyle ortak bileşen -->
+        <app-currentdocument allLink="/evrakkayit" class="d-block h-100"></app-currentdocument>
     </div>
 
     <div class="col-lg-3">
-        <div class="card premium-card h-100">
-            <div class="card-header dashboard-header ad-head">
-                <span class="ad-head-icon">
-                    <span class="material-symbols-outlined">smart_toy</span>
-                </span>
-                <div class="ad-head-text">
-                    <h5 class="ad-head-title">Akıllı Havale</h5>
-                </div>
-                <span class="ad-live">
-                    <span class="ad-live-dot"></span>
-                    Aktif
-                </span>
-            </div>
-            <div class="card-body ad-ai-body">
-                <p class="ad-ai-text">
-                    Gelen evrakın içeriğini önceki kayıtlarla karşılaştırarak havale edilecek birimi önerir.
-                </p>
-                <dl class="ad-ai-meta">
-                    <div class="ad-ai-row">
-                        <dt>Motor</dt>
-                        <dd>Cosine Similarity</dd>
-                    </div>
-                    <div class="ad-ai-row">
-                        <dt>Sürüm</dt>
-                        <dd>v1.0</dd>
-                    </div>
-                    <div class="ad-ai-row">
-                        <dt>Bugün önerilen</dt>
-                        <dd>14 evrak</dd>
-                    </div>
-                    <div class="ad-ai-row">
-                        <dt>Kabul oranı</dt>
-                        <dd>%86</dd>
-                    </div>
-                </dl>
-                <a routerLink="/havale" class="ad-ai-link">
-                    Havale ekranına git
-                    <span class="material-symbols-outlined">arrow_forward</span>
-                </a>
-            </div>
-        </div>
+        <!-- Anlık Durum: Yönetici paneliyle ortak bileşen (aynı veri ve sekmeler) -->
+        <status-overview class="d-block h-100"></status-overview>
     </div>
 </div>
 
-<!-- ===================== Bekleyenler / anlık durum ===================== -->
+<!-- ===================== Teslim edilmeyi bekleyenler / akıllı havale ===================== -->
 <div class="row g-3 mb-4">
     <div class="col-lg-9">
         <div class="card premium-card h-100">
@@ -288,99 +176,7 @@
     </div>
 
     <div class="col-lg-3">
-        <div class="card premium-card h-100">
-            <div class="card-header dashboard-header ad-head ad-head-compact">
-                <span class="ad-head-icon">
-                    <span class="material-symbols-outlined">monitoring</span>
-                </span>
-                <div class="ad-head-text">
-                    <h5 class="ad-head-title">Anlık Durum</h5>
-                </div>
-                <span class="ad-period">Bugün</span>
-            </div>
-            <div class="card-body">
-                <div class="activity-list ad-activity">
-                    <div class="activity-item">
-                        <div class="activity-icon">
-                            <span class="material-symbols-outlined">add_home</span>
-                        </div>
-                        <div class="activity-content">
-                            <div class="activity-title">Ön Kayıt</div>
-                            <div class="activity-subtitle">Bugün giriş yapan</div>
-                        </div>
-                        <div class="activity-value">
-                            <span class="count-chip">48</span>
-                            <span class="activity-value-label">Evrak</span>
-                        </div>
-                    </div>
-
-                    <div class="activity-item">
-                        <div class="activity-icon">
-                            <span class="material-symbols-outlined">airplane_ticket</span>
-                        </div>
-                        <div class="activity-content">
-                            <div class="activity-title">Kurye Kayıt</div>
-                            <div class="activity-subtitle">Kurye ile gelen</div>
-                        </div>
-                        <div class="activity-value">
-                            <span class="count-chip">14</span>
-                            <span class="activity-value-label">Evrak</span>
-                        </div>
-                    </div>
-
-                    <div class="activity-item">
-                        <div class="activity-icon">
-                            <span class="material-symbols-outlined">hourglass</span>
-                        </div>
-                        <div class="activity-content">
-                            <div class="activity-title">OCR Kuyruk</div>
-                        </div>
-                        <div class="activity-value">
-                            <span class="count-chip count-chip-alert">23</span>
-                            <span class="activity-value-label">Bekleyen</span>
-                        </div>
-                    </div>
-
-                    <div class="activity-item">
-                        <div class="activity-icon">
-                            <span class="material-symbols-outlined">check_small</span>
-                        </div>
-                        <div class="activity-content">
-                            <div class="activity-title">OCR Tamamlanan</div>
-                        </div>
-                        <div class="activity-value">
-                            <span class="count-chip count-chip-info">20</span>
-                            <span class="activity-value-label">Evrak</span>
-                        </div>
-                    </div>
-
-                    <div class="activity-item">
-                        <div class="activity-icon">
-                            <span class="material-symbols-outlined">done_all</span>
-                        </div>
-                        <div class="activity-content">
-                            <div class="activity-title">Kaydı Tamamlanan</div>
-                        </div>
-                        <div class="activity-value">
-                            <span class="count-chip count-chip-success">21</span>
-                            <span class="activity-value-label">Evrak</span>
-                        </div>
-                    </div>
-
-                    <div class="activity-item">
-                        <div class="activity-icon">
-                            <span class="material-symbols-outlined">approval_delegation</span>
-                        </div>
-                        <div class="activity-content">
-                            <div class="activity-title">Teslim Edilen</div>
-                        </div>
-                        <div class="activity-value">
-                            <span class="count-chip count-chip-success">56</span>
-                            <span class="activity-value-label">Evrak</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <!-- Akıllı Havale: Yönetici paneliyle ortak bileşen -->
+        <smart-routing class="d-block h-100"></smart-routing>
     </div>
 </div>

@@ -205,28 +205,9 @@
                         }
                     </div>
                     <div class="d-flex flex-column ps-2">
-                        <span
-                            class="d-none d-md-inline small-text">{{user()?.name}}
-                            {{user()?.surname}}</span>
+                        <span class="d-none d-md-inline user-toggle-name">{{user()?.name}} {{user()?.surname}}</span>
                         <span class="d-none d-md-inline user-department"
-                            title="{{user()?.departmentName}}">{{ user()?.departmentShortName }}
-                            @if (isAdmin()) {
-                                <span class="badge badge-soft-warning badge-sm ms-1"
-                                    title="Yönetici">
-                                    <span class="material-symbols-outlined"
-                                        style="font-size: 12px; vertical-align: -1px;">shield_person</span>
-                                    Yönetici
-                                </span>
-                            }
-                            @if (isBirimEvrakSorumlusu()) {
-                                <span class="badge badge-soft-info badge-sm ms-1"
-                                    title="Birim Evrak Sorumlusu">
-                                    <span class="material-symbols-outlined"
-                                        style="font-size: 12px; vertical-align: -1px;">badge</span>
-                                    Birim Evrak Sorumlusu
-                                </span>
-                            }
-                        </span>
+                            title="{{user()?.departmentName}}">{{ user()?.departmentShortName }}</span>
                     </div>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end shadow user-dropdown-menu"
@@ -243,26 +224,14 @@
                         </div>
                         <div class="user-dropdown-identity">
                             <span class="user-dropdown-name">{{user()?.name}} {{user()?.surname}}</span>
+                            @if (user()?.email) {
+                                <span class="user-dropdown-email" title="{{user()?.email}}">{{ user()?.email }}</span>
+                            }
                             <span class="user-dropdown-dept" title="{{user()?.departmentName}}">
                                 {{ user()?.departmentName }}
-                                @if (isAdmin()) {
-                                    <span class="badge badge-soft-warning badge-sm ms-1" title="Yönetici">
-                                        <span class="material-symbols-outlined"
-                                            style="font-size: 12px; vertical-align: -1px;">shield_person</span>
-                                        Yönetici
-                                    </span>
-                                }
-                                @if (isBirimEvrakSorumlusu()) {
-                                    <span class="badge badge-soft-info badge-sm ms-1" title="Birim Evrak Sorumlusu">
-                                        <span class="material-symbols-outlined"
-                                            style="font-size: 12px; vertical-align: -1px;">badge</span>
-                                        Birim Evrak Sorumlusu
-                                    </span>
-                                }
                             </span>
                         </div>
                     </li>
-                    <li><hr class="dropdown-divider"></li>
                     @if (!roleService.has('Birim Evrak Sorumlusu')) {
                         <li>
                             <a class="dropdown-item user-dropdown-item" routerLink="/users/profile" routerLinkActive="active">

@@ -140,7 +140,6 @@ export default class Layouts {
   private readonly router = inject(Router);
   readonly roleService = inject(RoleService);
   readonly isAdmin = computed(() => this.roleService.has('Yönetici'));
-  readonly isBirimEvrakSorumlusu = computed(() => this.roleService.has('Birim Evrak Sorumlusu'));
   readonly #allocationService = inject(DocumentAllocation);
   readonly transferredToMeCount = signal<number>(0);
   readonly transferCount = signal<number>(0);

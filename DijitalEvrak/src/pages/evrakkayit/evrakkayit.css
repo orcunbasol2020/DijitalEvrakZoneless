@@ -127,7 +127,8 @@
     padding: 14px 16px;
     border-radius: 16px;
     color: #fff;
-    background: linear-gradient(120deg, #0f172a 0%, #0c4a6e 55%, #0369a1 100%);
+    /* Bir ton açık: Kontrol Paneli kullanıcı menüsü başlığıyla aynı lacivert-petrol kademesi */
+    background: linear-gradient(120deg, #1c2b4a 0%, #115b87 55%, #0b7fc4 100%);
     border: 1px solid rgba(125, 211, 252, 0.35);
     box-shadow: 0 12px 28px rgba(3, 105, 161, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.12);
     overflow: hidden;
