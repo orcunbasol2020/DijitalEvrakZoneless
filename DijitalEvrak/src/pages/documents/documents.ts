@@ -87,7 +87,7 @@ export default class Documents {
       category: 'Gelen Evrak'
     },
     {
-      title: 'Evrak Eşleştirme',
+      title: 'Taranmış Evraklar',
       description: 'Taranan QR kodlarını ilgili evrak kaydıyla eşleştirin.',
       icon: 'folder_match',
       url: '/scanneddocument',

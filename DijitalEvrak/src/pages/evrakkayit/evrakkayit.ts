@@ -234,8 +234,8 @@ export default class Evrakkayit implements OnInit {
   }
 
   readonly breadcrumbs = signal<BreadcrumbModel[]>([
-    { title: 'Taranmış Evraklar', url: '/scanlist', icon: '' },
-    { title: 'Gelen Evrak Kayıt', url: '/evrakkayit', icon: 'add' }
+    { title: 'Gelen Evraklar', url: '/scanlist', icon: '' },
+    { title: 'Evrak Kayıt', url: '/evrakkayit', icon: 'add' }
   ]);
 
   readonly title = "Gelen Evrak Kayıt";
