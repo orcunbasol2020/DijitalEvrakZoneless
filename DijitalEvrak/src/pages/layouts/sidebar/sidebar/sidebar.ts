@@ -1,6 +1,8 @@
 import { Component, inject, signal, computed, ChangeDetectionStrategy, ViewEncapsulation, input } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { filter } from 'rxjs';
 import { RoleService } from '../../../../services/role-service';
 import { SearchMenuPipe } from '../../../../pipes/search-menu-pipe';
 import { NavigationModel } from '../../../../navigation';
@@ -97,6 +99,51 @@ export class Sidebar {
             .filter((category): category is string => !!category && category !== Sidebar.DEFAULT_OPEN_CATEGORY)
         )
   );
+
+  constructor() {
+    // Sayfa yenilendiğinde ya da menü dışından (kontrol paneli kısayolları vb.) bir sayfaya
+    // gidildiğinde, o sayfanın bulunduğu kategori açık gelir; varsayılan kategoriye dönülmez.
+    this.expandCategoryOf(this.router.url);
+    this.router.events
+      .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd), takeUntilDestroyed())
+      .subscribe(e => this.expandCategoryOf(e.urlAfterRedirects));
+  }
+
+  /** Adresle en uzun eşleşen menü öğesinin kategorisi (alt sayfalar da üst menünün kategorisine düşer). */
+  private categoryOfUrl(url: string): string | null {
+    const path = url.split(/[?#]/)[0];
+    let category: string | null = null;
+    let best: { category: string | null; length: number } | null = null;
+
+    for (const item of this.roleService.getMenu()) {
+      if (item.category) { category = item.category; continue; }
+      if (!item.url || item.url === '/') continue;
+      const matches = path === item.url || path.startsWith(item.url + '/');
+      if (matches && (!best || item.url.length > best.length)) {
+        best = { category, length: item.url.length };
+      }
+    }
+    return best?.category ?? null;
+  }
+
+  private expandCategoryOf(url: string): void {
+    const category = this.categoryOfUrl(url);
+    if (!category || !this.isCategoryCollapsed(category)) return;
+
+    if (this.expandAllByDefault) {
+      this.collapsedCategories.update(current => {
+        const next = new Set(current);
+        next.delete(category);
+        return next;
+      });
+      return;
+    }
+
+    const allCategories = this.navigations()
+      .map(item => item.category)
+      .filter((c): c is string => !!c);
+    this.collapsedCategories.set(new Set(allCategories.filter(c => c !== category)));
+  }
 
   isCategoryCollapsed(category: string): boolean {
     return this.collapsedCategories().has(category);
