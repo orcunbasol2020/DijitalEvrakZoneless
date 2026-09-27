@@ -71,7 +71,7 @@ export class ScannedDocumentService {
   updateScannedDocumentNumber(id: string, documentNumber: string, userId: string) {
     return this.httpService.put<any>(
       `${this.baseUrl}Update`,
-      { id, documentNumber }
+      { id, documentNumber, userId }
     );
   }
 

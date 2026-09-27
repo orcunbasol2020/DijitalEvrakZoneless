@@ -1,131 +1,178 @@
-<app-generic pageTitle="Evrak Eşleştirme Ekranı"
+<app-generic pageTitle="Evrak Eşleştirme"
   [breadcrumbs]="[{title: 'Evrak Eşleştirme', url: 'scanneddocument', icon: ''}]">
 </app-generic>
 
-<div class="container-fluid">
-  <div class="row">
-
-    <!-- ================= PDF ALANI ================= -->
-    <div class="col-md-8">
-
-      <!-- NAV BAR -->
-      <div
-        class="doc-nav-bar d-flex justify-content-between align-items-center mb-3 px-3 py-2"
-        *ngIf="scannedDocuments().length != 0 && !isLoading()">
-
-        <div class="d-flex align-items-center">
-          <div class="doc-counter">
-            {{ currentIndex() + 1 }} / {{ scannedDocuments().length }}
-          </div>
-
-          <span *ngIf="currentDocument() as doc" class="ms-3 doc-filename">
-            {{ doc.fileName }}
-          </span>
+<div class="row">
+  <!-- SOL PANEL: taranmış evrak görüntüleyici -->
+  <div class="col-lg-8 col-12">
+    <div class="card zm-card d-flex flex-column">
+      <div class="card-header dashboard-header d-flex align-items-center justify-content-between gap-3">
+        <div class="d-flex align-items-center min-w-0">
+          <span class="material-symbols-outlined me-2 text-info">document_scanner</span>
+          <h5 class="card-title mb-0 fw-semibold">Taranmış Evrak</h5>
         </div>
 
-        <div>
-          <button class="btn btn-premium-outline me-2"
-            (click)="prev()"
-            [disabled]="currentIndex() === 0">
-            ← Geri
-          </button>
-
-          <button class="btn btn-premium"
-            (click)="next()"
-            [disabled]="currentIndex() === scannedDocuments().length - 1">
-            İleri →
+        <div class="sd-nav">
+          @if (scannedDocuments().length) {
+            <button type="button" class="zm-icon-btn" title="Önceki evrak"
+              (click)="prev()" [disabled]="currentIndex() === 0 || isLoading()">
+              <span class="material-symbols-outlined">chevron_left</span>
+            </button>
+            <span class="sd-counter">{{ currentIndex() + 1 }} / {{ scannedDocuments().length }}</span>
+            <button type="button" class="zm-icon-btn" title="Sonraki evrak"
+              (click)="next()" [disabled]="currentIndex() === scannedDocuments().length - 1 || isLoading()">
+              <span class="material-symbols-outlined">chevron_right</span>
+            </button>
+          }
+          <button type="button" class="zm-icon-btn" title="Listeyi yenile"
+            (click)="loadDocuments()" [disabled]="isLoading()">
+            <span class="material-symbols-outlined">refresh</span>
           </button>
         </div>
-
       </div>
 
-      <div class="pdf-container">
-
-  <div *ngIf="isLoading()" class="pdf-loading-overlay">
-    <div class="spinner"></div>
-    <div class="loading-text">Evrak yükleniyor...</div>
+      <div class="card-body zm-body">
+        @if (isLoading()) {
+          <div class="zm-empty sd-fill">
+            <div class="zm-empty-icon">
+              <div class="spinner-border text-primary"></div>
+            </div>
+            <div class="zm-empty-title">Evraklar yükleniyor...</div>
+            <div class="zm-empty-text">Eşleştirilmeyi bekleyen taranmış evraklar getiriliyor.</div>
+          </div>
+        } @else if (currentDocument()) {
+          <div class="sd-viewer">
+            <iframe [src]="pdfUrl()" title="Taranmış evrak"></iframe>
+          </div>
+        } @else {
+          <div class="zm-empty sd-fill">
+            <div class="zm-empty-icon">
+              <span class="material-symbols-outlined">task_alt</span>
+            </div>
+            <div class="zm-empty-title">Eşleştirilecek evrak yok</div>
+            <div class="zm-empty-text">
+              Belge numarasıyla eşleştirilmeyi bekleyen taranmış evrak bulunmuyor. Yeni taramalar geldiğinde burada listelenir.
+            </div>
+          </div>
+        }
+      </div>
+    </div>
   </div>
-        <!-- PDF -->
-        <iframe
-          *ngIf="!isLoading() && isPdfData() && pdfUrl()"
-          [src]="pdfUrl()"
-          width="100%"
-          height="640px"
-          style="border:none;">
-        </iframe>
 
-
-
-      <!-- Evrak Yok Mesajı -->
-      <div class="card" style="height: 700px;" *ngIf="!isLoading() && !isPdfData()">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <h4 class="m-0">Evrak - Belge No Eşleştirme</h4>
-        </div>
-        <div class="alert alert-warning d-flex align-items-center justify-content-between mx-4 mt-4">
-          <div class="qr-icon-wrapper d-flex align-items-center justify-content-center me-3">
-            <span class="material-symbols-outlined qr-iconNonPulse" title="Bilgi">info</span>
-          </div>
-          <div class="qr-panel-content position-relative flex-grow-1 pt-3 mb-3">
-            <strong class="mb-1 qr-title">Eşleştirilecek Evrak Bulunamadı</strong>
-            <p class="mb-0 qr-description">
-              Bu alanda taranmış evrak ile QR kodu eşleştirilememiş belgeleri görebilirsiniz.
-            </p>
-          </div>
-        </div>
+  <!-- SAĞ PANEL: belge no eşleştirme -->
+  <div class="col-lg-4 col-12">
+    <div class="card zm-card d-flex flex-column">
+      <div class="card-header dashboard-header d-flex align-items-center">
+        <span class="material-symbols-outlined me-2 text-info">link</span>
+        <h5 class="card-title mb-0 fw-semibold">Belge No Eşleştirme</h5>
       </div>
-      </div>
-    </div>
 
-    <!-- ================= QR PANEL ================= -->
-    <div class="col-md-4">
-      <div class="qr-panel">
-
-        <!-- ÜST BAŞLIK -->
-        <div class="qr-panel-header" *ngIf="scannedDocuments().length != 0 && !isLoading()">
-          <div>
-            <div class="qr-title">Evrak - Belge No Eşleştirme</div>
+      <div class="card-body zm-body">
+        <!-- QR okutma bloğu (Ön Kayıt / Evrak Kayıt ekranlarıyla aynı dil) -->
+        <div class="zm-scan-hero" [class.is-active]="qrActive" [class.is-loading]="saving()">
+          <div class="zm-scan-wrap">
+            <span class="material-symbols-outlined zm-scan-icon">qr_code_2</span>
+            <input
+              #qrInput
+              type="text"
+              class="zm-scan-input sd-scan-input"
+              placeholder="QR kodu okutun veya belge numarasını yazın"
+              [value]="qrEditable()"
+              (input)="qrEditable.set($any($event.target).value)"
+              (keydown)="onQrKeydown($event)"
+              (focus)="qrActive = true"
+              (blur)="qrActive = false"
+              [disabled]="!currentDocument() || saving()"
+              autocomplete="off">
+            <span class="zm-scan-status" [class.is-active]="qrActive && !saving()" [class.is-loading]="saving()">
+              @if (saving()) {
+                <span class="spinner-border spinner-border-sm"></span>
+              } @else if (qrActive) {
+                <span class="zm-ready-dot"></span>
+              }
+              {{ saving() ? 'Eşleştiriliyor' : (qrActive ? 'Hazır' : 'Pasif') }}
+            </span>
           </div>
-        </div>
-
-        <!-- ORTA ALAN -->
-        <div class="qr-panel-body" *ngIf="scannedDocuments().length != 0 && !isLoading()">
-
-          <!-- BEKLEME DURUMU -->
-          <div class="qr-center" *ngIf="alertVisible()">
-            <div class="qr-wait-card">
-              <div class="qr-icon-wrapper2">
-                <span class="material-symbols-outlined qr-icon2">qr_code_scanner</span>
-              </div>
-              <div class="qr-title">QR Kod Bekleniyor</div>
-              <div class="qr-subtitle">
-                QR kod okuyucu ile okutunuz veya manuel giriş ekranına geçiniz.
-              </div>
-              <button class="qr-manual-btn" (click)="goToManual()">
-                Manuel Giriş Ekranına Geç
-              </button>
+          <div class="zm-scan-hint-row">
+            <div class="zm-scan-hint">
+              Okutulan numarayı kontrol edip soldaki evrağa eşleştirin.
             </div>
           </div>
+        </div>
 
-          <!-- OKUNAN QR -->
-          <div class="btn-outline-dark mt-2" *ngIf="qrContent() || !alertVisible()">
-            <div class="qr-result-card">
-              <div class="qr-result-header">
-                <span class="qr-result-title">Belge Numarası</span>
-              </div>
-              <div class="qr-result-box mt-3">
-                <input type="text"
-                  class="form-control qr-result-input mt-2"
-                  [value]="qrEditable()"
-                  (input)="qrEditable.set($any($event.target).value)" />
-                <button class="btn reset-btn mt-4" (click)="resetQr()">Tekrar Okut</button>
-                <button class="btn btn-outline-dark btn-sm mt-4" (click)="matchQr()">Belge Numarasını Eşleştir</button>
+        <!-- Eşleştirme özeti -->
+        @if (currentDocument()) {
+          <div class="sd-match" [class.is-ready]="qrEditable().trim()">
+            <div class="sd-match-row">
+              <span class="sd-match-icon is-target">
+                <span class="material-symbols-outlined">tag</span>
+              </span>
+              <div class="sd-match-body">
+                <div class="sd-match-label">Belge numarası</div>
+                <div class="sd-match-value" [class.is-empty]="!qrEditable().trim()">
+                  {{ qrEditable().trim() || 'Henüz okutulmadı' }}
+                </div>
               </div>
             </div>
           </div>
+        }
 
+        <div class="zm-steps">
+          <div class="zm-step">
+            <span class="zm-step-no">1</span>
+            <div class="zm-step-body">
+              <div class="zm-step-title">Belge numarasını okutun</div>
+              <div class="zm-step-text">Evrak üzerindeki QR kodu okuyucuyla okutun ya da belge numarasını yazın.</div>
+            </div>
+          </div>
+          <div class="zm-step">
+            <span class="zm-step-no">2</span>
+            <div class="zm-step-body">
+              <div class="zm-step-title">Numarayı evrağa bağlayın</div>
+              <div class="zm-step-text">
+                Numara doğruysa iki seçenekten birini kullanın:
+                <div class="sd-option is-primary">
+                  <span class="sd-option-badge">
+                    <span class="material-symbols-outlined">edit_document</span>
+                  </span>
+                  <span><strong>Evrak Kaydet:</strong> Numarayı evrağa bağlar, kaydını hemen tamamlamanız için Evrak Kayıt ekranını açar.</span>
+                </div>
+                <div class="sd-option">
+                  <span class="sd-option-badge">
+                    <span class="material-symbols-outlined">arrow_forward</span>
+                  </span>
+                  <span><strong>Eşleştir:</strong> Numarayı evrağa bağlar, sıradaki taranmış evrağa geçer.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-footer zm-footer mt-auto">
+        <div class="zm-footer-actions sd-footer-actions">
+          <button type="button" class="btn btn-outline-secondary zm-back-btn" (click)="matchQr()"
+            [disabled]="!currentDocument() || !qrEditable().trim() || saving()">
+            @if (savingAction() === 'next') {
+              <span class="spinner-border spinner-border-sm"></span>
+              Eşleştiriliyor
+            } @else {
+              Eşleştir
+              <span class="material-symbols-outlined">arrow_forward</span>
+            }
+          </button>
+          <button type="button" class="btn btn-primary zm-back-btn sd-register-btn" (click)="matchQr(true)"
+            [disabled]="!currentDocument() || !qrEditable().trim() || saving()">
+            @if (savingAction() === 'register') {
+              <span class="spinner-border spinner-border-sm"></span>
+              Eşleştiriliyor
+            } @else {
+              <span class="material-symbols-outlined">edit_document</span>
+              Evrak Kaydet
+            }
+          </button>
         </div>
       </div>
     </div>
-
   </div>
 </div>

@@ -66,7 +66,7 @@ export const navigations: NavigationModel[] = [
         roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Ön Kayıt"]
     },
     {
-        title: "Evrak Eşleştirme",
+        title: "Taranmış Evraklar",
         url: "/scanneddocument",
         icon: "folder_match",
         roles: ["Gelen Evrak"]
