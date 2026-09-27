@@ -1,0 +1,50 @@
+<!-- Etiket görseli: styles.css'teki .envelope-label / .label-box / .receiver-box sınıfları.
+     Ekranda (canlı önizleme, popup'lar) ve PDF çıktısında aynı işaretleme kullanılır. -->
+<div class="envelope-label" [class.envelope-label-no-accent]="!accent()" [class.is-draft]="draft()" [attr.id]="printId() || null">
+    <div class="label-box sender-box">
+        <div class="label-title">Gönderen</div>
+        <div class="label-content">
+            {{ senderDepartment() || '-' }}
+        </div>
+        <div class="ministry-row">
+            <div class="ministry">
+                T.C. DIŞİŞLERİ BAKANLIĞI
+            </div>
+            <div class="label-contentPostCode">
+                06520
+            </div>
+        </div>
+    </div>
+
+    <!-- QR -->
+    <div class="qr-section">
+        @if (draft() || !qrData()) {
+            <div class="qr-placeholder">
+                <span class="material-symbols-outlined">qr_code_2</span>
+            </div>
+        } @else {
+            <qrcode [qrdata]="qrData()"
+                [width]="100"
+                [errorCorrectionLevel]="'H'"></qrcode>
+        }
+    </div>
+
+    <!-- NUMARA -->
+    <div class="label-number" [class.is-placeholder]="draft() || !envelopeNo()">
+        {{ draft() || !envelopeNo() ? 'ZRF-••••-••••••' : envelopeNo() }}
+    </div>
+
+    <!-- ALICI -->
+    <div class="label-box receiver-box">
+        <div class="label-title">{{ isDepartment() ? 'Alıcı Birim' : 'Alıcı' }}</div>
+        <div class="label-External" [class.is-placeholder]="!receiverName()">
+            {{ receiverName() || 'Gideceği yer seçilmedi' }}
+        </div>
+        <div class="labelDepartment" *ngIf="unitName()">
+            {{ unitName() }}
+        </div>
+        <div class="labelAddress" [class.is-placeholder]="!address()">
+            {{ address() || (isDepartment() ? 'Kurum içi dağıtım' : (draft() ? 'Adres girilmedi' : '-')) }}
+        </div>
+    </div>
+</div>

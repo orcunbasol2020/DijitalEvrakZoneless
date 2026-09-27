@@ -19,7 +19,8 @@ export class OutgoingDocumentService {
     );
   }
 
-  // UPDATE (durum değişince transaction kaydı düşer, CargoPostNumber girilebilir)
+  // UPDATE (durum değişince transaction kaydı düşer; kargo bilgisi burada değil
+  // OutgoingDocumentShipments üzerinde tutulur)
   updateOutgoingDocument(model: Partial<OutgoingDocumentModel>) {
     return this.httpService.put<OutgoingDocumentModel>(
       `${this.baseUrl}Update`,

@@ -85,186 +85,6 @@
     color: #94a3b8;
 }
 
-/* ---- Sağ panel başlığı: aktif zimmet sahibi çipi ----
-   Avatar tonu durumu anlatır: turkuaz = başka personelde,
-   yeşil = oturum açan kullanıcıda, gri = zimmet yok. */
-.iz-owner {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    max-width: 70%;
-    padding: 4px 20px 4px 6px;
-    border-radius: 999px;
-    background: #f0f9ff;
-    border: 1px solid #bae6fd;
-    outline: none;
-    transition: box-shadow 0.15s ease, border-color 0.15s ease;
-}
-
-.iz-owner:not(.is-empty) {
-    cursor: default;
-}
-
-.iz-owner:not(.is-empty):hover,
-.iz-owner:not(.is-empty):focus-visible {
-    border-color: #7dd3fc;
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
-}
-
-.iz-owner.is-me:hover,
-.iz-owner.is-me:focus-visible {
-    border-color: #86efac;
-    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12);
-}
-
-.iz-owner-avatar.zm-avatar {
-    width: 30px;
-    height: 30px;
-    font-size: 11px;
-    color: #fff;
-    background: linear-gradient(135deg, #0284c7, #22d3ee);
-}
-
-/* Üzerine gelince açılan durum + tarih kutusu */
-.iz-owner-tip {
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
-    z-index: 20;
-    min-width: 210px;
-    padding: 8px 10px;
-    border-radius: 10px;
-    background: #fff;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    opacity: 0;
-    transform: translateY(-4px);
-    pointer-events: none;
-    transition: opacity 0.15s ease, transform 0.15s ease;
-}
-
-.iz-owner-tip::before {
-    content: "";
-    position: absolute;
-    top: -5px;
-    right: 18px;
-    width: 9px;
-    height: 9px;
-    background: #fff;
-    border-left: 1px solid #e2e8f0;
-    border-top: 1px solid #e2e8f0;
-    transform: rotate(45deg);
-}
-
-.iz-owner:hover .iz-owner-tip,
-.iz-owner:focus-visible .iz-owner-tip {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.iz-owner-tip-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    white-space: nowrap;
-}
-
-.iz-owner-tip-row .material-symbols-outlined {
-    font-size: 16px;
-    color: #0ea5e9;
-}
-
-.iz-owner.is-me .iz-owner-tip-row .material-symbols-outlined {
-    color: #22c55e;
-}
-
-.iz-owner-tip-key {
-    color: #94a3b8;
-    font-weight: 600;
-    min-width: 40px;
-}
-
-.iz-owner-tip-val {
-    color: #1e293b;
-    font-weight: 600;
-}
-
-.iz-owner-avatar .material-symbols-outlined {
-    font-size: 16px;
-}
-
-.iz-owner-info {
-    min-width: 0;
-    line-height: 1.2;
-}
-
-.iz-owner-label {
-    font-size: 9.5px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    color: #0369a1;
-}
-
-.iz-owner-name {
-    font-size: 12.5px;
-    font-weight: 600;
-    color: #1e293b;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.iz-owner-me {
-    display: inline-block;
-    margin-left: 4px;
-    padding: 0 6px;
-    border-radius: 999px;
-    font-size: 9.5px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    color: #fff;
-    background: #16a34a;
-    vertical-align: 1px;
-}
-
-/* Evrak oturum açan kullanıcının üzerindeyse yeşil ton */
-.iz-owner.is-me {
-    background: #f0fdf4;
-    border-color: #bbf7d0;
-}
-
-.iz-owner.is-me .iz-owner-label {
-    color: #15803d;
-}
-
-.iz-owner.is-me .iz-owner-avatar.zm-avatar {
-    background: linear-gradient(135deg, #16a34a, #4ade80);
-}
-
-/* Aktif zimmet yoksa nötr gri ton */
-.iz-owner.is-empty {
-    background: #f8fafc;
-    border-color: #e7eaf0;
-}
-
-.iz-owner.is-empty .iz-owner-label {
-    color: #94a3b8;
-}
-
-.iz-owner.is-empty .iz-owner-name {
-    color: #64748b;
-}
-
-.iz-owner.is-empty .iz-owner-avatar.zm-avatar {
-    color: #94a3b8;
-    background: #e2e8f0;
-}
-
 /* Geçmiş sekmesindeki kayıt sayısı */
 .iz-count {
     display: inline-flex;
@@ -510,65 +330,463 @@
     color: #7dd3fc;
 }
 
-[data-theme="dark"] .iz-owner {
-    background: rgba(14, 165, 233, 0.12);
-    border-color: rgba(14, 165, 233, 0.35);
-}
-
-[data-theme="dark"] .iz-owner-label {
-    color: #7dd3fc;
-}
-
-[data-theme="dark"] .iz-owner-name {
-    color: #e2e8f0;
-}
-
-[data-theme="dark"] .iz-owner-tip {
-    background: #1e293b;
-    border-color: rgba(148, 163, 184, 0.25);
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
-}
-
-[data-theme="dark"] .iz-owner-tip::before {
-    background: #1e293b;
-    border-color: rgba(148, 163, 184, 0.25);
-}
-
-[data-theme="dark"] .iz-owner-tip-val {
-    color: #e2e8f0;
-}
-
-[data-theme="dark"] .iz-owner .iz-owner-avatar.zm-avatar {
-    color: #fff;
-    border-color: transparent;
-}
-
-[data-theme="dark"] .iz-owner.is-me {
-    background: rgba(22, 163, 74, 0.14);
-    border-color: rgba(74, 222, 128, 0.4);
-}
-
-[data-theme="dark"] .iz-owner.is-me .iz-owner-label {
-    color: #86efac;
-}
-
-[data-theme="dark"] .iz-owner.is-empty {
-    background: rgba(148, 163, 184, 0.06);
-    border-color: rgba(148, 163, 184, 0.18);
-}
-
-[data-theme="dark"] .iz-owner.is-empty .iz-owner-label,
-[data-theme="dark"] .iz-owner.is-empty .iz-owner-name {
-    color: #94a3b8;
-}
-
-[data-theme="dark"] .iz-owner.is-empty .iz-owner-avatar.zm-avatar {
-    color: #94a3b8;
-    background: rgba(148, 163, 184, 0.14);
-}
-
 [data-theme="dark"] .iz-count {
     background: rgba(14, 165, 233, 0.18);
     border-color: rgba(14, 165, 233, 0.35);
     color: #7dd3fc;
+}
+
+/* ============================================================
+   Çoklu evrak: numara listesi, sayı çipi ve detay popup'ı
+   ============================================================ */
+
+/* Liste başlığı: "Okutulan Evraklar (N)" + tıklama ipucu */
+.iz-list-toolbar {
+    margin-top: 12px;
+    padding: 0 2px 8px;
+}
+
+.zm-list-title .iz-count {
+    margin-left: 6px;
+    vertical-align: 0;
+}
+
+.iz-list-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: #94a3b8;
+}
+
+.iz-list-hint .material-symbols-outlined {
+    font-size: 15px;
+}
+
+/* Satır: yalnızca evrak numarası; tıklanınca detay popup'ı açılır */
+.iz-doc-row {
+    cursor: pointer;
+    outline: none;
+    user-select: none;
+}
+
+.iz-doc-row:hover,
+.iz-doc-row:focus-visible {
+    border-color: #7dd3fc;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12), 0 6px 18px rgba(15, 23, 42, 0.08);
+}
+
+.iz-doc-row .zm-doc-no {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #1e293b;
+}
+
+/* Sıra numarası: lacivert-petrol tonunda küçük daire */
+.iz-doc-order {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, #26395e, #176b9e);
+    box-shadow: 0 4px 10px rgba(23, 107, 158, 0.28);
+    font-variant-numeric: tabular-nums;
+}
+
+.iz-doc-chevron {
+    flex: 0 0 auto;
+    font-size: 20px;
+    color: #cbd5e1;
+    transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.iz-doc-row:hover .iz-doc-chevron,
+.iz-doc-row:focus-visible .iz-doc-chevron {
+    color: #0ea5e9;
+    transform: translateX(2px);
+}
+
+.iz-doc-row .zm-doc-remove:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* ---- Evrak detayı popup'ı ---- */
+.modal-box.iz-modal {
+    width: 720px;
+    max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 32px);
+    display: flex;
+    flex-direction: column;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 30px 70px rgba(15, 23, 42, 0.28);
+}
+
+.iz-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px 12px 20px;
+    border-bottom: 1px solid #eef2f7;
+}
+
+.iz-modal-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.iz-modal-title .material-symbols-outlined {
+    font-size: 20px;
+    color: #0ea5e9;
+}
+
+/* Başlıktaki aktif zimmet sahibi: sağ paneldeki çiple aynı dil, daha kompakt */
+.iz-modal-owner {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 55%;
+    padding: 3px 14px 3px 4px;
+    border-radius: 999px;
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+}
+
+.iz-modal-owner-avatar.zm-avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 10.5px;
+    color: #fff;
+    background: linear-gradient(135deg, #0284c7, #22d3ee);
+}
+
+.iz-modal-owner-avatar .material-symbols-outlined {
+    font-size: 15px;
+}
+
+.iz-modal-owner-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.2;
+}
+
+.iz-modal-owner-label {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #0369a1;
+}
+
+.iz-modal-owner-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.iz-modal-owner.is-empty {
+    background: #f8fafc;
+    border-color: #e7eaf0;
+}
+
+.iz-modal-owner.is-empty .iz-modal-owner-label {
+    color: #94a3b8;
+}
+
+.iz-modal-owner.is-empty .iz-modal-owner-name {
+    color: #64748b;
+}
+
+.iz-modal-owner.is-empty .iz-modal-owner-avatar.zm-avatar {
+    color: #94a3b8;
+    background: #e2e8f0;
+}
+
+.iz-modal-body {
+    padding: 4px 20px 18px;
+    overflow-y: auto;
+    background: #fbfcfe;
+}
+
+.iz-modal-body .iz-tabbar {
+    margin-top: 6px;
+    margin-bottom: 12px;
+}
+
+.iz-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 20px;
+    border-top: 1px solid #eef2f7;
+    background: #fff;
+}
+
+@media (max-width: 575.98px) {
+    .iz-modal-owner {
+        display: none;
+    }
+}
+
+/* ---- Koyu tema ---- */
+[data-theme="dark"] .iz-list-hint {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .iz-doc-row .zm-doc-no {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .iz-doc-row:hover,
+[data-theme="dark"] .iz-doc-row:focus-visible {
+    border-color: rgba(14, 165, 233, 0.5);
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.16);
+}
+
+[data-theme="dark"] .iz-doc-chevron {
+    color: #64748b;
+}
+
+[data-theme="dark"] .modal-box.iz-modal {
+    background: #0f172a;
+    box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55);
+}
+
+[data-theme="dark"] .iz-modal-header,
+[data-theme="dark"] .iz-modal-footer {
+    background: #0f172a;
+    border-color: rgba(148, 163, 184, 0.18);
+}
+
+[data-theme="dark"] .iz-modal-title {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .iz-modal-body {
+    background: #111a2e;
+}
+
+[data-theme="dark"] .iz-modal-owner {
+    background: rgba(14, 165, 233, 0.12);
+    border-color: rgba(14, 165, 233, 0.35);
+}
+
+[data-theme="dark"] .iz-modal-owner-label {
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .iz-modal-owner-name {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .iz-modal-owner.is-empty {
+    background: rgba(148, 163, 184, 0.06);
+    border-color: rgba(148, 163, 184, 0.18);
+}
+
+[data-theme="dark"] .iz-modal-owner.is-empty .iz-modal-owner-label,
+[data-theme="dark"] .iz-modal-owner.is-empty .iz-modal-owner-name {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .iz-modal-owner.is-empty .iz-modal-owner-avatar.zm-avatar {
+    color: #94a3b8;
+    background: rgba(148, 163, 184, 0.14);
+}
+
+/* ============================================================
+   Zimmetleme sonucu popup'ı (toast yerine)
+   Renk anlamı: yeşil = zimmetlendi, kehribar = zaten hedef kişide (atlandı),
+   kırmızı = hata. Sayısı sıfır olan kutu soluklaşır.
+   ============================================================ */
+.modal-box.iz-result {
+    width: 560px;
+}
+
+.iz-result-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.iz-result-stat {
+    --tone: #64748b;
+    --tone-bg: #f8fafc;
+    --tone-border: #e7eaf0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 12px 10px;
+    border-radius: 14px;
+    background: var(--tone-bg);
+    border: 1px solid var(--tone-border);
+    transition: opacity 0.15s ease;
+}
+
+.iz-result-stat .material-symbols-outlined {
+    font-size: 22px;
+    color: var(--tone);
+}
+
+.iz-result-stat-no {
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--tone);
+    font-variant-numeric: tabular-nums;
+}
+
+.iz-result-stat-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #64748b;
+}
+
+.iz-result-stat.is-ok   { --tone: #15803d; --tone-bg: #f0fdf4; --tone-border: #bbf7d0; }
+.iz-result-stat.is-skip { --tone: #b45309; --tone-bg: #fffbeb; --tone-border: #fde68a; }
+.iz-result-stat.is-fail { --tone: #b91c1c; --tone-bg: #fef2f2; --tone-border: #fecaca; }
+
+.iz-result-stat.is-zero {
+    opacity: 0.45;
+}
+
+.iz-result-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-size: 12.5px;
+    line-height: 1.4;
+    color: #92400e;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+}
+
+.iz-result-note .material-symbols-outlined {
+    font-size: 18px;
+    flex: 0 0 auto;
+}
+
+.iz-result-note.is-fail {
+    color: #991b1b;
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
+.iz-result-list {
+    margin-top: 12px;
+}
+
+.iz-result-row {
+    --tone: #64748b;
+    padding: 8px 12px;
+    animation: none;
+}
+
+.iz-result-row:hover {
+    transform: none;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    border-color: #e7eaf0;
+}
+
+.iz-result-row .zm-doc-no {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.iz-result-row-icon {
+    font-size: 20px;
+    color: var(--tone);
+    flex: 0 0 auto;
+}
+
+.iz-result-chip {
+    flex: 0 0 auto;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    color: var(--tone);
+    background: color-mix(in srgb, var(--tone) 10%, #fff);
+    border: 1px solid color-mix(in srgb, var(--tone) 25%, #fff);
+}
+
+.iz-result-row.is-ok   { --tone: #15803d; }
+.iz-result-row.is-skip { --tone: #b45309; }
+.iz-result-row.is-fail { --tone: #b91c1c; }
+
+@media (max-width: 575.98px) {
+    .iz-result-stats {
+        gap: 6px;
+    }
+
+    .iz-result-stat {
+        padding: 10px 6px;
+    }
+}
+
+/* ---- Koyu tema ---- */
+[data-theme="dark"] .iz-result-stat {
+    background: color-mix(in srgb, var(--tone) 14%, #0f172a);
+    border-color: color-mix(in srgb, var(--tone) 30%, #0f172a);
+}
+
+[data-theme="dark"] .iz-result-stat.is-ok   { --tone: #4ade80; }
+[data-theme="dark"] .iz-result-stat.is-skip { --tone: #fbbf24; }
+[data-theme="dark"] .iz-result-stat.is-fail { --tone: #f87171; }
+
+[data-theme="dark"] .iz-result-stat-label {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .iz-result-note {
+    color: #fcd34d;
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+[data-theme="dark"] .iz-result-note.is-fail {
+    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+[data-theme="dark"] .iz-result-row.is-ok   { --tone: #4ade80; }
+[data-theme="dark"] .iz-result-row.is-skip { --tone: #fbbf24; }
+[data-theme="dark"] .iz-result-row.is-fail { --tone: #f87171; }
+
+[data-theme="dark"] .iz-result-row:hover {
+    box-shadow: none;
+}
+
+[data-theme="dark"] .iz-result-chip {
+    background: color-mix(in srgb, var(--tone) 16%, #0f172a);
+    border-color: color-mix(in srgb, var(--tone) 32%, #0f172a);
 }

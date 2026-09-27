@@ -1,5 +1,6 @@
 import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, inject, OnInit, OnDestroy, signal, ViewChild, ViewEncapsulation, computed } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { firstValueFrom } from 'rxjs';
 import GenericModel from '../../../components/generic-model/generic-model';
 import { CommonModule } from '@angular/common';
 import { FlexiToastService } from 'flexi-toast';
@@ -23,6 +24,25 @@ import { ExternalInstitution, ExternalInstitutionModel } from '../../services/ex
 type ZimmetType = 'self' | 'other';
 // Sol paneldeki sekmeler: evrak bilgileri / zimmet geçmişi
 type ZimmetTab = 'bilgi' | 'gecmis';
+
+// Okutulup listeye alınan bir evrak: evrak bilgisi ve o evraka ait zimmet geçmişi.
+export interface ScannedDoc {
+  id: string;
+  qrCode: string;
+  detail: any;
+  allocations: DocumentAllocationModel[];
+}
+
+// Kayıt sonrası gösterilen sonuç popup'ının içeriği. Toast yerine kullanılır;
+// hangi evrakın zimmetlendiği, hangisinin zaten hedef kişide olduğu için
+// atlandığı ve hangisinin hata aldığı sayılarıyla birlikte listelenir.
+export interface ZimmetResult {
+  targetName: string;
+  actionLabel: string;
+  succeeded: ScannedDoc[];
+  skipped: ScannedDoc[];
+  failed: ScannedDoc[];
+}
 
 @Component({
   standalone: true,
@@ -55,8 +75,6 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
   qrActive = false;
   private cdr = inject(ChangeDetectorRef);
 
-  allocations = signal<DocumentAllocationModel[]>([]);
-  documentDetail = signal<any | null>(null);
   securityDegreeMap: Record<number, string> = SecurityDegreeLabels;
   securityDegreeStyle: Record<number, string> = SecurityDegreeBadgeClass;
   urgencyDegreeMap: Record<number, string> = UrgencyDegreeLabels;
@@ -86,9 +104,30 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     return (id && this.externalInstitutions().find(i => i.id?.toLowerCase() === id.toLowerCase())?.name) || '-';
   }
 
-  detailsVisible = signal(false);
-  scannedDocumentNo = signal<string | null>(null);
-  currentDocumentNo = signal<string | null>(null);
+  // === OKUTULAN EVRAKLAR ===
+  // Arka arkaya okutulan evraklar burada birikir. Tek evrak varken sol panelde
+  // evrak bilgileri açık gelir; ikinci evraktan itibaren yalnızca evrak
+  // numaralarını gösteren bir liste kalır ve detay popup'tan görülür.
+  readonly docs = signal<ScannedDoc[]>([]);
+  readonly detailsVisible = computed(() => this.docs().length > 0);
+  readonly isMulti = computed(() => this.docs().length > 1);
+  readonly singleDoc = computed(() => this.docs().length === 1 ? this.docs()[0] : null);
+  // Alt özet şeritlerinde: tek evrakta evrak no, çoklu listede evrak sayısı.
+  readonly docsLabel = computed(() =>
+    this.isMulti() ? `${this.docs().length} evrak` : (this.singleDoc()?.qrCode ?? '')
+  );
+
+  // Detay popup'ı: listeden tıklanan evrak. Zimmet geçmişi sonradan yüklendiğinde
+  // de güncel kalsın diye id tutulur, kayıt listeden çözülür.
+  readonly detailDocId = signal<string | null>(null);
+  readonly detailDoc = computed(() =>
+    this.docs().find(d => d.id === this.detailDocId()) ?? null
+  );
+  readonly detailTab = signal<ZimmetTab>('bilgi');
+
+  // Kayıt sonrası sonuç popup'ı (toast yerine).
+  readonly saveResult = signal<ZimmetResult | null>(null);
+
   id!: string | null;
   // Sol paneldeki sekme (Evrak Bilgileri / Zimmet Geçmişi) ve zimmet türü.
   readonly activeTab = signal<ZimmetTab>('bilgi');
@@ -123,18 +162,24 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
       }))
   );
 
-  // Aktif zimmet zaten giriş yapan kullanıcının üzerindeyse
+  activeAllocationOf(doc: ScannedDoc): DocumentAllocationModel | null {
+    return doc.allocations.find(a => a.isActive) ?? null;
+  }
+
+  // Listedeki evrakların tümü zaten giriş yapan kullanıcının üzerindeyse
   // "Üzerime Al" seçeneği anlamsız olduğundan gizlenir.
   readonly isActiveOnCurrentUser = computed(() => {
     const currentUserId = this.user()?.id;
-    if (!currentUserId) return false;
-    return this.allocations().some(a => a.isActive && a.userId === currentUserId);
+    const docs = this.docs();
+    if (!currentUserId || docs.length === 0) return false;
+    return docs.every(d => this.activeAllocationOf(d)?.userId === currentUserId);
   });
 
-  // Evrağın şu anki zimmet sahibi; kullanıcı işlem yapmadan önce bunu görebilsin diye üstte gösterilir.
-  readonly activeAllocation = computed(() =>
-    this.allocations().find(a => a.isActive) ?? null
-  );
+  // Tek evrak görünümünde evrağın şu anki zimmet sahibi; kullanıcı işlem yapmadan önce görsün diye üstte gösterilir.
+  readonly activeAllocation = computed(() => {
+    const single = this.singleDoc();
+    return single ? this.activeAllocationOf(single) : null;
+  });
 
   // Alt özet şeridinde "Evrak No → Ad Soyad" biçiminde gösterilecek hedef.
   readonly targetLabel = computed<string | null>(() => {
@@ -155,7 +200,6 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     });
 
     if (this.id) {
-      this.detailsVisible.set(true);
       this.getir(this.id);
     }
     // === QR READER SETUP ===
@@ -178,6 +222,16 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
   // Odak bir form alanındayken (personel arama, QR alanının kendisi) tuşlar
   // tampona alınmaz; aksi halde oraya yazılan metin QR olarak okunmaya çalışılırdı.
   private handleKeydown(e: KeyboardEvent) {
+    // Popup'lar Escape ile kapanır.
+    if (e.key === 'Escape' && this.saveResult()) {
+      this.closeResult();
+      return;
+    }
+    if (e.key === 'Escape' && this.detailDocId()) {
+      this.closeDetail();
+      return;
+    }
+
     const target = e.target as HTMLElement | null;
     const tag = target?.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable) return;
@@ -200,8 +254,8 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     setTimeout(() => this.qrInput?.nativeElement.focus());
   }
 
-  // Evrak bulununca QR okutma bloğu tek satıra daralır; böylece evrak ve zimmet
-  // kartlarına yer açılır. Daraltılmışken okuyucu pasiftir (handleKeydown tuşları
+  // QR okutma bloğu kullanıcı "Daralt" dediğinde tek satıra daralır; arama sonrası
+  // otomatik daraltılmaz. Daraltılmışken okuyucu pasiftir (handleKeydown tuşları
   // yoksayar); kullanıcı "Aç" ile açınca yeniden aktif olur.
   scanCollapsed = false;
 
@@ -256,7 +310,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
 
   // QR kod okunduğunda tetiklenecek fonksiyon
   private onQrScanned(documentNumber: string) {
-    if (this.loading()) return;
+    if (this.loading() || this.saving()) return;
 
     if (!documentNumber) {
       this.#toast.showToast('Uyarı', 'Geçersiz QR', 'warning');
@@ -267,6 +321,13 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
 
     if (!currentUserId) {
       this.#toast.showToast('Hata', 'Kullanıcı bulunamadı', 'error');
+      return;
+    }
+
+    // Aynı numara listedeyse sunucuya gitmeye gerek yok.
+    if (this.docs().some(d => d.qrCode.toLowerCase() === documentNumber.toLowerCase())) {
+      this.#toast.showToast('Bilgi', 'Bu evrak zaten listede', 'info');
+      this.focusQrInputSoon();
       return;
     }
 
@@ -291,7 +352,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
             return;
           }
 
-          this.showDocument(doc, documentNumber);
+          this.addDocument(doc, documentNumber);
         },
         error: () => {
           this.loading.set(false);
@@ -303,46 +364,63 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
       });
   }
 
-  // Bulunan evrakı panele yerleştirir, zimmet geçmişini yükler ve QR bloğunu daraltır.
-  private showDocument(doc: any, documentNumber: string | null) {
-    this.documentDetail.set(doc);
-    this.currentDocumentNo.set(doc.id);
-    this.loadAllocations(doc.id);
-    this.scannedDocumentNo.set(documentNumber);
-    this.detailsVisible.set(true);
-    this.activeTab.set('bilgi');
-    this.zimmetType.set('other');
-    this.personControl.setValue(null);
-    this.id = null;
-    this.collapseScan();
-  }
+  // Bulunan evrakı listeye ekler ve zimmet geçmişini yükler. QR okutma alanı
+  // açık ve odakta kalır; böylece arka arkaya evrak okutulabilir. Kullanıcı
+  // isterse "Daralt" ile alanı elle kapatır.
+  private addDocument(doc: any, documentNumber: string | null) {
+    const qrCode = documentNumber ?? doc.qrCode ?? doc.id;
 
-  private Zimmetle(documentNumber: string, userId: string, createdUserId: string, status: AllocationStatusEnum) {
-    const documentId = this.currentDocumentNo();
-    if (!documentId) {
-      console.error("Belge numarası bulunamadı");
+    if (this.docs().some(d => d.id === doc.id)) {
+      this.#toast.showToast('Bilgi', 'Bu evrak zaten listede', 'info');
+      this.focusQrInputSoon();
       return;
     }
-    this.saving.set(true);
-    this.allocationService.createAllocation({
-      incomingDocumentId: documentId,
-      userId: userId,
-      createdUserId: createdUserId,
-      status: status,
-      userType: 1,
-    }).subscribe({
-      next: () => {
-        this.saving.set(false);
-        this.#toast.showToast('Başarılı', 'Zimmetleme tamamlandı', 'success');
-        this.personControl.setValue(null);
-        this.zimmetType.set('other');
-        this.loadAllocations(documentId);
-      },
-      error: () => {
-        this.saving.set(false);
-        this.#toast.showToast('Hata', 'Zimmetleme başarısız', 'error');
-      }
-    });
+
+    const isFirst = this.docs().length === 0;
+    this.docs.update(list => [...list, { id: doc.id, qrCode, detail: doc, allocations: [] }]);
+    this.loadAllocations(doc.id);
+
+    // Zimmet türü ve personel seçimi yalnızca ilk evrakta sıfırlanır; sonraki
+    // okutmalarda kullanıcının sağ panelde yaptığı seçim korunur.
+    if (isFirst) {
+      this.activeTab.set('bilgi');
+      this.zimmetType.set('other');
+      this.personControl.setValue(null);
+    }
+    this.id = null;
+    this.cdr.markForCheck();
+    if (!this.scanCollapsed) this.focusQrInputSoon();
+  }
+
+  // Listeden evrak çıkarır; liste boşalırsa ekran başlangıç durumuna döner.
+  removeDocument(id: string, event?: Event) {
+    event?.stopPropagation();
+    if (this.saving()) return;
+    if (this.detailDocId() === id) this.closeDetail();
+    this.docs.update(list => list.filter(d => d.id !== id));
+    if (this.docs().length === 0) {
+      this.backToQrScan();
+      return;
+    }
+    this.cdr.markForCheck();
+  }
+
+  openDetail(doc: ScannedDoc) {
+    this.detailTab.set('bilgi');
+    this.detailDocId.set(doc.id);
+    this.cdr.markForCheck();
+  }
+
+  closeDetail() {
+    this.detailDocId.set(null);
+    this.cdr.markForCheck();
+    if (!this.scanCollapsed) this.focusQrInputSoon();
+  }
+
+  closeResult() {
+    this.saveResult.set(null);
+    this.cdr.markForCheck();
+    if (!this.scanCollapsed) this.focusQrInputSoon();
   }
 
   getir(id: string) {
@@ -354,16 +432,14 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
 
           if (!doc?.id) {
             this.#toast.showToast('Hata', 'Belge bulunamadı', 'error');
-            this.detailsVisible.set(false);
             this.cdr.markForCheck();
             return;
           }
 
-          this.showDocument(doc, doc.qrCode ?? null);
+          this.addDocument(doc, doc.qrCode ?? null);
         },
         error: () => {
           this.loading.set(false);
-          this.detailsVisible.set(false);
           this.#toast.showToast('Hata', 'Belge bulunamadı', 'error');
           this.cdr.markForCheck();
         }
@@ -371,11 +447,8 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
   }
 
   backToQrScan() {
-    this.detailsVisible.set(false);
-    this.scannedDocumentNo.set(null);
-    this.currentDocumentNo.set(null);
-    this.documentDetail.set(null);
-    this.allocations.set([]);
+    this.docs.set([]);
+    this.detailDocId.set(null);
     this.incomingDocumentService.clearZimmetIncomingDocument();
     this.lookupErrorMessage.set(null);
     this.personControl.setValue(null);
@@ -384,10 +457,16 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     this.id = null;
     this.buffer = '';
     this.scanCollapsed = false;
+    this.cdr.markForCheck();
     this.focusQrInputSoon();
   }
 
-  saveZimmet(status: AllocationStatusEnum) {
+  // Listedeki tüm evraklar seçilen kişiye sırayla zimmetlenir; bir evrak
+  // başarısız olsa da diğerleri devam eder. Başarılı evraklar listede kalır ve
+  // zimmet geçmişleri yenilenir; böylece yeni zimmet sahibi hemen görünür.
+  async saveZimmet(status: AllocationStatusEnum) {
+    if (this.saving()) return;
+
     const user = this.user();
     if (!user?.id) {
       console.error("Kullanıcı bulunamadı");
@@ -395,9 +474,11 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     }
 
     let personId: string;
+    let targetName: string;
 
     if (this.zimmetType() === 'self') {
       personId = user.id;
+      targetName = this.currentUserName;
     } else {
       const selectedPerson = this.personControl.value;
       if (!selectedPerson) {
@@ -405,19 +486,63 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
         return;
       }
       personId = selectedPerson.id;
+      targetName = selectedPerson.name;
     }
 
-    const documentNumber = this.scannedDocumentNo();
-    if (!documentNumber) {
-      console.error("Belge numarası bulunamadı");
+    const allDocs = this.docs();
+    if (allDocs.length === 0) {
+      this.#toast.showToast('Hata', 'Zimmetlenecek evrak yok', 'error');
       return;
     }
-    this.Zimmetle(
-      documentNumber,
-      personId,
-      user.id,
-      status
-    );
+
+    const actionLabel = status === AllocationStatusEnum.Teslim
+      ? 'Teslim Et'
+      : this.zimmetType() === 'self' ? 'Üzerime Al' : 'Devret';
+
+    // Hedef kişi evrakın zaten aktif zimmet sahibiyse aynı kişiye ikinci bir
+    // zimmet kaydı açılmaz; o evrak atlanır ve sonuç popup'ında gösterilir.
+    const skipped = allDocs.filter(d => this.activeAllocationOf(d)?.userId === personId);
+    const docs = allDocs.filter(d => !skipped.includes(d));
+
+    if (docs.length === 0) {
+      this.saveResult.set({ targetName, actionLabel, succeeded: [], skipped, failed: [] });
+      this.cdr.markForCheck();
+      return;
+    }
+
+    this.saving.set(true);
+    this.cdr.markForCheck();
+
+    const succeeded: ScannedDoc[] = [];
+    const failed: ScannedDoc[] = [];
+
+    for (const doc of docs) {
+      try {
+        await firstValueFrom(this.allocationService.createAllocation({
+          incomingDocumentId: doc.id,
+          userId: personId,
+          createdUserId: user.id,
+          status,
+          userType: 1,
+        }));
+        succeeded.push(doc);
+      } catch (err) {
+        console.error(`Zimmetleme başarısız (${doc.qrCode}):`, err);
+        failed.push(doc);
+      }
+    }
+
+    this.saving.set(false);
+
+    // Sonuç toast yerine popup'ta gösterilir: sayılar ve her gruptaki evraklar.
+    this.saveResult.set({ targetName, actionLabel, succeeded, skipped, failed });
+
+    if (succeeded.length > 0) {
+      this.personControl.setValue(null);
+      this.zimmetType.set('other');
+      for (const doc of succeeded) this.loadAllocations(doc.id);
+    }
+    this.cdr.markForCheck();
   }
 
   loadAllocations(documentId: string) {
@@ -426,7 +551,10 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
       .subscribe({
         next: (res) => {
           const filtered = res?.filter(x => !x.isDeleted) ?? [];
-          this.allocations.set(filtered);
+          this.docs.update(list =>
+            list.map(d => d.id === documentId ? { ...d, allocations: filtered } : d)
+          );
+          this.cdr.markForCheck();
         },
         error: (err) => {
           console.error('Allocation API error:', err);

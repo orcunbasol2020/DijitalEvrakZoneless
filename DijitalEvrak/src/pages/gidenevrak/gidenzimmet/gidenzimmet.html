@@ -286,48 +286,17 @@
             </button>
         </div>
         <div class="modal-body zm-label-body d-flex justify-content-center" *ngIf="previewEnvelope() as envelope">
-            <div class="envelope-label envelope-label-no-accent">
-                <div class="label-box sender-box">
-                    <div class="label-title">Gönderen</div>
-                    <div class="label-content">
-                        {{ user()?.departmentName }}
-                    </div>
-                    <div class="ministry-row">
-                        <div class="ministry">
-                            T.C. DIŞİŞLERİ BAKANLIĞI
-                        </div>
-                        <div class="label-contentPostCode">
-                            06520
-                        </div>
-                    </div>
-                </div>
-
-                <!-- QR -->
-                <div class="qr-section">
-                    <qrcode [qrdata]="envelope.envelopeNo"
-                        [width]="100"
-                        [errorCorrectionLevel]="'H'"></qrcode>
-                </div>
-
-                <!-- NUMARA -->
-                <div class="label-number">
-                    {{ envelope.envelopeNo }}
-                </div>
-
-                <!-- ALICI -->
-                <div class="label-box receiver-box">
-                    <div class="label-title">Alıcı</div>
-                    <div class="label-External">
-                        {{ externalName() || '-' }}
-                    </div>
-                    <div class="labelDepartment">
-                        {{ envelope.unitName }}
-                    </div>
-                    <div class="labelAddress">
-                        {{ envelope.address || '-' }}
-                    </div>
-                </div>
-            </div>
+            <app-envelope-label
+                [accent]="false"
+                [envelopeNo]="envelope.envelopeNo"
+                [receiverName]="externalName()"
+                [receiverKind]="envelope.targetDepartmentId ? 'department' : 'external'"
+                [unitName]="envelope.unitName"
+                [address]="envelope.address"
+                [senderDepartment]="user()?.departmentName"
+                [documentCount]="documents().length"
+                [date]="envelope.createdDate">
+            </app-envelope-label>
         </div>
         <div class="modal-footer">
             <button class="btn btn-secondary" (click)="envelopeLabelVisible.set(false)">Kapat</button>

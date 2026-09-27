@@ -1,5 +1,5 @@
 <app-generic pageTitle="Zarf Etiketi Oluştur"
-    [breadcrumbs]="[{ title: 'Zarf Etiketi Oluştur', url: 'envelopes', icon: '' }]">
+    [breadcrumbs]="[{ title: 'Zarf Etiketi Oluştur', url: 'envelope', icon: '' }]">
 </app-generic>
 <print-preview
     *ngIf="previewOpen"
@@ -7,6 +7,46 @@
     [isLabel]="true"
     (closed)="previewOpen = false">
 </print-preview>
+
+<!-- Süreç adımları: nerede olduğunu gösterir; 3. adım tıklanınca önizleme açılır -->
+<div class="zarf-steps" role="list" aria-label="Zarf etiketi adımları">
+    <div class="zarf-step" role="listitem"
+        [class.is-active]="currentStep === 1" [class.is-done]="currentStep > 1">
+        <span class="zarf-step-no">
+            <span class="material-symbols-outlined" *ngIf="currentStep > 1">check</span>
+            <ng-container *ngIf="currentStep <= 1">1</ng-container>
+        </span>
+        <span class="zarf-step-text">
+            <span class="zarf-step-title">Etiket Oluştur</span>
+            <span class="zarf-step-sub">Gideceği yer ve adres</span>
+        </span>
+    </div>
+    <span class="zarf-step-line" [class.is-done]="currentStep > 1"></span>
+    <div class="zarf-step" role="listitem"
+        [class.is-active]="currentStep === 2" [class.is-done]="currentStep > 2">
+        <span class="zarf-step-no">
+            <span class="material-symbols-outlined" *ngIf="currentStep > 2">check</span>
+            <ng-container *ngIf="currentStep <= 2">2</ng-container>
+        </span>
+        <span class="zarf-step-text">
+            <span class="zarf-step-title">Evrak Ekle</span>
+            <span class="zarf-step-sub">{{ documents.length ? documents.length + ' evrak eklendi' : 'QR okutarak zarfa ekleyin' }}</span>
+        </span>
+    </div>
+    <span class="zarf-step-line" [class.is-done]="currentStep > 2"></span>
+    <button type="button" class="zarf-step zarf-step-btn" role="listitem"
+        [class.is-active]="currentStep === 3" [disabled]="!previewEnvelope"
+        title="Etiketi önizle ve yazdır" (click)="openLabelPreview()">
+        <span class="zarf-step-no">
+            <span class="material-symbols-outlined">print</span>
+        </span>
+        <span class="zarf-step-text">
+            <span class="zarf-step-title">Yazdır</span>
+            <span class="zarf-step-sub">Etiketi önizle ve yazdır</span>
+        </span>
+    </button>
+</div>
+
 <div class="row">
     <!-- SOL PANEL -->
     <div class="col-md-6 col-12">
@@ -20,63 +60,74 @@
                     <!-- Etiket önizleme + yazdırma popup'ını açar -->
                     <button type="button" class="preview-cta" title="Etiketi önizle ve yazdır"
                         (click)="openLabelPreview()">
-                        <span class="material-symbols-outlined">visibility</span>
+                        <span class="material-symbols-outlined">preview</span>
                         <span>Önizleme</span>
                     </button>
                 </div>
             </div>
 
             <!-- YENİ ETİKET FORMU -->
-            <div class="card-body" *ngIf="!isViewMode">
-                <!-- Gideceği Kurum -->
+            <form class="card-body zarf-form" *ngIf="!isViewMode" (ngSubmit)="createEnvelope()">
+                <!-- Gideceği Yer: Kurum İçi Birimler / Yabancı Misyonlar / Dış Kurumlar -->
                 <div class="form-group mb-3">
-                    <label class="form-label text-muted small">Gideceği Kurum</label>
+                    <div class="zarf-kind" role="tablist" aria-label="Gideceği yer türü">
+                        <button type="button" class="zarf-kind-btn" role="tab"
+                            *ngFor="let k of targetKinds"
+                            [class.is-active]="targetKind() === k"
+                            [attr.aria-selected]="targetKind() === k"
+                            (click)="setTargetKind(k)">
+                            <span class="material-symbols-outlined">{{ targetKindIcons[k] }}</span>
+                            {{ targetKindTabLabels[k] }}
+                        </button>
+                    </div>
+                    <label class="form-label text-muted small zarf-kind-label">Gideceği Yer</label>
                     <app-simple-autocomplete
-                        [control]="externalInstitutionControl"
-                        [options]="externalInstitutions"
-                        placeholder="Kurum seçiniz">
+                        [control]="targetControl"
+                        [options]="targetOptions"
+                        [placeholder]="targetPlaceholder">
                     </app-simple-autocomplete>
                 </div>
 
-                <!-- Birim Adı -->
+                <!-- Alıcı birim: türe göre adlandırılır -->
                 <div class="form-group mb-3">
-                    <label class="form-label text-muted small">Birim Adı</label>
+                    <label class="form-label text-muted small d-flex align-items-center gap-2">
+                        {{ unitNameLabel }}
+                        <span class="zarf-optional" *ngIf="targetKind() === 'department'">İsteğe bağlı</span>
+                    </label>
                     <input
                         type="text"
+                        name="unitName"
                         class="form-control"
                         [(ngModel)]="model.unitName"
-                        placeholder="Birim adı giriniz">
+                        [placeholder]="unitNamePlaceholder">
                 </div>
 
-                <!-- Adres -->
+                <!-- Adres: misyon / dış kurum seçilince kayıtlı adres otomatik dolar -->
                 <div class="form-group mb-3">
-                    <label class="form-label text-muted small">Adres</label>
+                    <label class="form-label text-muted small d-flex align-items-center gap-2">
+                        Adres
+                        <span class="zarf-optional" *ngIf="targetKind() === 'department'">İsteğe bağlı</span>
+                    </label>
                     <textarea
                         class="form-control"
+                        name="address"
                         rows="2"
                         [(ngModel)]="model.address"
-                        placeholder="Adres giriniz"></textarea>
-                </div>
-
-                <!-- Gönderen Birim -->
-                <div class="form-group mb-4" style="display: none;">
-                    <label>Gönderen Birim</label>
-                    <input
-                        type="text"
-                        class="form-control"
-                        [(ngModel)]="model.departmentId">
+                        [placeholder]="targetKind() === 'department' ? 'Kurum içi gönderimde adres gerekmez' : 'Adres giriniz; kayıtlı adres varsa otomatik dolar'"></textarea>
                 </div>
 
                 <!-- Kaydet -->
-                <div class="d-flex justify-content-end">
-                    <button
-                        class="qr-manual-btn px-4 d-flex align-items-center gap-1"
-                        (click)="createEnvelope()">
+                <div class="zarf-form-actions">
+                    <span class="zarf-actions-hint">
+                        <span class="material-symbols-outlined">info</span>
+                        Etiket sağda anlık olarak önizlenir.
+                    </span>
+                    <button type="submit" class="qr-manual-btn px-4 d-flex align-items-center gap-1">
                         <span class="material-symbols-outlined" style="font-size: 18px;">add_box</span>
                         Etiket Oluştur
                     </button>
                 </div>
-            </div>
+            </form>
 
             <!-- MEVCUT ZARF ÖZETİ -->
             <div class="card-body zarf-summary" *ngIf="isViewMode && previewEnvelope">
@@ -105,11 +156,12 @@
                 <div class="zarf-tiles">
                     <div class="zarf-tile">
                         <div class="zarf-tile-icon tint-blue">
-                            <span class="material-symbols-outlined">domain</span>
+                            <span class="material-symbols-outlined">{{ targetKindIcons[previewTargetKind] }}</span>
                         </div>
                         <div class="zarf-tile-body">
-                            <div class="zarf-tile-label">GİDECEĞİ KURUM</div>
-                            <div class="zarf-tile-value">{{ previewEnvelope.externalInstitutionName || '-' }}</div>
+                            <div class="zarf-tile-label">GİDECEĞİ YER</div>
+                            <div class="zarf-tile-value">{{ targetNameOf(previewEnvelope) || '-' }}</div>
+                            <div class="zarf-tile-meta">{{ targetKindLabels[previewTargetKind] }}</div>
                         </div>
                     </div>
 
@@ -118,7 +170,7 @@
                             <span class="material-symbols-outlined">apartment</span>
                         </div>
                         <div class="zarf-tile-body">
-                            <div class="zarf-tile-label">BİRİM ADI</div>
+                            <div class="zarf-tile-label">{{ previewTargetKind === 'department' ? 'ALT BİRİM / DİKKATİNE' : 'İLGİLİ BİRİM' }}</div>
                             @if (envelopeEditing) {
                                 <input type="text" class="form-control form-control-sm zarf-tile-input"
                                     [(ngModel)]="envelopeEditForm.unitName"
@@ -149,36 +201,39 @@
                 </div>
 
                 <!-- Yalnızca "Yeni Kayıt" durumundaki zarfın birim adı / adresi düzenlenebilir -->
-                @if (canEditEnvelope) {
-                    <div class="zarf-actions">
-                        @if (envelopeEditing) {
-                            <button class="btn btn-secondary btn-sm d-flex align-items-center gap-1"
-                                [disabled]="envelopeSaving()" (click)="cancelEnvelopeEdit()">
-                                <span class="material-symbols-outlined" style="font-size: 18px;">close</span>
-                                İptal
-                            </button>
-                            <button class="qr-manual-btn d-flex align-items-center gap-1"
-                                [disabled]="envelopeSaving()" (click)="saveEnvelopeEdit()">
-                                @if (envelopeSaving()) {
-                                    <span class="spinner-border spinner-border-sm"></span>
-                                } @else {
-                                    <span class="material-symbols-outlined" style="font-size: 18px;">save</span>
-                                }
-                                Kaydet
-                            </button>
-                        } @else {
-                            <span class="zarf-actions-hint">
-                                <span class="material-symbols-outlined">info</span>
-                                Etiket teslim edilmeden önce birim adı ve adres düzenlenebilir.
-                            </span>
-                            <button class="qr-manual-btn2 d-flex align-items-center gap-1 m-0"
-                                (click)="startEnvelopeEdit()">
-                                <span class="material-symbols-outlined" style="font-size: 18px;">edit</span>
-                                Düzenle
-                            </button>
-                        }
-                    </div>
-                }
+                <div class="zarf-actions">
+                    @if (canEditEnvelope && envelopeEditing) {
+                        <button type="button" class="btn btn-secondary btn-sm d-flex align-items-center gap-1"
+                            [disabled]="envelopeSaving()" (click)="cancelEnvelopeEdit()">
+                            <span class="material-symbols-outlined" style="font-size: 18px;">close</span>
+                            İptal
+                        </button>
+                        <button type="button" class="qr-manual-btn d-flex align-items-center gap-1"
+                            [disabled]="envelopeSaving()" (click)="saveEnvelopeEdit()">
+                            @if (envelopeSaving()) {
+                                <span class="spinner-border spinner-border-sm"></span>
+                            } @else {
+                                <span class="material-symbols-outlined" style="font-size: 18px;">save</span>
+                            }
+                            Kaydet
+                        </button>
+                    } @else {
+                        <span class="zarf-actions-hint" *ngIf="canEditEnvelope">
+                            <span class="material-symbols-outlined">info</span>
+                            Etiket teslim edilmeden önce birim ve adres düzenlenebilir.
+                        </span>
+                        <button type="button" class="qr-manual-btn2 d-flex align-items-center gap-1 m-0"
+                            *ngIf="canEditEnvelope" (click)="startEnvelopeEdit()">
+                            <span class="material-symbols-outlined" style="font-size: 18px;">edit</span>
+                            Düzenle
+                        </button>
+                        <!-- Yazdırma, kayıttan sonraki doğal adım: belirgin çağrı -->
+                        <button type="button" class="zarf-print-cta" (click)="openLabelPreview()">
+                            <span class="material-symbols-outlined">print</span>
+                            Etiketi Yazdır
+                        </button>
+                    }
+                </div>
             </div>
         </div>
     </div>
@@ -188,18 +243,32 @@
         <div class="card page-wrapper">
             <div class="card-header dashboard-header d-flex align-items-center justify-content-between">
                 <div class="d-flex align-items-center">
-                    <span class="material-symbols-outlined me-2 text-info">inventory_2</span>
-                    <h5 class="card-title mb-0 fw-semibold">Evrak Ekle</h5>
+                    <span class="material-symbols-outlined me-2 text-info">{{ previewEnvelope ? 'inventory_2' : 'preview' }}</span>
+                    <h5 class="card-title mb-0 fw-semibold">{{ previewEnvelope ? 'Evrak Ekle' : 'Etiket Önizleme' }}</h5>
                 </div>
                 <span class="zarf-count-chip" *ngIf="documents.length">
                     <span class="material-symbols-outlined">description</span>
                     {{ documents.length }} evrak
                 </span>
+                <span class="zarf-live-chip" *ngIf="!previewEnvelope">
+                    <span class="zarf-live-dot"></span>
+                    Canlı
+                </span>
             </div>
-            <div class="card-body zarf-summary" *ngIf="previewEnvelope; else noEnvelope">
+
+            <div class="card-body zarf-summary" *ngIf="previewEnvelope; else livePreview">
+
+                <!-- Teslim edilmiş zarf: okutma alanı kilitli -->
+                <div class="zarf-locked" *ngIf="isDelivered">
+                    <span class="material-symbols-outlined">lock</span>
+                    <div>
+                        <div class="zarf-locked-title">{{ isShipped ? 'Bu zarf kargoya verildi' : 'Bu zarf teslim edildi' }}</div>
+                        <div class="zarf-locked-text">{{ isShipped ? 'Kargoya verilmiş' : 'Teslim edilmiş' }} zarfa evrak eklenemez ya da çıkarılamaz. İçerik yalnızca görüntülenir.</div>
+                    </div>
+                </div>
 
                 <!-- Hero: QR okutma alanı -->
-                <div class="zarf-hero scan-hero" [class.is-active]="qrActive">
+                <div class="zarf-hero scan-hero" [class.is-active]="qrActive" *ngIf="!isDelivered">
                     <div class="scan-input-wrap">
                         <span class="material-symbols-outlined scan-input-icon">qr_code_2</span>
                         <input
@@ -217,7 +286,7 @@
                         </span>
                     </div>
                     <div class="scan-hero-hint">
-                        Qr kodu okuyucu ile okutabilir ya da numarayı elle yazıp Enter'a basabilirsiniz.
+                        QR kodu okuyucu ile okutabilir ya da numarayı elle yazıp Enter'a basabilirsiniz.
                     </div>
                 </div>
 
@@ -228,17 +297,20 @@
                             *ngFor="let doc of documents; let i = index"
                             title="Evrak bilgisini görüntüle"
                             (click)="openDocumentDetail(doc)">
-                            <div class="zarf-tile-icon tint-cyan">
-                                <span class="material-symbols-outlined">description</span>
-                            </div>
+                            <span class="doc-tile-order">{{ i + 1 }}</span>
                             <div class="zarf-tile-body">
                                 <div class="zarf-tile-value doc-tile-no">{{ doc.qrCode }}</div>
+                                <div class="doc-tile-meta" *ngIf="doc.createdDate">
+                                    <span class="material-symbols-outlined">schedule</span>
+                                    {{ doc.createdDate | date:'dd.MM.yyyy HH:mm' }} eklendi
+                                </div>
                             </div>
                             <div class="doc-tile-actions">
                                 <span class="doc-tile-view">
                                     <span class="material-symbols-outlined">open_in_new</span>
                                 </span>
                                 <button type="button" class="doc-tile-remove"
+                                    *ngIf="!isDelivered"
                                     (click)="$event.stopPropagation(); removeDocument(doc.id)"
                                     [disabled]="loadingRemove"
                                     title="Evrakı çıkar">
@@ -254,7 +326,9 @@
                             <span class="material-symbols-outlined">qr_code_scanner</span>
                         </div>
                         <div class="zarf-empty-title">Henüz evrak eklenmedi</div>
-                        <div class="zarf-empty-text">QR kod okutarak ya da evrak numarasını yazarak zarfa evrak ekleyebilirsiniz.</div>
+                        <div class="zarf-empty-text">
+                            {{ isDelivered ? 'Bu zarfta kayıtlı evrak bulunmuyor.' : 'QR kod okutarak ya da evrak numarasını yazarak zarfa evrak ekleyebilirsiniz.' }}
+                        </div>
                     </div>
 
                     <div class="table-loading" *ngIf="loading">
@@ -262,17 +336,24 @@
                     </div>
                 </div>
             </div>
-            <ng-template #noEnvelope>
-                <div class="card-body">
-                    <div class="zarf-empty">
-                        <div class="zarf-empty-icon">
-                            <span class="material-symbols-outlined">inventory_2</span>
-                        </div>
-                        <div class="zarf-empty-title">Zarf seçilmedi</div>
-                        <div class="zarf-empty-text">
-                            Evrak eklemek için önce bir etiket oluşturun ya da
-                            Zarflar listesinden bir zarfın detayına gidin.
-                        </div>
+
+            <!-- Zarf yokken: form doldurulurken etiket burada anlık olarak çizilir -->
+            <ng-template #livePreview>
+                <div class="card-body zarf-live">
+                    <div class="zarf-live-stage">
+                        <app-envelope-label
+                            [draft]="true"
+                            [receiverName]="liveReceiverName"
+                            [receiverKind]="targetKind()"
+                            [unitName]="model.unitName"
+                            [address]="model.address"
+                            [senderDepartment]="user()?.departmentName"
+                            [documentCount]="0">
+                        </app-envelope-label>
+                    </div>
+                    <div class="zarf-live-note">
+                        <span class="material-symbols-outlined">info</span>
+                        Etiket numarası ve QR kod kayıt anında oluşturulur. Evrak eklemek için önce etiketi oluşturun.
                     </div>
                 </div>
             </ng-template>
@@ -293,51 +374,17 @@
             </button>
         </div>
         <div class="modal-body gradient-bg align-items-center">
-            <div class="envelope-label" id="print-area">
-                <div class="label-box sender-box">
-                    <div class="label-title">Gönderen</div>
-                    <div class="label-content">
-                        {{user()?.departmentName}}
-                    </div>
-                    <div class="ministry-row">
-                        <div class="ministry">
-                            T.C. DIŞİŞLERİ BAKANLIĞI
-                        </div>
-                        <div class="label-contentPostCode">
-                            06520
-                        </div>
-                    </div>
-                </div>
-
-                <!-- QR -->
-                <div class="qr-section">
-                    <qrcode [qrdata]="previewEnvelope.envelopeNo"
-                        [width]="100"
-                        [errorCorrectionLevel]="'H'"></qrcode>
-                </div>
-
-                <!-- NUMARA -->
-                <div class="label-number">
-                    {{ previewEnvelope.envelopeNo }}
-                </div>
-
-                <!-- ALICI -->
-                <div class="label-box receiver-box">
-                    <div class="label-title">Alıcı</div>
-                    <div class="label-External">
-                        {{ previewEnvelope.externalInstitutionName
-                        || '-' }}
-                    </div>
-                    <div class="labelDepartment">
-                        {{ previewEnvelope.unitName }}
-                    </div>
-                    <div class="labelAddress">
-                        {{ previewEnvelope.address || '-' }}
-                    </div>
-
-                </div>
-
-            </div>
+            <app-envelope-label
+                printId="print-area"
+                [envelopeNo]="previewEnvelope.envelopeNo"
+                [receiverName]="targetNameOf(previewEnvelope)"
+                [receiverKind]="previewTargetKind"
+                [unitName]="previewEnvelope.unitName"
+                [address]="previewEnvelope.address"
+                [senderDepartment]="user()?.departmentName"
+                [documentCount]="documents.length"
+                [date]="previewEnvelope.createdDate">
+            </app-envelope-label>
         </div>
         <div class="modal-footer">
             <button class="btn btn-secondary" (click)="closeLabelPreview()">Kapat</button>
@@ -433,7 +480,12 @@
                         <label>Nereye</label>
                         <select class="form-select" [(ngModel)]="documentEditForm.externalInstitutionId">
                             <option [ngValue]="null">Seçiniz</option>
-                            <option *ngFor="let inst of externalInstitutions" [ngValue]="inst.id">{{ inst.name }}</option>
+                            <optgroup label="Yabancı Misyonlar">
+                                <option *ngFor="let inst of missionOptions" [ngValue]="inst.id">{{ inst.name }}</option>
+                            </optgroup>
+                            <optgroup label="Dış Kurumlar">
+                                <option *ngFor="let inst of institutionOptions" [ngValue]="inst.id">{{ inst.name }}</option>
+                            </optgroup>
                         </select>
                     </div>
                 </div>
@@ -464,52 +516,61 @@
     </div>
 </div>
 
-<!-- Manuel Evrak Ekleme Popup (Birim Evrak Sorumlusu, evrak numarası bulunamadığında) -->
+<!-- Manuel Evrak Ekleme Popup (Birim Evrak Sorumlusu, evrak numarası bulunamadığında).
+     Evrak Bilgisi popup'ı ile aynı görsel dil. -->
 <div class="modal-overlay" *ngIf="manualEntryModalVisible()" (click)="closeManualEntryModal()">
-    <div class="modal-box" style="width: 460px;" (click)="$event.stopPropagation()">
-        <div class="modal-header">
-            <h5 class="d-flex align-items-center mb-0">
-                <span class="material-symbols-outlined me-2 text-secondary">note_add</span>
-                Evrak Bulunamadı - Manuel Ekle
-            </h5>
-        </div>
-        <div class="modal-body">
-            <div class="mb-3 text-muted small">
-                <span class="material-symbols-outlined align-middle" style="font-size: 16px;">tag</span>
-                Evrak No: <span class="fw-semibold">{{ manualEntryForm.qrCode }}</span>
+    <div class="modal-box doc-detail-modal doc-manual-modal" (click)="$event.stopPropagation()">
+        <div class="doc-detail-header">
+            <div class="doc-detail-header-icon">
+                <span class="material-symbols-outlined">note_add</span>
             </div>
-
-            <div class="mb-3 text-muted small">
-                <span class="material-symbols-outlined align-middle" style="font-size: 16px;">apartment</span>
-                Gönderen Birim: <span class="fw-semibold">{{ user()?.departmentName }}</span>
+            <div class="doc-detail-header-text">
+                <div class="doc-detail-title">Evrak bulunamadı, manuel ekle</div>
+                <div class="doc-detail-no">{{ manualEntryForm.qrCode }}</div>
             </div>
-
-            <div class="mb-3">
-                <label class="form-label">Belge Tarihi</label>
-                <input type="date" class="form-control" [(ngModel)]="manualEntryForm.documentDate" />
+            <div class="doc-detail-chips">
+                <span class="doc-detail-chip">
+                    <span class="material-symbols-outlined">apartment</span>
+                    {{ user()?.departmentName }}
+                </span>
             </div>
-
-            <div class="mb-3">
-                <label class="form-label">Nereye</label>
-                <select class="form-select" [(ngModel)]="manualEntryForm.externalInstitutionId">
-                    <option [ngValue]="null">Seçiniz</option>
-                    <option *ngFor="let inst of externalInstitutions" [ngValue]="inst.id">{{ inst.name }}</option>
-                </select>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Konu</label>
-                <textarea class="form-control" rows="2" [(ngModel)]="manualEntryForm.subject"></textarea>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" [disabled]="manualEntrySaving()" (click)="closeManualEntryModal()">İptal</button>
-            <button class="btn btn-primary" [disabled]="manualEntrySaving()" (click)="saveManualEntry()">
-                @if (manualEntrySaving()) {
-                    <span class="spinner-border spinner-border-sm me-1"></span>
-                }
-                Kaydet ve Zarfa Ekle
+            <button type="button" class="doc-detail-close" title="Kapat" [disabled]="manualEntrySaving()" (click)="closeManualEntryModal()">
+                <span class="material-symbols-outlined">close</span>
             </button>
+        </div>
+
+        <div class="doc-detail-body doc-manual-body">
+            <div class="doc-detail-form">
+                <div class="doc-detail-field doc-detail-field-full">
+                    <label>Konu</label>
+                    <textarea class="form-control" rows="2" [(ngModel)]="manualEntryForm.subject"></textarea>
+                </div>
+                <div class="doc-detail-field">
+                    <label>Belge Tarihi</label>
+                    <input type="date" class="form-control" [(ngModel)]="manualEntryForm.documentDate" />
+                </div>
+                <div class="doc-detail-field">
+                    <label>Nereye</label>
+                    <select class="form-select" [(ngModel)]="manualEntryForm.externalInstitutionId">
+                        <option [ngValue]="null">Seçiniz</option>
+                        <optgroup label="Yabancı Misyonlar">
+                            <option *ngFor="let inst of missionOptions" [ngValue]="inst.id">{{ inst.name }}</option>
+                        </optgroup>
+                        <optgroup label="Dış Kurumlar">
+                            <option *ngFor="let inst of institutionOptions" [ngValue]="inst.id">{{ inst.name }}</option>
+                        </optgroup>
+                    </select>
+                </div>
+            </div>
+            <div class="doc-detail-actions">
+                <button type="button" class="btn btn-light" [disabled]="manualEntrySaving()" (click)="closeManualEntryModal()">İptal</button>
+                <button type="button" class="btn btn-primary" [disabled]="manualEntrySaving()" (click)="saveManualEntry()">
+                    @if (manualEntrySaving()) {
+                        <span class="spinner-border spinner-border-sm me-1"></span>
+                    }
+                    Kaydet ve Zarfa Ekle
+                </button>
+            </div>
         </div>
     </div>
 </div>

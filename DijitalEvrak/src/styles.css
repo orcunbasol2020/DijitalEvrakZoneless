@@ -5186,6 +5186,211 @@ body.login-page::before {
     padding: 0.9rem 1rem;
 }
 
+/* Giden evrak alıcı (dağıtım) listesi: evrak birden fazla iç birime ve/veya
+   dış kuruma gidebildiğinden "Nereye" tek kutu yerine satır listesidir.
+   Kayıtlı satırlar (güncelleme modunda sunucudan gelenler) hafif mavi zeminle
+   ayrılır; alıcısı sonradan değiştirilemediğinden ad salt okunur gösterilir. */
+.outgoing-recipients {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.outgoing-recipients-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.outgoing-recipients-head .form-label {
+    margin-bottom: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.outgoing-recipients-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #0d6efd;
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 700;
+}
+
+.outgoing-recipient-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #fff;
+    border: 1px solid #e2e6ee;
+    border-radius: 10px;
+    padding: 0.5rem 0.55rem;
+}
+
+.outgoing-recipient-row.is-saved {
+    background: rgba(13, 110, 253, 0.04);
+    border-color: rgba(13, 110, 253, 0.2);
+}
+
+/* İç Birim / Dış Kurum seçimi: iki parçalı düğme */
+.outgoing-recipient-kind {
+    display: inline-flex;
+    border: 1px solid #dfe3ea;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.outgoing-recipient-kind button {
+    border: 0;
+    background: #fff;
+    padding: 0.42rem 0.6rem;
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    white-space: nowrap;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.outgoing-recipient-kind button + button {
+    border-left: 1px solid #dfe3ea;
+}
+
+.outgoing-recipient-kind button .material-symbols-outlined {
+    font-size: 15px;
+}
+
+.outgoing-recipient-kind button:hover {
+    background: #f1f5f9;
+}
+
+.outgoing-recipient-kind button.is-active {
+    background: #0d6efd;
+    color: #fff;
+}
+
+.outgoing-recipient-target {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.outgoing-recipient-action {
+    flex: 0 0 118px;
+}
+
+.outgoing-recipient-action .form-select {
+    font-size: 0.82rem;
+}
+
+.outgoing-recipient-remove {
+    border: 0;
+    background: transparent;
+    color: #94a3b8;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.outgoing-recipient-remove:hover {
+    background: rgba(220, 53, 69, 0.1);
+    color: #b02a37;
+}
+
+.outgoing-recipient-remove .material-symbols-outlined {
+    font-size: 18px;
+}
+
+/* Kayıtlı alıcı: ikon + tür başlığı + ad */
+.outgoing-recipient-saved {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 0;
+}
+
+.outgoing-recipient-saved-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(13, 110, 253, 0.12);
+    color: #0d6efd;
+    flex-shrink: 0;
+}
+
+.outgoing-recipient-saved-icon .material-symbols-outlined {
+    font-size: 17px;
+}
+
+.outgoing-recipient-saved-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.25;
+}
+
+.outgoing-recipient-saved-text small {
+    font-size: 0.66rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.outgoing-recipient-saved-text strong {
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: var(--text-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.outgoing-recipients-empty {
+    border: 1.5px dashed #cbd5e1;
+    border-radius: 10px;
+    padding: 0.8rem 1rem;
+    font-size: 0.8rem;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.outgoing-recipients-empty .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.outgoing-recipients-add {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    border-radius: 8px;
+}
+
+.outgoing-recipients-add .material-symbols-outlined {
+    font-size: 17px;
+}
+
 /* Giden Evrak Kaydı artık popup yerine ayrı bir sayfada; aynı form görünümü
    (outgoing-doc-form / outgoing-doc-route-box) bir kart içinde yeniden kullanılır.
    Form sola dayalı durur, sağda kullanıcıya yardımcı olan bir bilgi paneli yer alır. */
@@ -10872,6 +11077,12 @@ body {
     --st-text: #5b21b6;
 }
 
+/* Kargoya verildi: sarı. "Evrak Birimde"nin amber tonundan ayrışsın diye daha saf sarı. */
+.envelope-status-kargo {
+    --st-rgb: 234, 179, 8;
+    --st-text: #854d0e;
+}
+
 /* Giden evrak "İade" durumu (Zimmetleme ekranındaki evrak özeti rozeti). */
 .envelope-status-iade {
     --st-rgb: 239, 68, 68;
@@ -10913,7 +11124,6 @@ body {
 [data-theme="dark"] .scanlist-grid .flexi-grid-caption-title::before {
     box-shadow: 0 4px 14px rgba(99, 102, 241, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
-
 [data-theme="dark"] .envelope-grid flexi-grid table thead th {
     background: linear-gradient(180deg, #1e2533, #1a2030) !important;
     color: #cbd5e1 !important;
@@ -10996,6 +11206,7 @@ body {
 [data-theme="dark"] .envelope-status-birimde { --st-text: #fcd34d; }
 [data-theme="dark"] .envelope-status-teslim { --st-text: #86efac; }
 [data-theme="dark"] .envelope-status-devir { --st-text: #c4b5fd; }
+[data-theme="dark"] .envelope-status-kargo { --st-text: #fde047; }
 
 /* ============================================================
    Bilgi / Gereği rozetleri (actionRequiredBadgeClass)
@@ -11023,4 +11234,524 @@ body {
     color: #86efac;
     background: rgba(22, 163, 74, 0.16);
     border-color: rgba(74, 222, 128, 0.4);
+}
+
+/* ============================================================
+   Zarflar: Kargo Bilgisi popup'ı (Kargoya Verildi durumundaki zarf)
+   Başlık lacivert-petrol gradyan; gövde sade tanım listeleri.
+   ============================================================ */
+.modal-box.ship-modal {
+    width: 560px;
+    max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 32px);
+    display: flex;
+    flex-direction: column;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+}
+
+.ship-head {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 18px;
+    color: #fff;
+    background: linear-gradient(120deg, #1c2b4a 0%, #115b87 55%, #0b7fc4 100%);
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.ship-head::before {
+    content: "";
+    position: absolute;
+    width: 200px;
+    height: 200px;
+    right: -60px;
+    top: -120px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.4) 0%, rgba(56, 189, 248, 0) 70%);
+    pointer-events: none;
+    z-index: -1;
+}
+
+.ship-head-icon {
+    flex: 0 0 auto;
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #7dd3fc;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.ship-head-icon .material-symbols-outlined {
+    font-size: 21px;
+}
+
+.ship-head-text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.ship-head-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.ship-head-sub {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    font-variant-numeric: tabular-nums;
+    color: rgba(224, 242, 254, 0.85);
+}
+
+.ship-close {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(224, 242, 254, 0.85);
+    background: transparent;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ship-close:hover {
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+}
+
+.ship-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px 18px;
+    overflow-y: auto;
+    background: #fff;
+}
+
+.ship-section-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+}
+
+.ship-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #0369a1;
+    background: #e0f2fe;
+}
+
+.ship-list {
+    margin: 0;
+    padding: 2px 14px;
+    border-radius: 12px;
+    background: #f8fafc;
+    border: 1px solid #e7eaf0;
+}
+
+.ship-row {
+    display: grid;
+    grid-template-columns: 124px minmax(0, 1fr);
+    gap: 12px;
+    padding: 8px 0;
+    font-size: 12.5px;
+}
+
+.ship-row + .ship-row {
+    border-top: 1px solid #eef2f7;
+}
+
+.ship-row dt {
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+.ship-row dd {
+    margin: 0;
+    min-width: 0;
+    color: #1e293b;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.ship-row dd.is-empty {
+    color: #94a3b8;
+    font-weight: 500;
+    font-style: italic;
+}
+
+.ship-row dd.is-multiline {
+    white-space: pre-line;
+    font-weight: 500;
+}
+
+.ship-tracking {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ship-tracking-no {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+}
+
+.ship-copy {
+    width: 26px;
+    height: 26px;
+    border: 0;
+    border-radius: 7px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    background: transparent;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ship-copy .material-symbols-outlined {
+    font-size: 16px;
+}
+
+.ship-copy:hover {
+    background: #eef4fb;
+    color: #0369a1;
+}
+
+.ship-copy.is-done {
+    color: #16a34a;
+}
+
+.ship-state {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    font-size: 12.5px;
+    color: #64748b;
+    background: #f8fafc;
+    border: 1px dashed #d8dee8;
+}
+
+.ship-state.is-error {
+    color: #9a3412;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+}
+
+.ship-state .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.ship-docs {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ship-doc {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 8px 8px 12px;
+    border-radius: 10px;
+    border: 1px solid #e7eaf0;
+    background: #fff;
+    font-size: 12.5px;
+    text-align: left;
+    min-width: 0;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.ship-doc:hover {
+    border-color: #bae6fd;
+    background: #f8fcff;
+}
+
+.ship-doc:focus-visible {
+    outline: 2px solid rgba(14, 165, 233, 0.45);
+    outline-offset: 1px;
+}
+
+.ship-doc .ship-doc-go {
+    margin-left: auto;
+    color: #cbd5e1;
+    transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.ship-doc:hover .ship-doc-go {
+    color: #0369a1;
+    transform: translateX(2px);
+}
+
+.ship-doc .material-symbols-outlined {
+    font-size: 17px;
+    color: #94a3b8;
+    flex: 0 0 auto;
+}
+
+.ship-doc-no {
+    font-weight: 700;
+    color: #1e293b;
+    font-variant-numeric: tabular-nums;
+    flex: 0 0 auto;
+}
+
+.ship-doc-subject {
+    color: #64748b;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ship-foot {
+    display: flex;
+    justify-content: flex-end;
+    padding: 12px 18px;
+    border-top: 1px solid #eef2f7;
+    background: #fff;
+}
+
+.ship-foot .btn {
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+@media (max-width: 575.98px) {
+    .ship-row {
+        grid-template-columns: 1fr;
+        gap: 2px;
+    }
+}
+
+/* Koyu tema */
+[data-theme="dark"] .ship-head {
+    background: linear-gradient(120deg, #0b1220 0%, #0c3a57 55%, #075985 100%);
+}
+
+[data-theme="dark"] .ship-body,
+[data-theme="dark"] .ship-foot {
+    background: #1a2030;
+}
+
+[data-theme="dark"] .ship-foot {
+    border-top-color: rgba(148, 163, 184, 0.16);
+}
+
+[data-theme="dark"] .ship-section-title {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .ship-count {
+    color: #7dd3fc;
+    background: rgba(14, 165, 233, 0.18);
+}
+
+[data-theme="dark"] .ship-list,
+[data-theme="dark"] .ship-state {
+    background: rgba(148, 163, 184, 0.06);
+    border-color: rgba(148, 163, 184, 0.18);
+}
+
+[data-theme="dark"] .ship-state.is-error {
+    color: #fdba74;
+    background: rgba(234, 88, 12, 0.12);
+    border-color: rgba(251, 146, 60, 0.35);
+}
+
+[data-theme="dark"] .ship-row + .ship-row {
+    border-top-color: rgba(148, 163, 184, 0.14);
+}
+
+[data-theme="dark"] .ship-row dd,
+[data-theme="dark"] .ship-doc-no {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .ship-row dt,
+[data-theme="dark"] .ship-row dd.is-empty,
+[data-theme="dark"] .ship-doc-subject {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .ship-doc {
+    border-color: rgba(148, 163, 184, 0.18);
+}
+
+[data-theme="dark"] .ship-copy:hover {
+    background: rgba(14, 165, 233, 0.14);
+    color: #7dd3fc;
+}
+
+/* Kargo Bilgisi popup'ı: açılır/kapanır bölüm başlığı (Zarf Bilgileri) */
+.ship-section-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 8px;
+    margin: 0 -8px;
+    width: calc(100% + 16px);
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.15s ease;
+}
+
+.ship-section-toggle .ship-section-title {
+    margin: 0;
+}
+
+.ship-section-toggle:hover {
+    background: #f1f5f9;
+}
+
+.ship-section-toggle:focus-visible {
+    outline: 2px solid rgba(14, 165, 233, 0.45);
+    outline-offset: 1px;
+}
+
+.ship-toggle-icon {
+    font-size: 20px;
+    color: #94a3b8;
+    transition: transform 0.2s ease;
+}
+
+.ship-section-toggle.is-open .ship-toggle-icon {
+    transform: rotate(180deg);
+}
+
+.ship-section-toggle.is-open + .ship-list {
+    margin-top: 6px;
+}
+
+[data-theme="dark"] .ship-section-toggle:hover {
+    background: rgba(148, 163, 184, 0.1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ship-toggle-icon {
+        transition: none;
+    }
+}
+
+.ship-section-toggle.is-open + .ship-package {
+    margin-top: 6px;
+}
+
+[data-theme="dark"] .ship-doc {
+    background: transparent;
+}
+
+[data-theme="dark"] .ship-doc:hover {
+    background: rgba(14, 165, 233, 0.08);
+    border-color: rgba(125, 211, 252, 0.35);
+}
+
+[data-theme="dark"] .ship-doc:hover .ship-doc-go {
+    color: #7dd3fc;
+}
+
+/* Kargo Bilgisi popup'ı: başlığın en sağındaki Yazdır butonu (koyu zeminde cam efekti) */
+.ship-print {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 12px 0 10px;
+    border-radius: 9px;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.1);
+    color: #e0f2fe;
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.ship-print .material-symbols-outlined {
+    font-size: 18px;
+    color: #7dd3fc;
+}
+
+.ship-print:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.42);
+    color: #fff;
+}
+
+.ship-print:focus-visible {
+    outline: 2px solid #7dd3fc;
+    outline-offset: 1px;
+}
+
+.ship-print:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Zarflar: Detay sütunundaki "Kargo Bilgisini Göster" butonu, "Kargoya Verildi"
+   durum rozetiyle aynı sarı ton (#eab308 ailesi). */
+.envelope-grid flexi-button.ship-info-btn .flexi-button {
+    background: linear-gradient(135deg, #fefce8, #fef08a) !important;
+    border-color: #fde047 !important;
+    color: #a16207 !important;
+    box-shadow: 0 1px 3px rgba(234, 179, 8, 0.18) !important;
+}
+
+.envelope-grid flexi-button.ship-info-btn .flexi-button:hover {
+    background: linear-gradient(135deg, #fef9c3, #fde047) !important;
+    border-color: #facc15 !important;
+    color: #854d0e !important;
+    box-shadow: 0 3px 8px rgba(234, 179, 8, 0.28) !important;
+}
+
+[data-theme="dark"] .envelope-grid flexi-button.ship-info-btn .flexi-button {
+    background: linear-gradient(135deg, rgba(234, 179, 8, 0.35), rgba(234, 179, 8, 0.2)) !important;
+    border-color: rgba(250, 204, 21, 0.5) !important;
+    color: #fde047 !important;
+    box-shadow: none !important;
+}
+
+[data-theme="dark"] .envelope-grid flexi-button.ship-info-btn .flexi-button:hover {
+    background: linear-gradient(135deg, rgba(234, 179, 8, 0.5), rgba(234, 179, 8, 0.3)) !important;
+    color: #fef08a !important;
 }

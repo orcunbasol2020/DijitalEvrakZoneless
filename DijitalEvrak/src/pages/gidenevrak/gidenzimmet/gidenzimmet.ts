@@ -8,11 +8,12 @@ import { ZimmetStateService } from '../../../services/zimmet-state-service';
 import { EnvelopeModel, EnvelopeStatus, EnvelopeStatusBadgeClass, EnvelopeStatusLabels } from '../../../models/envelope.model';
 import { EnvelopeService } from '../../../services/envelope';
 import { ExternalInstitution, ExternalInstitutionModel } from '../../../services/external-institution';
+import { Department } from '../../../services/department';
 import { OutgoingDocumentAllocation } from '../../../services/outgoingdocumentallocation';
 import { OutgoingDocumentAllocationModel } from '../../../models/outgoingdocumentallocation.model';
 import { Common } from '../../../services/common';
 import { FormsModule } from '@angular/forms';
-import { QRCodeComponent } from 'angularx-qrcode';
+import { EnvelopeLabelComponent } from '../../envelope/envelope-label/envelope-label';
 
 // Teslim Bilgisi ekranı: yalnızca "Teslim Edildi" durumundaki zarflar için
 // açılır ve salt okunurdur. Zarftaki evraklar, teslim alan/eden kişi, teslim
@@ -23,7 +24,7 @@ import { QRCodeComponent } from 'angularx-qrcode';
     GenericModel,
     CommonModule,
     FormsModule,
-    QRCodeComponent
+    EnvelopeLabelComponent
   ],
   templateUrl: './gidenzimmet.html',
   // Görsel dil Giden Evrak Teslim Al (zimmet) ekranıyla ortak; zm-* sınıfları oradan gelir.
@@ -34,6 +35,7 @@ import { QRCodeComponent } from 'angularx-qrcode';
 export default class Gidenzimmet implements OnInit {
   private envelopeService = inject(EnvelopeService);
   private externalService = inject(ExternalInstitution);
+  private departmentService = inject(Department);
   private state = inject(ZimmetStateService);
   private envelopeDocumentService = inject(EnvelopeDocumentService);
   private allocationService = inject(OutgoingDocumentAllocation);
@@ -137,8 +139,20 @@ export default class Gidenzimmet implements OnInit {
         this.previewEnvelope.set(res);
         this.loadDocuments(envelopeId);
 
-        // Alıcı kurum adı GetById'de join'lenmeden gelebiliyor; ayrıca çekiliyor.
-        if (res.externalInstitutionName) {
+        // Gideceği yer: kurum içi birim ise birim adı, değilse dış kurum / misyon adı.
+        // GetById bu adları join'lemeden dönebiliyor; gerekirse ayrıca çekiliyor.
+        if (res.targetDepartmentId) {
+          if (res.targetDepartmentName) {
+            this.externalName.set(res.targetDepartmentName);
+          } else {
+            const targetId = res.targetDepartmentId.toLowerCase();
+            this.departmentService.getDepartments().subscribe({
+              next: (departments) => this.externalName.set(
+                departments?.find(d => d.id?.toLowerCase() === targetId)?.name ?? null
+              )
+            });
+          }
+        } else if (res.externalInstitutionName) {
           this.externalName.set(res.externalInstitutionName);
         } else if (res.externalInstitutionId) {
           this.externalService.getExternalInstitutionById(res.externalInstitutionId).subscribe({

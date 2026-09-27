@@ -45,11 +45,11 @@
         </span>
       </ng-template>
     </flexi-grid-column>
-    <flexi-grid-column field="externalInstitutionName" title="Gideceği Yer" width="150px">
+    <flexi-grid-column field="targetName" title="Gideceği Yer" width="150px">
       <ng-template flexiGridCellTemplate let-item>
         <span class="envelope-cell-icon">
-          <span class="material-symbols-outlined">domain</span>
-          {{ item.externalInstitutionName || '-' }}
+          <span class="material-symbols-outlined">{{ item.targetDepartmentId ? 'apartment' : 'domain' }}</span>
+          {{ item.targetName }}
         </span>
       </ng-template>
     </flexi-grid-column>
@@ -82,7 +82,9 @@
     @if (!isBirimEvrakSorumlusu()) {
       <flexi-grid-column title="Zimmet" textAlign="center" width="60px">
         <ng-template flexiGridCellTemplate let-item>
-          @if (item.documentCount > 0) {
+          <!-- Kargoya verilmiş zarfta yapılacak zimmet işlemi yok; durum rozeti yeterli.
+               (Teslim Bilgisi ekranı bilgiyi aktif zimmetten okur, kargoda zimmet kapanır.) -->
+          @if (item.documentCount > 0 && item.status !== EnvelopeStatus.KargoyaVerildi) {
             @if (item.status === EnvelopeStatus.TeslimEdildi) {
               <!-- Teslim edilmiş zarf: salt okunur Teslim Bilgisi ekranı açılır. -->
               <flexi-button
@@ -120,13 +122,23 @@
     }
         <flexi-grid-column title="Detay" textAlign="center" width="50px">
       <ng-template flexiGridCellTemplate let-item>
-        <flexi-button
-          *ngIf="item.status !== EnvelopeStatus.TeslimEdildi"
-          btnIcon="expand_circle_right"
-          title="Zarf Detayına Git"
-          btnColor="info"
-          (click)="goToDetail(item.id)">
-        </flexi-button>
+        @if (item.status === EnvelopeStatus.KargoyaVerildi) {
+          <!-- Kargoya verilmiş zarf: zarf ve kargo bilgileri popup'ta gösterilir (tüm roller). -->
+          <flexi-button
+            class="ship-info-btn"
+            btnIcon="local_shipping"
+            title="Kargo Bilgisini Göster"
+            btnColor="warning"
+            (click)="openShipmentInfo(item)">
+          </flexi-button>
+        } @else if (!isEnvelopeClosed(item.status)) {
+          <flexi-button
+            btnIcon="expand_circle_right"
+            title="Zarf Detayına Git"
+            btnColor="info"
+            (click)="goToDetail(item.id)">
+          </flexi-button>
+        }
       </ng-template>
     </flexi-grid-column>
         <flexi-grid-column textAlign="center" width="50px">
@@ -146,3 +158,154 @@
 
   </flexi-grid>
 </div>
+
+<!-- Kargo Bilgisi popup'ı: Kargoya Verildi durumundaki zarfın zarf ve kargo bilgileri -->
+@if (shipmentEnvelope(); as env) {
+  <div class="modal-overlay" (click)="closeShipmentInfo()">
+    <div class="modal-box ship-modal" role="dialog" aria-modal="true" aria-labelledby="ship-modal-title"
+      (click)="$event.stopPropagation()">
+      <div class="ship-head">
+        <span class="ship-head-icon">
+          <span class="material-symbols-outlined">local_shipping</span>
+        </span>
+        <div class="ship-head-text">
+          <h5 id="ship-modal-title" class="ship-head-title">Kargo Bilgisi</h5>
+          <div class="ship-head-sub">{{ env.envelopeNo }}</div>
+        </div>
+        <!-- Popup'taki bilgilerden A4 yazdırma sayfası; kargo kaydı yüklenince etkin -->
+        <button type="button" class="ship-print" title="Kargo bilgilerini yazdır"
+          [disabled]="!shipment()" (click)="printShipment()">
+          <span class="material-symbols-outlined">print</span>
+          Yazdır
+        </button>
+        <button type="button" class="ship-close" title="Kapat" (click)="closeShipmentInfo()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <div class="ship-body">
+        <!-- Kargo bilgileri -->
+        <section class="ship-section">
+          <h6 class="ship-section-title">Kargo Bilgileri</h6>
+
+          @if (shipmentLoading()) {
+            <div class="ship-state">
+              <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              Kargo bilgisi yükleniyor...
+            </div>
+          } @else if (shipmentError()) {
+            <div class="ship-state is-error">
+              <span class="material-symbols-outlined">info</span>
+              {{ shipmentError() }}
+            </div>
+          } @else if (shipment(); as s) {
+            <dl class="ship-list">
+              <div class="ship-row"><dt>Kargo Firması</dt><dd>{{ s.cargoCompanyName || cargoCompanyLabels[s.cargoCompany] || '-' }}</dd></div>
+              <div class="ship-row">
+                <dt>Takip Numarası</dt>
+                <dd class="ship-tracking">
+                  <span class="ship-tracking-no">{{ s.trackingNumber }}</span>
+                  <button type="button" class="ship-copy" [class.is-done]="trackingCopied()"
+                    [title]="trackingCopied() ? 'Kopyalandı' : 'Takip numarasını kopyala'"
+                    (click)="copyTrackingNumber(s.trackingNumber)">
+                    <span class="material-symbols-outlined">{{ trackingCopied() ? 'check' : 'content_copy' }}</span>
+                  </button>
+                </dd>
+              </div>
+              <div class="ship-row"><dt>Gönderim Tarihi</dt><dd>{{ s.sentDate | date:'dd.MM.yyyy HH:mm' }}</dd></div>
+              <div class="ship-row"><dt>Kargoya Veren</dt><dd>{{ s.sentUserFullName || '-' }}</dd></div>
+              @if (s.externalInstitutionName) {
+                <div class="ship-row"><dt>Paket Alıcısı</dt><dd>{{ s.externalInstitutionName }}</dd></div>
+              }
+              @if (s.deliveredDate) {
+                <div class="ship-row"><dt>Teslim Tarihi</dt><dd>{{ s.deliveredDate | date:'dd.MM.yyyy HH:mm' }}</dd></div>
+              }
+            </dl>
+          }
+        </section>
+
+        <!-- Zarf bilgileri (liste satırından, anında). Açılır/kapanır; her açılışta kapalı gelir. -->
+        <section class="ship-section">
+          <button type="button" class="ship-section-toggle" [class.is-open]="envelopeInfoOpen()"
+            [attr.aria-expanded]="envelopeInfoOpen()" aria-controls="ship-envelope-info"
+            (click)="envelopeInfoOpen.set(!envelopeInfoOpen())">
+            <span class="ship-section-title">Zarf Bilgileri</span>
+            <span class="material-symbols-outlined ship-toggle-icon">expand_more</span>
+          </button>
+          <dl class="ship-list" id="ship-envelope-info" [hidden]="!envelopeInfoOpen()">
+            <div class="ship-row"><dt>Gönderen</dt><dd>{{ env.departmentName }}</dd></div>
+            <div class="ship-row"><dt>Alıcı Kurum</dt><dd>{{ env.targetName }}</dd></div>
+            <div class="ship-row">
+              <dt>Alıcı Birim/Kişi</dt>
+              <dd [class.is-empty]="!env.unitName">{{ env.unitName || 'Girilmedi' }}</dd>
+            </div>
+            <div class="ship-row">
+              <dt>Adres</dt>
+              <dd class="is-multiline" [class.is-empty]="!env.address">{{ env.address || 'Girilmedi' }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <!-- Paketteki evraklar: açılır/kapanır, her açılışta kapalı gelir; içerik ilk
+             açıldığında sunucudan çekilir. -->
+        @if (shipment()) {
+          <section class="ship-section">
+            <button type="button" class="ship-section-toggle" [class.is-open]="packageOpen()"
+              [attr.aria-expanded]="packageOpen()" aria-controls="ship-package-docs"
+              (click)="togglePackage()">
+              <span class="ship-section-title">
+                Paketteki Evraklar
+                @if (packageItems(); as items) {
+                  <span class="ship-count">{{ items.length }}</span>
+                }
+              </span>
+              <span class="material-symbols-outlined ship-toggle-icon">expand_more</span>
+            </button>
+
+            <div id="ship-package-docs" class="ship-package" [hidden]="!packageOpen()">
+              @if (packageLoading()) {
+                <div class="ship-state">
+                  <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                  Evraklar yükleniyor...
+                </div>
+              } @else if (packageError()) {
+                <div class="ship-state is-error">
+                  <span class="material-symbols-outlined">info</span>
+                  {{ packageError() }}
+                </div>
+              } @else if (packageItems(); as items) {
+                @if (items.length) {
+                  <ul class="ship-docs">
+                    @for (item of items; track item.distributionId) {
+                      <li>
+                        <!-- Evrak kaydına gider (giden evrak listesindeki "Giden Evrakı Güncelle" ile aynı sayfa) -->
+                        <button type="button" class="ship-doc" title="Evrak detayına git"
+                          (click)="goToOutgoingDocument(item.outgoingDocumentId)">
+                          <span class="material-symbols-outlined">description</span>
+                          <span class="ship-doc-no">{{ shipmentDocNo(item.outgoingDocumentId, item.documentNumber) }}</span>
+                          @if (item.subject) {
+                            <span class="ship-doc-subject" [title]="item.subject">{{ item.subject }}</span>
+                          }
+                          <span class="material-symbols-outlined ship-doc-go">chevron_right</span>
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                } @else {
+                  <div class="ship-state">
+                    <span class="material-symbols-outlined">inventory_2</span>
+                    Pakette evrak bulunamadı.
+                  </div>
+                }
+              }
+            </div>
+          </section>
+        }
+      </div>
+
+      <div class="ship-foot">
+        <button type="button" class="btn btn-secondary" (click)="closeShipmentInfo()">Kapat</button>
+      </div>
+    </div>
+  </div>
+}

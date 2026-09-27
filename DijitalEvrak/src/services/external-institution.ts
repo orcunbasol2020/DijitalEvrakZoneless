@@ -1,6 +1,13 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpService } from './http';
 
+// Dış kurum kaydının türü (Parametreler > Dış Kurumlar ekranındaki typeMap ile aynı).
+export enum ExternalInstitutionType {
+  Misyon = 1,
+  Kurum = 2,
+  Sahis = 3
+}
+
 export interface ExternalInstitutionModel {
   id: string;
   name: string;

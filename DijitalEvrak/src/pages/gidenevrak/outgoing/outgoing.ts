@@ -14,6 +14,7 @@ import { CommonModule } from '@angular/common';
 import { FlexiToastService } from 'flexi-toast';
 import { OutgoingDocumentService } from '../../../services/outgoingdocument';
 import { OutgoingDocumentModel } from '../../../models/outgoingdocument.model';
+import { distributionRecipientName } from '../../../models/outgoingdocumentdistribution.model';
 import { OutgoingDocumentAllocation } from '../../../services/outgoingdocumentallocation';
 import { OutgoingDocumentAllocationModel } from '../../../models/outgoingdocumentallocation.model';
 import { AllocationStatusEnum, AllocationStatusLabels } from '../../../models/allocationstatus.model';
@@ -62,6 +63,14 @@ export default class Outgoing {
     return map;
   });
 
+  // "Nereye" sütununda iç birim alıcıları kısa adla gösterilir (yer kazanmak
+  // için); kısa adı olmayan birimlerde tam ada düşülür.
+  readonly departmentShortNameMap = computed(() => {
+    const map: Record<string, string> = {};
+    for (const d of this.departments()) map[d.id] = d.shortName?.trim() || d.name;
+    return map;
+  });
+
   readonly externalInstitutionNameMap = computed(() => {
     const map: Record<string, string> = {};
     for (const i of this.externalInstitutions()) map[i.id] = i.name;
@@ -74,16 +83,49 @@ export default class Outgoing {
   // hücre şablonlarındaki ham alanlardan (type, securityDegree, ...) hesaplanıyor.
   readonly gridData = computed(() => {
     const deptMap = this.departmentNameMap();
+    const deptShortMap = this.departmentShortNameMap();
     const instMap = this.externalInstitutionNameMap();
-    return this.scanListData().map(doc => ({
-      ...doc,
-      documentTypeLabel: (doc.type != null && this.documentTypeLabelMap[doc.type]) || '-',
-      securityDegreeLabel: (doc.securityDegree != null && this.securityDegreeMap[doc.securityDegree]) || '-',
-      urgencyDegreeLabel: (doc.urgencyDegree != null && this.urgencyDegreeMap[doc.urgencyDegree]) || '-',
-      departmentName: (doc.departmentId && deptMap[doc.departmentId]) || '-',
-      externalInstitutionName: (doc.externalInstitutonId && instMap[doc.externalInstitutonId]) || '-'
-    }));
+    return this.scanListData().map(doc => {
+      // Hücrede kısa biçim (iç birimler parantez içinde kısa adla) virgülle
+      // ayrılmış tek satırda; üzerine gelince tam adlar alt alta gösterilir.
+      const recipientNames = this.recipientNames(doc, deptShortMap, instMap, true);
+      const recipientFullNames = this.recipientNames(doc, deptMap, instMap, false);
+      return {
+        ...doc,
+        documentTypeLabel: (doc.type != null && this.documentTypeLabelMap[doc.type]) || '-',
+        securityDegreeLabel: (doc.securityDegree != null && this.securityDegreeMap[doc.securityDegree]) || '-',
+        urgencyDegreeLabel: (doc.urgencyDegree != null && this.urgencyDegreeMap[doc.urgencyDegree]) || '-',
+        departmentName: (doc.departmentId && deptMap[doc.departmentId]) || '-',
+        externalInstitutionName: recipientNames.length ? recipientNames.join(', ') : '-',
+        recipientTitle: recipientFullNames.join('\n')
+      };
+    });
   });
+
+  // "Nereye" sütunu: evrak birden fazla iç birime ve/veya dış kuruma gidebilir.
+  // GetAll yanıtındaki dağıtım listesi (silinmemiş satırlar) okunur; dağıtımı
+  // olmayan eski kayıtlarda evrak üzerindeki tek alıcı alanına düşülür.
+  // compact=true iken iç birimler verilen eşlemedeki (kısa) adla parantez
+  // içinde yazılır; dış kurumlar her iki biçimde de tam adla gösterilir.
+  private recipientNames(
+    doc: OutgoingDocumentModel,
+    deptMap: Record<string, string>,
+    instMap: Record<string, string>,
+    compact: boolean
+  ): string[] {
+    const names = (doc.distributions ?? [])
+      .map(d => {
+        if (d.departmentId) {
+          const name = deptMap[d.departmentId] || d.departmentName || '';
+          return name ? (compact ? `(${name})` : name) : '';
+        }
+        return distributionRecipientName(d, deptMap, instMap);
+      })
+      .filter(n => n && n !== '-');
+    if (names.length) return names;
+    const legacy = doc.externalInstitutonId && instMap[doc.externalInstitutonId];
+    return legacy ? [legacy] : [];
+  }
 
   readonly documentTypeFilterData = computed((): FlexiGridFilterDataModel[] =>
     Object.values(this.documentTypeLabelMap).map(label => ({ name: label, value: label }))
@@ -99,10 +141,6 @@ export default class Outgoing {
 
   readonly departmentFilterData = computed((): FlexiGridFilterDataModel[] =>
     this.departments().map(d => ({ name: d.name, value: d.name }))
-  );
-
-  readonly externalInstitutionFilterData = computed((): FlexiGridFilterDataModel[] =>
-    this.externalInstitutions().map(i => ({ name: i.name, value: i.name }))
   );
 
   readonly documentTypeLabelMap: Record<number, string> = DocumentTypeLabels;
@@ -213,7 +251,8 @@ export default class Outgoing {
     [AllocationStatusEnum.Devir]: 'swap_horiz',
     [AllocationStatusEnum.Teslim]: 'handshake',
     [AllocationStatusEnum.Arsiv]: 'inventory_2',
-    [AllocationStatusEnum.TeslimAlindi]: 'move_to_inbox'
+    [AllocationStatusEnum.TeslimAlindi]: 'move_to_inbox',
+    [AllocationStatusEnum.KargoyaVerildi]: 'local_shipping'
   };
 
   readonly allocationStatusClass: Record<number, string> = {
@@ -221,7 +260,8 @@ export default class Outgoing {
     [AllocationStatusEnum.Devir]: 'is-devir',
     [AllocationStatusEnum.Teslim]: 'is-teslim',
     [AllocationStatusEnum.Arsiv]: 'is-arsiv',
-    [AllocationStatusEnum.TeslimAlindi]: 'is-teslimalindi'
+    [AllocationStatusEnum.TeslimAlindi]: 'is-teslimalindi',
+    [AllocationStatusEnum.KargoyaVerildi]: 'is-kargo'
   };
 
   // "Teslim eden" satırı yalnızca evrakın bir başkasından devralındığı kayıtlarda anlamlıdır:

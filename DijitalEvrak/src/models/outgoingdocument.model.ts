@@ -1,3 +1,5 @@
+import { OutgoingDocumentDistributionModel } from './outgoingdocumentdistribution.model';
+
 export enum OutgoingDocumentStatus {
   Taslak = 1,
   Gonderildi = 2,
@@ -28,9 +30,17 @@ export interface OutgoingDocumentModel {
   subject?: string;
   documentDate?: string;
   status: OutgoingDocumentStatus;
-  cargoPostNumber?: string;
+  // Kargo bilgisi evrak üzerinde tutulmaz; dağıtım satırı (deliveryMethod /
+  // shipmentId) ve OutgoingDocumentShipments kaydında bulunur.
   // API alan adı gerçekten böyle (harf eksik) döner, düzeltmeyin.
+  // ESKİ tek alıcı alanı: yeni kayıtlarda alıcılar dağıtım listesine
+  // (OutgoingDocumentDistributions) yazılır, bu alan gönderilmez. Eski
+  // kayıtlar için okunmaya devam eder.
   externalInstitutonId?: string | null;
+  // Dağıtım listesi. GetById/GetAll şu an bu alanı doldurmuyor (null döner);
+  // alıcılar OutgoingDocumentDistributionService ile ayrıca çekilir. Backend
+  // ileride doldurursa liste ekranı doğrudan buradan okur.
+  distributions?: OutgoingDocumentDistributionModel[] | null;
   // Gönderen birim (dahili). Manuel giden evrak kaydında kullanılıyor.
   departmentId?: string | null;
   // Evrak türü (1: Nota, 2: Evrak). API alan adı "type" (documentTypeId değil).

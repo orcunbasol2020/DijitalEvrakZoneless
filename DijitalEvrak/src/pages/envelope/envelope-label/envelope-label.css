@@ -1,0 +1,65 @@
+/* Zarf etiketi (app-envelope-label): ana görünüm styles.css'teki .envelope-label
+   sınıflarından gelir. Burada mavi ton, Gideceği Yer sekmelerinin lacivert-petrol
+   gradient'ine çekilir; ayrıca taslak (kayıt öncesi) yer tutucuları var. */
+
+/* Üst şerit: düz mavi kenarlık yerine sekmelerle aynı gradient bant */
+.envelope-label:not(.envelope-label-no-accent) {
+    border-top: 0;
+    padding-top: 20px;
+}
+
+.envelope-label:not(.envelope-label-no-accent)::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: linear-gradient(120deg, #26395e 0%, #176b9e 60%, #0f8fd6 100%);
+}
+
+/* Alıcı kutusu: aynı ailenin açık zemini ve petrol sol kenar */
+.envelope-label .receiver-box {
+    background: #eef4fb;
+    border: 1px solid #c7d7ea;
+    border-left: 4px solid #176b9e;
+}
+
+.envelope-label .receiver-box .label-title {
+    color: #26395e;
+}
+
+.envelope-label .label-External {
+    color: #1c2b4a;
+}
+
+.envelope-label.is-draft .qr-section {
+    border-style: dashed;
+}
+
+.qr-placeholder {
+    width: 100px;
+    height: 100px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    color: #cbd5e1;
+    background: repeating-linear-gradient(45deg, #f8fafc 0 6px, #f1f5f9 6px 12px);
+}
+
+.qr-placeholder .material-symbols-outlined {
+    font-size: 56px;
+}
+
+.label-number.is-placeholder {
+    color: #94a3b8;
+    letter-spacing: 2px;
+}
+
+.label-External.is-placeholder,
+.labelAddress.is-placeholder {
+    color: #94a3b8;
+    font-weight: 500;
+    font-style: italic;
+}

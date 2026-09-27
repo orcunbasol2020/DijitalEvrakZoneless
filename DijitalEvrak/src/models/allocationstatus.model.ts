@@ -5,7 +5,10 @@ export enum AllocationStatusEnum {
   Devir = 2,
   Teslim = 3,
   Arsiv = 4,
-  TeslimAlindi = 5
+  TeslimAlindi = 5,
+  // Evrak kargoya verildi; aktif zimmet backend tarafından bu durumla kapatılır
+  // (OutgoingDocumentShipments/Create). Frontend bu durumla zimmet oluşturmaz.
+  KargoyaVerildi = 6
 }
 
 export const AllocationStatusLabels: Record<AllocationStatusEnum, string> = {
@@ -14,5 +17,6 @@ export const AllocationStatusLabels: Record<AllocationStatusEnum, string> = {
   [AllocationStatusEnum.Devir]: 'Devir',
   [AllocationStatusEnum.Teslim]: 'Teslim Edildi',
   [AllocationStatusEnum.Arsiv]: 'Arşiv',
-  [AllocationStatusEnum.TeslimAlindi]: 'Teslim Alındı'
+  [AllocationStatusEnum.TeslimAlindi]: 'Teslim Alındı',
+  [AllocationStatusEnum.KargoyaVerildi]: 'Kargoya Verildi'
 };

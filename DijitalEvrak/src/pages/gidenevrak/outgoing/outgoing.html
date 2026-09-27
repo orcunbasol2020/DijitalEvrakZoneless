@@ -74,10 +74,12 @@
         {{ item.departmentName }}
       </ng-template>
     </flexi-grid-column>
-    <flexi-grid-column field="externalInstitutionName" title="Nereye" textAlign="left" width="150px"
-      filterType="select" [filterData]="externalInstitutionFilterData()">
+    <!-- Çoklu dağıtım: alıcılar virgülle ayrılmış tek satırda (iç birimler parantez içinde kısa adla);
+         üzerine gelince tam adlar listelenir. Birden fazla ad birleşik tutulduğundan seçim filtresi
+         yerine metin (içerir) filtresi kullanılır. -->
+    <flexi-grid-column field="externalInstitutionName" title="Nereye" textAlign="left" width="170px">
       <ng-template flexiGridCellTemplate let-item>
-        {{ item.externalInstitutionName }}
+        <span class="outgoing-recipient-cell" [title]="item.recipientTitle">{{ item.externalInstitutionName }}</span>
       </ng-template>
     </flexi-grid-column>
     <flexi-grid-column title="Zimmet" textAlign="center" width="96px" [visible]="!isBirimEvrakSorumlusu()" [filterable]="false" [sortable]="false">

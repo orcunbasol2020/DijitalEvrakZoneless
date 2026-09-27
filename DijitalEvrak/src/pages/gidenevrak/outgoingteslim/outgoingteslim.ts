@@ -11,6 +11,10 @@ import { OutgoingDocumentAllocation } from '../../../services/outgoingdocumental
 import { OutgoingDocumentAllocationModel } from '../../../models/outgoingdocumentallocation.model';
 import { ExternalInstitutionModel } from '../../../services/external-institution';
 import { DepartmentModel } from '../../../services/department';
+import { OutgoingDocumentDistributionService } from '../../../services/outgoingdocumentdistribution';
+import { OutgoingDocumentDistributionModel, distributionRecipientName } from '../../../models/outgoingdocumentdistribution.model';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 // Giden evrak Teslim Bilgisi ekranı: yalnızca zimmetlenmiş / teslim edilmiş
 // evraklar için açılır ve salt okunurdur. Evrak bilgisi, zimmetli/teslim alan
@@ -30,11 +34,14 @@ import { DepartmentModel } from '../../../services/department';
 export default class Outgoingteslim implements OnInit {
   private outgoingDocumentService = inject(OutgoingDocumentService);
   private allocationService = inject(OutgoingDocumentAllocation);
+  private distributionService = inject(OutgoingDocumentDistributionService);
   private state = inject(ZimmetStateService);
   private toast = inject(FlexiToastService);
   private router = inject(Router);
 
   readonly document = signal<OutgoingDocumentModel | null>(null);
+  // Evrakın dağıtım listesi (alıcılar); GetById yanıtında gelmediğinden ayrıca çekilir.
+  readonly distributions = signal<OutgoingDocumentDistributionModel[]>([]);
   readonly loading = signal(false);
   // Sağ panel; evrak ve zimmet kaydı ikisi de gelene kadar tek bir yükleme
   // durumunda kalır (ekran titremesin diye).
@@ -76,14 +83,30 @@ export default class Outgoingteslim implements OnInit {
     return (this.departmentsResult.value() ?? []).find(d => d.id === departmentId)?.name ?? null;
   });
 
-  readonly receiverInstitutionName = computed(() => {
+  // Alıcılar: evrak birden fazla iç birime ve/veya dış kuruma gidebilir. Önce
+  // dağıtım listesi okunur; dağıtımı olmayan eski kayıtlarda evrak üzerindeki
+  // tek alıcı alanına (externalInstitutonId) düşülür.
+  readonly recipientNames = computed<string[]>(() => {
+    const dist = this.distributions();
+    const institutions = this.institutionsResult.value() ?? [];
+    if (dist.length) {
+      const deptMap: Record<string, string> = {};
+      for (const d of this.departmentsResult.value() ?? []) deptMap[d.id] = d.name;
+      const instMap: Record<string, string> = {};
+      for (const i of institutions) instMap[i.id] = i.name;
+      return dist.map(d => distributionRecipientName(d, deptMap, instMap));
+    }
     const institutionId = this.document()?.externalInstitutonId;
-    if (!institutionId) return null;
-    return (this.institutionsResult.value() ?? []).find(i => i.id === institutionId)?.name ?? null;
+    if (!institutionId) return [];
+    const name = institutions.find(i => i.id === institutionId)?.name;
+    return name ? [name] : [];
   });
 
-  // Dış kuruma teslim mi, iç kullanıcıya zimmet mi: evrağın alıcı kurumu varsa teslim dili kullanılır.
-  readonly deliveredIsExternal = computed(() => !!this.document()?.externalInstitutonId);
+  // Dış kuruma teslim mi, iç kullanıcıya zimmet mi: evrağın alıcıları arasında
+  // dış kurum varsa teslim dili kullanılır.
+  readonly deliveredIsExternal = computed(() =>
+    this.distributions().some(d => !!d.externalInstitutionId) || !!this.document()?.externalInstitutonId
+  );
 
   // Aktif zimmet kaydından okunan teslim bilgileri.
   readonly delivered = signal(false);
@@ -106,9 +129,16 @@ export default class Outgoingteslim implements OnInit {
   private loadDocument(id: string): void {
     this.loading.set(true);
 
-    this.outgoingDocumentService.getById(id).subscribe({
-      next: (doc) => {
+    forkJoin({
+      doc: this.outgoingDocumentService.getById(id),
+      // Alıcı listesi alınamazsa evrak yine açılır; eski tek alıcı alanına düşülür.
+      distributions: this.distributionService.getByOutgoingDocumentId(id).pipe(
+        catchError(() => of([] as OutgoingDocumentDistributionModel[]))
+      )
+    }).subscribe({
+      next: ({ doc, distributions }) => {
         this.document.set(doc);
+        this.distributions.set(distributions ?? []);
         this.loading.set(false);
         this.loadDeliveryInfo(id);
       },

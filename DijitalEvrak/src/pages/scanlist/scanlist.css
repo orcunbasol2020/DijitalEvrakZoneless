@@ -242,6 +242,7 @@
 .zh-status-chip.is-teslim   { --chip: #059669; --chip-2: #34d399; --chip-text: #047857; }
 .zh-status-chip.is-arsiv    { --chip: #7c3aed; --chip-2: #a78bfa; --chip-text: #6d28d9; }
 .zh-status-chip.is-teslimalindi { --chip: #0891b2; --chip-2: #22d3ee; --chip-text: #0e7490; }
+.zh-status-chip.is-kargo    { --chip: #ea580c; --chip-2: #fb923c; --chip-text: #c2410c; }
 
 /* Gövde */
 .zh-body {
@@ -370,6 +371,7 @@
 .zh-dot.is-teslim   { background: linear-gradient(135deg, #34d399, #059669); }
 .zh-dot.is-arsiv    { background: linear-gradient(135deg, #a78bfa, #7c3aed); }
 .zh-dot.is-teslimalindi { background: linear-gradient(135deg, #22d3ee, #0891b2); }
+.zh-dot.is-kargo    { background: linear-gradient(135deg, #fb923c, #ea580c); }
 
 .zh-dot.is-past {
     filter: saturate(0.55);
@@ -616,6 +618,7 @@
 [data-theme="dark"] .zh-status-chip.is-teslim   { --chip-text: #6ee7b7; }
 [data-theme="dark"] .zh-status-chip.is-arsiv    { --chip-text: #c4b5fd; }
 [data-theme="dark"] .zh-status-chip.is-teslimalindi { --chip-text: #67e8f9; }
+[data-theme="dark"] .zh-status-chip.is-kargo    { --chip-text: #fdba74; }
 
 [data-theme="dark"] .zh-state {
     color: #94a3b8;

@@ -32,33 +32,68 @@
     color: #e2e8f0;
 }
 
-/* Başlıktaki "Önizleme" çağrı butonu: gradient, hafif parlama, hover'da yükselme */
-/* Soft mavi hap buton; hover'da dolgu koyulaşır, animasyon yok */
+/* Başlıktaki "Önizleme" çağrı butonu: numara bloğuyla aynı lacivert-petrol
+   gradient, açık turkuaz yazı, ince cam çerçeve; hover'da hafif yükselir ve
+   üstten parlama kayar. */
+/* Gölgesiz; sayfadaki mavi tonlardan ayrışan derin teal-zümrüt gradient */
 .preview-cta {
+    position: relative;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 14px 6px 10px;
-    border: 1px solid rgba(3, 105, 161, 0.18);
+    gap: 7px;
+    padding: 7px 16px 7px 11px;
+    border: 1px solid rgba(94, 234, 212, 0.4);
     border-radius: 999px;
     font-size: 12.5px;
     font-weight: 700;
-    letter-spacing: 0.02em;
-    color: #0369a1;
-    background: #e0f2fe;
+    letter-spacing: 0.03em;
+    color: #ecfdf5;
+    background: linear-gradient(120deg, #134e4a 0%, #0f766e 55%, #0d9488 100%);
+    box-shadow: none;
     cursor: pointer;
-    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    overflow: hidden;
+    isolation: isolate;
+    transition: transform 0.15s ease, border-color 0.15s ease, filter 0.15s ease;
+}
+
+/* Üstten geçen ince ışık şeridi */
+.preview-cta::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -60%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(100deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.22) 50%, rgba(255, 255, 255, 0) 100%);
+    transform: skewX(-18deg);
+    transition: left 0.45s ease;
+    pointer-events: none;
+    z-index: -1;
 }
 
 .preview-cta .material-symbols-outlined {
     font-size: 18px;
+    color: inherit;
+    transition: transform 0.15s ease;
 }
 
 .preview-cta:hover {
-    background: #0ea5e9;
-    border-color: #0ea5e9;
-    color: #fff;
-    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+    transform: translateY(-1px);
+    border-color: rgba(94, 234, 212, 0.7);
+    filter: brightness(1.08);
+}
+
+.preview-cta:hover::before {
+    left: 110%;
+}
+
+.preview-cta:hover .material-symbols-outlined {
+    transform: scale(1.08);
+}
+
+.preview-cta:focus-visible {
+    outline: 2px solid rgba(94, 234, 212, 0.7);
+    outline-offset: 2px;
 }
 
 /* ---- Zarf Bilgileri özeti: hero + bilgi kartçıkları ---- */
@@ -136,7 +171,8 @@
 .zarf-hero-meta .envelope-status-pill.envelope-status-yeni,
 .zarf-hero-meta .envelope-status-pill.envelope-status-birimde,
 .zarf-hero-meta .envelope-status-pill.envelope-status-teslim,
-.zarf-hero-meta .envelope-status-pill.envelope-status-devir {
+.zarf-hero-meta .envelope-status-pill.envelope-status-devir,
+.zarf-hero-meta .envelope-status-pill.envelope-status-kargo {
     background: transparent;
 }
 
@@ -144,6 +180,7 @@
 .zarf-hero-meta .envelope-status-pill.envelope-status-birimde::before { background: linear-gradient(135deg, #fef3c7, #fde68a); }
 .zarf-hero-meta .envelope-status-pill.envelope-status-teslim::before  { background: linear-gradient(135deg, #dcfce7, #bbf7d0); }
 .zarf-hero-meta .envelope-status-pill.envelope-status-devir::before   { background: linear-gradient(135deg, #ede9fe, #ddd6fe); }
+.zarf-hero-meta .envelope-status-pill.envelope-status-kargo::before   { background: linear-gradient(135deg, #fef9c3, #fef08a); }
 
 /* Sağda yan yana: durum rozeti, ardından tarih chip'i */
 .zarf-hero-meta {
@@ -249,6 +286,106 @@
     white-space: pre-line;
 }
 
+/* Gideceği yer kutusunda hedef türü (Kurum İçi Birim / Yabancı Misyon / Dış Kurum) */
+.zarf-tile-meta {
+    margin-top: 2px;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: #94a3b8;
+}
+
+/* ---- Gideceği yer türü seçici (etiket formu) ----
+   Üç sekme: Kurum İçi Birimler / Yabancı Misyonlar / Dış Kurumlar. Aktif sekme
+   lacivert-petrol gradient ile vurgulanır; altındaki autocomplete seçilen
+   gruba göre dolar. */
+.zarf-kind {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+}
+
+/* Sekmelerin altında önce "Gideceği Yer" etiketi, ardından arama alanı gelir.
+   Sekmelerle etiket arasındaki boşluk .zarf-kind'in 8px alt boşluğudur. */
+.zarf-kind ~ app-simple-autocomplete {
+    display: block;
+}
+
+/* "Gideceği Yer" etiketi sekmelerden biraz daha ayrık dursun (8px + 6px) */
+.zarf-kind-label {
+    display: block;
+    margin-top: 6px;
+}
+
+.zarf-kind-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 38px;
+    padding: 6px 10px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.zarf-kind-btn .material-symbols-outlined {
+    font-size: 18px;
+    opacity: 0.8;
+}
+
+.zarf-kind-btn:hover {
+    border-color: #c7d7ea;
+    background: #eef4fb;
+    color: #26395e;
+}
+
+.zarf-kind-btn.is-active {
+    color: #e0f2fe;
+    border-color: transparent;
+    background: linear-gradient(120deg, #26395e 0%, #176b9e 100%);
+    box-shadow: 0 6px 16px rgba(23, 107, 158, 0.28);
+}
+
+.zarf-kind-btn.is-active .material-symbols-outlined {
+    opacity: 1;
+    color: #7dd3fc;
+}
+
+@media (max-width: 575.98px) {
+    .zarf-kind {
+        grid-template-columns: 1fr;
+    }
+}
+
+[data-theme="dark"] .zarf-kind-btn {
+    background: rgba(148, 163, 184, 0.06);
+    border-color: rgba(148, 163, 184, 0.18);
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .zarf-kind-btn:hover {
+    background: rgba(23, 107, 158, 0.18);
+    border-color: rgba(125, 211, 252, 0.3);
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .zarf-kind-btn.is-active {
+    background: linear-gradient(120deg, #121c30 0%, #0f4767 100%);
+    color: #e0f2fe;
+}
+
+[data-theme="dark"] .zarf-tile-meta {
+    color: #94a3b8;
+}
+
 .zarf-tile-input {
     margin-top: 2px;
 }
@@ -292,20 +429,78 @@
     font-size: 15px;
 }
 
-/* Etiket numarası bloğu: gradient yerine sade, koyu lacivert-gri düz zemin */
+/* Etiket numarası bloğu: Evrak Kayıt'taki evrak numarası kutusuyla (.ek-lookup)
+   aynı tasarım ve renk; lacivert-petrol gradient, sağ üstte turkuaz parlama ve
+   soluk zarf ikonu filigranı. */
 .no-hero {
-    background: linear-gradient(135deg, #334155 0%, #475569 50%, #64748b 100%);
-    box-shadow: 0 6px 18px rgba(71, 85, 105, 0.22);
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: linear-gradient(120deg, #1c2b4a 0%, #115b87 55%, #0b7fc4 100%);
+    border: 1px solid rgba(125, 211, 252, 0.35);
+    box-shadow: 0 12px 28px rgba(3, 105, 161, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.no-hero::before {
+    content: "";
+    position: absolute;
+    width: 220px;
+    height: 220px;
+    right: -70px;
+    top: -120px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.45) 0%, rgba(56, 189, 248, 0) 70%);
+    pointer-events: none;
+    z-index: -1;
+}
+
+.no-hero::after {
+    content: "mail";
+    font-family: 'Material Symbols Outlined';
+    font-size: 110px;
+    line-height: 1;
+    position: absolute;
+    right: 150px;
+    top: -26px;
+    color: rgba(255, 255, 255, 0.06);
+    pointer-events: none;
+    z-index: -1;
 }
 
 .no-hero .zarf-hero-icon {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.18);
+    width: 36px;
+    height: 36px;
+    border-radius: 11px;
+    color: #7dd3fc;
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.22);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(6px);
+}
+
+.no-hero .zarf-hero-icon .material-symbols-outlined {
+    font-size: 20px;
+}
+
+.no-hero .zarf-hero-no {
+    font-size: 21px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    line-height: 1.1;
+    text-shadow: 0 2px 10px rgba(2, 132, 199, 0.45);
 }
 
 .no-hero .zarf-hero-chip {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.22);
+}
+
+[data-theme="dark"] .zarf-hero.no-hero {
+    background: linear-gradient(120deg, #0b1220 0%, #0c3a57 55%, #075985 100%);
+    border-color: rgba(125, 211, 252, 0.28);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 /* QR okutma bloğu; okuma aktifken ince yeşil çerçeve */
@@ -595,14 +790,12 @@
 }
 
 [data-theme="dark"] .preview-cta {
-    background: rgba(14, 165, 233, 0.18);
-    border-color: rgba(14, 165, 233, 0.35);
-    color: #7dd3fc;
+    background: linear-gradient(120deg, #042f2e 0%, #115e59 55%, #0f766e 100%);
+    border-color: rgba(94, 234, 212, 0.3);
 }
 
 [data-theme="dark"] .preview-cta:hover {
-    background: #0ea5e9;
-    color: #fff;
+    border-color: rgba(94, 234, 212, 0.55);
 }
 
 [data-theme="dark"] .zarf-actions-hint {
@@ -1025,4 +1218,416 @@
 /* Spinner beyaz */
 .spinner-border.text-white {
     border-top-color: white;
+}
+
+/* ============================================================
+   Akış iyileştirmeleri: adım şeridi, canlı etiket önizlemesi,
+   yazdır çağrısı, teslim kilidi, evrak satırı meta bilgisi
+   ============================================================ */
+
+/* Kartlar sabit yükseklik yerine içeriğe göre uzasın; sayfa kaydırılsın */
+.zarf-steps + .row .page-wrapper {
+    height: auto;
+    min-height: calc(100vh - 210px);
+}
+
+/* ---- Adım şeridi ---- */
+.zarf-steps {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding: 10px 14px;
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid #e7eaf0;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.zarf-step {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 6px 10px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background: transparent;
+    text-align: left;
+    color: #64748b;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.zarf-step-btn {
+    cursor: pointer;
+}
+
+.zarf-step-btn:not(:disabled):hover {
+    background: #eef4fb;
+    border-color: #c7d7ea;
+}
+
+.zarf-step-btn:disabled {
+    cursor: default;
+    opacity: 0.6;
+}
+
+.zarf-step-no {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #64748b;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    font-variant-numeric: tabular-nums;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.zarf-step-no .material-symbols-outlined {
+    font-size: 17px;
+}
+
+.zarf-step-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.2;
+}
+
+.zarf-step-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #475569;
+    white-space: nowrap;
+}
+
+.zarf-step-sub {
+    font-size: 11.5px;
+    color: #94a3b8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Aktif adım: lacivert-petrol gradient daire */
+.zarf-step.is-active .zarf-step-no {
+    color: #fff;
+    border-color: transparent;
+    background: linear-gradient(135deg, #26395e, #176b9e);
+    box-shadow: 0 6px 14px rgba(23, 107, 158, 0.3);
+}
+
+.zarf-step.is-active .zarf-step-title {
+    color: #0f172a;
+}
+
+.zarf-step.is-active .zarf-step-sub {
+    color: #176b9e;
+}
+
+/* Tamamlanan adım: yeşil onay */
+.zarf-step.is-done .zarf-step-no {
+    color: #15803d;
+    background: #dcfce7;
+    border-color: #bbf7d0;
+}
+
+.zarf-step-line {
+    flex: 1 1 auto;
+    height: 2px;
+    min-width: 16px;
+    border-radius: 2px;
+    background: #e2e8f0;
+    transition: background 0.2s ease;
+}
+
+.zarf-step-line.is-done {
+    background: linear-gradient(90deg, #86efac, #22c55e);
+}
+
+/* ---- Form ---- */
+.zarf-form {
+    display: flex;
+    flex-direction: column;
+}
+
+.zarf-form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 6px;
+}
+
+.zarf-optional {
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: #64748b;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+}
+
+/* ---- Yazdır çağrısı: özetin altında, lacivert-petrol gradient ---- */
+.zarf-print-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px 8px 12px;
+    border: 0;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #e0f2fe;
+    background: linear-gradient(120deg, #26395e 0%, #176b9e 100%);
+    box-shadow: 0 6px 16px rgba(23, 107, 158, 0.28);
+    cursor: pointer;
+    transition: box-shadow 0.15s ease, transform 0.15s ease, filter 0.15s ease;
+}
+
+.zarf-print-cta .material-symbols-outlined {
+    font-size: 18px;
+    color: #7dd3fc;
+}
+
+.zarf-print-cta:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.06);
+    box-shadow: 0 10px 22px rgba(23, 107, 158, 0.34);
+}
+
+/* ---- Canlı etiket önizlemesi (sağ panel, zarf yokken) ---- */
+.zarf-live-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #15803d;
+    background: #dcfce7;
+    border: 1px solid #bbf7d0;
+}
+
+.zarf-live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: #22c55e;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+    animation: zarf-live-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes zarf-live-pulse {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2); }
+    50% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.08); }
+}
+
+.zarf-live {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.zarf-live-stage {
+    display: flex;
+    justify-content: center;
+    padding: 28px 16px;
+    border-radius: 14px;
+    background: linear-gradient(160deg, #f8fafc 0%, #eef4fc 100%);
+    border: 1px dashed #d5dbe5;
+}
+
+.zarf-live-stage .envelope-label {
+    max-width: 100%;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12), 0 1px 3px rgba(15, 23, 42, 0.06);
+    border-radius: 4px;
+}
+
+.zarf-live-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12.5px;
+    line-height: 1.4;
+    color: #64748b;
+}
+
+.zarf-live-note .material-symbols-outlined {
+    font-size: 18px;
+    color: #94a3b8;
+    flex: 0 0 auto;
+}
+
+/* ---- Teslim edilmiş zarf: kilit notu ---- */
+.zarf-locked {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    color: #92400e;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+}
+
+.zarf-locked .material-symbols-outlined {
+    font-size: 22px;
+    flex: 0 0 auto;
+    color: #d97706;
+}
+
+.zarf-locked-title {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.zarf-locked-text {
+    font-size: 12px;
+    line-height: 1.4;
+    margin-top: 2px;
+}
+
+/* ---- Evrak satırı: sıra numarası + eklenme zamanı ---- */
+.doc-tile-order {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, #26395e, #176b9e);
+    box-shadow: 0 4px 10px rgba(23, 107, 158, 0.28);
+    font-variant-numeric: tabular-nums;
+}
+
+.doc-tile-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 2px;
+    font-size: 11.5px;
+    color: #94a3b8;
+    font-variant-numeric: tabular-nums;
+}
+
+.doc-tile-meta .material-symbols-outlined {
+    font-size: 14px;
+}
+
+/* ---- Manuel evrak ekleme popup'ı (Evrak Bilgisi ile aynı dil) ---- */
+.doc-manual-modal {
+    width: 520px;
+}
+
+.doc-manual-body {
+    min-height: 0;
+}
+
+@media (max-width: 767.98px) {
+    .zarf-steps {
+        flex-wrap: wrap;
+    }
+
+    .zarf-step-line {
+        display: none;
+    }
+
+    .zarf-step {
+        flex: 1 1 100%;
+    }
+}
+
+/* ---- Koyu tema ---- */
+[data-theme="dark"] .zarf-steps {
+    background: rgba(148, 163, 184, 0.06);
+    border-color: rgba(148, 163, 184, 0.18);
+    box-shadow: none;
+}
+
+[data-theme="dark"] .zarf-step-no {
+    background: rgba(148, 163, 184, 0.12);
+    border-color: rgba(148, 163, 184, 0.22);
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .zarf-step-title {
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .zarf-step.is-active .zarf-step-title {
+    color: #f1f5f9;
+}
+
+[data-theme="dark"] .zarf-step.is-active .zarf-step-sub {
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .zarf-step.is-done .zarf-step-no {
+    background: rgba(34, 197, 94, 0.18);
+    border-color: rgba(34, 197, 94, 0.35);
+    color: #86efac;
+}
+
+[data-theme="dark"] .zarf-step-btn:not(:disabled):hover {
+    background: rgba(23, 107, 158, 0.18);
+    border-color: rgba(125, 211, 252, 0.3);
+}
+
+[data-theme="dark"] .zarf-step-line {
+    background: rgba(148, 163, 184, 0.22);
+}
+
+[data-theme="dark"] .zarf-optional {
+    background: rgba(148, 163, 184, 0.12);
+    border-color: rgba(148, 163, 184, 0.22);
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .zarf-live-chip {
+    background: rgba(34, 197, 94, 0.18);
+    border-color: rgba(34, 197, 94, 0.35);
+    color: #86efac;
+}
+
+[data-theme="dark"] .zarf-live-stage {
+    background: linear-gradient(160deg, #111827 0%, #1e293b 100%);
+    border-color: rgba(148, 163, 184, 0.25);
+}
+
+[data-theme="dark"] .zarf-live-note {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .zarf-locked {
+    color: #fcd34d;
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+[data-theme="dark"] .zarf-locked .material-symbols-outlined {
+    color: #fbbf24;
+}
+
+[data-theme="dark"] .doc-tile-meta {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .zarf-print-cta {
+    background: linear-gradient(120deg, #121c30 0%, #0f4767 100%);
 }

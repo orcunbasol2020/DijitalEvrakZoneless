@@ -5,10 +5,10 @@ import { RouterLink } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { SimpleAutocompleteComponent } from '../../simpleautocomplete/simpleautocomplete';
-import { ExternalInstitution, ExternalInstitutionModel } from '../../../services/external-institution';
+import { ExternalInstitution, ExternalInstitutionModel, ExternalInstitutionType } from '../../../services/external-institution';
 import { EnvelopeService } from '../../../services/envelope';
 import { FlexiToastService } from 'flexi-toast';
-import { EnvelopeModel, EnvelopeStatus, EnvelopeStatusBadgeClass, EnvelopeStatusLabels } from '../../../models/envelope.model';
+import { EnvelopeModel, EnvelopeStatus, EnvelopeStatusBadgeClass, EnvelopeStatusLabels, EnvelopeTargetKind, EnvelopeTargetKindIcons, EnvelopeTargetKindLabels, envelopeTargetKind, envelopeTargetName, isEnvelopeClosed } from '../../../models/envelope.model';
 import { Common } from '../../../services/common';
 import { ChangeDetectorRef } from '@angular/core';
 import { PrintPreview } from '../../printpreview/printpreview';
@@ -16,7 +16,7 @@ import html2pdf from "html2pdf.js";
 import { EnvelopeDocumentService } from '../../../services/envelopedocument';
 import { EnvelopeDocumentModel } from '../../../models/envelopedocument.model';
 import { firstValueFrom } from 'rxjs';
-import { QRCodeComponent } from 'angularx-qrcode';
+import { EnvelopeLabelComponent } from '../envelope-label/envelope-label';
 import { RoleService } from '../../../services/role-service';
 import { OutgoingDocumentService } from '../../../services/outgoingdocument';
 import { OutgoingDocumentAllocation } from '../../../services/outgoingdocumentallocation';
@@ -64,7 +64,7 @@ interface DocumentEditForm {
     CommonModule,
     SimpleAutocompleteComponent,
     PrintPreview,
-    QRCodeComponent
+    EnvelopeLabelComponent
   ],
   templateUrl: './ticket.html',
   styleUrls: ['./ticket.css'],
@@ -80,11 +80,138 @@ export default class Ticket implements OnInit {
   readonly #roleService = inject(RoleService);
   readonly #toast = inject(FlexiToastService);
   private externalInstitutionService = inject(ExternalInstitution);
-  externalInstitutionControl = new FormControl<ExternalInstitutionModel | null>(null);
   externalInstitutions: ExternalInstitutionModel[] = [];
   readonly #common = inject(Common);
   readonly user = computed(() => this.#common.user());
   private cdr = inject(ChangeDetectorRef);
+
+  // ---- Gideceği yer: Kurum İçi Birimler / Yabancı Misyonlar / Dış Kurumlar ----
+  // Üç grup tek autocomplete'te sekmeyle değişir. Kurum içi birim seçilirse
+  // zarfa targetDepartmentId, misyon ya da dış kurum seçilirse externalInstitutionId
+  // yazılır. "Şahıs" türündeki (type 3) dış kurum kayıtları zarf hedefi olamaz.
+  readonly targetKinds: EnvelopeTargetKind[] = ['department', 'mission', 'external'];
+  readonly targetKindLabels = EnvelopeTargetKindLabels;
+  readonly targetKindIcons = EnvelopeTargetKindIcons;
+  // Sekme başlıkları (çoğul); tekil adlar EnvelopeTargetKindLabels'ta.
+  readonly targetKindTabLabels: Record<EnvelopeTargetKind, string> = {
+    department: 'Kurum İçi Birimler',
+    mission: 'Yabancı Misyonlar',
+    external: 'Dış Kurumlar'
+  };
+  // Varsayılan sekme Yabancı Misyonlar: kayıtların büyük çoğunluğu misyon
+  // olduğundan mevcut iş akışı (eskiden tek liste) en az tıklamayla korunur.
+  readonly targetKind = signal<EnvelopeTargetKind>('mission');
+  targetControl = new FormControl<{ id: string; name: string } | null>(null);
+
+  // Autocomplete [options] her değişiklik algılamasında yeni dizi alırsa
+  // yazılan metnin filtresi sıfırlanır; bu yüzden listeler yüklendiğinde bir kez
+  // hesaplanıp sabit referans olarak tutulur. Evrak popup'larındaki "Nereye"
+  // listeleri de aynı gruplardan (Yabancı Misyonlar / Dış Kurumlar) beslenir.
+  missionOptions: ExternalInstitutionModel[] = [];
+  institutionOptions: ExternalInstitutionModel[] = [];
+  private static readonly EMPTY_OPTIONS: { id: string; name: string }[] = [];
+
+  // ---- Süreç adımı: 1 Etiket Oluştur, 2 Evrak Ekle, 3 Yazdır ----
+  get currentStep(): 1 | 2 | 3 {
+    if (!this.previewEnvelope) return 1;
+    return this.documents.length > 0 ? 3 : 2;
+  }
+
+  // Teslim edilmiş ya da kargoya verilmiş zarfa evrak eklenmez / çıkarılmaz;
+  // okutma alanı kilitlenir.
+  get isDelivered(): boolean {
+    return isEnvelopeClosed(this.previewEnvelope?.status);
+  }
+
+  // Kilit mesajında "teslim edildi" yerine "kargoya verildi" demek için.
+  get isShipped(): boolean {
+    return this.previewEnvelope?.status === EnvelopeStatus.KargoyaVerildi;
+  }
+
+  // ---- Canlı etiket önizlemesi (form doldurulurken sağ panelde) ----
+  get liveReceiverName(): string {
+    return this.targetControl.value?.name ?? '';
+  }
+
+  // "Birim Adı" alanı hedef türüne göre adlandırılır: kurum içi birimde alt birim /
+  // dikkatine bilgisi (isteğe bağlı), misyon ve dış kurumda alıcı birim ya da kişi
+  // (giden evrak zimmet ekranındaki etiket bilgileriyle aynı ad).
+  get unitNameLabel(): string {
+    return this.targetKind() === 'department' ? 'Alt Birim / Dikkatine' : 'Alıcı Birim/Kişi';
+  }
+
+  get unitNamePlaceholder(): string {
+    return this.targetKind() === 'department'
+      ? 'Örn. Personel Şubesi (isteğe bağlı)'
+      : 'Örn. Konsolosluk Şubesi';
+  }
+
+  // Misyon / dış kurum seçilince kayıtlı adres forma otomatik yazılır; kullanıcı
+  // adresi elle değiştirmişse üzerine yazılmaz (yalnızca otomatik dolan değer değişir).
+  private lastAutoAddress: string | null = null;
+
+  private applyTargetAddress(target: { id: string; name: string } | null) {
+    const current = (this.model.address ?? '').trim();
+    const untouched = !current || current === this.lastAutoAddress;
+    if (!untouched) return;
+
+    let next = '';
+    if (target && this.targetKind() !== 'department') {
+      next = this.externalInstitutions.find(i => i.id === target.id)?.address?.trim() ?? '';
+    }
+    this.model.address = next;
+    this.lastAutoAddress = next || null;
+  }
+
+  get targetOptions(): { id: string; name: string }[] {
+    switch (this.targetKind()) {
+      case 'department':
+        return this.departments ?? Ticket.EMPTY_OPTIONS;
+      case 'mission':
+        return this.missionOptions;
+      default:
+        return this.institutionOptions;
+    }
+  }
+
+  get targetPlaceholder(): string {
+    switch (this.targetKind()) {
+      case 'department': return 'Birim seçiniz';
+      case 'mission': return 'Misyon seçiniz';
+      default: return 'Kurum seçiniz';
+    }
+  }
+
+  setTargetKind(kind: EnvelopeTargetKind) {
+    if (this.targetKind() === kind) return;
+    this.targetKind.set(kind);
+    this.targetControl.setValue(null);
+    this.cdr.markForCheck();
+  }
+
+  private subscribeTargetChanges() {
+    this.targetControl.valueChanges.subscribe(value => {
+      this.applyTargetAddress(value);
+      // Canlı etiket önizlemesi (OnPush) seçimi hemen yansıtsın.
+      this.cdr.markForCheck();
+    });
+  }
+
+  // Zarf özeti / etiket için gideceği yerin adı, türü ve ikonu.
+  targetNameOf(env: EnvelopeModel | null): string {
+    return envelopeTargetName(env, this.departments ?? [], this.externalInstitutions);
+  }
+
+  targetKindOf(env: EnvelopeModel | null): EnvelopeTargetKind {
+    const institutionType = env?.externalInstitutionId
+      ? this.externalInstitutions.find(i => i.id === env.externalInstitutionId)?.type ?? null
+      : null;
+    return envelopeTargetKind(env, institutionType);
+  }
+
+  get previewTargetKind(): EnvelopeTargetKind {
+    return this.targetKindOf(this.previewEnvelope);
+  }
 
   // Sol paneldeki zarf özetinde gösterilen durum rozeti (Zarflar listesiyle aynı stil).
   get envelopeStatusLabel(): string {
@@ -133,7 +260,7 @@ export default class Ticket implements OnInit {
     this.envelopeSaving.set(true);
     try {
       await firstValueFrom(
-        this.envelopeService.updateEnvelope({ ...envelope, unitName, address })
+        this.envelopeService.updateEnvelope({ id: envelope.id, unitName, address })
       );
 
       // Sağdaki etiket önizlemesi de previewEnvelope'tan beslendiği için
@@ -192,6 +319,12 @@ export default class Ticket implements OnInit {
       const envelopeId = this.selectedEnvelope?.id;
       if (!envelopeId) {
         this.#toast.showToast('Uyarı', 'Önce bir zarf oluşturun ya da seçin', 'warning');
+        return;
+      }
+
+      if (this.isDelivered) {
+        this.#toast.showToast('Uyarı', 'Teslim edilmiş zarfa evrak eklenemez', 'warning');
+        (event.target as HTMLInputElement).value = '';
         return;
       }
 
@@ -298,10 +431,16 @@ export default class Ticket implements OnInit {
     );
 
     const envelopeDoc: EnvelopeDocumentModel = createdDoc.data;
-    this.documents.push(envelopeDoc);
-    this.#toast.showToast('Başarılı', 'Evrak zarfa eklendi', 'success');
+    // Liste yeni referansla güncellenir ve spinner hemen kapanır; aksi halde
+    // OnPush görünüm, aşağıdaki zimmet aktarımı (ek iki istek) bitene kadar
+    // eski listeyi ve "yükleniyor" durumunu gösteriyordu.
+    // Evrak listede anında göründüğü için ayrıca başarı toast'ı gösterilmez.
+    this.documents = [...this.documents, { ...envelopeDoc, createdDate: envelopeDoc.createdDate ?? new Date().toISOString() }];
+    this.loading = false;
+    this.cdr.markForCheck();
+    this.focusQrInputSoon();
 
-    // Zarfa eklenen evrakın zimmeti, ekleyen kullanıcıya geçer.
+    // Zarfa eklenen evrakın zimmeti, ekleyen kullanıcıya geçer (arka planda).
     await this.allocateToCurrentUser(envelopeDoc, createdUserId, allocationStatus);
   }
 
@@ -629,7 +768,8 @@ export default class Ticket implements OnInit {
 
   // Model tipini EnvelopeModel olarak ayarladık
   model: Partial<EnvelopeModel> = {
-    externalInstitutionId: '',
+    externalInstitutionId: null,
+    targetDepartmentId: null,
     departmentId: undefined,
     createdByUserId: '',
     unitName: '',
@@ -639,6 +779,8 @@ export default class Ticket implements OnInit {
 
   ngOnInit(): void {
     this.loadExternalInstitutions();
+    this.loadDepartments();
+    this.subscribeTargetChanges();
 
     const envelopeId = this.envelopeService.currentEnvelopeId;
     if (envelopeId) {
@@ -694,10 +836,27 @@ export default class Ticket implements OnInit {
   private loadExternalInstitutions() {
     this.externalInstitutionService.getExternalInstitutions().subscribe({
       next: (res) => {
-        this.externalInstitutions = res;
+        this.externalInstitutions = res ?? [];
+        const active = this.externalInstitutions.filter(i => !i.isDeleted);
+        this.missionOptions = active.filter(i => i.type === ExternalInstitutionType.Misyon);
+        this.institutionOptions = active.filter(i => i.type === ExternalInstitutionType.Kurum);
+        this.cdr.markForCheck();
       },
       error: (err) => {
         console.error(err);
+      }
+    });
+  }
+
+  // Kurum içi birimler: "Gideceği Yer" seçeneği ve zarf özetindeki birim adı için.
+  private loadDepartments() {
+    this.departmentService.getDepartments().subscribe({
+      next: (res) => {
+        this.departments = res ?? [];
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        console.error('Birimler yüklenemedi:', err);
       }
     });
   }
@@ -712,24 +871,33 @@ export default class Ticket implements OnInit {
       return;
     }
 
-    const selectedInstitution = this.externalInstitutionControl.value;
-    if (selectedInstitution) {
-      this.model.externalInstitutionId = selectedInstitution.id;
+    const selectedTarget = this.targetControl.value;
+    if (!selectedTarget) {
+      this.#toast.showToast('Uyarı', `Gideceği yer için bir ${this.targetKind() === 'department' ? 'birim' : this.targetKind() === 'mission' ? 'misyon' : 'kurum'} seçiniz`, 'warning');
+      return;
     }
+
+    // Kurum içi birim -> targetDepartmentId; misyon / dış kurum -> externalInstitutionId.
+    const kind = this.targetKind();
+    this.model.targetDepartmentId = kind === 'department' ? selectedTarget.id : null;
+    this.model.externalInstitutionId = kind === 'department' ? null : selectedTarget.id;
     this.model.createdByUserId = userId;
+    // Gönderen birim (zarfı oluşturan kullanıcının birimi)
     this.model.departmentId = this.user()?.departmentId;
 
-    //console.log(this.model);
     this.envelopeService.createEnvelope(this.model as EnvelopeModel).subscribe({
       next: (res: EnvelopeModel) => {
         if (res) {
           // Kayıt sonrası sol panel, Zarflar listesinden "Detaya Git" ile
           // gelinmiş gibi zarf özeti (görüntüleme) moduna geçer. Create yanıtı
-          // kurum adını ve durumu join'lemeden dönebildiği için özet için
-          // formda seçilen kurum adı ve "Yeni Kayıt" durumu yerel olarak tamamlanır.
+          // hedef adını ve durumu join'lemeden dönebildiği için özet için
+          // formda seçilen ad ve "Yeni Kayıt" durumu yerel olarak tamamlanır.
           const created: EnvelopeModel = {
             ...res,
-            externalInstitutionName: res.externalInstitutionName || selectedInstitution?.name,
+            targetDepartmentId: res.targetDepartmentId ?? this.model.targetDepartmentId ?? null,
+            externalInstitutionId: res.externalInstitutionId ?? this.model.externalInstitutionId ?? null,
+            targetDepartmentName: res.targetDepartmentName || (kind === 'department' ? selectedTarget.name : undefined),
+            externalInstitutionName: res.externalInstitutionName || (kind !== 'department' ? selectedTarget.name : undefined),
             status: res.status ?? EnvelopeStatus.Yeni
           };
           this.previewEnvelope = created;
@@ -744,14 +912,16 @@ export default class Ticket implements OnInit {
             id: '',
             envelopeNo: '',
             createdByUserId: '',
-            externalInstitutionId: undefined,
+            externalInstitutionId: null,
+            targetDepartmentId: null,
             departmentId: undefined,
             unitName: '',
             address: ''
           };
 
           // Autocomplete kontrolünü temizle
-          this.externalInstitutionControl.setValue(null);
+          this.lastAutoAddress = null;
+          this.targetControl.setValue(null);
         }
       },
       error: (err) => {
@@ -782,7 +952,9 @@ export default class Ticket implements OnInit {
 
     this.previewData = {
       ...this.previewEnvelope,
-      departmentName: this.user()?.departmentName
+      departmentName: this.user()?.departmentName,
+      // Alıcı satırı: kurum içi birim, misyon ya da dış kurum adı
+      receiverName: this.targetNameOf(this.previewEnvelope)
     };
 
     this.previewOpen = true;
@@ -826,6 +998,10 @@ export default class Ticket implements OnInit {
 loadingRemove = false; // yeni değişken
 
 async removeDocument(id: string) {
+  if (this.isDelivered) {
+    this.#toast.showToast('Uyarı', 'Teslim edilmiş zarftan evrak çıkarılamaz', 'warning');
+    return;
+  }
   try {
     this.loadingRemove = true;
     this.cdr.markForCheck();

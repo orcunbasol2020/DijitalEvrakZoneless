@@ -106,13 +106,14 @@
                                 </div>
                             </div>
 
-                            <div class="gz-tile ot-span-2" *ngIf="receiverInstitutionName()">
+                            <!-- Evrak birden fazla alıcıya gidebilir; her alıcı ayrı satırda listelenir. -->
+                            <div class="gz-tile ot-span-2" *ngIf="recipientNames().length">
                                 <div class="gz-tile-icon tint-green">
                                     <span class="material-symbols-outlined">call_received</span>
                                 </div>
                                 <div class="gz-tile-body">
-                                    <div class="gz-tile-label">ALAN BİRİM</div>
-                                    <div class="gz-tile-value ot-clamp" [title]="receiverInstitutionName()!">{{ receiverInstitutionName() }}</div>
+                                    <div class="gz-tile-label">{{ recipientNames().length > 1 ? 'ALICILAR' : 'ALAN BİRİM' }}</div>
+                                    <div class="gz-tile-value ot-clamp" *ngFor="let name of recipientNames()" [title]="name">{{ name }}</div>
                                 </div>
                             </div>
                         </div>
@@ -179,7 +180,7 @@
                             <div class="gz-tile-body">
                                 <div class="gz-tile-label">{{ deliveredIsExternal() ? 'TESLİM ALAN' : 'ZİMMETLİ' }}</div>
                                 <div class="gz-tile-value">{{ deliveredPersonName() || '-' }}</div>
-                                <div class="gz-tile-meta" *ngIf="deliveredIsExternal() && receiverInstitutionName()">{{ receiverInstitutionName() }}</div>
+                                <div class="gz-tile-meta" *ngIf="deliveredIsExternal() && recipientNames().length">{{ recipientNames().join(', ') }}</div>
                             </div>
                         </div>
 

@@ -19,6 +19,8 @@ import { ExternalUserService, ExternalUserModel, initialExternalUser } from '../
 import { Common } from '../../../services/common';
 import { UserModel } from '../../users/users';
 import { SimpleAutocompleteComponent } from '../../simpleautocomplete/simpleautocomplete';
+import { OutgoingDocumentDistributionService } from '../../../services/outgoingdocumentdistribution';
+import { OutgoingDocumentDistributionModel, distributionRecipientName } from '../../../models/outgoingdocumentdistribution.model';
 
 // Zarf zimmet ekranıyla (gidenevrak/zimmet) aynı üç mod:
 // self: kendi üzerine alma, internal: iç kullanıcıya zimmet, external: dış kuruma teslim.
@@ -44,6 +46,7 @@ type PersonListItem = { id: string; name: string; surname: string; identityNo?: 
 export default class Outgoingzimmet implements OnInit {
   private outgoingDocumentService = inject(OutgoingDocumentService);
   private allocationService = inject(OutgoingDocumentAllocation);
+  private distributionService = inject(OutgoingDocumentDistributionService);
   private externalUserService = inject(ExternalUserService);
   private state = inject(ZimmetStateService);
   private toast = inject(FlexiToastService);
@@ -52,6 +55,8 @@ export default class Outgoingzimmet implements OnInit {
   readonly user = computed(() => this.#common.user());
 
   readonly document = signal<OutgoingDocumentModel | null>(null);
+  // Evrakın dağıtım listesi (alıcılar); GetById yanıtında gelmediğinden ayrıca çekilir.
+  readonly distributions = signal<OutgoingDocumentDistributionModel[]>([]);
   readonly loading = signal(false);
 
   readonly statusLabelMap: Record<number, string> = {
@@ -157,11 +162,32 @@ export default class Outgoingzimmet implements OnInit {
     return (this.departmentsResult.value() ?? []).find(d => d.id === departmentId)?.name ?? null;
   });
 
-  readonly receiverInstitutionName = computed(() => {
+  // Alıcılar: evrak birden fazla iç birime ve/veya dış kuruma gidebilir. Önce
+  // dağıtım listesi okunur; dağıtımı olmayan eski kayıtlarda evrak üzerindeki
+  // tek alıcı alanına (externalInstitutonId) düşülür.
+  readonly recipientNames = computed<string[]>(() => {
+    const dist = this.distributions();
+    if (dist.length) {
+      const deptMap: Record<string, string> = {};
+      for (const d of this.departmentsResult.value() ?? []) deptMap[d.id] = d.name;
+      const instMap: Record<string, string> = {};
+      for (const i of this.institutionList()) instMap[i.id] = i.name;
+      return dist.map(d => distributionRecipientName(d, deptMap, instMap));
+    }
     const institutionId = this.document()?.externalInstitutonId;
-    if (!institutionId) return null;
-    return this.institutionList().find(i => i.id === institutionId)?.name ?? null;
+    if (!institutionId) return [];
+    const name = this.institutionList().find(i => i.id === institutionId)?.name;
+    return name ? [name] : [];
   });
+
+  // "Dış Kurum" modunda otomatik seçilecek kurum: dağıtım listesindeki ilk dış
+  // kurum, yoksa eski tek alıcı alanı. Birden fazla dış kurum varsa kullanıcı
+  // autocomplete'ten diğerini seçebilir.
+  readonly primaryExternalInstitutionId = computed<string | null>(() =>
+    this.distributions().find(d => d.externalInstitutionId)?.externalInstitutionId
+    ?? this.document()?.externalInstitutonId
+    ?? null
+  );
 
   readonly externalUsersResult = httpResource<ExternalUserModel[]>(() => "api/ExternalUsers/GetAll");
   readonly externalPersonList = computed<PersonListItem[]>(() => {
@@ -281,11 +307,17 @@ export default class Outgoingzimmet implements OnInit {
     forkJoin({
       doc: this.outgoingDocumentService.getById(id),
       // Zimmet sorgusu hata verirse evrak yine açılır; zimmet yok kabul edilir.
-      allocation: this.allocationService.getActiveByDocumentId(id).pipe(catchError(() => of(null)))
+      allocation: this.allocationService.getActiveByDocumentId(id).pipe(catchError(() => of(null))),
+      // Alıcı listesi alınamazsa evrak yine açılır; eski tek alıcı alanına düşülür.
+      distributions: this.distributionService.getByOutgoingDocumentId(id).pipe(
+        catchError(() => of([] as OutgoingDocumentDistributionModel[]))
+      )
     }).subscribe({
-      next: ({ doc, allocation }) => {
+      next: ({ doc, allocation, distributions }) => {
         this.document.set(doc);
-        this.applyInitialMode(doc, allocation?.isActive ? allocation : null);
+        // Başlangıç modu alıcı kurumu okuduğundan dağıtım listesi önce yazılır.
+        this.distributions.set(distributions ?? []);
+        this.applyInitialMode(allocation?.isActive ? allocation : null);
         this.loading.set(false);
       },
       error: () => {
@@ -300,7 +332,7 @@ export default class Outgoingzimmet implements OnInit {
   // - İlk Kayıt: sıradaki adım evrakın teslim alınmasıdır, "Teslim Al" sekmesi açılır.
   // - Teslim Alındı: sıradaki adım dış kuruma teslimdir, "Teslim Et" sekmesi açılır.
   // - Devir / zimmet yok: evrakın alıcı kurumu varsa "Teslim Et", yoksa "Teslim Al".
-  private applyInitialMode(doc: OutgoingDocumentModel, allocation: OutgoingDocumentAllocationModel | null): void {
+  private applyInitialMode(allocation: OutgoingDocumentAllocationModel | null): void {
     // status tel üzerinde string gelebildiğinden sayıya çevrilerek karşılaştırılır.
     const status = allocation ? Number(allocation.status) : null;
 
@@ -312,7 +344,7 @@ export default class Outgoingzimmet implements OnInit {
     const initialMode: ZimmetMode =
       status === AllocationStatusEnum.IlkKayit ? 'self'
       : status === AllocationStatusEnum.TeslimAlindi ? 'external'
-      : doc.externalInstitutonId ? 'external'
+      : this.primaryExternalInstitutionId() ? 'external'
       : 'self';
 
     this.setMode(initialMode);
@@ -332,7 +364,7 @@ export default class Outgoingzimmet implements OnInit {
 
     // Evrakın alıcı kurumu belliyse "Dış Kurum" modunda kurum otomatik seçili gelir;
     // kullanıcı isterse autocomplete'ten başka bir kurum seçebilir.
-    const institutionId = this.document()?.externalInstitutonId;
+    const institutionId = this.primaryExternalInstitutionId();
     if (mode === 'external' && institutionId) {
       this.selectInstitution(institutionId);
     }

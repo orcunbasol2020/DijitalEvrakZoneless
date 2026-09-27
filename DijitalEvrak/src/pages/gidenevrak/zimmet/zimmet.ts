@@ -11,18 +11,25 @@ import { ChangeDetectorRef } from '@angular/core';
 import { Common } from '../../../services/common';
 import { firstValueFrom } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
-import { EnvelopeModel, EnvelopeStatus, EnvelopeStatusBadgeClass, EnvelopeStatusLabels, envelopeStatusForZimmetMode } from '../../../models/envelope.model';
+import { EnvelopeModel, EnvelopeStatus, EnvelopeStatusBadgeClass, EnvelopeStatusLabels, envelopeStatusForZimmetMode, envelopeTargetName } from '../../../models/envelope.model';
+import { Department, DepartmentModel } from '../../../services/department';
 import { ZimmetStateService } from '../../../services/zimmet-state-service';
 import { OutgoingDocumentService } from '../../../services/outgoingdocument';
 import { OutgoingDocumentAllocation } from '../../../services/outgoingdocumentallocation';
-import { AllocationStatusEnum } from '../../../models/allocationstatus.model';
+import { AllocationStatusEnum, AllocationStatusLabels } from '../../../models/allocationstatus.model';
+import { OutgoingDocumentAllocationModel } from '../../../models/outgoingdocumentallocation.model';
 import { ExternalInstitution, ExternalInstitutionModel } from '../../../services/external-institution';
 import { ExternalUserService, ExternalUserModel, initialExternalUser } from '../../../services/external-user';
 import { UserModel } from '../../users/users';
 import { SimpleAutocompleteComponent } from '../../simpleautocomplete/simpleautocomplete';
-import { QRCodeComponent } from 'angularx-qrcode';
+import { EnvelopeLabelComponent } from '../../envelope/envelope-label/envelope-label';
+import { OutgoingDocumentShipmentService } from '../../../services/outgoingdocumentshipment';
+import { OutgoingDocumentDistributionService } from '../../../services/outgoingdocumentdistribution';
+import { OutgoingDocumentDistributionModel } from '../../../models/outgoingdocumentdistribution.model';
+import { CargoCompanyEnum, CargoCompanyLabels, cargoCompanyOptions } from '../../../models/shipment.model';
 
-type ZimmetMode = 'self' | 'internal' | 'external';
+// self: Teslim Al, internal: Zimmetle, external: Teslim Et (elden), cargo: Kargoya Ver
+type ZimmetMode = 'self' | 'internal' | 'external' | 'cargo';
 type PersonListItem = { id: string; name: string; surname: string; identityNo?: string; email?: string };
 
 @Component({
@@ -32,7 +39,7 @@ type PersonListItem = { id: string; name: string; surname: string; identityNo?: 
     FormsModule,
     ReactiveFormsModule,
     SimpleAutocompleteComponent,
-    QRCodeComponent
+    EnvelopeLabelComponent
   ],
   templateUrl: './zimmet.html',
   styleUrls: ['./zimmet.css'],
@@ -54,6 +61,9 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
   private envelopeService = inject(EnvelopeService);
   private externalUserService = inject(ExternalUserService);
   private externalInstitutionService = inject(ExternalInstitution);
+  private departmentService = inject(Department);
+  private shipmentService = inject(OutgoingDocumentShipmentService);
+  private distributionService = inject(OutgoingDocumentDistributionService);
   private zimmetState = inject(ZimmetStateService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
@@ -62,17 +72,33 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
   readonly #common = inject(Common);
   readonly user = computed(() => this.#common.user());
 
+  // Kurum içi birime giden zarfların hedef adı için (GetByNo birim adını join'lemeyebilir).
+  private departments: DepartmentModel[] = [];
+
+  // Okutulan zarfın gideceği yer: kurum içi birim, yabancı misyon ya da dış kurum adı.
+  get envelopeTargetName(): string {
+    return envelopeTargetName(this.previewEnvelope, this.departments);
+  }
+
   ngOnInit(): void {
     this.keydownHandler = (e: KeyboardEvent) => {
       this.handleKeydown(e);
     };
     window.addEventListener('keydown', this.keydownHandler);
+
+    this.departmentService.getDepartments().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (res) => {
+        this.departments = res ?? [];
+        this.cdr.markForCheck();
+      },
+      error: (err) => console.error('Birimler yüklenemedi:', err)
+    });
   }
   ngAfterViewInit(): void {
     this.focusQrInputSoon();
 
     // Zarflar listesinden "Teslim Al / Teslim Et" ile gelindiğinde etiket numarası
-    // ?envelopeNo= ile, istenen sekme ?mode= (self | internal | external) ile
+    // ?envelopeNo= ile, istenen sekme ?mode= (self | internal | external | cargo) ile
     // taşınır; sekme seçilip zarf elle okutulmuş gibi otomatik aranır. Sekme,
     // zarf okutulmadan önce seçilir ki "Teslim Et" modunda zarfın alıcı kurumu
     // otomatik gelsin. Paramlar ardından URL'den silinir; böylece zimmetleme
@@ -91,7 +117,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
         });
 
         const mode = params.get('mode');
-        if (mode === 'self' || mode === 'internal' || mode === 'external') {
+        if (mode === 'self' || mode === 'internal' || mode === 'external' || mode === 'cargo') {
           this.setMode(mode);
         }
         this.onQrScanned(envelopeNo);
@@ -206,9 +232,97 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  // ---- Sağ panel başlığı: aktif zimmet çipi (gelen evrak zimmet ekranıyla aynı) ----
+  readonly allocationStatusLabels: Record<number, string> = AllocationStatusLabels;
+
+  // qrCode -> evrakın aktif zimmeti (null: zimmet yok). Henüz yüklenmemiş evrak
+  // haritada yer almaz. documents dizisi signal olmadığından evrak sayısı ayrıca
+  // tutulur; ikisi birlikte çipin ne göstereceğini belirler.
+  readonly activeAllocations = signal<Record<string, OutgoingDocumentAllocationModel | null>>({});
+  readonly documentCount = signal(0);
+
+  // Zarftaki evraklar çoğunlukla aynı kişide olur; hepsi tek kişideyse o kişi,
+  // farklı kişilerdeyse kaç kişide olduğu, hiçbirinde zimmet yoksa "Zimmet yok" gösterilir.
+  readonly ownerSummary = computed<
+    | { kind: 'loading' }
+    | { kind: 'none' }
+    | { kind: 'single'; allocation: OutgoingDocumentAllocationModel; count: number }
+    | { kind: 'mixed'; count: number; holders: number }
+    | null
+  >(() => {
+    const count = this.documentCount();
+    if (count === 0) return null;
+
+    const loaded = Object.values(this.activeAllocations());
+    if (loaded.length < count) return { kind: 'loading' };
+
+    const active = loaded.filter((a): a is OutgoingDocumentAllocationModel => !!a);
+    if (active.length === 0) return { kind: 'none' };
+
+    const holders = new Set(active.map(a => a.userId?.toLowerCase()));
+    if (holders.size === 1 && active.length === loaded.length) {
+      return { kind: 'single', allocation: active[0], count };
+    }
+    return { kind: 'mixed', count, holders: holders.size };
+  });
+
+  // Listedeki tüm evraklar zaten oturum açan kullanıcının üzerindeyse "Teslim Al" anlamsızdır.
+  readonly isActiveOnCurrentUser = computed(() => {
+    const summary = this.ownerSummary();
+    const me = this.user()?.id?.toLowerCase();
+    return !!me && summary?.kind === 'single' && summary.allocation.userId?.toLowerCase() === me;
+  });
+
+  // documents değiştikten sonra çağrılır: sayıyı günceller, haritada olmayan evrakların
+  // aktif zimmetini yükler ve listeden çıkanları haritadan düşer.
+  private syncActiveAllocations(): void {
+    const codes = new Set(this.documents.map(d => d.qrCode as string));
+    this.documentCount.set(codes.size);
+
+    this.activeAllocations.update(map => {
+      const next: Record<string, OutgoingDocumentAllocationModel | null> = {};
+      for (const [code, value] of Object.entries(map)) {
+        if (codes.has(code)) next[code] = value;
+      }
+      return next;
+    });
+
+    for (const doc of this.documents) {
+      if (doc.qrCode in this.activeAllocations()) continue;
+      this.loadActiveAllocation(doc);
+    }
+  }
+
+  private async loadActiveAllocation(doc: { documentId?: string; qrCode: string }): Promise<void> {
+    let allocation: OutgoingDocumentAllocationModel | null = null;
+    try {
+      const outgoingDocumentId = await this.resolveOutgoingDocumentId(doc);
+      if (outgoingDocumentId) {
+        const res = await firstValueFrom(this.allocationService.getActiveByDocumentId(outgoingDocumentId)).catch(() => null);
+        allocation = res?.isActive && !res.isDeleted ? res : null;
+      }
+    } catch (err) {
+      console.error(`Aktif zimmet alınamadı (${doc.qrCode}):`, err);
+    }
+
+    // Bu arada evrak listeden çıkarılmış olabilir.
+    if (!this.documents.some(d => d.qrCode === doc.qrCode)) return;
+    this.activeAllocations.update(map => ({ ...map, [doc.qrCode]: allocation }));
+    this.cdr.markForCheck();
+  }
+
+  initialsOf(fullName: string | null | undefined): string {
+    const parts = (fullName ?? '').replace(/\(.*?\)/g, '').trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return '?';
+    const first = parts[0].charAt(0);
+    const last = parts.length > 1 ? parts[parts.length - 1].charAt(0) : '';
+    return `${first}${last}`.toLocaleUpperCase('tr');
+  }
+
   // Yalnızca tek tek okutulan evraklar listeden çıkarılabilir (zarf içeriği bütün olarak işlenir).
   removeDocument(qrCode: string) {
     this.documents = this.documents.filter(d => d.qrCode !== qrCode);
+    this.syncActiveAllocations();
     if (this.documents.length === 0) {
       this.currentItem = null;
       this.alertVisible = true;
@@ -312,8 +426,32 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     return id ? this.institutionList().find(x => x.id === id)?.name ?? null : null;
   });
 
+  // ---- Kargoya Ver paneli ----
+  // Zarf ya elden teslim edilir ya kargolanır; bu yüzden kargo işlemi listedeki
+  // tüm evrakları tek paket olarak kapsar. Alıcı kurum ekranda seçilmez: zarfın
+  // alıcısı (applyEnvelopeInstitution) kullanılır; zarf yoksa backend kurumu
+  // dağıtım satırlarından alır.
+  readonly cargoCompanyOptions = cargoCompanyOptions;
+  readonly cargoCompany = signal<CargoCompanyEnum>(CargoCompanyEnum.Ptt);
+  readonly trackingNumber = signal('');
+
+  readonly cargoReady = computed(() => this.trackingNumber().trim().length > 0);
+
+  // Gönder butonunun aktifliği: kargo modunda takip numarası, diğer modlarda kişi seçimi gerekir.
+  readonly canSubmit = computed(() =>
+    this.mode() === 'cargo' ? this.cargoReady() : !!this.selectedPersonId()
+  );
+
   // Alt özet şeridinde "3 evrak → Ad Soyad" biçiminde gösterilecek hedef.
+  // Kargo modunda "PTT · 1234567890" ya da kurum seçiliyse "Kurum Adı · PTT · 1234567890".
   readonly selectedTargetLabel = computed<string | null>(() => {
+    if (this.mode() === 'cargo') {
+      const tracking = this.trackingNumber().trim();
+      if (!tracking) return null;
+      const parts = [this.selectedInstitutionName(), CargoCompanyLabels[this.cargoCompany()], tracking];
+      return parts.filter(Boolean).join(' · ');
+    }
+
     const id = this.selectedPersonId();
     if (!id) return null;
 
@@ -377,6 +515,14 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
         this.selectedPersonId.set(value?.id ?? null);
       }
     });
+
+    // Evraklar zaten kullanıcının üzerindeyse "Teslim Al" seçilemez; bir sonraki
+    // doğal adıma (kurum içi birim: Zimmetle, dış kurum: Teslim Et) geçilir.
+    effect(() => {
+      if (this.isActiveOnCurrentUser() && this.mode() === 'self') {
+        this.setMode(this.previewEnvelope?.targetDepartmentId ? 'internal' : 'external');
+      }
+    });
   }
 
   setMode(mode: ZimmetMode): void {
@@ -387,16 +533,16 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     this.personSearch.set('');
     this.internalUserControl.setValue(null, { emitEvent: false });
 
-    if (mode === 'external') {
+    if (mode === 'external' || mode === 'cargo') {
       this.applyEnvelopeInstitution();
     }
   }
 
-  // Zarfın alıcı kurumu belliyse "Dış Kurum" modunda kurum otomatik seçili gelir;
-  // kullanıcı isterse autocomplete'ten başka bir kurum seçebilir.
+  // Zarfın alıcı kurumu belliyse "Teslim Et" ve "Kargoya Ver" modlarında kurum
+  // otomatik seçili gelir; kullanıcı isterse autocomplete'ten başka bir kurum seçebilir.
   private applyEnvelopeInstitution(): void {
     const institutionId = this.previewEnvelope?.externalInstitutionId;
-    if (!institutionId || this.mode() !== 'external') return;
+    if (!institutionId || (this.mode() !== 'external' && this.mode() !== 'cargo')) return;
     if (this.selectedInstitutionId() === institutionId) return;
 
     this.selectInstitution(institutionId);
@@ -523,14 +669,26 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
           return;
         }
 
+        // Kargoya verilmiş zarf birimden çıkmıştır; üzerinde işlem yapılamaz.
+        // Teslim Bilgisi ekranı bilgiyi aktif zimmetten okuduğundan oraya gidilmez
+        // (kargoda zimmet kapanır).
+        if (envelope.status === EnvelopeStatus.KargoyaVerildi) {
+          this.documents = [];
+          this.previewEnvelope = null;
+          this.currentItem = null;
+          this.showToast('Bilgi', 'Bu zarf kargoya verilmiş, üzerinde işlem yapılamaz.', 'warning');
+          return;
+        }
+
         this.previewEnvelope = envelope;
 
         // Zarf daha önce "Teslim Al" ile alınmışsa (Evrak Birimde) bir sonraki
-        // doğal adım dış kuruma teslimdir; varsayılan Teslim Al sekmesi yerine
-        // Teslim Et otomatik seçilir. Kullanıcı okutmadan önce başka bir sekmeyi
-        // bilerek seçmişse (ya da ?mode= ile gelmişse) o seçim korunur.
+        // doğal adım teslimdir: dış kuruma / misyona giden zarfta Teslim Et,
+        // kurum içi birime giden zarfta Zimmetle sekmesi otomatik seçilir.
+        // Kullanıcı okutmadan önce başka bir sekmeyi bilerek seçmişse (ya da
+        // ?mode= ile gelmişse) o seçim korunur.
         if (envelope.status === EnvelopeStatus.EvrakBirimde && this.mode() === 'self') {
-          this.setMode('external');
+          this.setMode(envelope.targetDepartmentId ? 'internal' : 'external');
         }
 
         this.applyEnvelopeInstitution();
@@ -559,6 +717,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
           this.documents = [];
           this.showToast('Bilgi', 'Zarf içinde evrak yok.', 'warning');
         }
+        this.syncActiveAllocations();
 
         return;
       }
@@ -594,6 +753,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
             createdDate: new Date()
           }
         ];
+        this.syncActiveAllocations();
 
         this.alertVisible = false;
       }
@@ -625,6 +785,8 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
 
   reset() {
     this.documents = [];
+    this.activeAllocations.set({});
+    this.documentCount.set(0);
     this.buffer = '';
     this.loading = false;
     this.alertVisible = true;
@@ -639,15 +801,23 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     this.selectedInstitutionId.set(null);
     this.personSearch.set('');
     this.internalUserControl.setValue(null, { emitEvent: false });
+    this.cargoCompany.set(CargoCompanyEnum.Ptt);
+    this.trackingNumber.set('');
     this.focusQrInputSoon();
   }
 
   // Zimmetleme: her evrak için önce üzerindeki aktif zimmet kayıtları pasife
   // (isActive=false) çekilir, ardından seçilen kişi adına yeni zimmet kaydı
   // oluşturulur. Böylece evrak yeni kişiye geçerken eski kayıtlar geçmiş
-  // olarak izlenebilir kalır.
+  // olarak izlenebilir kalır. Kargo modunda ise zimmet frontend'de yazılmaz;
+  // bkz. shipCargo (backend Create zimmeti kendisi kapatır).
   async addZimmet() {
     if (this.saving()) return;
+
+    if (this.mode() === 'cargo') {
+      await this.shipCargo();
+      return;
+    }
 
     const personId = this.selectedPersonId();
     if (!personId) {
@@ -786,6 +956,160 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
           message: `${docs} ${targetName ? `${targetName} adlı kullanıcıya` : 'seçilen kullanıcıya'} zimmetlendi.${envelopeSuffix(EnvelopeStatusLabels[EnvelopeStatus.ZimmetDevri])}`
         };
     }
+  }
+
+  // ---- Kargoya Ver ----
+  // Listedeki evraklar tek paket olarak OutgoingDocumentShipments/Create'e gider.
+  // Backend paketi oluşturur, dağıtım satırlarını bağlar (DeliveryMethod = Kargo),
+  // aktif zimmetleri "Kargoya Verildi" ile kapatır ve "Gönderildi" işlemi yazar.
+  // Zarf okutulduysa envelopeId de gönderilir; zarfın durumu backend'de aynı
+  // işlemle "Kargoya Verildi" olur (frontend ayrıca UpdateStatus çağırmaz).
+  // Backend ya hepsini kaydeder ya hiçbirini; bu yüzden hazırlık aşamasında
+  // (dağıtım satırı bulma, zimmet ön kontrolü) tek evrak bile takılırsa istek
+  // gönderilmez ve kullanıcıya hangi evrakların neden takıldığı söylenir.
+  private async shipCargo() {
+    const trackingNumber = this.trackingNumber().trim();
+    if (!trackingNumber) {
+      this.#toast.showToast('Uyarı', 'Kargo takip numarası girilmedi', 'warning');
+      return;
+    }
+
+    if (this.documents.length === 0) {
+      this.#toast.showToast('Hata', 'Kargoya verilecek evrak yok', 'error');
+      return;
+    }
+
+    const sentUserId = this.user()?.id;
+    if (!sentUserId) {
+      this.#toast.showToast('Hata', 'Kullanıcı bilgisi alınamadı', 'error');
+      return;
+    }
+
+    const envelopeId = this.currentItem?.type === 'envelope' ? this.previewEnvelope?.id ?? null : null;
+    const envelopeNo = envelopeId ? this.previewEnvelope?.envelopeNo ?? null : null;
+    const institutionId = this.selectedInstitutionId();
+    const institutionName = this.selectedInstitutionName();
+    const companyLabel = CargoCompanyLabels[this.cargoCompany()];
+
+    this.saving.set(true);
+    this.cdr.markForCheck();
+
+    const distributionIds: string[] = [];
+    const problems: string[] = [];
+
+    for (const doc of this.documents) {
+      try {
+        const outgoingDocumentId = await this.resolveOutgoingDocumentId(doc);
+        if (!outgoingDocumentId) {
+          problems.push(`${doc.qrCode}: evrak bulunamadı`);
+          continue;
+        }
+
+        // Backend ile aynı kural: aktif zimmet kargoya veren kullanıcıda olmalı.
+        // Hata mesajını topluca ve evrak numarasıyla verebilmek için burada da bakılır.
+        const active = await firstValueFrom(this.allocationService.getActiveByDocumentId(outgoingDocumentId)).catch(() => null);
+        if (active?.isActive && active.userId && active.userId.toLowerCase() !== sentUserId.toLowerCase()) {
+          problems.push(`${doc.qrCode}: zimmeti sizde değil, önce Teslim Al yapın`);
+          continue;
+        }
+
+        const ids = await this.resolveDistributionIds(outgoingDocumentId, institutionId);
+        if (ids.length === 0) {
+          // Yalnızca zarfsız okutulan, alıcısı hiç tanımlanmamış evrakta olur.
+          problems.push(`${doc.qrCode} için alıcı kurum tanımlı değil`);
+        } else {
+          distributionIds.push(...ids);
+        }
+      } catch (err) {
+        console.error(`Kargo hazırlığı başarısız (${doc.qrCode}):`, err);
+        problems.push(`${doc.qrCode}: bilgiler alınamadı`);
+      }
+    }
+
+    if (problems.length > 0) {
+      this.saving.set(false);
+      this.cdr.markForCheck();
+      this.#toast.showToast('Uyarı', `Kargo kaydı oluşturulmadı. ${problems.join('; ')}.`, 'warning');
+      return;
+    }
+
+    try {
+      const shipment = await firstValueFrom(this.shipmentService.create({
+        distributionIds,
+        cargoCompany: this.cargoCompany(),
+        trackingNumber,
+        sentUserId,
+        sentDate: null,
+        externalInstitutionId: institutionId,
+        // Zarfın durumu backend'de aynı işlemle "Kargoya Verildi" olur.
+        envelopeId
+      }));
+
+      const count = shipment?.items?.length ?? distributionIds.length;
+      const docs = count === 1 ? '1 evrak' : `${count} evrak`;
+      const receiver = shipment?.externalInstitutionName || institutionName;
+      const envelopeSuffix = envelopeNo
+        ? ` ${envelopeNo} numaralı zarf "${EnvelopeStatusLabels[EnvelopeStatus.KargoyaVerildi]}" durumuna geçti.`
+        : '';
+      this.#toast.showToast(
+        'Kargoya Verildi',
+        `${docs} ${receiver ? `${receiver} adresine ` : ''}${companyLabel} ile kargoya verildi (takip no ${trackingNumber}).${envelopeSuffix}`,
+        'success'
+      );
+
+      this.reset();
+    } catch (err: any) {
+      console.error('Kargo kaydı oluşturulamadı:', err);
+      const message = err?.error?.message || err?.error?.Message || 'Kargo kaydı oluşturulamadı';
+      this.#toast.showToast('Hata', message, 'error');
+    } finally {
+      this.saving.set(false);
+      this.cdr.detectChanges();
+    }
+  }
+
+  // Evrağın kargo paketine girecek dağıtım satırları. Backend kargoyu dağıtım
+  // satırına bağladığı için en az bir satır gerekir; kullanıcı bu yüzden
+  // durdurulmaz, satır bulunur ya da oluşturulur:
+  //   - Hedef belliyse (zarfın alıcı kurumu ya da kurum içi birimi): o hedefe
+  //     giden henüz kargolanmamış satır kullanılır, yoksa hedef için yeni satır
+  //     oluşturulur. Zarf nereye gidiyorsa evrak da oraya gider.
+  //   - Hedef yoksa (zarfsız okutulan evrak): evrağın kargolanmamış tüm satırları
+  //     aynı pakete girer; hiç satır yoksa evrağın eski tek alıcı alanındaki
+  //     kurum (externalInstitutonId) için satır oluşturulur.
+  // Boş dizi yalnızca evrağın hiçbir alıcı bilgisi yoksa döner.
+  private async resolveDistributionIds(
+    outgoingDocumentId: string,
+    institutionId: string | null
+  ): Promise<string[]> {
+    const rows: OutgoingDocumentDistributionModel[] =
+      ((await firstValueFrom(this.distributionService.getByOutgoingDocumentId(outgoingDocumentId))) ?? [])
+        .filter(r => !(r as { isDeleted?: boolean }).isDeleted);
+    const open = rows.filter(r => !r.shipmentId);
+
+    const sameId = (a?: string | null, b?: string | null) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
+    const createRow = async (departmentId: string | null, externalInstitutionId: string | null) => {
+      const created = await firstValueFrom(this.distributionService.create(outgoingDocumentId, [{
+        departmentId,
+        externalInstitutionId,
+        actionRequired: null
+      }]));
+      return created?.[0]?.id ? [created[0].id] : [];
+    };
+
+    const targetDepartmentId = institutionId ? null : this.previewEnvelope?.targetDepartmentId ?? null;
+    if (institutionId || targetDepartmentId) {
+      const match = open.find(r => institutionId
+        ? sameId(r.externalInstitutionId, institutionId)
+        : sameId(r.departmentId, targetDepartmentId));
+      return match ? [match.id] : createRow(targetDepartmentId, institutionId);
+    }
+
+    if (open.length > 0) return open.map(r => r.id);
+
+    const legacyInstitutionId = (await firstValueFrom(this.outgoingDocumentService.getById(outgoingDocumentId)).catch(() => null))
+      ?.externalInstitutonId ?? null;
+    return legacyInstitutionId ? createRow(null, legacyInstitutionId) : [];
   }
 
   // Zarf içeriği EnvelopeDocuments kaydı olarak gelir ve evrakın gerçek id'sini

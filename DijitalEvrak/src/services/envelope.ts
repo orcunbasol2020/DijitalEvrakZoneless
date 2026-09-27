@@ -70,12 +70,22 @@ async getEnvelopeByNo(envelopeNo: string): Promise<EnvelopeModel | null> {
     );
   }
 
-  // UPDATE: zarfın birim adı / adres gibi etiket bilgilerini günceller.
-  // Yalnızca "Yeni Kayıt" durumundaki zarflar için kullanılır (ticket ekranı).
-  updateEnvelope(model: Partial<EnvelopeModel>) {
-    return this.httpService.post<void>(
+  // UPDATE: zarf etiketindeki alıcı (unitName), adres ve alıcı kurumu günceller
+  // (POST api/Envelopes/Update). Null gelen alan değişmez, boş metin gelirse alan
+  // temizlenir. externalInstitutionId verilirse zarfın hedefi o kurum olur ve
+  // kurum içi hedef (targetDepartmentId) backend'de temizlenir.
+  // Ticket ekranı ve Kargoya Ver sekmesi kullanır.
+  updateEnvelope(
+    model: Pick<EnvelopeModel, 'id'> & Partial<Pick<EnvelopeModel, 'unitName' | 'address' | 'externalInstitutionId'>>
+  ) {
+    return this.httpService.post<{ message: string }>(
       `${this.baseUrl}Update`,
-      model
+      {
+        id: model.id,
+        unitName: model.unitName ?? null,
+        address: model.address ?? null,
+        externalInstitutionId: model.externalInstitutionId ?? null
+      }
     );
   }
 

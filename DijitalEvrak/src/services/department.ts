@@ -4,6 +4,8 @@ import { HttpService } from './http';
 export interface DepartmentModel {
   id: string;
   name: string;
+  // Kısa ad (ör. liste sütunlarında yer kazanmak için); eski kayıtlarda boş olabilir.
+  shortName?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })

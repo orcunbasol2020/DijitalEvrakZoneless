@@ -343,7 +343,8 @@ export default class Scanlist {
     [AllocationStatusEnum.Devir]: 'swap_horiz',
     [AllocationStatusEnum.Teslim]: 'handshake',
     [AllocationStatusEnum.Arsiv]: 'inventory_2',
-    [AllocationStatusEnum.TeslimAlindi]: 'move_to_inbox'
+    [AllocationStatusEnum.TeslimAlindi]: 'move_to_inbox',
+    [AllocationStatusEnum.KargoyaVerildi]: 'local_shipping'
   };
 
   readonly allocationStatusClass: Record<number, string> = {
@@ -351,7 +352,8 @@ export default class Scanlist {
     [AllocationStatusEnum.Devir]: 'is-devir',
     [AllocationStatusEnum.Teslim]: 'is-teslim',
     [AllocationStatusEnum.Arsiv]: 'is-arsiv',
-    [AllocationStatusEnum.TeslimAlindi]: 'is-teslimalindi'
+    [AllocationStatusEnum.TeslimAlindi]: 'is-teslimalindi',
+    [AllocationStatusEnum.KargoyaVerildi]: 'is-kargo'
   };
 
   initials(fullName?: string | null): string {

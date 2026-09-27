@@ -267,26 +267,50 @@
     flex: 0 0 auto;
 }
 
-/* ---- Okutulan zarf özeti ---- */
+/* ---- Okutulan zarf özeti ----
+   Evrak Kayıt'taki evrak numarası kutusuyla (.ek-lookup) aynı zemin:
+   koyu lacivert-petrol gradient, cam efektli ikon, beyaz numara. */
 .zm-envelope {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 12px;
     padding: 12px 14px;
-    border-radius: 12px;
-    background: #f8fafc;
-    border: 1px solid #e7eaf0;
+    border-radius: 14px;
+    color: #fff;
+    background: linear-gradient(120deg, #1c2b4a 0%, #115b87 55%, #0b7fc4 100%);
+    border: 1px solid rgba(125, 211, 252, 0.35);
+    box-shadow: 0 10px 24px rgba(3, 105, 161, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    overflow: hidden;
+    isolation: isolate;
+}
+
+/* Sağ üstte yumuşak ışık halesi */
+.zm-envelope::before {
+    content: "";
+    position: absolute;
+    width: 200px;
+    height: 200px;
+    right: -60px;
+    top: -110px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.45) 0%, rgba(56, 189, 248, 0) 70%);
+    pointer-events: none;
+    z-index: -1;
 }
 
 .zm-envelope-icon {
     width: 38px;
     height: 38px;
-    border-radius: 10px;
+    border-radius: 11px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: #e0f2fe;
-    color: #0369a1;
+    color: #7dd3fc;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(6px);
     flex: 0 0 auto;
 }
 
@@ -300,16 +324,21 @@
 }
 
 .zm-envelope-no {
-    font-size: 14.5px;
-    font-weight: 700;
-    color: #1e293b;
+    font-size: 16px;
+    font-weight: 800;
+    color: #fff;
     font-variant-numeric: tabular-nums;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.06em;
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 2px 10px rgba(2, 132, 199, 0.45);
 }
 
 .zm-envelope-meta {
     font-size: 12px;
-    color: #64748b;
+    color: rgba(224, 242, 254, 0.85);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -317,7 +346,23 @@
 
 .zm-envelope-sep {
     margin: 0 5px;
-    color: #cbd5e1;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+/* Koyu zemin üzerinde durum rozeti ince açık kenarlıkla ayrılsın */
+.zm-envelope .envelope-status-pill {
+    border-color: rgba(255, 255, 255, 0.35);
+    box-shadow: none;
+}
+
+/* Etiket görüntüleme butonu koyu zeminde açık renk */
+.zm-envelope .zm-icon-btn {
+    color: rgba(224, 242, 254, 0.8);
+}
+
+.zm-envelope .zm-icon-btn:hover {
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
 }
 
 /* ---- Boş durumlar ---- */
@@ -389,6 +434,8 @@
     justify-content: space-between;
     gap: 10px;
     flex-wrap: wrap;
+    /* Zarf özeti bloğu ile liste başlığı arasında biraz daha nefes */
+    margin-top: 10px;
 }
 
 .zm-list-title {
@@ -654,7 +701,7 @@
 /* ---- Teslim türü: segment seçici ---- */
 .zm-modes {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 4px;
     padding: 4px;
     border-radius: 14px;
@@ -726,6 +773,47 @@
 .zm-field-hint {
     font-size: 11.5px;
     color: #94a3b8;
+}
+
+/* ---- Kargoya Ver formu ---- */
+.zm-cargo-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.zm-cargo-full {
+    grid-column: 1 / -1;
+}
+
+.zm-cargo-grid .form-control,
+.zm-cargo-grid .form-select {
+    border-radius: 10px;
+    font-size: 13px;
+}
+
+.zm-cargo-grid textarea.form-control {
+    resize: vertical;
+    min-height: 58px;
+}
+
+.zm-cargo-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    line-height: 1.45;
+    color: #0369a1;
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+}
+
+.zm-cargo-note .material-symbols-outlined {
+    font-size: 18px;
+    flex: 0 0 auto;
+    margin-top: 1px;
 }
 
 /* ---- Personel listesi ---- */
@@ -1017,8 +1105,13 @@
     transform: scale(1.15);
 }
 
-/* Teslim Et: kargo aracı sağa doğru yola çıkar */
+/* Teslim Et: el sıkışma ikonu hafifçe büyür */
 .zimmet-submit-btn[data-mode="external"]:hover .zimmet-submit-icon {
+    transform: scale(1.15);
+}
+
+/* Kargoya Ver: kargo aracı sağa doğru yola çıkar */
+.zimmet-submit-btn[data-mode="cargo"]:hover .zimmet-submit-icon {
     transform: translateX(4px);
 }
 
@@ -1086,6 +1179,10 @@
     .zm-mode-sub {
         display: none;
     }
+
+    .zm-cargo-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* ============================================================
@@ -1136,7 +1233,13 @@
     color: #7dd3fc;
 }
 
-[data-theme="dark"] .zm-envelope,
+/* Zarf özeti: Evrak Kayıt numara kutusunun koyu tema gradienti */
+[data-theme="dark"] .zm-envelope {
+    background: linear-gradient(120deg, #0b1220 0%, #0c3a57 55%, #075985 100%);
+    border-color: rgba(125, 211, 252, 0.28);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
 [data-theme="dark"] .zm-doc,
 [data-theme="dark"] .zm-person {
     background: rgba(148, 163, 184, 0.06);
@@ -1154,7 +1257,6 @@
     border-color: rgba(14, 165, 233, 0.45);
 }
 
-[data-theme="dark"] .zm-envelope-icon,
 [data-theme="dark"] .zm-empty-icon,
 [data-theme="dark"] .zm-step-no,
 [data-theme="dark"] .zm-avatar {
@@ -1168,7 +1270,6 @@
     color: #cbd5e1;
 }
 
-[data-theme="dark"] .zm-envelope-no,
 [data-theme="dark"] .zm-doc-no,
 [data-theme="dark"] .zm-person-name,
 [data-theme="dark"] .zm-empty-title,
@@ -1176,7 +1277,6 @@
     color: #e2e8f0;
 }
 
-[data-theme="dark"] .zm-envelope-meta,
 [data-theme="dark"] .zm-field-hint,
 [data-theme="dark"] .zm-empty-text,
 [data-theme="dark"] .zm-step-text,
@@ -1250,6 +1350,12 @@
     color: #7dd3fc;
 }
 
+[data-theme="dark"] .zm-cargo-note {
+    color: #7dd3fc;
+    background: rgba(14, 165, 233, 0.12);
+    border-color: rgba(14, 165, 233, 0.35);
+}
+
 [data-theme="dark"] .zm-label-modal,
 [data-theme="dark"] .zm-quick-modal {
     background: #1a2030;
@@ -1257,4 +1363,366 @@
 
 [data-theme="dark"] .zm-label-body {
     background: linear-gradient(160deg, #111827 0%, #1e293b 100%);
+}
+
+/* ============================================================
+   Sağ panel başlığı: aktif zimmet sahibi çipi (iz-owner)
+   Gelen ve giden evrak zimmet ekranlarında ortak kullanılır.
+   ============================================================ */
+/* ---- Sağ panel başlığı: aktif zimmet sahibi çipi ----
+   Avatar tonu durumu anlatır: turkuaz = başka personelde,
+   yeşil = oturum açan kullanıcıda, gri = zimmet yok. */
+.iz-owner {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    max-width: 70%;
+    padding: 4px 20px 4px 6px;
+    border-radius: 999px;
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    outline: none;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.iz-owner:not(.is-empty) {
+    cursor: default;
+}
+
+.iz-owner:not(.is-empty):hover,
+.iz-owner:not(.is-empty):focus-visible {
+    border-color: #7dd3fc;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+}
+
+.iz-owner.is-me:hover,
+.iz-owner.is-me:focus-visible {
+    border-color: #86efac;
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12);
+}
+
+.iz-owner-avatar.zm-avatar {
+    width: 30px;
+    height: 30px;
+    font-size: 11px;
+    color: #fff;
+    background: linear-gradient(135deg, #0284c7, #22d3ee);
+}
+
+/* Üzerine gelince açılan durum + tarih kutusu */
+.iz-owner-tip {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 20;
+    min-width: 210px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    opacity: 0;
+    transform: translateY(-4px);
+    pointer-events: none;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.iz-owner-tip::before {
+    content: "";
+    position: absolute;
+    top: -5px;
+    right: 18px;
+    width: 9px;
+    height: 9px;
+    background: #fff;
+    border-left: 1px solid #e2e8f0;
+    border-top: 1px solid #e2e8f0;
+    transform: rotate(45deg);
+}
+
+.iz-owner:hover .iz-owner-tip,
+.iz-owner:focus-visible .iz-owner-tip {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.iz-owner-tip-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.iz-owner-tip-row .material-symbols-outlined {
+    font-size: 16px;
+    color: #0ea5e9;
+}
+
+.iz-owner.is-me .iz-owner-tip-row .material-symbols-outlined {
+    color: #22c55e;
+}
+
+.iz-owner-tip-key {
+    color: #94a3b8;
+    font-weight: 600;
+    min-width: 40px;
+}
+
+.iz-owner-tip-val {
+    color: #1e293b;
+    font-weight: 600;
+}
+
+.iz-owner-avatar .material-symbols-outlined {
+    font-size: 16px;
+}
+
+.iz-owner-info {
+    min-width: 0;
+    line-height: 1.2;
+}
+
+.iz-owner-label {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #0369a1;
+}
+
+.iz-owner-name {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.iz-owner-me {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 0 6px;
+    border-radius: 999px;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #fff;
+    background: #16a34a;
+    vertical-align: 1px;
+}
+
+/* Evrak oturum açan kullanıcının üzerindeyse yeşil ton */
+.iz-owner.is-me {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+}
+
+.iz-owner.is-me .iz-owner-label {
+    color: #15803d;
+}
+
+.iz-owner.is-me .iz-owner-avatar.zm-avatar {
+    background: linear-gradient(135deg, #16a34a, #4ade80);
+}
+
+/* Aktif zimmet yoksa nötr gri ton */
+.iz-owner.is-empty {
+    background: #f8fafc;
+    border-color: #e7eaf0;
+}
+
+.iz-owner.is-empty .iz-owner-label {
+    color: #94a3b8;
+}
+
+.iz-owner.is-empty .iz-owner-name {
+    color: #64748b;
+}
+
+.iz-owner.is-empty .iz-owner-avatar.zm-avatar {
+    color: #94a3b8;
+    background: #e2e8f0;
+}
+
+[data-theme="dark"] .iz-owner {
+    background: rgba(14, 165, 233, 0.12);
+    border-color: rgba(14, 165, 233, 0.35);
+}
+
+[data-theme="dark"] .iz-owner-label {
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .iz-owner-name {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .iz-owner-tip {
+    background: #1e293b;
+    border-color: rgba(148, 163, 184, 0.25);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .iz-owner-tip::before {
+    background: #1e293b;
+    border-color: rgba(148, 163, 184, 0.25);
+}
+
+[data-theme="dark"] .iz-owner-tip-val {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .iz-owner .iz-owner-avatar.zm-avatar {
+    color: #fff;
+    border-color: transparent;
+}
+
+[data-theme="dark"] .iz-owner.is-me {
+    background: rgba(22, 163, 74, 0.14);
+    border-color: rgba(74, 222, 128, 0.4);
+}
+
+[data-theme="dark"] .iz-owner.is-me .iz-owner-label {
+    color: #86efac;
+}
+
+[data-theme="dark"] .iz-owner.is-empty {
+    background: rgba(148, 163, 184, 0.06);
+    border-color: rgba(148, 163, 184, 0.18);
+}
+
+[data-theme="dark"] .iz-owner.is-empty .iz-owner-label,
+[data-theme="dark"] .iz-owner.is-empty .iz-owner-name {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .iz-owner.is-empty .iz-owner-avatar.zm-avatar {
+    color: #94a3b8;
+    background: rgba(148, 163, 184, 0.14);
+}
+
+/* Sağ panel başlığı: çoklu listede evrak sayısı çipi */
+.iz-owner.is-multi {
+    background: #eef4fb;
+    border-color: #c7d7ea;
+}
+
+.iz-owner.is-multi .iz-owner-label {
+    color: #26395e;
+}
+
+.iz-owner.is-multi .iz-owner-avatar.zm-avatar {
+    color: #fff;
+    background: linear-gradient(135deg, #26395e, #176b9e);
+}
+
+
+[data-theme="dark"] .iz-owner.is-multi {
+    background: rgba(23, 107, 158, 0.18);
+    border-color: rgba(125, 211, 252, 0.3);
+}
+
+[data-theme="dark"] .iz-owner.is-multi .iz-owner-label {
+    color: #7dd3fc;
+}
+
+/* Tüm evraklar zaten oturum açan kullanıcıdayken "Teslim Al" seçilemez */
+.zm-mode:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.zm-mode:disabled:hover {
+    background: transparent;
+    color: inherit;
+}
+
+/* Sağ panel başlığındaki araçlar (aktif zimmet çipi + Personel Ekle).
+   Çip kendi doğal genişliğinde kalır; sekme değişip "Personel Ekle" butonu
+   görünse de küçülmez. Yer gerçekten daralırsa yalnızca isim kısalır. */
+.zm-header-tools {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex: 1 1 auto;
+    min-width: 0;
+    margin-left: 12px;
+}
+
+.zm-header-tools .iz-owner {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.zm-header-tools .zm-pill-btn {
+    flex: 0 0 auto;
+}
+
+/* Teslim Et: "Kurum" başlığı + satırın en sağında "Personel Ekle".
+   Başlık, form etiketlerinden bir kademe güçlü ama sade; buton zeminsiz
+   metin bağlantısı gibi durur, yalnızca üzerine gelince hafif zemin alır. */
+.zm-field-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 28px;
+}
+
+.zm-field-title {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+}
+
+.zm-link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 28px;
+    padding: 0 10px 0 6px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #0369a1;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.zm-link-btn .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.zm-link-btn:hover {
+    background: #f0f9ff;
+    color: #075985;
+}
+
+.zm-link-btn:focus-visible {
+    outline: 2px solid rgba(14, 165, 233, 0.45);
+    outline-offset: 1px;
+}
+
+[data-theme="dark"] .zm-field-title {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .zm-link-btn {
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .zm-link-btn:hover {
+    background: rgba(14, 165, 233, 0.12);
+    color: #bae6fd;
 }

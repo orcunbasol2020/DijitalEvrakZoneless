@@ -68,12 +68,6 @@
         </div>
       </div>
 
-      <div>
-        <label class="form-label">Konu</label>
-        <input type="text" class="form-control"
-          [(ngModel)]="model.subject">
-      </div>
-
       <div class="row">
         <div class="col-6">
           <label class="form-label">Orijinal Belge No</label>
@@ -81,18 +75,18 @@
             [(ngModel)]="model.originalDocumentNumber">
         </div>
         <div class="col-6">
-          <label class="form-label">Gizlilik Derecesi</label>
-          <select class="form-select" [(ngModel)]="model.securityDegree">
-            <option *ngFor="let opt of securityDegreeOptions" [ngValue]="opt.value">{{ opt.label }}</option>
+          <label class="form-label">Evrak Türü</label>
+          <select class="form-select" [(ngModel)]="model.type">
+            <option *ngFor="let opt of documentTypeOptions" [ngValue]="opt.value">{{ opt.label }}</option>
           </select>
         </div>
       </div>
 
       <div class="row">
         <div class="col-6">
-          <label class="form-label">Evrak Türü</label>
-          <select class="form-select" [(ngModel)]="model.type">
-            <option *ngFor="let opt of documentTypeOptions" [ngValue]="opt.value">{{ opt.label }}</option>
+          <label class="form-label">Gizlilik Derecesi</label>
+          <select class="form-select" [(ngModel)]="model.securityDegree">
+            <option *ngFor="let opt of securityDegreeOptions" [ngValue]="opt.value">{{ opt.label }}</option>
           </select>
         </div>
         <div class="col-6">
@@ -105,10 +99,31 @@
 
       <div class="row">
         <div class="col-6">
+          <label class="form-label">Konu</label>
+          <input type="text" class="form-control"
+            [(ngModel)]="model.subject">
+        </div>
+        <div class="col-6">
           <label class="form-label">Gereği/Bilgi</label>
           <select class="form-select" [(ngModel)]="model.actionRequired">
             <option *ngFor="let opt of actionRequiredOptions" [ngValue]="opt.value">{{ opt.label }}</option>
           </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-6">
+          <label class="form-label">
+            <span class="material-symbols-outlined align-middle me-1" style="font-size: 16px;">call_made</span>
+            Nereden
+          </label>
+          <app-simple-autocomplete
+            [control]="departmentControl"
+            [options]="departments()"
+            [loading]="departmentFieldLoading()"
+            loadingText="Birimler yükleniyor..."
+            placeholder="Birim seçiniz">
+          </app-simple-autocomplete>
         </div>
         <div class="col-6">
           <label class="form-label">Dil</label>
@@ -124,34 +139,83 @@
 
       <div class="outgoing-doc-divider"></div>
 
+      <!-- Alıcılar: evrak birden fazla iç birime ve/veya dış kuruma gidebilir.
+           Her satır tek bir alıcı; Gereği/Bilgi alıcı bazında belirlenir. -->
       <div class="outgoing-doc-route-box">
-        <div class="row">
-          <div class="col-6">
+        <div class="outgoing-recipients">
+          <div class="outgoing-recipients-head">
             <label class="form-label">
-              <span class="material-symbols-outlined align-middle me-1" style="font-size: 16px;">call_made</span>
-              Nereden
-            </label>
-            <app-simple-autocomplete
-              [control]="departmentControl"
-              [options]="departments()"
-              [loading]="departmentFieldLoading()"
-              loadingText="Birimler yükleniyor..."
-              placeholder="Birim seçiniz">
-            </app-simple-autocomplete>
-          </div>
-          <div class="col-6">
-            <label class="form-label">
-              <span class="material-symbols-outlined align-middle me-1" style="font-size: 16px;">call_received</span>
+              <span class="material-symbols-outlined" style="font-size: 16px;">call_received</span>
               Nereye
+              @if (recipientRows().length) {
+                <span class="outgoing-recipients-count">{{ recipientRows().length }}</span>
+              }
             </label>
-            <app-simple-autocomplete
-              [control]="externalInstitutionControl"
-              [options]="externalInstitutionOptions()"
-              [loading]="externalInstitutionFieldLoading()"
-              loadingText="Kurumlar yükleniyor..."
-              placeholder="Kurum seçiniz">
-            </app-simple-autocomplete>
+            <button type="button" class="btn btn-sm btn-outline-primary outgoing-recipients-add"
+              [disabled]="distributionsLoading() || distributionsError()"
+              (click)="addRecipientRow()">
+              <span class="material-symbols-outlined">add</span>
+              Alıcı ekle
+            </button>
           </div>
+
+          @if (distributionsLoading()) {
+            <div class="outgoing-recipients-empty">
+              <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              Alıcılar yükleniyor...
+            </div>
+          } @else if (!recipientRows().length) {
+            <div class="outgoing-recipients-empty">
+              <span class="material-symbols-outlined">group_add</span>
+              Henüz alıcı eklenmedi. Evrak birden fazla iç birime ve/veya dış kuruma gönderilebilir.
+            </div>
+          }
+
+          @for (row of recipientRows(); track row.key) {
+            <div class="outgoing-recipient-row" [class.is-saved]="!!row.id">
+              @if (row.id) {
+                <!-- Kayıtlı alıcı: birim/kurum sonradan değiştirilemez, yalnızca Gereği/Bilgi güncellenir ya da satır kaldırılır. -->
+                <div class="outgoing-recipient-saved">
+                  <span class="outgoing-recipient-saved-icon">
+                    <span class="material-symbols-outlined">{{ row.kind === 'department' ? 'apartment' : 'account_balance' }}</span>
+                  </span>
+                  <div class="outgoing-recipient-saved-text">
+                    <small>{{ recipientKindLabel[row.kind] }}</small>
+                    <strong [title]="row.savedName || ''">{{ row.savedName || '-' }}</strong>
+                  </div>
+                </div>
+              } @else {
+                <div class="outgoing-recipient-kind" role="group" aria-label="Alıcı türü">
+                  <button type="button" [class.is-active]="row.kind === 'department'" (click)="setRecipientKind(row, 'department')">
+                    <span class="material-symbols-outlined">apartment</span>
+                    İç Birim
+                  </button>
+                  <button type="button" [class.is-active]="row.kind === 'institution'" (click)="setRecipientKind(row, 'institution')">
+                    <span class="material-symbols-outlined">account_balance</span>
+                    Dış Kurum
+                  </button>
+                </div>
+                <div class="outgoing-recipient-target">
+                  <app-simple-autocomplete
+                    [control]="row.control"
+                    [options]="row.kind === 'department' ? departments() : externalInstitutionOptions()"
+                    [loading]="row.kind === 'department' ? departmentFieldLoading() : externalInstitutionFieldLoading()"
+                    [loadingText]="row.kind === 'department' ? 'Birimler yükleniyor...' : 'Kurumlar yükleniyor...'"
+                    [placeholder]="row.kind === 'department' ? 'Birim seçiniz' : 'Kurum seçiniz'">
+                  </app-simple-autocomplete>
+                </div>
+              }
+              <div class="outgoing-recipient-action">
+                <select class="form-select" title="Gereği / Bilgi"
+                  [ngModel]="row.actionRequired"
+                  (ngModelChange)="setRecipientAction(row, $event)">
+                  <option *ngFor="let opt of actionRequiredOptions" [ngValue]="opt.value">{{ opt.label }}</option>
+                </select>
+              </div>              <button type="button" class="outgoing-recipient-remove" title="Alıcıyı kaldır" (click)="removeRecipientRow(row)">
+                <span class="material-symbols-outlined">close</span>
+              </button>
+            </div>
+          }
         </div>
       </div>
     </div>
@@ -175,7 +239,7 @@
   </div>
 
   <aside class="outgoing-create-help">
-    <!-- Formdaki seçime göre canlı güncellenen evrak yolu özeti -->
+    <!-- Formdaki seçime göre canlı güncellenen evrak yolu özeti: tek gönderen, bir veya daha fazla alıcı -->
     <div class="outgoing-help-route">
       <div class="outgoing-help-route-node" [class.is-empty]="!selectedDepartmentName()">
         <span class="outgoing-help-route-dot">
@@ -187,17 +251,29 @@
         </div>
       </div>
 
-      <div class="outgoing-help-route-line"></div>
-
-      <div class="outgoing-help-route-node" [class.is-empty]="!selectedInstitutionName()">
-        <span class="outgoing-help-route-dot">
-          <span class="material-symbols-outlined">call_received</span>
-        </span>
-        <div class="outgoing-help-route-text">
-          <small>Nereye</small>
-          <strong>{{ selectedInstitutionName() || 'Kurum henüz seçilmedi' }}</strong>
+      @for (r of recipientSummary(); track $index) {
+        <div class="outgoing-help-route-line"></div>
+        <div class="outgoing-help-route-node" [class.is-empty]="!r.name">
+          <span class="outgoing-help-route-dot">
+            <span class="material-symbols-outlined">call_received</span>
+          </span>
+          <div class="outgoing-help-route-text">
+            <small>{{ r.kindLabel }}</small>
+            <strong>{{ r.name || 'Alıcı henüz seçilmedi' }}</strong>
+          </div>
         </div>
-      </div>
+      } @empty {
+        <div class="outgoing-help-route-line"></div>
+        <div class="outgoing-help-route-node is-empty">
+          <span class="outgoing-help-route-dot">
+            <span class="material-symbols-outlined">call_received</span>
+          </span>
+          <div class="outgoing-help-route-text">
+            <small>Nereye</small>
+            <strong>Alıcı henüz eklenmedi</strong>
+          </div>
+        </div>
+      }
     </div>
 
     <div class="outgoing-create-help-title">
@@ -224,7 +300,14 @@
         <span class="outgoing-help-icon"><span class="material-symbols-outlined">swap_horiz</span></span>
         <div>
           <strong>Nereden / Nereye</strong>
-          <span>Nereden, evrağı gönderen kendi birimimiz. Nereye, evrağın teslim edileceği dış kurum.</span>
+          <span>Nereden, evrağı gönderen kendi birimimiz. Nereye, evrağın gönderileceği iç birimler ve/veya dış kurumlar; birden fazla alıcı eklenebilir.</span>
+        </div>
+      </li>
+      <li>
+        <span class="outgoing-help-icon"><span class="material-symbols-outlined">pending_actions</span></span>
+        <div>
+          <strong>Gereği / Bilgi</strong>
+          <span>Evrak için genel değer üstte seçilir; yeni eklenen alıcılar bu değerle gelir ve her alıcı satırında ayrıca değiştirilebilir.</span>
         </div>
       </li>
       <li>
@@ -252,7 +335,7 @@
 
     <div class="outgoing-help-note">
       <span class="material-symbols-outlined">info</span>
-      <span>Belge Numarası, Belge Tarihi, Nereden ve Nereye alanları zorunludur.</span>
+      <span>Belge Numarası, Belge Tarihi, Nereden ve en az bir alıcı zorunludur.</span>
     </div>
   </aside>
 </div>
