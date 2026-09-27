@@ -20,6 +20,8 @@ import { RoleService } from '../../services/role-service';
 import { DocumentAllocation } from '../../services/documentallocation';
 import { DocumentAllocationModel } from '../../models/documentallocation.model';
 import { AllocationStatusEnum, AllocationStatusLabels } from '../../models/allocationstatus.model';
+import { SecurityDegreeLabels, SecurityDegreeIcons, SecurityDegreeBadgeClass } from '../../models/securitydegree.model';
+import { UrgencyDegreeLabels, UrgencyDegreeInitials, UrgencyDegreeBadgeClass } from '../../models/urgencydegree.model';
 import { HttpService } from '../../services/http';
 import { UserRoleService } from '../../services/user-role';
 import { normalizeRoleName } from '../../services/role-service';
@@ -53,6 +55,33 @@ export default class Scanlist {
   readonly #roleService = inject(RoleService);
   readonly user = computed(() => this.#common.user());
   readonly scanListData = signal<IncomingDocumentModel[]>([]);
+
+  // Gizlilik ve İvedilik sütunları Giden Evraklar listesiyle aynı: ikonlu / baş harfli
+  // renkli rozet; filtre ve Excel çıktısı için metin etiketleri satıra eklenir.
+  readonly securityDegreeMap: Record<number, string> = SecurityDegreeLabels;
+  readonly securityDegreeIconMap: Record<number, string> = SecurityDegreeIcons;
+  readonly securityDegreeBadgeClassMap: Record<number, string> = SecurityDegreeBadgeClass;
+  readonly securityDegreeFilterData: FlexiGridFilterDataModel[] =
+    Object.values(SecurityDegreeLabels).map(label => ({ name: label, value: label }));
+  readonly urgencyDegreeMap: Record<number, string> = UrgencyDegreeLabels;
+  readonly urgencyDegreeInitialMap: Record<number, string> = UrgencyDegreeInitials;
+  readonly urgencyDegreeBadgeClassMap: Record<number, string> = UrgencyDegreeBadgeClass;
+  readonly urgencyDegreeFilterData: FlexiGridFilterDataModel[] =
+    Object.values(UrgencyDegreeLabels).map(label => ({ name: label, value: label }));
+  // "Dosya" sütunu dosya adı yerine yalnızca dosyanın olup olmadığını gösterir;
+  // filtre ve Excel çıktısı hasFileLabel metniyle çalışır.
+  readonly hasFileFilterData: FlexiGridFilterDataModel[] = [
+    { name: 'Var', value: 'Var' },
+    { name: 'Yok', value: 'Yok' }
+  ];
+  readonly gridRows = computed(() =>
+    this.scanListData().map(doc => ({
+      ...doc,
+      securityDegreeLabel: (doc.securityDegree != null && this.securityDegreeMap[doc.securityDegree]) || '-',
+      urgencyDegreeLabel: (doc.urgencyDegree != null && this.urgencyDegreeMap[doc.urgencyDegree]) || '-',
+      hasFileLabel: doc.documentName ? 'Var' : 'Yok'
+    }))
+  );
   readonly documentsResourceSig = signal<any>(null);
   readonly #toast = inject(FlexiToastService);
   private readonly router = inject(Router);

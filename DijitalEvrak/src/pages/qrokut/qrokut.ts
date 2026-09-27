@@ -9,7 +9,7 @@ import { RoleService } from '../../services/role-service';
 import { Common } from '../../services/common';
 import { UPLOAD_DOCUMENT_ROLES, UploadDocumentModal } from '../../../components/upload-document-modal/upload-document-modal';
 import { DocumentUploadFlow } from '../../services/document-upload-flow';
-import { INCOMING_STATUS_KAYIT } from '../../services/incomingdocument';
+import { INCOMING_STATUS_ON_KAYIT } from '../../services/incomingdocument';
 
 type ScanResult = { code: string; kind: 'notfound' | 'notscanned' };
 
@@ -188,9 +188,9 @@ export default class Qrokut implements OnInit, AfterViewInit, OnDestroy {
     this.focusQrInputSoon();
   }
 
-  // QR okunduğunda: evrak kaydı tamamlanmışsa (durum 2) doğrudan kayıt ekranına
-  // geçilir; ön kayıt (durum 1) ve diğer durumlarda belge dosyası kontrol edilir,
-  // dosya yoksa neden geçilemediği ve seçenekler sol panelde gösterilir.
+  // QR okunduğunda: evrak ön kayıtta (durum 1) değilse doğrudan kayıt ekranına
+  // geçilir; ön kayıttaysa belge dosyası kontrol edilir, dosya varsa kayda geçilir,
+  // yoksa neden geçilemediği ve seçenekler sol panelde gösterilir.
   redirectEvrakKayit(result: string) {
     if (this.loading()) return;
 
@@ -224,8 +224,8 @@ export default class Qrokut implements OnInit, AfterViewInit, OnDestroy {
           return;
         }
 
-        // Kaydı tamamlanmış evrak dosyası olsun olmasın doğrudan açılır
-        if (doc.status === INCOMING_STATUS_KAYIT) {
+        // Ön kayıt dışındaki evrak dosyası olsun olmasın doğrudan açılır
+        if (doc.status !== INCOMING_STATUS_ON_KAYIT) {
           this.openEvrakKayit(result);
           return;
         }

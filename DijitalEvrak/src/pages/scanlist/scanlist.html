@@ -4,7 +4,7 @@
 
 <div class="scanlist-grid" [class.show-filters]="showFilters">
   <flexi-grid
-    [data]="scanListData()"
+    [data]="gridRows()"
     [loading]="loading()"
     [showCaption]="true"
     captionTitle="Gelen Evraklar"
@@ -79,10 +79,27 @@
       </flexi-button>
     </ng-template>
     <flexi-grid-column field="qrCode" title="Belge No" />
-    <flexi-grid-column field="documentName" title="Dosya Adı" />
+    <flexi-grid-column field="securityDegreeLabel" title="Gizlilik Der." textAlign="center" width="110px"
+      filterType="select" [filterData]="securityDegreeFilterData">
+      <ng-template flexiGridCellTemplate let-item>
+        <span class="degree-badge-circle {{ securityDegreeBadgeClassMap[item.securityDegree] || 'degree-tier-1' }}"
+          [title]="securityDegreeMap[item.securityDegree] || '-'">
+          <span class="material-symbols-outlined" style="font-size: 16px;">{{ securityDegreeIconMap[item.securityDegree] || 'help' }}</span>
+        </span>
+      </ng-template>
+    </flexi-grid-column>
     <flexi-grid-column title="Belge Tarihi" width="100px">
       <ng-template flexiGridCellTemplate let-item>
         {{ item.documentDate | date:'dd.MM.yyyy' }}
+      </ng-template>
+    </flexi-grid-column>
+    <flexi-grid-column field="urgencyDegreeLabel" title="İvedilik" textAlign="center" width="90px"
+      filterType="select" [filterData]="urgencyDegreeFilterData">
+      <ng-template flexiGridCellTemplate let-item>
+        <span class="degree-badge-circle {{ urgencyDegreeBadgeClassMap[item.urgencyDegree] || 'degree-tier-1' }}"
+          [title]="urgencyDegreeMap[item.urgencyDegree] || '-'">
+          {{ urgencyDegreeInitialMap[item.urgencyDegree] || '-' }}
+        </span>
       </ng-template>
     </flexi-grid-column>
     <flexi-grid-column
@@ -91,6 +108,15 @@
       title="Atanan Personel"
       filterType="select"
       [filterData]="personFilter()">
+    </flexi-grid-column>
+    <flexi-grid-column field="hasFileLabel" title="Dosya" textAlign="center" width="70px"
+      filterType="select" [filterData]="hasFileFilterData">
+      <ng-template flexiGridCellTemplate let-item>
+        @if (item.documentName) {
+          <span class="material-symbols-outlined" style="font-size: 1.35rem; vertical-align: middle; color: #22c55e;"
+            [title]="item.documentName">task</span>
+        }
+      </ng-template>
     </flexi-grid-column>
     <flexi-grid-column
       field="durum"
