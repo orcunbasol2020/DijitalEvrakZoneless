@@ -1,39 +1,50 @@
 <app-generic pageTitle="Kullanıcılar"
   [breadcrumbs]="[{title: 'Kullanıcılar', url: 'users', icon: ''}]">
 </app-generic>
-<div [class.show-filters]="showFilters">
+<div class="st-page">
+<!-- Liste: Roller sayfasıyla aynı kart başlığı (st-card-head); ızgaranın kendi başlığı kapalı -->
+<section class="st-card us-card">
+  <div class="st-card-head us-head">
+    <span class="st-card-icon">
+      <span class="material-symbols-outlined">diversity_3</span>
+    </span>
+    <div>
+      <h4 class="st-card-title">Kullanıcı Listesi</h4>
+      <div class="st-card-sub">Kullanıcıyı güncellemek için kalem simgesine, durumunu değiştirmek için anahtara tıklayın</div>
+    </div>
+    <div class="zl-head-tools us-head-tools">
+      <span class="st-count">
+        <span class="material-symbols-outlined">verified_user</span>
+        {{ activeCount() }} / {{ data().length }} aktif
+      </span>
+      <button type="button" class="zl-icon-btn" [class.is-on]="showFilters" title="Filtre Aç/Kapat"
+        (click)="showFilters = !showFilters">
+        <span class="material-symbols-outlined">filter_alt</span>
+      </button>
+      <button type="button" class="zl-icon-btn" title="Excel'e Aktar" (click)="grid.exportExcel()">
+        <span class="material-symbols-outlined">file_export</span>
+      </button>
+      <button type="button" class="zl-icon-btn" title="Güncel Verileri Getir" (click)="result.reload()">
+        <span class="material-symbols-outlined">refresh</span>
+      </button>
+      <a routerLink="/users/create" class="zl-btn-primary">
+        <span class="material-symbols-outlined">add</span>
+        Kullanıcı Ekle
+      </a>
+    </div>
+  </div>
+
+<div class="us-grid" [class.show-filters]="showFilters">
   <flexi-grid
+    #grid
     [data]="data()"
     [loading]="loading()"
     language="tr"
-    [showCaption]="true"
-    captionTitle="Kullanıcı Listesi"
-    [showExportExcelBtn]="true"
+    [showCaption]="false"
     exportExcelFileName="kullanicilar"
     [filterable]="true"
     commandColumnTitle="Güncelle"
     (onRefresh)="result.reload()">
-    <ng-template flexiGridCaptionCommandTemplate>
-      <span class="doc-category-chip active me-2" style="cursor: default;">
-        {{ activeCount() }} / {{ data().length }} Aktif
-      </span>
-
-      <!-- 🔥 Filtre Aç/Kapa butonu -->
-      <flexi-button
-        btnIcon="filter_alt"
-        btnColor="light"
-        title="Filtre Aç/Kapat"
-        flexiTooltip
-        (click)="showFilters = !showFilters">
-      </flexi-button>
-
-      <flexi-button
-        routerLink="/users/create"
-        btnIcon="add"
-        btnColor="primary"
-        title="Kullanıcı Ekle"
-        flexiTooltip />
-    </ng-template>
 
     <flexi-grid-column field="name" title="Kullanıcı" width="220px">
       <ng-template flexiGridCellTemplate let-item>
@@ -103,4 +114,6 @@
     </ng-template>
 
   </flexi-grid>
+</div>
+</section>
 </div>

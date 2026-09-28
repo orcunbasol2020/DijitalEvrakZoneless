@@ -108,6 +108,30 @@
     color: #f8fafc;
 }
 
+/* Yönetici paneli başlığı bir punto büyük; tarih satırı başlığa 2px daha yakın */
+app-admin-dashboard .ad-hero-kicker {
+    font-size: 15px;
+}
+
+/* Gelen Evrak paneli (Gelen Evrak ve Ön Kayıt rolleri) başlığı bir punto büyük, harf aralığı daha sıkı */
+app-gelen-evrak-dashboard .ad-hero-kicker {
+    font-size: 15px;
+    letter-spacing: 0.12em;
+}
+
+app-admin-dashboard .ad-hero-text {
+    row-gap: 1px;
+}
+
+/* Yönetici paneli: kart başlıkları (Anlık Durum ve Akıllı Havale hariç) 2px aşağıda.
+   Son Gelen Evraklar ortak bileşen olduğu için Yönetici paneliyle sınırlı; Gelen Evrak
+   paneli etkilenmez. Diğerleri şablonda ad-head-title-low sınıfıyla işaretli. */
+app-admin-dashboard app-currentdocument .ad-head-title,
+.ad-head-title.ad-head-title-low {
+    position: relative;
+    top: 2px;
+}
+
 .ad-hero-kicker .material-symbols-outlined {
     grid-column: 1;
     grid-row: 1 / 3;

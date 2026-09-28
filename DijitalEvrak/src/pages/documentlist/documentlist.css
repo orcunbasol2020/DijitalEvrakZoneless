@@ -1,0 +1,97 @@
+/* ============================================================
+   Gelen Evraklar (documentlist)
+   Kart başlığı Kullanıcılar sayfasıyla aynı (users.css). Liste kapsamı
+   (Tümü / İşlem Bekleyenler / Yayınlananlar) Kontrol Paneli'ndeki
+   sekme grubunun (ad-tabs) diliyle; yükseklik başlıktaki ikon
+   butonlarıyla (34px) aynı.
+   ============================================================ */
+
+.dl-seg {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    height: 34px;
+    padding: 3px;
+    border-radius: 10px;
+    background: #eef2f7;
+    border: 1px solid #e2e8f0;
+    flex: 0 0 auto;
+}
+
+.dl-seg-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 26px;
+    padding: 0 11px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dl-seg-btn .material-symbols-outlined {
+    font-size: 16px;
+}
+
+.dl-seg-btn:hover {
+    color: #0f172a;
+}
+
+.dl-seg-btn:focus-visible {
+    outline: 2px solid #0ea5e9;
+    outline-offset: 1px;
+}
+
+/* Seçili: panelin lacivert → petrol gradyanı, açık turkuaz yazı */
+.dl-seg-btn.is-active {
+    color: #e0f2fe;
+    background: linear-gradient(120deg, #0f172a 0%, #0c4a6e 55%, #0369a1 100%);
+    box-shadow: 0 3px 8px rgba(3, 105, 161, 0.3);
+}
+
+[data-theme="dark"] .dl-seg {
+    background: rgba(148, 163, 184, 0.1);
+    border-color: rgba(148, 163, 184, 0.2);
+}
+
+[data-theme="dark"] .dl-seg-btn {
+    color: #a0aec0;
+}
+
+[data-theme="dark"] .dl-seg-btn:hover {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .dl-seg-btn.is-active {
+    color: #e0f2fe;
+}
+
+/* Dar ekranda yalnızca ikonlar kalır; seçim başlıktan okunur */
+@media (max-width: 991.98px) {
+    .dl-seg-btn {
+        font-size: 0;
+        gap: 0;
+        padding: 0 9px;
+    }
+
+    .dl-seg-btn .material-symbols-outlined {
+        font-size: 17px;
+    }
+}
+
+/* Nereden / Nereye: uzun kurum ve birim adları tek satırda kısalır, tamamı title'da */
+.dl-ellipsis {
+    display: block;
+    /* Tablo yazısından bir punto küçük */
+    font-size: calc(1em - 1px);
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}

@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, catchError, map, of, switchMap } from 'rxjs';
+import { Observable, catchError, map, of, switchMap, throwError } from 'rxjs';
 import { IncomingDocumentService } from './incomingdocument';
 import { DocumentAllocation } from './documentallocation';
 import { IncomingDocumentModel } from '../models/incoming-document/incoming-document.model';
@@ -40,4 +40,42 @@ export class DocumentUploadFlow {
       )
     );
   }
+
+  /**
+   * "Evrak Yükle" (evrak numarası + PDF; Gelen Evraklar ve Yönetici listesi ortak):
+   * UploadWithDocumentNumber numaraya ait evrak varsa dosyayı ona bağlar, yoksa yeni
+   * gelen evrak oluşturur; durum ve zimmeti backend verir. Yanıtta Id dönmediği için
+   * evrak numarayla yeniden çekilir (çekilemezse null).
+   * Numaraya bağlı evrakta zaten dosya varsa istek gönderilmez: backend bu durumda 500
+   * döner ve genel hata interceptor'ı yanıltıcı "Sunucu Hatası" gösterir.
+   * Hata, kullanıcıya gösterilecek metni `userMessage` ile taşır; boşsa mesajı
+   * interceptor zaten göstermiştir.
+   */
+  runWithDocumentNumber(qrCode: string, file: File, userId: string): Observable<IncomingDocumentModel | null> {
+    return this.incomingDocumentService.GetByQrCode(qrCode).pipe(
+      // Numaraya ait evrak yoksa (404) numara boştadır
+      catchError(() => of(null)),
+      switchMap((existing: IncomingDocumentModel | null) => existing?.documentName
+        ? throwError(() => uploadError(`${qrCode} numaralı evraka daha önce bir dosya bağlanmış.`))
+        : this.incomingDocumentService.uploadWithDocumentNumber(qrCode, file, userId).pipe(
+          // Doğrulama hatasında gövde { StatusCode: 403, Errors: [alan adları] } gelir
+          catchError(err => throwError(() => uploadError(validationMessage(err?.error?.Errors))))
+        )),
+      switchMap(() => this.incomingDocumentService.GetByQrCode(qrCode).pipe(catchError(() => of(null))))
+    );
+  }
+}
+
+export type DocumentNumberUploadError = Error & { userMessage: string };
+
+function uploadError(userMessage: string): DocumentNumberUploadError {
+  return Object.assign(new Error(userMessage || 'upload'), { userMessage });
+}
+
+function validationMessage(fields: string[] | undefined): string {
+  if (!fields?.length) return '';
+  if (fields.includes('DocumentNumber')) return 'Evrak numarası boş olamaz.';
+  if (fields.includes('FileName') || fields.includes('FileContent')) return 'Yalnızca 20 MB\'ı geçmeyen PDF dosyası yüklenebilir.';
+  if (fields.includes('UserId')) return 'Kullanıcı bilgisi bulunamadı.';
+  return 'Evrak bilgileri geçersiz.';
 }

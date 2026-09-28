@@ -70,21 +70,23 @@
         flexiTooltip
         (click)="showFilters = !showFilters">
       </flexi-button>
-      <flexi-button
-        routerLink="/scanlist/create"
-        btnIcon="upload_file"
-        btnColor="dark"
-        title="Taranmış Evrak Yükle"
-        flexiTooltip>
-      </flexi-button>
+      @if (canUploadDocument()) {
+        <flexi-button
+          btnIcon="upload_file"
+          btnColor="dark"
+          title="Evrak Yükle"
+          flexiTooltip
+          (click)="openNewUpload()">
+        </flexi-button>
+      }
     </ng-template>
-    <flexi-grid-column field="qrCode" title="Belge No" />
+    <flexi-grid-column field="qrCode" title="Belge No" width="120px" />
     <flexi-grid-column field="securityDegreeLabel" title="Gizlilik Der." textAlign="center" width="110px"
       filterType="select" [filterData]="securityDegreeFilterData">
       <ng-template flexiGridCellTemplate let-item>
-        <span class="degree-badge-circle {{ securityDegreeBadgeClassMap[item.securityDegree] || 'degree-tier-1' }}"
+        <span class="degree-badge-circle security-badge {{ securityDegreeBadgeClassMap[item.securityDegree] || 'degree-tier-1' }}"
           [title]="securityDegreeMap[item.securityDegree] || '-'">
-          <span class="material-symbols-outlined" style="font-size: 16px;">{{ securityDegreeIconMap[item.securityDegree] || 'help' }}</span>
+          <span class="material-symbols-outlined">{{ securityDegreeIconMap[item.securityDegree] || 'help' }}</span>
         </span>
       </ng-template>
     </flexi-grid-column>
@@ -96,7 +98,7 @@
     <flexi-grid-column field="urgencyDegreeLabel" title="İvedilik" textAlign="center" width="90px"
       filterType="select" [filterData]="urgencyDegreeFilterData">
       <ng-template flexiGridCellTemplate let-item>
-        <span class="degree-badge-circle {{ urgencyDegreeBadgeClassMap[item.urgencyDegree] || 'degree-tier-1' }}"
+        <span class="degree-badge-circle urgency-badge {{ urgencyDegreeBadgeClassMap[item.urgencyDegree] || 'degree-tier-1' }}"
           [title]="urgencyDegreeMap[item.urgencyDegree] || '-'">
           {{ urgencyDegreeInitialMap[item.urgencyDegree] || '-' }}
         </span>
@@ -113,8 +115,11 @@
       filterType="select" [filterData]="hasFileFilterData">
       <ng-template flexiGridCellTemplate let-item>
         @if (item.documentName) {
-          <span class="material-symbols-outlined" style="font-size: 1.35rem; vertical-align: middle; color: #22c55e;"
-            [title]="item.documentName">task</span>
+          <span class="sl-file is-on" [title]="item.documentName">
+            <span class="material-symbols-outlined">check</span>
+          </span>
+        } @else {
+          <span class="sl-file" title="Dosya yok"></span>
         }
       </ng-template>
     </flexi-grid-column>
@@ -124,22 +129,22 @@
       width="100px"
       textAlign="center">
       <ng-template flexiGridCellTemplate let-item>
-        <span
-          class="material-symbols-outlined"
-          style="font-size: 1.35rem; vertical-align: middle;"
-          [ngStyle]="{
-        'color': item.status === 6 ? '#94a3b8' : 
-                 (item.status === 10 ? '#22c55e' : '#94a3b8') 
-      }"
-          [title]="
-        item.status === 6 ? 'Yayınlanma Sırasında' : 
-        item.status === 10 ? 'Yayınlandı' : 'Beklemede'
-      ">
-          {{
-          item.status === 6 ? 'hourglass_bottom' :
-          item.status === 10 ? 'check_circle' : ''
-          }}
-        </span>
+        <!-- Yayın durumu submissionStatus'tan okunur (akış durumu status'tan ayrı) -->
+        @if (isPublished(item)) {
+          <span class="sl-file is-on is-smoke" [title]="publishStatusLabel(item)">
+            <span class="material-symbols-outlined">check</span>
+          </span>
+        } @else if (isPublishFailed(item)) {
+          <span class="sl-file is-on is-error" [title]="publishStatusLabel(item)">
+            <span class="material-symbols-outlined">priority_high</span>
+          </span>
+        } @else if (isPublishing(item)) {
+          <span class="sl-file is-wait" [title]="publishStatusLabel(item)">
+            <span class="material-symbols-outlined">hourglass_bottom</span>
+          </span>
+        } @else {
+          <span class="sl-file" [title]="publishStatusLabel(item)"></span>
+        }
       </ng-template>
     </flexi-grid-column>
     <!-- OCR DURUM İKONU -->
@@ -149,22 +154,19 @@
       width="80px"
       textAlign="center">
       <ng-template flexiGridCellTemplate let-item>
-        <span
-          class="material-symbols-outlined"
-          style="font-size: 1.35rem; vertical-align: middle;"
-          [ngStyle]="{
-            'color': item.ocrStatus === 1 ? '#22c55e' :
-                     (item.ocrStatus === 2 ? '#ef4444' : '#94a3b8') 
-          }">
-
-          {{
-          item.ocrStatus === 1
-          ? 'check_circle'
-          : item.ocrStatus === 2
-          ? 'error'
-          : 'hourglass_bottom'
-          }}
-        </span>
+        @if (item.ocrStatus === 1) {
+          <span class="sl-file is-on is-smoke" title="OCR tamamlandı">
+            <span class="material-symbols-outlined">check</span>
+          </span>
+        } @else if (item.ocrStatus === 2) {
+          <span class="sl-file is-on is-error" title="OCR hatası">
+            <span class="material-symbols-outlined">priority_high</span>
+          </span>
+        } @else {
+          <span class="sl-file is-wait" title="OCR bekliyor">
+            <span class="material-symbols-outlined">hourglass_bottom</span>
+          </span>
+        }
       </ng-template>
     </flexi-grid-column>
     <flexi-grid-column title="İşleme Al" textAlign="center" width="90px"
@@ -209,7 +211,7 @@
         </flexi-button>
       </ng-template>
     </flexi-grid-column>
-    <flexi-grid-column title="Takip" textAlign="center" width="60px">
+    <flexi-grid-column title="Takip" textAlign="center" width="70px">
       <ng-template flexiGridCellTemplate let-item>
         <flexi-button
           btnIcon="conversion_path"
@@ -219,7 +221,7 @@
         </flexi-button>
       </ng-template>
     </flexi-grid-column>
-    <flexi-grid-column title="Zimmet" textAlign="center" width="70px">
+    <flexi-grid-column title="Zimmet" textAlign="center" width="80px">
       <ng-template flexiGridCellTemplate let-item>
         <flexi-button
           btnIcon="article_person"
@@ -410,7 +412,7 @@
                 <span class="zh-pulse"></span>
                 Aktif Zimmet
               </div>
-              <div class="zh-hero-name">{{ a.fullName || '-' }}</div>
+              <div class="zh-hero-name">{{ personLabel(a) }}</div>
             </div>
             <!-- Aktif zimmette durum çipi gösterilmez; durum zaten hareket listesinde görünür. -->
             <div class="zh-hero-side">
@@ -462,7 +464,13 @@
                 </span>
                 <div class="zh-card">
                   <div class="zh-card-main">
-                    <div class="zh-name" [title]="h.fullName">{{ h.fullName || '-' }}</div>
+                    <div class="zh-name" [title]="personLabel(h)">{{ personLabel(h) }}</div>
+                    @if (zimmetActors()[h.id]; as actor) {
+                      <div class="zh-meta">
+                        <span class="material-symbols-outlined">person</span>
+                        <span class="zh-meta-by">{{ allocationActorLabels[h.status] }}: <strong>{{ actor }}</strong></span>
+                      </div>
+                    }
                   </div>
                   <div class="zh-card-side">
                     <span class="zh-status-chip {{ allocationStatusClass[h.status] || '' }}">
@@ -492,3 +500,9 @@
     </div>
   </div>
 }
+
+<app-upload-document-modal
+  [newDocument]="newUploadOpen()"
+  [loading]="newUploadLoading()"
+  (numberConfirmed)="confirmNewUpload($event)"
+  (cancelled)="closeNewUpload()" />

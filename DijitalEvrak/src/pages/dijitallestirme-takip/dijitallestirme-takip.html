@@ -1,84 +1,82 @@
 <app-generic pageTitle="Dijitalleştirme ve Atlas Aktarım Takip"
     [breadcrumbs]="[{title: 'Dijitalleştirme Takip', url: 'dijitallestirme-takip', icon:''}]" />
 
-<div class="page-header d-flex justify-content-between align-items-center">
-    <h1 class="page-title d-flex align-items-center">Dijitalleştirme ve Atlas Aktarım Takip</h1>
-    <div class="d-flex header-actions">
-        <button class="btn btn-sm btn-outline-info" (click)="refresh()" [disabled]="loading()">
-            <span class="material-symbols-outlined" [class.spin]="loading()" title="Güncel Verileri Getir">refresh</span>
+<div class="dt-page">
+
+<!-- Karşılama şeridi: Kontrol Paneli ile aynı mavi gradyan -->
+<section class="ad-hero">
+    <div class="ad-hero-glow ad-hero-glow-a"></div>
+    <div class="ad-hero-glow ad-hero-glow-b"></div>
+
+    <div class="ad-hero-text">
+        <div class="ad-hero-kicker">
+            <span class="material-symbols-outlined">cloud_sync</span>
+            DİJİTALLEŞTİRME VE ATLAS AKTARIM TAKİP
+        </div>
+        <div class="ad-hero-sub">
+            <span>Tarama</span>
+            <span class="ad-hero-dot"></span>
+            <span>OCR</span>
+            <span class="ad-hero-dot"></span>
+            <span>Kayıt</span>
+            <span class="ad-hero-dot"></span>
+            <span>Atlas EBYS aktarımı</span>
+        </div>
+    </div>
+
+    <div class="ad-hero-actions">
+        <button type="button" class="ad-hero-btn ad-hero-btn-icon" title="Güncel Verileri Getir"
+            [class.is-spinning]="loading()" [disabled]="loading()" (click)="refresh()">
+            <span class="material-symbols-outlined">refresh</span>
         </button>
     </div>
-</div>
+</section>
 
-<!-- Özet Kartlar -->
-<div class="row g-3 mb-4">
-    <div class="col-md-6 col-lg-3">
-        <div class="card stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="card-subtitle text-muted">Toplam Belge</h6>
-                        <h4 class="card-title mt-2">{{ stats().total }}</h4>
-                    </div>
-                    <div class="stat-icon stat-icon-pro bg-gradient-info">
-                        <span class="material-symbols-outlined" style="font-size: 22px;">description</span>
-                    </div>
-                </div>
-            </div>
+<!-- Özet kartlar: tıklanınca liste o duruma göre filtrelenir -->
+<div class="ad-stats">
+    <button type="button" class="ad-stat" [class.is-selected]="statusFilter() === 'all'" (click)="onStatusFilterChange('all')">
+        <div class="ad-stat-body">
+            <div class="ad-stat-label">TOPLAM BELGE</div>
+            <div class="ad-stat-value">{{ stats().total }}</div>
         </div>
-    </div>
+        <span class="ad-stat-icon">
+            <span class="material-symbols-outlined">description</span>
+        </span>
+    </button>
 
-    <div class="col-md-6 col-lg-3">
-        <div class="card stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="card-subtitle text-muted">Atlas'a Aktarıldı</h6>
-                        <h4 class="card-title mt-2 text-success">{{ stats().completed }}</h4>
-                    </div>
-                    <div class="stat-icon stat-icon-pro bg-gradient-success">
-                        <span class="material-symbols-outlined" style="font-size: 22px;">cloud_done</span>
-                    </div>
-                </div>
-            </div>
+    <button type="button" class="ad-stat" [class.is-selected]="statusFilter() === 'completed'" (click)="onStatusFilterChange('completed')">
+        <div class="ad-stat-body">
+            <div class="ad-stat-label">ATLAS'A AKTARILDI</div>
+            <div class="ad-stat-value">{{ stats().completed }}</div>
         </div>
-    </div>
+        <span class="ad-stat-icon">
+            <span class="material-symbols-outlined">cloud_done</span>
+        </span>
+    </button>
 
-    <div class="col-md-6 col-lg-3">
-        <div class="card stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="card-subtitle text-muted">Devam Ediyor</h6>
-                        <h4 class="card-title mt-2 text-warning">{{ stats().processing }}</h4>
-                    </div>
-                    <div class="stat-icon stat-icon-pro bg-gradient-warning">
-                        <span class="material-symbols-outlined" style="font-size: 22px;">sync</span>
-                    </div>
-                </div>
-            </div>
+    <button type="button" class="ad-stat" [class.is-selected]="statusFilter() === 'processing'" (click)="onStatusFilterChange('processing')">
+        <div class="ad-stat-body">
+            <div class="ad-stat-label">DEVAM EDİYOR</div>
+            <div class="ad-stat-value">{{ stats().processing }}</div>
         </div>
-    </div>
+        <span class="ad-stat-icon">
+            <span class="material-symbols-outlined">sync</span>
+        </span>
+    </button>
 
-    <div class="col-md-6 col-lg-3">
-        <div class="card stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="card-subtitle text-muted">Hatalı</h6>
-                        <h4 class="card-title mt-2 text-danger">{{ stats().error }}</h4>
-                    </div>
-                    <div class="stat-icon stat-icon-pro bg-gradient-danger">
-                        <span class="material-symbols-outlined" style="font-size: 22px;">error</span>
-                    </div>
-                </div>
-            </div>
+    <button type="button" class="ad-stat" [class.is-selected]="statusFilter() === 'error'" (click)="onStatusFilterChange('error')">
+        <div class="ad-stat-body">
+            <div class="ad-stat-label">HATALI</div>
+            <div class="ad-stat-value">{{ stats().error }}</div>
         </div>
-    </div>
+        <span class="ad-stat-icon">
+            <span class="material-symbols-outlined">error</span>
+        </span>
+    </button>
 </div>
 
 <!-- Filtre Alanı -->
-<div class="card mb-3 shadow-sm">
+<div class="card premium-card dt-filter-card mb-3">
     <div class="card-body">
         <div class="row g-3 align-items-end">
 
@@ -130,15 +128,21 @@
 
 <!-- Takip Listesi -->
 <div class="card premium-card orders-card">
-    <div class="card-header dashboard-header d-flex justify-content-between align-items-center">
-        <h5 class="card-title mb-0 fw-semibold">Belge Süreç Listesi</h5>
-        <span class="text-muted small">{{ filteredData().length }} / {{ stats().total }} kayıt gösteriliyor</span>
+    <div class="card-header dashboard-header ad-head">
+        <span class="ad-head-icon">
+            <span class="material-symbols-outlined">timeline</span>
+        </span>
+        <div class="ad-head-text">
+            <h5 class="ad-head-title">Belge Süreç Listesi</h5>
+            <div class="ad-head-sub">Tarama, OCR, kayıt ve Atlas aktarım adımları</div>
+        </div>
+        <span class="ad-period">{{ filteredData().length }} / {{ stats().total }} kayıt</span>
     </div>
 
     <div class="card-body p-0 position-relative">
 
         <div *ngIf="loading()" class="d-flex justify-content-center align-items-center py-5">
-            <div class="spinner-border text-primary" role="status">
+            <div class="spinner-border dt-spinner" role="status">
                 <span class="visually-hidden">Yükleniyor...</span>
             </div>
         </div>
@@ -293,4 +297,6 @@
             </ul>
         </nav>
     </div>
+</div>
+
 </div>

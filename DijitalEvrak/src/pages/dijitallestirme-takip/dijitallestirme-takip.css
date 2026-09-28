@@ -1,0 +1,204 @@
+/* ============================================================
+   Takip sayfaları (Dijitalleştirme Takip, OCR Takip): Kontrol Paneli
+   (dashboard.css) ile aynı görsel dil. Süreç göstergesi ve rozetler
+   global stillerde, bu yüzden renkler yalnızca .dt-page altında ezilir.
+   Tamamlanan adımlar panelin petrol → turkuaz tonunu, devam eden ve
+   hatalı adımlar Anlık Durum çubuklarının amber/kırmızı tonunu alır.
+   ============================================================ */
+
+/* Başlık panelinkinden uzun; panelin geniş harf aralığı burada fazla açık duruyor */
+.dt-page .ad-hero-kicker {
+    letter-spacing: 0.06em;
+}
+
+/* ---------- Özet kartları: buton olarak filtre seçer ---------- */
+.dt-page .ad-stat {
+    width: 100%;
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
+}
+
+.dt-page .ad-stat:focus-visible {
+    outline: 2px solid #0ea5e9;
+    outline-offset: 2px;
+}
+
+.dt-page .ad-stat.is-selected {
+    border-color: #7dd3fc;
+    background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%);
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+}
+
+.dt-page .ad-stat.is-selected .ad-stat-icon {
+    color: #fff;
+    background: linear-gradient(135deg, #0284c7, #22d3ee);
+    border-color: transparent;
+}
+
+/* ---------- Filtre kartı ---------- */
+.dt-page .dt-filter-card .form-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #64748b;
+}
+
+.dt-page .dt-filter-card .form-control:focus,
+.dt-page .dt-filter-card .form-select:focus {
+    border-color: #7dd3fc;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+}
+
+.dt-page .dt-filter-card .input-group-text {
+    color: #0c4a6e;
+}
+
+.dt-page .dt-spinner {
+    color: #0284c7;
+}
+
+/* ---------- Tablo ---------- */
+.dt-page .zimmet-table thead th {
+    color: #64748b;
+    background: #f8fafc;
+}
+
+.dt-page .zimmet-table .sort-icon.active {
+    color: #0369a1;
+}
+
+.dt-page .detail-row > td {
+    background: #f8fbfd !important;
+    border-left: 3px solid #22d3ee;
+}
+
+/* ---------- Süreç göstergesi ---------- */
+.dt-page .pipeline-step.step-completed {
+    background: linear-gradient(135deg, #0284c7, #22d3ee);
+    box-shadow: 0 3px 8px rgba(2, 132, 199, 0.3);
+}
+
+.dt-page .pipeline-step.step-processing {
+    background: linear-gradient(135deg, #d97706, #fbbf24);
+}
+
+.dt-page .pipeline-step.step-error {
+    background: linear-gradient(135deg, #dc2626, #f87171);
+    box-shadow: 0 3px 8px rgba(220, 38, 38, 0.3);
+}
+
+.dt-page .pipeline-connector.filled {
+    background: linear-gradient(90deg, #0284c7, #22d3ee);
+}
+
+/* ---------- Genel Durum rozeti: panelin açık zeminli rozet dili ---------- */
+.dt-page .process-status-badge {
+    border: 1px solid transparent;
+    box-shadow: none;
+}
+
+.dt-page .process-status-completed {
+    color: #0369a1;
+    background: #e0f2fe;
+    border-color: rgba(3, 105, 161, 0.18);
+}
+
+.dt-page .process-status-processing {
+    color: #b45309;
+    background: #fffbeb;
+    border-color: #fde68a;
+}
+
+.dt-page .process-status-error {
+    color: #b91c1c;
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
+/* Detay satırındaki adım ikonları */
+.dt-page .detail-row .text-success {
+    color: #0284c7 !important;
+}
+
+.dt-page .detail-row .text-warning {
+    color: #d97706 !important;
+}
+
+.dt-page .detail-row .text-danger {
+    color: #dc2626 !important;
+}
+
+/* ---------- Sayfalama ---------- */
+.dt-page .pagination .page-link {
+    color: #0369a1;
+}
+
+.dt-page .pagination .page-item.active .page-link {
+    color: #fff;
+    background: linear-gradient(135deg, #0284c7, #0ea5e9);
+    border-color: #0284c7;
+}
+
+/* ============================================================
+   Koyu tema
+   ============================================================ */
+[data-theme="dark"] .dt-page .ad-stat.is-selected {
+    background: rgba(14, 165, 233, 0.1);
+    border-color: #7dd3fc;
+}
+
+[data-theme="dark"] .dt-page .ad-stat.is-selected .ad-stat-icon {
+    color: #fff;
+    background: linear-gradient(135deg, #0284c7, #22d3ee);
+    border-color: transparent;
+}
+
+[data-theme="dark"] .dt-page .dt-filter-card .form-label {
+    color: #a0aec0;
+}
+
+[data-theme="dark"] .dt-page .dt-filter-card .input-group-text {
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .dt-page .dt-spinner,
+[data-theme="dark"] .dt-page .zimmet-table .sort-icon.active,
+[data-theme="dark"] .dt-page .pagination .page-link {
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .dt-page .pagination .page-item.active .page-link {
+    color: #fff;
+}
+
+[data-theme="dark"] .dt-page .zimmet-table thead th {
+    color: #a0aec0;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="dark"] .dt-page .detail-row > td {
+    background: rgba(14, 165, 233, 0.06) !important;
+}
+
+[data-theme="dark"] .dt-page .process-status-completed {
+    color: #7dd3fc;
+    background: rgba(14, 165, 233, 0.14);
+    border-color: rgba(125, 211, 252, 0.3);
+}
+
+[data-theme="dark"] .dt-page .process-status-processing {
+    color: #fcd34d;
+    background: rgba(245, 158, 11, 0.14);
+    border-color: rgba(252, 211, 77, 0.3);
+}
+
+[data-theme="dark"] .dt-page .process-status-error {
+    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.14);
+    border-color: rgba(252, 165, 165, 0.3);
+}
+
+[data-theme="dark"] .dt-page .detail-row .text-success {
+    color: #7dd3fc !important;
+}

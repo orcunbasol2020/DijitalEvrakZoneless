@@ -8,9 +8,9 @@ import {
   effect
 } from '@angular/core';
 import { FlexiGridFilterDataModel, FlexiGridModule } from 'flexi-grid';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import GenericModel from '../../../components/generic-model/generic-model';
-import { CommonModule, NgStyle } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { FlexiToastService } from 'flexi-toast';
 import { IncomingDocumentService } from '../../services/incomingdocument';
 import { IncomingDocumentModel } from '../../models/incoming-document/incoming-document.model';
@@ -27,6 +27,10 @@ import { UserRoleService } from '../../services/user-role';
 import { normalizeRoleName } from '../../services/role-service';
 import { UserModel } from '../users/users';
 import { forkJoin, map, of, catchError, switchMap } from 'rxjs';
+import { httpResource } from '@angular/common/http';
+import { UPLOAD_DOCUMENT_ROLES, UploadDocumentModal } from '../../../components/upload-document-modal/upload-document-modal';
+import { DocumentNumberUploadError, DocumentUploadFlow } from '../../services/document-upload-flow';
+import { isPublished, isPublishFailed, isPublishing, isSentToPublish, publishStatusLabel } from '../../models/publishstatus.model';
 
 // Atama popup'ında yalnızca evrak kaydı yapabilen (Gelen Evrak rolündeki) personel listelenir.
 const ASSIGNABLE_ROLE = 'Gelen Evrak';
@@ -39,9 +43,8 @@ type ScanListRow = IncomingDocumentModel & { currentAssignmentUser?: string | nu
   imports: [
     FlexiGridModule,
     GenericModel,
-    RouterLink,
-    NgStyle,
-    CommonModule
+    CommonModule,
+    UploadDocumentModal
   ],
   templateUrl: './scanlist.html',
   styleUrls: ['./scanlist.css'],
@@ -199,9 +202,9 @@ export default class Scanlist {
         ocrStr: (item.status ?? 0).toString()
       }));
 
-      // yayınlanan filtre
+      // yayınlanan filtre: yayına gönderilmiş evraklar (submissionStatus >= 2)
       if (this.showPublished) {
-        mapped = mapped.filter((x: IncomingDocumentModel) => x.status === 10);
+        mapped = mapped.filter((x: IncomingDocumentModel) => isSentToPublish(x));
       }
 
       this.scanListData.set(mapped);
@@ -393,8 +396,107 @@ export default class Scanlist {
     return `${first}${last}`.toLocaleUpperCase('tr');
   }
 
+  // Popup'ta kişi adının yanında çalıştığı birimin kısa adı parantez içinde gösterilir.
+  // Zimmet kaydı birim taşımadığı için kullanıcı listesinden userId ile eşlenir. Atama
+  // popup'ının listesi yalnızca Gelen Evrak rolünü tuttuğundan tüm kullanıcılar ayrıca,
+  // sayfa açılışını yavaşlatmasın diye popup ilk açıldığında bir kez yüklenir.
+  private readonly allUsersRequested = signal(false);
+  readonly allUsersResult = httpResource<UserModel[]>(() => this.allUsersRequested() ? 'api/Users/GetAll' : undefined);
+  readonly userDepartmentShortMap = computed(() => {
+    const map: Record<string, string> = {};
+    for (const u of this.allUsersResult.value() ?? []) {
+      const short = u.departmentShortName?.trim() || u.departmentName?.trim();
+      if (u.id && short) map[u.id.toLowerCase()] = short;
+    }
+    return map;
+  });
+
+  personLabel(a: DocumentAllocationModel): string {
+    const name = a.fullName || '-';
+    const short = a.userId ? this.userDepartmentShortMap()[a.userId.toLowerCase()] : undefined;
+    return short ? `${name} (${short})` : name;
+  }
+
+  // Hareket kartının altında, Ön Kayıt dışındaki durumlarda işlemi yapan kişi küçük
+  // gösterilir ("Devreden: …", "Teslim eden: …"). Gelen evrak zimmet kaydı işlemi yapanı
+  // taşımadığından kişi zincirden bulunur: kayıttan hemen önceki (tarihe göre) zimmetin
+  // sahibi evrakı devreden / teslim eden kişidir.
+  readonly allocationActorLabels: Partial<Record<AllocationStatusEnum, string>> = {
+    [AllocationStatusEnum.Devir]: 'Devreden',
+    [AllocationStatusEnum.Teslim]: 'Teslim eden',
+    [AllocationStatusEnum.TeslimAlindi]: 'Teslim eden',
+    [AllocationStatusEnum.Arsiv]: 'Arşive kaldıran',
+    [AllocationStatusEnum.KargoyaVerildi]: 'Kargoya veren'
+  };
+
+  readonly zimmetActors = computed(() => {
+    const chronological = [...this.zimmetHistory()]
+      .sort((a, b) => new Date(a.createdDate).getTime() - new Date(b.createdDate).getTime());
+    const actors: Record<string, string> = {};
+    chronological.forEach((h, i) => {
+      if (h.status === AllocationStatusEnum.IlkKayit || !this.allocationActorLabels[h.status]) return;
+      const previous = chronological[i - 1];
+      if (previous) actors[h.id] = this.personLabel(previous);
+    });
+    return actors;
+  });
+
+  // Yayınlanma sütunu: Atlas'a yayın durumu (submissionStatus; bkz. publishstatus.model)
+  readonly isPublished = isPublished;
+  readonly isPublishing = isPublishing;
+  readonly isPublishFailed = isPublishFailed;
+  readonly publishStatusLabel = publishStatusLabel;
+
+  // ---- Evrak Yükle penceresi ----
+  // Yönetici listesindeki (documentlist) Evrak Yükle ile aynı: evrak numarası ve PDF ile
+  // gelen evrak yüklenir (DocumentUploadFlow.runWithDocumentNumber), ardından kaydı
+  // tamamlamak için evrak İşleme Al akışıyla Evrak Kayıt'ta açılır. Buton yalnızca
+  // belge yükleme yetkisi olan rollere görünür (UPLOAD_DOCUMENT_ROLES).
+  private readonly uploadFlow = inject(DocumentUploadFlow);
+  readonly canUploadDocument = computed(() => this.#roleService.hasAny(UPLOAD_DOCUMENT_ROLES));
+  readonly newUploadOpen = signal(false);
+  readonly newUploadLoading = signal(false);
+
+  openNewUpload(): void {
+    if (!this.canUploadDocument()) return;
+    this.newUploadOpen.set(true);
+  }
+
+  closeNewUpload(): void {
+    if (this.newUploadLoading()) return;
+    this.newUploadOpen.set(false);
+  }
+
+  confirmNewUpload({ qrCode, file }: { qrCode: string; file: File }): void {
+    const userId = this.currentUserId;
+    if (!userId) {
+      this.#toast.showToast('Hata', 'Kullanıcı bulunamadı', 'error');
+      return;
+    }
+    if (this.newUploadLoading()) return;
+
+    this.newUploadLoading.set(true);
+    this.uploadFlow.runWithDocumentNumber(qrCode, file, userId).subscribe({
+      next: (doc) => {
+        this.newUploadLoading.set(false);
+        this.newUploadOpen.set(false);
+        if (doc?.id) {
+          this.goToDetail(doc.id);
+        } else {
+          // Yükleme tamam ama evrak çekilemedi; listede görünsün
+          this.onOcrFilterChange();
+        }
+      },
+      error: (err: DocumentNumberUploadError) => {
+        this.newUploadLoading.set(false);
+        if (err?.userMessage) this.#toast.showToast('Uyarı', err.userMessage, 'warning');
+      }
+    });
+  }
+
   openZimmetHistory(item: IncomingDocumentModel): void {
     if (!item.id) return;
+    this.allUsersRequested.set(true);
     this.zimmetHistoryDoc.set(item);
     this.zimmetHistory.set([]);
     this.zimmetHistoryExpanded.set(true);
@@ -468,7 +570,7 @@ export default class Scanlist {
         let mapped = docs;
 
         if (this.showPublished) {
-          mapped = docs.filter(x => x.status === 10 || x.status === 6); // 10 = yayınlandı
+          mapped = docs.filter(x => isSentToPublish(x));
         }
 
         this.scanListData.set(mapped);
@@ -501,7 +603,7 @@ export default class Scanlist {
         if (this.showPending) {
           const currentUserId = this.user()?.id;
           mapped = docs.filter(
-            x => x.currentAssignmentUserId === currentUserId && (x.status != 6 && x.status != 10)
+            x => x.currentAssignmentUserId === currentUserId && !isSentToPublish(x)
           );
         }
 

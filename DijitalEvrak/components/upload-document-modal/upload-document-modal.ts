@@ -22,6 +22,9 @@ const MAX_SIZE_BYTES = 20 * 1024 * 1024;
  * Henüz taranmamış bir ön kayıt evrakına dosya (PDF) yüklenir; dosya seçimi
  * ve doğrulama burada, sunucuya gönderim ise `confirmed` ile üst bileşende
  * yapılır. Ön Kayıtlar ve QR Okut ekranları aynı pencereyi kullanır.
+ * `newDocument` modunda pencere evrak olmadan açılır: dosyayla birlikte yeni
+ * evrakın numarası (QR kodu) istenir ve `numberConfirmed` ile üst bileşene verilir
+ * (Yönetici "Gelen Evraklar" listesindeki Evrak Yükle).
  */
 @Component({
   selector: 'app-upload-document-modal',
@@ -39,18 +42,25 @@ export class UploadDocumentModal {
   readonly navigationHint = input(true);
   // Onay butonu metni; Evrak Kayıt içinden yüklemede yalnızca "Yükle"
   readonly confirmLabel = input('Yükle ve Kayda Geç');
+  // Yeni evrak modu: pencere `document` olmadan açık kalır, evrak numarası istenir
+  readonly newDocument = input(false);
 
   readonly confirmed = output<File>();
+  readonly numberConfirmed = output<{ qrCode: string; file: File }>();
   readonly cancelled = output<void>();
 
   readonly file = signal<File | null>(null);
+  readonly qrCode = signal('');
   readonly error = signal('');
   readonly dragging = signal(false);
 
   readonly acceptAttr = ALLOWED_EXTENSIONS.join(',');
   readonly maxSizeLabel = `${MAX_SIZE_BYTES / (1024 * 1024)} MB`;
 
+  readonly visible = computed(() => !!this.document() || this.newDocument());
+
   readonly subtitle = computed(() => {
+    if (this.newDocument()) return 'Yeni gelen evrak';
     const doc = this.document();
     if (!doc) return '';
     return `${doc.qrCode || '-'}${doc.orginalNo ? ' · ' + doc.orginalNo : ''}`;
@@ -67,7 +77,9 @@ export class UploadDocumentModal {
     // Her açılışta seçim sıfırlanır
     effect(() => {
       this.document();
+      this.newDocument();
       this.file.set(null);
+      this.qrCode.set('');
       this.error.set('');
       this.dragging.set(false);
     });
@@ -127,9 +139,20 @@ export class UploadDocumentModal {
     this.cancelled.emit();
   }
 
+  readonly canConfirm = computed(() =>
+    !this.loading() && !!this.file() && (!this.newDocument() || !!this.qrCode().trim()));
+
+  onQrCodeInput(event: Event): void {
+    this.qrCode.set((event.target as HTMLInputElement).value);
+  }
+
   confirm(): void {
     const f = this.file();
-    if (this.loading() || !f) return;
+    if (!this.canConfirm() || !f) return;
+    if (this.newDocument()) {
+      this.numberConfirmed.emit({ qrCode: this.qrCode().trim(), file: f });
+      return;
+    }
     this.confirmed.emit(f);
   }
 }

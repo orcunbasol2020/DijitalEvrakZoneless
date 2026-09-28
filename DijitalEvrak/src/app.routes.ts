@@ -26,7 +26,7 @@ export const routes: Routes = [
                 path: "onkayitlar",
                 loadComponent: () => import("./pages/onkayitlar/onkayitlar"),
                 canActivate: [roleGuard],
-                data: { roles: ["Gelen Evrak", "Ön Kayıt"] }
+                data: { roles: ["Gelen Evrak", "Ön Kayıt", "Yönetici"] }
             },
             {
                 path: "qrokut",
@@ -160,7 +160,7 @@ export const routes: Routes = [
                 path: 'envelope',
                 loadComponent: () => import('./pages/envelope/envelope/envelope'),
                 canActivate: [roleGuard],
-                data: { roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Giden Evrak", "Ön Kayıt"] }
+                data: { roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Giden Evrak", "Ön Kayıt", "Yönetici"] }
             },
                         {
                 path: 'gidenzimmet',

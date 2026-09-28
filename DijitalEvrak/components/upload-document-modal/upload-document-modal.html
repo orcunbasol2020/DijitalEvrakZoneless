@@ -1,4 +1,4 @@
-@if (document()) {
+@if (visible()) {
   <div class="modal-overlay" (click)="cancel()">
     <div class="modal-box udm-modal" (click)="$event.stopPropagation()">
       <div class="udm-head">
@@ -6,12 +6,21 @@
           <span class="material-symbols-outlined">upload_file</span>
         </span>
         <div>
-          <h4 class="udm-title">Belge Yükle</h4>
+          <h4 class="udm-title">{{ newDocument() ? 'Evrak Yükle' : 'Belge Yükle' }}</h4>
           <div class="udm-sub">{{ subtitle() }}</div>
         </div>
       </div>
 
       <div class="udm-body">
+        @if (newDocument()) {
+          <label class="udm-field">
+            <span class="udm-field-label">Evrak Numarası</span>
+            <input type="text" class="udm-input" autocomplete="off" placeholder="QR kodundaki numara"
+              [value]="qrCode()" [disabled]="loading()" (input)="onQrCodeInput($event)"
+              (keydown.enter)="confirm()">
+          </label>
+        }
+
         @if (file(); as f) {
           <div class="udm-file">
             <span class="udm-file-icon">
@@ -57,7 +66,7 @@
 
       <div class="udm-foot">
         <button type="button" class="udm-btn-ghost" [disabled]="loading()" (click)="cancel()">İptal</button>
-        <button type="button" class="udm-btn-primary" [disabled]="loading() || !file()" (click)="confirm()">
+        <button type="button" class="udm-btn-primary" [disabled]="!canConfirm()" (click)="confirm()">
           @if (loading()) {
             <span class="spinner-border"></span>
           } @else {

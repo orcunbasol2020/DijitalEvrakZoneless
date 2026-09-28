@@ -2,87 +2,94 @@
   [breadcrumbs]="[{title: 'Gelen Evraklar', url: 'scanlist', icon: ''}]">
 </app-generic>
 
-<div [class.show-filters]="showFilters">
+<div class="st-page">
+<!-- Liste: Kullanıcılar / Roller ile aynı kart başlığı (st-card-head); ızgaranın kendi başlığı kapalı -->
+<section class="st-card us-card">
+  <div class="st-card-head us-head">
+    <span class="st-card-icon">
+      <span class="material-symbols-outlined">add_notes</span>
+    </span>
+    <div>
+      <h4 class="st-card-title">Gelen Evraklar</h4>
+      <div class="st-card-sub">Taranan evrakların türü, gizlilik ve ivedilik bilgisi, atama durumu</div>
+    </div>
+    <div class="zl-head-tools us-head-tools">
+      <!-- Liste kapsamı: Kontrol Paneli sekme grubuyla aynı dil -->
+      <div class="dl-seg" role="group" aria-label="Liste kapsamı">
+        <button type="button" class="dl-seg-btn" title="Tüm evraklar" [class.is-active]="listScope() === 'all'" (click)="setListScope('all')">
+          <span class="material-symbols-outlined">inventory_2</span>
+          Tümü
+        </button>
+        <button type="button" class="dl-seg-btn" title="İşlem bekleyen evraklar" [class.is-active]="listScope() === 'pending'" (click)="setListScope('pending')">
+          <span class="material-symbols-outlined">hourglass_top</span>
+          İşlem Bekleyenler
+        </button>
+        <button type="button" class="dl-seg-btn" title="Yayınlanan evraklar" [class.is-active]="listScope() === 'published'" (click)="setListScope('published')">
+          <span class="material-symbols-outlined">visibility</span>
+          Yayınlananlar
+        </button>
+      </div>
+      <button type="button" class="zl-icon-btn" [class.is-on]="showFilters" title="Filtre Aç/Kapat"
+        (click)="showFilters = !showFilters">
+        <span class="material-symbols-outlined">filter_alt</span>
+      </button>
+      <button type="button" class="zl-icon-btn" title="Excel'e Aktar" (click)="grid.exportExcel()">
+        <span class="material-symbols-outlined">file_export</span>
+      </button>
+      <button type="button" class="zl-icon-btn" title="Güncel Verileri Getir" (click)="onOcrFilterChange()">
+        <span class="material-symbols-outlined">refresh</span>
+      </button>
+      <button type="button" class="zl-btn-primary" (click)="openNewUpload()">
+        <span class="material-symbols-outlined">upload_file</span>
+        Evrak Yükle
+      </button>
+    </div>
+  </div>
+
+<div class="us-grid" [class.show-filters]="showFilters">
   <flexi-grid
-    [data]="scanListData()"
+    #grid
+    [data]="gridRows()"
     [loading]="loading()"
-    [showCaption]="true"
-    captionTitle="Gelen Evraklar"
-    [showExportExcelBtn]="true"
+    [showCaption]="false"
     exportExcelFileName="TaranmisEvrakListesi"
     [filterable]="true"
     language="tr"
     (onRefresh)="onOcrFilterChange()">
-
-    <ng-template flexiGridCaptionCommandTemplate>
-      <span class="ocr-title">OCR :</span>
-      <div class="ocr-tab-container">
-        <button
-          class="ocr-tab"
-          [class.active]="selectedOcrFilter === 'all'"
-          (click)="setOcrFilter('all')">
-          Tümü
-        </button>
-        <button
-          class="ocr-tab"
-          [class.active]="selectedOcrFilter === 'completed'"
-          (click)="setOcrFilter('completed')">
-          Tamamlanan
-        </button>
-        <button
-          class="ocr-tab"
-          [class.active]="selectedOcrFilter === 'pending'"
-          (click)="setOcrFilter('pending')">
-          Bekleyen
-        </button>
-        <button
-          class="ocr-tab"
-          [class.active]="selectedOcrFilter === 'error'"
-          (click)="setOcrFilter('error')">
-          Hatalı
-        </button>
-      </div>
-      <div class="publish-toggle">
-        <span class="publish-label ms-2">İşlem Bekleyenlerim : </span>
-        <button
-          class="publish-chip"
-          [class.active]="showPending"
-          (click)="togglePending()">
-          <span class="material-symbols-outlined">
-            {{ showPending ? 'person_shield' : 'person_shield' }}
-          </span>
-        </button>
-        <div class="toggle-separator"></div>
-        <span class="publish-label">Yayınlananlar : </span>
-        <button
-          class="publish-chip"
-          [class.active]="showPublished"
-          (click)="togglePublished()">
-          <span class="material-symbols-outlined">
-            {{ showPublished ? 'visibility' : 'visibility_off' }}
-          </span>
-        </button>
-      </div>
-      <flexi-button
-        btnIcon="filter_alt"
-        btnColor="light"
-        title="Filtre Aç/Kapat"
-        flexiTooltip
-        (click)="showFilters = !showFilters">
-      </flexi-button>
-      <flexi-button
-        routerLink="/scanlist/create"
-        btnIcon="upload_file"
-        btnColor="dark"
-        title="Taranmış Evrak Yükle"
-        flexiTooltip>
-      </flexi-button>
-    </ng-template>
-    <flexi-grid-column field="qrCode" title="Belge No" />
-    <flexi-grid-column field="documentName" title="Dosya Adı" />
+    <flexi-grid-column field="qrCode" title="Belge No" width="120px" />
+    <flexi-grid-column field="documentTypeLabel" title="Türü" textAlign="left" width="110px"
+      filterType="select" [filterData]="documentTypeFilterData" />
+    <flexi-grid-column field="securityDegreeLabel" title="Gizlilik Der." textAlign="center" width="110px"
+      filterType="select" [filterData]="securityDegreeFilterData">
+      <ng-template flexiGridCellTemplate let-item>
+        <span class="degree-badge-circle security-badge {{ securityDegreeBadgeClassMap[item.securityDegree] || 'degree-tier-1' }}"
+          [title]="securityDegreeMap[item.securityDegree] || '-'">
+          <span class="material-symbols-outlined">{{ securityDegreeIconMap[item.securityDegree] || 'help' }}</span>
+        </span>
+      </ng-template>
+    </flexi-grid-column>
     <flexi-grid-column title="Belge Tarihi" width="100px">
       <ng-template flexiGridCellTemplate let-item>
         {{ item.documentDate | date:'dd.MM.yyyy' }}
+      </ng-template>
+    </flexi-grid-column>
+    <flexi-grid-column field="urgencyDegreeLabel" title="İvedilik" textAlign="center" width="90px"
+      filterType="select" [filterData]="urgencyDegreeFilterData">
+      <ng-template flexiGridCellTemplate let-item>
+        <span class="degree-badge-circle urgency-badge {{ urgencyDegreeBadgeClassMap[item.urgencyDegree] || 'degree-tier-1' }}"
+          [title]="urgencyDegreeMap[item.urgencyDegree] || '-'">
+          {{ urgencyDegreeInitialMap[item.urgencyDegree] || '-' }}
+        </span>
+      </ng-template>
+    </flexi-grid-column>
+    <flexi-grid-column field="fromLabel" title="Nereden" textAlign="left">
+      <ng-template flexiGridCellTemplate let-item>
+        <span class="dl-ellipsis" [title]="item.fromTitle">{{ item.fromLabel }}</span>
+      </ng-template>
+    </flexi-grid-column>
+    <flexi-grid-column field="toLabel" title="Nereye" textAlign="left" width="110px">
+      <ng-template flexiGridCellTemplate let-item>
+        <span class="dl-ellipsis" [title]="item.toTitle">{{ item.toLabel }}</span>
       </ng-template>
     </flexi-grid-column>
     <flexi-grid-column
@@ -92,98 +99,7 @@
       filterType="select"
       [filterData]="personFilter()">
     </flexi-grid-column>
-    <flexi-grid-column
-      field="durum"
-      title="Yayınlanma"
-      width="100px"
-      textAlign="center">
-      <ng-template flexiGridCellTemplate let-item>
-        <span
-          class="material-symbols-outlined"
-          style="font-size: 1.35rem; vertical-align: middle;"
-          [ngStyle]="{
-        'color': item.status === 6 ? '#94a3b8' : 
-                 (item.status === 10 ? '#22c55e' : '#94a3b8') 
-      }"
-          [title]="
-        item.status === 6 ? 'Yayınlanma Sırasında' : 
-        item.status === 10 ? 'Yayınlandı' : 'Beklemede'
-      ">
-          {{
-          item.status === 6 ? 'hourglass_bottom' :
-          item.status === 10 ? 'check_circle' : ''
-          }}
-        </span>
-      </ng-template>
-    </flexi-grid-column>
-    <!-- OCR DURUM İKONU -->
-    <flexi-grid-column
-      field="durum"
-      title="OCR"
-      width="80px"
-      textAlign="center">
-      <ng-template flexiGridCellTemplate let-item>
-        <span
-          class="material-symbols-outlined"
-          style="font-size: 1.35rem; vertical-align: middle;"
-          [ngStyle]="{
-            'color': item.ocrStatus === 1 ? '#22c55e' :
-                     (item.ocrStatus === 2 ? '#ef4444' : '#94a3b8') 
-          }">
-
-          {{
-          item.ocrStatus === 1
-          ? 'check_circle'
-          : item.ocrStatus === 2
-          ? 'error'
-          : 'hourglass_bottom'
-          }}
-        </span>
-      </ng-template>
-    </flexi-grid-column>
-    <flexi-grid-column title="İşleme Al" textAlign="center" width="90px"
-      field="assignmentStatus">
-      <ng-template flexiGridCellTemplate let-item>
-        <flexi-button
-          *ngIf="item.documentName"
-          [btnIcon]="
-        item.currentAssignmentUserId === currentUserId
-          ? 'motion_play'
-          : item.currentAssignmentUserId
-            ? 'key'
-            : 'expand_circle_right'
-      "
-          [title]="
-  item.status === 1 || item.status === 2 || item.status === 4
-    ? (item.currentAssignmentUserId === currentUserId
-        ? 'İşleme Devam Et'
-        : item.currentAssignmentUserId
-          ? 'Atama Yapılmış'
-          : 'İşleme Al')
-    : 'Belge Detayına Git'
-"
-          [btnColor]="
-  item.status === 1 || item.status === 2 || item.status === 4
-    ? (item.currentAssignmentUserId === currentUserId
-        ? 'secondary'
-        : item.currentAssignmentUserId
-          ? 'light'
-          : 'primary')
-    : 'dark'
-"
-          (click)="
-  item.status === 1 || item.status === 2 || item.status === 4
-    ? (item.currentAssignmentUserId === currentUserId
-        ? goToDetail(item.id)
-        : item.currentAssignmentUserId
-          ? openPersonModal(item.id)
-          : goToDetail(item.id))
-    : goToDetail(item.id)
-">
-        </flexi-button>
-      </ng-template>
-    </flexi-grid-column>
-    <flexi-grid-column title="Takip" textAlign="center" width="55px">
+    <flexi-grid-column title="Takip" textAlign="center" width="80px">
       <ng-template flexiGridCellTemplate let-item>
         <flexi-button
           btnIcon="conversion_path"
@@ -193,7 +109,7 @@
         </flexi-button>
       </ng-template>
     </flexi-grid-column>
-    <flexi-grid-column title="Zimmet" textAlign="center" width="65px">
+    <flexi-grid-column title="Zimmet" textAlign="center" width="100px">
       <ng-template flexiGridCellTemplate let-item>
         <flexi-button
           btnIcon="article_person"
@@ -203,36 +119,157 @@
         </flexi-button>
       </ng-template>
     </flexi-grid-column>
-    <flexi-grid-column textAlign="center" width="50px">
+    <!-- Zimmet geçmişi: Gelen Evraklar (scanlist) listesindeki popup'ın aynısı -->
+    <flexi-grid-column title="Geçmiş" textAlign="center" width="80px" [filterable]="false" [sortable]="false">
       <ng-template flexiGridCellTemplate let-item>
         <flexi-button
-          btnIcon="delete"
-          title="Taranmış Evrakı Sil"
-          btnColor="warning"
-          (click)="delete(item.id)">
+          btnIcon="history"
+          title="Zimmet Geçmişi"
+          btnColor="light"
+          (click)="openZimmetHistory(item)">
+        </flexi-button>
+      </ng-template>
+    </flexi-grid-column>
+    <flexi-grid-column title="Detay" textAlign="center" width="70px" [filterable]="false" [sortable]="false">
+      <ng-template flexiGridCellTemplate let-item>
+        <!-- Yönetici: kilit / atama kontrolü yok, her durumda belge detayına gider -->
+        <flexi-button
+          btnIcon="expand_circle_right"
+          title="Belge Detayına Git"
+          btnColor="primary"
+          (click)="goToDetail(item.id)">
         </flexi-button>
       </ng-template>
     </flexi-grid-column>
   </flexi-grid>
 </div>
+</section>
+</div>
 
-<div *ngIf="modalVisible" class="modal-overlay">
-  <div class="modal-box">
-    <div class="modal-header">
-      <h5>Atanacak Personel</h5>
-      <span class="material-symbols-outlined close-btn"
-        (click)="closePersonModal()">close</span>
-    </div>
-    <div class="modal-body">
-      <select id="personSelect" class="form-select"
-        [(ngModel)]="selectedPerson">
-        <option *ngFor="let p of personList" [ngValue]="p">{{ p.name }}</option>
-      </select>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary"
-        (click)="closePersonModal()">İptal</button>
-      <button class="btn btn-primary" (click)="savePerson()">Kaydet</button>
+
+<!-- Zimmet Geçmişi Popup (tüm roller: evrakın mevcut ve geçmiş zimmetleri) -->
+@if (zimmetHistoryVisible()) {
+  <div class="modal-overlay" (click)="closeZimmetHistory()">
+    <div class="modal-box zh-modal" (click)="$event.stopPropagation()">
+      <!-- Başlık -->
+      <div class="zh-header">
+        <div class="zh-header-top">
+          <div class="zh-title">Zimmet Geçmişi</div>
+          <button type="button" class="zh-close" title="Kapat" (click)="closeZimmetHistory()">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <div class="zh-header-main">
+          <div class="zh-header-icon">
+            <span class="material-symbols-outlined">history</span>
+          </div>
+          <div class="zh-header-text">
+            <div class="zh-doc-no">{{ zimmetHistoryDoc()?.qrCode }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Aktif zimmet özeti -->
+      @if (!zimmetHistoryLoading()) {
+        @if (activeZimmet(); as a) {
+          <div class="zh-hero is-active">
+            <span class="zh-avatar">{{ initials(a.fullName) }}</span>
+            <div class="zh-hero-text">
+              <div class="zh-hero-label">
+                <span class="zh-pulse"></span>
+                Aktif Zimmet
+              </div>
+              <div class="zh-hero-name">{{ personLabel(a) }}</div>
+            </div>
+            <!-- Aktif zimmette durum çipi gösterilmez; durum zaten hareket listesinde görünür. -->
+            <div class="zh-hero-side">
+              <span class="zh-date">
+                <span class="material-symbols-outlined">schedule</span>
+                {{ a.createdDate | date:'dd.MM.yyyy HH:mm' }}
+              </span>
+            </div>
+          </div>
+        } @else if (zimmetHistory().length) {
+          <div class="zh-hero is-empty">
+            <span class="zh-avatar is-muted">
+              <span class="material-symbols-outlined">person_off</span>
+            </span>
+            <div class="zh-hero-text">
+              <div class="zh-hero-label">Aktif Zimmet</div>
+              <div class="zh-hero-name">Şu an kimsenin üzerinde değil</div>
+            </div>
+          </div>
+        }
+      }
+
+      <!-- Zaman çizelgesi -->
+      <div class="zh-body">
+        @if (zimmetHistoryLoading()) {
+          <div class="zh-state">
+            <div class="spinner-border spinner-border-sm text-primary"></div>
+            <span>Zimmet geçmişi yükleniyor</span>
+          </div>
+        } @else if (zimmetHistory().length) {
+          <button
+            type="button"
+            class="zh-section-title zh-section-toggle"
+            [class.is-open]="zimmetHistoryExpanded()"
+            [attr.aria-expanded]="zimmetHistoryExpanded()"
+            [title]="zimmetHistoryExpanded() ? 'Hareketleri gizle' : 'Hareketleri göster'"
+            (click)="toggleZimmetHistoryExpanded()">
+            <span class="material-symbols-outlined">timeline</span>
+            Hareketler
+            <span class="zh-section-count">{{ zimmetHistory().length }}</span>
+            <span class="material-symbols-outlined zh-section-chevron">expand_more</span>
+          </button>
+          @if (zimmetHistoryExpanded()) {
+          <div class="zh-timeline">
+            @for (h of zimmetHistory(); track h.id) {
+              <div class="zh-row" [class.is-active]="h.isActive">
+                <span class="zh-dot {{ allocationStatusClass[h.status] || '' }}" [class.is-past]="!h.isActive">
+                  <span class="material-symbols-outlined">{{ allocationStatusIcons[h.status] || 'person' }}</span>
+                </span>
+                <div class="zh-card">
+                  <div class="zh-card-main">
+                    <div class="zh-name" [title]="personLabel(h)">{{ personLabel(h) }}</div>
+                    @if (zimmetActors()[h.id]; as actor) {
+                      <div class="zh-meta">
+                        <span class="material-symbols-outlined">person</span>
+                        <span class="zh-meta-by">{{ allocationActorLabels[h.status] }}: <strong>{{ actor }}</strong></span>
+                      </div>
+                    }
+                  </div>
+                  <div class="zh-card-side">
+                    <span class="zh-status-chip {{ allocationStatusClass[h.status] || '' }}">
+                      <span class="material-symbols-outlined">{{ allocationStatusIcons[h.status] || 'label' }}</span>
+                      {{ allocationStatusLabels[h.status] || '-' }}
+                    </span>
+                    <span class="zh-date">
+                      <span class="material-symbols-outlined">schedule</span>
+                      {{ h.createdDate | date:'dd.MM.yyyy HH:mm' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+          }
+        } @else {
+          <div class="zh-state is-empty">
+            <span class="zh-state-icon">
+              <span class="material-symbols-outlined">history_toggle_off</span>
+            </span>
+            <div class="zh-state-title">Zimmet kaydı yok</div>
+            <div class="zh-state-desc">Bu evrak için henüz bir zimmet hareketi oluşmamış.</div>
+          </div>
+        }
+      </div>
     </div>
   </div>
-</div>
+}
+
+<app-upload-document-modal
+  [newDocument]="newUploadOpen()"
+  [loading]="newUploadLoading()"
+  (numberConfirmed)="confirmNewUpload($event)"
+  (cancelled)="closeNewUpload()" />

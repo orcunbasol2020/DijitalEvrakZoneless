@@ -30,7 +30,7 @@ export const navigations: NavigationModel[] = [
         title: "Ön Kayıtlar",
         url: "/onkayitlar",
         icon: "pending_actions",
-        roles: ["Gelen Evrak", "Ön Kayıt"]
+        roles: ["Gelen Evrak", "Ön Kayıt", "Yönetici"]
     },
     {
         title: "Evrak Kayıt",
@@ -60,16 +60,16 @@ export const navigations: NavigationModel[] = [
         roles: ["Yönetici"]
     },
     {
+        title: "Taranmış Evraklar",
+        url: "/scanneddocument",
+        icon: "scanner",
+        roles: ["Gelen Evrak"]
+    },
+    {
         title: "Zimmet",
         url: "/zimmet",
         icon: "contract_edit",
         roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Ön Kayıt"]
-    },
-    {
-        title: "Taranmış Evraklar",
-        url: "/scanneddocument",
-        icon: "folder_match",
-        roles: ["Gelen Evrak"]
     },
     {
         title: "Havale (AI)",
@@ -105,7 +105,7 @@ export const navigations: NavigationModel[] = [
         title: "Zarflar",
         url: "/envelope",
         icon: "stacked_email",
-        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Giden Evrak", "Ön Kayıt"]
+        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Giden Evrak", "Ön Kayıt", "Yönetici"]
     },
     {
         title: "Zarf Etiketi",

@@ -9,7 +9,7 @@ import { BreadcrumbModel } from '../layouts/breadcrumb/breadcrumb';
 import { IncomingDocumentService } from '../../services/incomingdocument';
 import { Department, DepartmentModel } from '../../services/department';
 import { ExternalInstitution, ExternalInstitutionModel } from '../../services/external-institution';
-import { Observable, startWith, map } from 'rxjs';
+import { Observable, startWith, map, switchMap } from 'rxjs';
 import { SimpleAutocompleteComponent } from '../simpleautocomplete/simpleautocomplete';
 import { IncomingDocumentModel } from '../../models/incoming-document/incoming-document.model';
 import { Common } from '../../services/common';
@@ -23,12 +23,14 @@ import { DocumentAllocation } from '../../services/documentallocation';
 import { RoleService } from '../../services/role-service';
 import { UPLOAD_DOCUMENT_ROLES, UploadDocumentModal } from '../../../components/upload-document-modal/upload-document-modal';
 import { DocumentUploadFlow } from '../../services/document-upload-flow';
-import { INCOMING_STATUS_ON_KAYIT } from '../../services/incomingdocument';
+import { INCOMING_STATUS_KAYIT, INCOMING_STATUS_ON_KAYIT, INCOMING_STATUS_PUBLISH_REQUEST } from '../../services/incomingdocument';
+import { PublishStatusEnum, PublishStatusLabels, publishStatusOf } from '../../models/publishstatus.model';
 
-// "Diğer Bilgiler" sekmesinin varsayılanları: Hizmete Özel, Normal ivedilik, elektronik kopya yok, Türkçe (1)
+// Varsayılanlar: Hizmete Özel, Normal ivedilik, Gereği, elektronik kopya yok, Türkçe (1)
 const DETAIL_DEFAULTS = {
   securityDegree: SecurityDegreeEnum.ServiceUseOnly,
   urgencyDegree: UrgencyDegreeEnum.Normal,
+  actionRequired: true,
   electronicCopy: false,
   languageId: 1,
 } as const;
@@ -65,13 +67,35 @@ export default class Evrakkayit implements OnInit {
     if (tab === 'transaction') this.loadTransactions();
   }
 
+  // Atlas'a yayın durumu (submissionStatus); evrakın akış durumundan (docStatus) ayrıdır.
+  readonly publishState = signal<PublishStatusEnum>(PublishStatusEnum.Yayinlanmadi);
+
   // Başlıktaki durum rozeti: yayın durumu öncelikli, aksi halde kayıt durumu
   readonly statusBadge = computed(() => {
-    const status = this.docStatus();
-    if (status === 10) return { text: 'Yayınlandı', tone: 'success', icon: 'verified' };
-    if (status === 6) return { text: 'Yayınlanma Sırasında', tone: 'warning', icon: 'hourglass_top' };
-    return { text: 'Kayıt', tone: 'info', icon: 'edit_document' };
+    switch (this.publishState()) {
+      case PublishStatusEnum.Yayinlandi: return { text: 'Yayınlandı', tone: 'success', icon: 'verified' };
+      case PublishStatusEnum.AktarimSirasinda: return { text: 'Aktarım Sırasında', tone: 'warning', icon: 'hourglass_top' };
+      case PublishStatusEnum.Aktariliyor: return { text: 'Aktarılıyor', tone: 'warning', icon: 'sync' };
+      case PublishStatusEnum.AktarimHatali: return { text: 'Aktarım Hatalı', tone: 'danger', icon: 'error' };
+      default: return { text: 'Kayıt', tone: 'info', icon: 'edit_document' };
+    }
   });
+
+  // Önizleme başlığındaki yayın rozeti yalnızca yayına gönderilmiş evrakta görünür
+  readonly showPublishPill = computed(() => this.publishState() !== PublishStatusEnum.Yayinlanmadi);
+
+  // Yayına gönderilen evrakın durumu okunur; Aktarım Sırasında / Aktarılıyor iken ya da
+  // yayınlandıysa Kaydet ve Yayınla butonları pasiftir (aynı evrak tekrar sıraya alınmaz).
+  // Aktarım hatalıysa servis yeniden dener, butonlar açık kalır.
+  private applyPublishState(doc: IncomingDocumentModel) {
+    const state = publishStatusOf(doc);
+    this.publishState.set(state);
+    this.activeStatus.set(
+      state === PublishStatusEnum.AktarimSirasinda
+      || state === PublishStatusEnum.Aktariliyor
+      || state === PublishStatusEnum.Yayinlandi
+    );
+  }
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private incomingDocumentService = inject(IncomingDocumentService);
@@ -218,7 +242,8 @@ export default class Evrakkayit implements OnInit {
   private applyUploadedDocument(doc: IncomingDocumentModel, attempt = 0) {
     this.loadedDoc.set(doc);
     this.loadedStatus.set(doc.status);
-    if (!this.activeStatus()) this.docStatus.set(doc.status);
+    this.docStatus.set(doc.status);
+    this.applyPublishState(doc);
     this.form.patchValue({ documentName: doc.documentName ?? '' });
     this.formDetail.patchValue({ status: doc.status });
     this.applyDocumentFile(doc);
@@ -285,7 +310,7 @@ export default class Evrakkayit implements OnInit {
       // Gizlilik derecesi, ivedilik derecesi ve Gereği/Bilgi "Evrak Kayıt" sekmesinde girilir
       securityDegree: [DETAIL_DEFAULTS.securityDegree],
       urgencyDegree: [DETAIL_DEFAULTS.urgencyDegree],
-      actionRequired: [null],
+      actionRequired: [DETAIL_DEFAULTS.actionRequired as boolean | null],
     });
 
     this.formDetail = this.fb.group({
@@ -321,12 +346,8 @@ export default class Evrakkayit implements OnInit {
 
         this.loadedStatus.set(doc.status ?? null);
         this.loadedDoc.set(doc);
-
-        if (doc.status === 6 || doc.status === 10)  // yayinla durumu
-        {
-          this.activeStatus.set(true);
-          this.docStatus.set(doc.status);
-        }
+        if (doc.status) this.docStatus.set(doc.status);
+        this.applyPublishState(doc);
 
         // Belge yüklenmemiş olsa da kayıt yapılabilir; dosya sonradan eklenebilir
         if (!doc.documentName) {
@@ -343,7 +364,7 @@ export default class Evrakkayit implements OnInit {
           documentDate: doc.documentDate?.split('T')[0],
           securityDegree: doc.securityDegree ?? DETAIL_DEFAULTS.securityDegree,
           urgencyDegree: doc.urgencyDegree ?? DETAIL_DEFAULTS.urgencyDegree,
-          actionRequired: doc.actionRequired ?? null
+          actionRequired: doc.actionRequired ?? DETAIL_DEFAULTS.actionRequired
         });
 
         this.applyDocumentFile(doc);
@@ -497,46 +518,61 @@ export default class Evrakkayit implements OnInit {
       return;
     }
 
-    if (this.publish()) {
-      this.docStatus.set(6);
-      this.activeStatus.set(true);
-    }
-    else {
-      this.docStatus.set(2);
-      this.activeStatus.set(false);
-    }
-
+    const publishing = this.publish();
+    // Yayınla sırasında butonlar hemen kilitlenir (çift tıklamada evrak iki kez sıraya girmesin)
+    if (publishing) this.activeStatus.set(true);
 
     const formData: IncomingDocumentModel = {
       ...raw,
       departmentId: raw.departmentId?.id ?? null,
       externalInstitutionId: raw.externalInstitutionId?.id ?? null,
       userId: userId,
-      status: this.docStatus(),
+      status: INCOMING_STATUS_KAYIT,
       // Oluşturan kullanıcı yalnızca ilk kayıtta yazılır; güncellemede değişmez.
       ...(raw.id ? {} : { createdUserId: userId }),
     };
 
-    // 🔹 Eğer ID varsa update, yoksa create
-    const saveObs = formData.id
-      ? this.incomingDocumentService.updateIncomingDocument(formData)
-      : this.incomingDocumentService.createIncomingDocument(formData);
-
     // İlk kayıt mı: evrak Ön Kayıt durumundan çıkıyorsa zimmet kayıt yapan personele devredilir
     const isFirstRegistration = !!formData.id && this.loadedStatus() === INCOMING_STATUS_ON_KAYIT;
+
+    // Yayınla, Update'e status 6 gönderir: backend evrakın akış durumuna dokunmaz, yayın
+    // durumunu (submissionStatus) Aktarım Sırasında yapar. Ön Kayıt'taki evrak bu yüzden
+    // önce Kayıt Tamamlandı (2) olarak kaydedilir, ardından yayına gönderilir.
+    let saveObs: Observable<unknown>;
+    if (!formData.id) {
+      saveObs = this.incomingDocumentService.createIncomingDocument(
+        publishing ? { ...formData, status: INCOMING_STATUS_PUBLISH_REQUEST } : formData);
+    } else if (!publishing) {
+      saveObs = this.incomingDocumentService.updateIncomingDocument(formData);
+    } else {
+      const publishRequest = this.incomingDocumentService.updateIncomingDocument(
+        { ...formData, status: INCOMING_STATUS_PUBLISH_REQUEST });
+      saveObs = isFirstRegistration
+        ? this.incomingDocumentService.updateIncomingDocument(formData).pipe(switchMap(() => publishRequest))
+        : publishRequest;
+    }
+
+    // Yayınla akış durumunu değiştirmez; Ön Kayıt'tan çıkan evrak Kayıt Tamamlandı olur
+    const nextStatus = publishing && !isFirstRegistration
+      ? (this.loadedStatus() ?? INCOMING_STATUS_KAYIT)
+      : INCOMING_STATUS_KAYIT;
 
     saveObs.subscribe({
       next: () => {
 
         let msg = formData.id ? "Belge başarıyla güncellendi." : "Başarılı";
 
-        if (this.publish())
-          msg = formData.id ? "Belge güncellendi, yayınlanma sırasına alındı." : "Başarılı";
+        if (publishing)
+          msg = formData.id ? "Belge güncellendi, Atlas'a aktarım sırasına alındı." : "Başarılı";
 
         this.toast.showToast("Başarılı", msg);
 
+        this.docStatus.set(nextStatus);
+        this.formDetail.patchValue({ status: nextStatus });
+        if (publishing) this.publishState.set(PublishStatusEnum.AktarimSirasinda);
+
         // Aynı ekranda tekrar kaydedilirse devir yeniden tetiklenmez
-        this.loadedStatus.set(this.docStatus());
+        this.loadedStatus.set(nextStatus);
 
         if (isFirstRegistration && formData.id) {
           this.transferAllocationToMe(formData.id, userId);
@@ -544,6 +580,7 @@ export default class Evrakkayit implements OnInit {
       },
       error: (err) => {
         console.error(err);
+        if (publishing) this.activeStatus.set(false);
         this.toast.showToast("Kayıt Başarısız", "Belge kaydedilirken bir hata oluştu.");
       }
     });
@@ -582,14 +619,11 @@ export default class Evrakkayit implements OnInit {
         documentDate: doc.documentDate?.split('T')[0],
         securityDegree: doc.securityDegree ?? DETAIL_DEFAULTS.securityDegree,
         urgencyDegree: doc.urgencyDegree ?? DETAIL_DEFAULTS.urgencyDegree,
-        actionRequired: doc.actionRequired ?? null
+        actionRequired: doc.actionRequired ?? DETAIL_DEFAULTS.actionRequired
       });
 
-      if (doc.status === 6 || doc.status === 10) // yayinla durumu
-      {
-        this.activeStatus.set(true);
-        this.docStatus.set(doc.status);
-      }
+      if (doc.status) this.docStatus.set(doc.status);
+      this.applyPublishState(doc);
 
       this.applyDocumentFile(doc);
 
@@ -662,45 +696,40 @@ export default class Evrakkayit implements OnInit {
     }
   }
 
-  getStatusText(): string {
-    const value = this.formDetail.get('status')?.value;
-
+  // Evrakın akış durumu (DocumentStatusEnum). Yayın ayrı alanda (submissionStatus) tutulur.
+  // Eski kayıtlarda kalmış 6 / 10 (yayın) değerleri akış olarak Kayıt Tamamlandı sayılır.
+  getStatusText(value: number | null | undefined = this.formDetail.get('status')?.value): string {
     switch (value) {
       case 1: return 'Ön Kayıt';
       case 2: return 'Kayıt Tamamlandı';
-      case 3: return 'Yayınlandı';
-      case 4: return 'Teslim Edildi';
-      case 6: return 'Yayınla';
-      case 10: return 'Yayınlandı';
+      case 3: return 'Teslim Edildi';
+      case 4: return 'Eşleştirme';
+      case 5: return 'OCR';
+      case 6:
+      case 10: return 'Kayıt Tamamlandı';
       default: return '-';
     }
   }
 
-  // İşlem Takip sekmesindeki DURUM değeri: yayın akışına girmiş evrakta docStatus
-  // esas alınır (6 = Yayınla, 10 = Yayınlandı); aksi halde formdaki kayıt durumu.
+  // İşlem Takip sekmesindeki DURUM değeri: ekrandaki güncel akış durumu
   durumText(): string {
-    const status = this.docStatus();
-    if (status === 10) return 'Yayınlandı';
-    if (status === 6) return 'Yayınla';
-    return this.getStatusText();
+    return this.getStatusText(this.docStatus());
   }
   getSecurityDegreeText(): string {
     const value = this.form.get('securityDegree')?.value;
     return this.securityDegreeOptions.find(opt => opt.value === value)?.label ?? '-';
   }
 
+  // YAYIN çipi: Atlas'a yayın durumu (submissionStatus etiketleri)
   getReleaseText(): string {
-    const value = this.formDetail.get('release')?.value;
-
-    if (value === true) return 'Yayınlandı';
-    return 'Yayınlanmadı'; // false veya null dahil
+    return PublishStatusLabels[this.publishState()];
   }
 
   // İşlem Takip sekmesi: durum özet çipleri için renk sınıfı (metne göre belirlenir).
   statusChipClass(): string {
     const text = this.durumText();
-    if (text === 'Yayınlandı' || text === 'Teslim Edildi') return 'chip-success';
-    if (text === 'Yayınla' || text === 'Kayıt Tamamlandı') return 'chip-warning';
+    if (text === 'Teslim Edildi') return 'chip-success';
+    if (text === 'Kayıt Tamamlandı') return 'chip-warning';
     if (text === 'Ön Kayıt') return 'chip-info';
     return 'chip-muted';
   }
@@ -713,7 +742,13 @@ export default class Evrakkayit implements OnInit {
   }
 
   releaseChipClass(): string {
-    return this.getReleaseText() === 'Yayınlandı' ? 'chip-success' : 'chip-muted';
+    switch (this.publishState()) {
+      case PublishStatusEnum.Yayinlandi: return 'chip-success';
+      case PublishStatusEnum.AktarimSirasinda:
+      case PublishStatusEnum.Aktariliyor: return 'chip-warning';
+      case PublishStatusEnum.AktarimHatali: return 'chip-danger';
+      default: return 'chip-muted';
+    }
   }
 
   // İşlem geçmişi zaman çizelgesi: işlem tipine göre ikon ve renk.

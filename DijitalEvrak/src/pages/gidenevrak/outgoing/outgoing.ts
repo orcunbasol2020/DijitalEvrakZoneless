@@ -27,6 +27,9 @@ import { DocumentTypeLabels } from '../../../models/documenttype.model';
 import { Common } from '../../../services/common';
 import { RoleService } from '../../../services/role-service';
 
+// Guid eşlemeleri harf duyarsız: kayıtlardaki Id'ler listelerdekinden farklı harfle gelebilir
+const key = (id: string) => id.toLowerCase();
+
 @Component({
   imports: [
     FlexiGridModule,
@@ -57,23 +60,25 @@ export default class Outgoing {
   readonly externalInstitutions = signal<ExternalInstitutionModel[]>([]);
 
   // Liste görünümünde "Nereden"/"Nereye" sütunları için id -> ad eşlemesi.
+  // Anahtarlar küçük harfle tutulur: evrak/dağıtım kayıtlarındaki Guid'ler
+  // birim listesindekinden farklı harfle gelebilir (bkz. key()).
   readonly departmentNameMap = computed(() => {
     const map: Record<string, string> = {};
-    for (const d of this.departments()) map[d.id] = d.name;
+    for (const d of this.departments()) map[key(d.id)] = d.name;
     return map;
   });
 
-  // "Nereye" sütununda iç birim alıcıları kısa adla gösterilir (yer kazanmak
-  // için); kısa adı olmayan birimlerde tam ada düşülür.
+  // "Nereden" ve "Nereye" sütunlarında merkez birimler kısa adla gösterilir (yer
+  // kazanmak için); kısa adı olmayan birimlerde tam ada düşülür.
   readonly departmentShortNameMap = computed(() => {
     const map: Record<string, string> = {};
-    for (const d of this.departments()) map[d.id] = d.shortName?.trim() || d.name;
+    for (const d of this.departments()) map[key(d.id)] = d.shortName?.trim() || d.name;
     return map;
   });
 
   readonly externalInstitutionNameMap = computed(() => {
     const map: Record<string, string> = {};
-    for (const i of this.externalInstitutions()) map[i.id] = i.name;
+    for (const i of this.externalInstitutions()) map[key(i.id)] = i.name;
     return map;
   });
 
@@ -86,16 +91,17 @@ export default class Outgoing {
     const deptShortMap = this.departmentShortNameMap();
     const instMap = this.externalInstitutionNameMap();
     return this.scanListData().map(doc => {
-      // Hücrede kısa biçim (iç birimler parantez içinde kısa adla) virgülle
-      // ayrılmış tek satırda; üzerine gelince tam adlar alt alta gösterilir.
-      const recipientNames = this.recipientNames(doc, deptShortMap, instMap, true);
-      const recipientFullNames = this.recipientNames(doc, deptMap, instMap, false);
+      // Hücrede kısa biçim (iç birimler kısa adla) virgülle ayrılmış tek
+      // satırda; üzerine gelince tam adlar alt alta gösterilir.
+      const recipientNames = this.recipientNames(doc, deptShortMap, instMap);
+      const recipientFullNames = this.recipientNames(doc, deptMap, instMap);
       return {
         ...doc,
         documentTypeLabel: (doc.type != null && this.documentTypeLabelMap[doc.type]) || '-',
         securityDegreeLabel: (doc.securityDegree != null && this.securityDegreeMap[doc.securityDegree]) || '-',
         urgencyDegreeLabel: (doc.urgencyDegree != null && this.urgencyDegreeMap[doc.urgencyDegree]) || '-',
-        departmentName: (doc.departmentId && deptMap[doc.departmentId]) || '-',
+        departmentName: (doc.departmentId && deptShortMap[key(doc.departmentId)]) || '-',
+        departmentTitle: (doc.departmentId && deptMap[key(doc.departmentId)]) || '',
         externalInstitutionName: recipientNames.length ? recipientNames.join(', ') : '-',
         recipientTitle: recipientFullNames.join('\n')
       };
@@ -105,25 +111,26 @@ export default class Outgoing {
   // "Nereye" sütunu: evrak birden fazla iç birime ve/veya dış kuruma gidebilir.
   // GetAll yanıtındaki dağıtım listesi (silinmemiş satırlar) okunur; dağıtımı
   // olmayan eski kayıtlarda evrak üzerindeki tek alıcı alanına düşülür.
-  // compact=true iken iç birimler verilen eşlemedeki (kısa) adla parantez
-  // içinde yazılır; dış kurumlar her iki biçimde de tam adla gösterilir.
+  // İç birimler verilen eşlemedeki adla (hücrede kısa, title'da tam) yazılır;
+  // dış kurumlar her iki durumda da tam adla gösterilir.
   private recipientNames(
     doc: OutgoingDocumentModel,
     deptMap: Record<string, string>,
-    instMap: Record<string, string>,
-    compact: boolean
+    instMap: Record<string, string>
   ): string[] {
     const names = (doc.distributions ?? [])
       .map(d => {
         if (d.departmentId) {
-          const name = deptMap[d.departmentId] || d.departmentName || '';
-          return name ? (compact ? `(${name})` : name) : '';
+          const name = deptMap[key(d.departmentId)] || d.departmentName || '';
+          return name;
         }
-        return distributionRecipientName(d, deptMap, instMap);
+        return d.externalInstitutionName
+          || (d.externalInstitutionId && instMap[key(d.externalInstitutionId)])
+          || distributionRecipientName(d);
       })
       .filter(n => n && n !== '-');
     if (names.length) return names;
-    const legacy = doc.externalInstitutonId && instMap[doc.externalInstitutonId];
+    const legacy = doc.externalInstitutonId && instMap[key(doc.externalInstitutonId)];
     return legacy ? [legacy] : [];
   }
 
@@ -139,8 +146,10 @@ export default class Outgoing {
     Object.values(this.urgencyDegreeMap).map(label => ({ name: label, value: label }))
   );
 
+  // "Nereden" hücresi kısa adı gösterdiği için filtre seçenekleri de kısa ad
   readonly departmentFilterData = computed((): FlexiGridFilterDataModel[] =>
-    this.departments().map(d => ({ name: d.name, value: d.name }))
+    [...new Set(this.departments().map(d => d.shortName?.trim() || d.name))]
+      .map(name => ({ name, value: name }))
   );
 
   readonly documentTypeLabelMap: Record<number, string> = DocumentTypeLabels;

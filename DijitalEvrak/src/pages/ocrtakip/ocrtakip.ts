@@ -29,6 +29,8 @@ type SortColumn = 'documentName' | 'documentType' | 'status' | 'ocrDate' | 'page
     FormsModule
   ],
   templateUrl: './ocrtakip.html',
+  // Dijitalleştirme Takip ile aynı görünüm: panel stilleri + ortak takip sayfası stilleri
+  styleUrls: ['../home/dashboard.css', '../dijitallestirme-takip/dijitallestirme-takip.css'],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

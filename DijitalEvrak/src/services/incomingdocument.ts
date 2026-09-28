@@ -8,10 +8,14 @@ import { IncomingDocumentLast30DaysStats } from '../models/dashboard/IncomingDoc
 import { IncomingDocumentPendingScanStats } from '../models/dashboard/IncomingDocumentPendingScanStats.model';
 import { IncomingDocumentOcrQueueStats } from '../models/dashboard/IncomingDocumentOcrQueueStats.model';
 
-// Gelen evrak durumları (backend DocumentStatusEnum): 1 Ön Kayıt, 2 Kayıt Tamamlandı,
-// 6 Yayınlanma Sırasında, 10 Yayınlandı. Evrak Kayıt ekranındaki "Kaydet" 2 yazar.
+// Gelen evrak akış durumları (backend DocumentStatusEnum): 1 Ön Kayıt, 2 Kayıt Tamamlandı,
+// 3 Teslim Edildi (zimmet Teslim Alındı olunca backend yazar), 4 Eşleştirme, 5 Ocr.
+// Evrak Kayıt ekranındaki "Kaydet" 2 yazar. Yayın durumu ayrı alandadır (submissionStatus,
+// bkz. models/publishstatus.model.ts): Update'e status 6 gönderilmesi "Yayınla" isteğidir,
+// backend status'a dokunmaz ve submissionStatus'u Aktarım Sırasında (2) yapar.
 export const INCOMING_STATUS_ON_KAYIT = 1;
 export const INCOMING_STATUS_KAYIT = 2;
+export const INCOMING_STATUS_PUBLISH_REQUEST = 6;
 
 @Injectable({ providedIn: 'root' })
 export class IncomingDocumentService {
@@ -113,6 +117,26 @@ export class IncomingDocumentService {
 
     return this.httpService.post<any>(
       `${this.baseUrl}UploadFile`,
+      formData
+    );
+  }
+
+  // EVRAK NUMARASIYLA YÜKLE: numaraya ait gelen evrak varsa dosya ona bağlanır, yoksa
+  // yeni gelen evrak oluşturulur. Evrak status 2 ve electronicCopy true olur; aktif
+  // zimmeti yoksa userId'ye zimmetlenir. Yanıtta Id dönmez (GetByQrCode ile alınır).
+  // Backend sözleşmesi (multipart/form-data):
+  //   documentNumber : string (QR kodu)
+  //   file           : PDF    (en fazla 20 MB)
+  //   userId         : string (yükleyen kullanıcı)
+  // Numaraya daha önce dosya bağlanmışsa 500 döner.
+  uploadWithDocumentNumber(documentNumber: string, file: File, userId: string) {
+    const formData = new FormData();
+    formData.append('documentNumber', documentNumber);
+    formData.append('file', file, file.name);
+    formData.append('userId', userId);
+
+    return this.httpService.post<{ message: string; data: unknown }>(
+      `${this.baseUrl}UploadWithDocumentNumber`,
       formData
     );
   }

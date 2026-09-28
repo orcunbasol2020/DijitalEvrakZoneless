@@ -1202,3 +1202,91 @@
     background: rgba(148, 163, 184, 0.1);
     color: #f1f5f9;
 }
+/* ---- Dosya sütunu ----
+   Onay kutusu gibi okunur: dosya varsa yeşil gradyan zeminli kutuda beyaz kalın
+   tik, yoksa kesik çizgili soluk boş kutu (hücre boş kalmaz ama göze batmaz).
+   Boyut gizlilik/ivedilik rozetlerinden bir tık küçük; köşe aynı dilde. */
+.sl-file {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 7px;
+    border: 1.5px dashed #cbd5e1;
+    vertical-align: middle;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sl-file.is-on {
+    border: 1px solid rgba(4, 120, 87, 0.45);
+    background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(5, 150, 105, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.sl-file.is-on .material-symbols-outlined {
+    font-size: 16px;
+    font-variation-settings: 'wght' 700;
+}
+
+.sl-file.is-on:hover {
+    transform: scale(1.12);
+    box-shadow: 0 4px 10px rgba(5, 150, 105, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+/* Yayınlanma ve OCR: aynı kutu, tamamlandı tiki gri */
+.sl-file.is-on.is-smoke {
+    border-color: rgba(100, 116, 139, 0.4);
+    background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%);
+    box-shadow: 0 2px 6px rgba(100, 116, 139, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.sl-file.is-on.is-smoke:hover {
+    box-shadow: 0 4px 10px rgba(100, 116, 139, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.sl-file.is-on.is-error {
+    border-color: rgba(153, 27, 27, 0.45);
+    background: linear-gradient(135deg, #f87171 0%, #dc2626 100%);
+    box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.sl-file.is-on.is-error:hover {
+    box-shadow: 0 4px 10px rgba(220, 38, 38, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Süreç devam ediyor: kesik çizgili kutuda küçük gri kum saati */
+.sl-file.is-wait {
+    color: #94a3b8;
+}
+
+.sl-file.is-wait .material-symbols-outlined {
+    font-size: 14px;
+}
+
+[data-theme="dark"] .sl-file {
+    border-color: #475569;
+}
+
+[data-theme="dark"] .sl-file.is-wait {
+    color: #64748b;
+}
+
+[data-theme="dark"] .sl-file.is-on.is-smoke {
+    border-color: rgba(148, 163, 184, 0.35);
+    background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+    box-shadow: none;
+}
+
+[data-theme="dark"] .sl-file.is-on.is-error {
+    border-color: rgba(248, 113, 113, 0.45);
+    background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+    box-shadow: none;
+}
+
+[data-theme="dark"] .sl-file.is-on {
+    border-color: rgba(52, 211, 153, 0.5);
+    background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+    box-shadow: none;
+}

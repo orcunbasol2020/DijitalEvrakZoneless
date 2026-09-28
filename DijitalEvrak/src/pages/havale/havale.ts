@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ViewEncapsulation } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import GenericModel from '../../../components/generic-model/generic-model';
 import { CommonModule } from '@angular/common';
@@ -7,7 +7,10 @@ import { CommonModule } from '@angular/common';
   selector: 'app-havale',
   standalone: true,
   imports: [FormsModule, GenericModel, CommonModule],
-  templateUrl: './havale.html'
+  templateUrl: './havale.html',
+  // Kontrol Paneli ile aynı görünüm: panel stilleri + sayfaya özel petrol/turkuaz uyarlamaları
+  styleUrls: ['../home/dashboard.css', './havale.css'],
+  encapsulation: ViewEncapsulation.None
 })
 export default class HavaleComponent {
 

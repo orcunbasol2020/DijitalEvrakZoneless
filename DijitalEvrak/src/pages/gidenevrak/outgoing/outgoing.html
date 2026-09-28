@@ -47,9 +47,9 @@
     <flexi-grid-column field="securityDegreeLabel" title="Gizlilik Der." textAlign="center" width="110px"
       filterType="select" [filterData]="securityDegreeFilterData()">
       <ng-template flexiGridCellTemplate let-item>
-        <span class="degree-badge-circle {{ securityDegreeBadgeClassMap[item.securityDegree] || 'degree-tier-1' }}"
+        <span class="degree-badge-circle security-badge {{ securityDegreeBadgeClassMap[item.securityDegree] || 'degree-tier-1' }}"
           [title]="securityDegreeMap[item.securityDegree] || '-'">
-          <span class="material-symbols-outlined" style="font-size: 16px;">{{ securityDegreeIconMap[item.securityDegree] || 'help' }}</span>
+          <span class="material-symbols-outlined">{{ securityDegreeIconMap[item.securityDegree] || 'help' }}</span>
         </span>
       </ng-template>
     </flexi-grid-column>
@@ -61,7 +61,7 @@
     <flexi-grid-column field="urgencyDegreeLabel" title="İvedilik" textAlign="center" width="90px"
       filterType="select" [filterData]="urgencyDegreeFilterData()">
       <ng-template flexiGridCellTemplate let-item>
-        <span class="degree-badge-circle {{ urgencyDegreeBadgeClassMap[item.urgencyDegree] || 'degree-tier-1' }}"
+        <span class="degree-badge-circle urgency-badge {{ urgencyDegreeBadgeClassMap[item.urgencyDegree] || 'degree-tier-1' }}"
           [title]="urgencyDegreeMap[item.urgencyDegree] || '-'">
           {{ urgencyDegreeInitialMap[item.urgencyDegree] || '-' }}
         </span>
@@ -71,10 +71,10 @@
       [visible]="!isBirimEvrakSorumlusu()"
       filterType="select" [filterData]="departmentFilterData()">
       <ng-template flexiGridCellTemplate let-item>
-        {{ item.departmentName }}
+        <span class="outgoing-recipient-cell" [title]="item.departmentTitle">{{ item.departmentName }}</span>
       </ng-template>
     </flexi-grid-column>
-    <!-- Çoklu dağıtım: alıcılar virgülle ayrılmış tek satırda (iç birimler parantez içinde kısa adla);
+    <!-- Çoklu dağıtım: alıcılar virgülle ayrılmış tek satırda (iç birimler kısa adla);
          üzerine gelince tam adlar listelenir. Birden fazla ad birleşik tutulduğundan seçim filtresi
          yerine metin (içerir) filtresi kullanılır. -->
     <flexi-grid-column field="externalInstitutionName" title="Nereye" textAlign="left" width="170px">

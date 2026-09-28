@@ -46,6 +46,12 @@ export const initialUser:UserModel = {
     NgClass
   ],
   templateUrl: './users.html',
+  // Roller sayfasıyla aynı kart başlığı: kart iskeleti (st-*) ve başlık araçları (zl-*) paylaşılır.
+  styleUrls: [
+    '../settings/settings.css',
+    '../zimmetlerim/zimmetlerim.css',
+    './users.css'
+  ],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush
 })

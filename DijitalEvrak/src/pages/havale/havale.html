@@ -3,12 +3,35 @@
   [breadcrumbs]="[{ title: 'Havale (AI)', url: 'havale', icon: '' }]"
 ></app-generic>
 
-<div class="row havale-page">
+<div class="havale-page">
+
+<!-- Karşılama şeridi: Kontrol Paneli ile aynı mavi gradyan -->
+<section class="ad-hero">
+  <div class="ad-hero-glow ad-hero-glow-a"></div>
+  <div class="ad-hero-glow ad-hero-glow-b"></div>
+
+  <div class="ad-hero-text">
+    <div class="ad-hero-kicker">
+      <span class="material-symbols-outlined">neurology</span>
+      HAVALE (AI)
+    </div>
+    <div class="ad-hero-sub">
+      <span>Anahtar kelimelerle gelen evrakın birimlere otomatik yönlendirilmesi</span>
+    </div>
+  </div>
+</section>
+
+<div class="row g-3">
   <div class="col-md-9 col-12">
-    <div class="card havale-card h-100">
-      <div class="card-header dashboard-header d-flex align-items-center">
-        <span class="material-symbols-outlined me-2 text-info">alt_route</span>
-        <h5 class="card-title mb-0 fw-semibold">Birim Bazlı Anahtar Kelime Tanımlama</h5>
+    <div class="card premium-card havale-card h-100">
+      <div class="card-header dashboard-header ad-head">
+        <span class="ad-head-icon">
+          <span class="material-symbols-outlined">alt_route</span>
+        </span>
+        <div class="ad-head-text">
+          <h5 class="ad-head-title">Birim Bazlı Anahtar Kelime Tanımlama</h5>
+          <div class="ad-head-sub">Bir birim seçin, o birime yönlenecek anahtar kelimeleri belirleyin</div>
+        </div>
       </div>
 
       <div class="card-body">
@@ -62,7 +85,7 @@
           <div class="col-md-6 mb-3">
             <div class="d-flex align-items-center justify-content-between mb-2">
               <h6 class="d-flex align-items-center gap-2 mb-0">
-                <span class="material-symbols-outlined text-warning" style="font-size: 18px;">lightbulb</span>
+                <span class="material-symbols-outlined havale-list-icon" style="font-size: 18px;">lightbulb</span>
                 Önerilen Anahtar Kelimeler
               </h6>
               <span class="badge rounded-pill bg-light text-muted border">{{ availableKeywords.length }}</span>
@@ -88,7 +111,7 @@
           <div class="col-md-6 mb-3">
             <div class="d-flex align-items-center justify-content-between mb-2">
               <h6 class="d-flex align-items-center gap-2 mb-0">
-                <span class="material-symbols-outlined text-success" style="font-size: 18px;">playlist_add_check</span>
+                <span class="material-symbols-outlined havale-list-icon" style="font-size: 18px;">playlist_add_check</span>
                 Mevcut Anahtar Kelimeler
               </h6>
               <span class="badge rounded-pill bg-light text-muted border">{{ keywords.length }}</span>
@@ -129,9 +152,15 @@
 
   <!-- SAĞ BİLGİLENDİRME PANELİ -->
   <div class="col-md-3 col-12">
-    <div class="card info-panel h-100">
-      <div class="card-header">
-        <h6 class="m-0">Bilgilendirme</h6>
+    <div class="card premium-card info-panel h-100">
+      <div class="card-header dashboard-header ad-head ad-head-compact">
+        <span class="ad-head-icon">
+          <span class="material-symbols-outlined">info</span>
+        </span>
+        <div class="ad-head-text">
+          <h5 class="ad-head-title">Bilgilendirme</h5>
+          <div class="ad-head-sub">Otomatik havale nasıl çalışır</div>
+        </div>
       </div>
 
       <div class="card-body">
@@ -167,4 +196,6 @@
       </div>
     </div>
   </div>
+</div>
+
 </div>

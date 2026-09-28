@@ -15,15 +15,19 @@ import { DocumentAllocationModel } from '../../models/documentallocation.model';
 import { Department, DepartmentModel } from '../../services/department';
 import { ExternalInstitution, ExternalInstitutionModel } from '../../services/external-institution';
 import { RoleService } from '../../services/role-service';
+import { isPublished, isSentToPublish, publishStatusLabel } from '../../models/publishstatus.model';
 
-// Gelen evrak durumu (backend DocumentStatusEnum) için özet şeridindeki etiket ve ton.
+// Gelen evrak akış durumu (backend DocumentStatusEnum) için özet şeridindeki etiket ve ton.
+// Yayın durumu ayrı alanda (submissionStatus): yayına gönderilmiş evrakta şerit yayın
+// durumunu gösterir (docStatus). Eski kayıtlarda kalmış 6 / 10 akış olarak Kayıt Tamamlandı.
 const DOC_STATUS: Record<number, { label: string; tone: 'info' | 'success' | 'warning' | 'neutral' }> = {
   1: { label: 'Ön Kayıt', tone: 'info' },
   2: { label: 'Kayıt Tamamlandı', tone: 'neutral' },
-  3: { label: 'Yayınlandı', tone: 'success' },
-  4: { label: 'Teslim Edildi', tone: 'success' },
-  6: { label: 'Yayınlanma Sırasında', tone: 'warning' },
-  10: { label: 'Yayınlandı', tone: 'success' },
+  3: { label: 'Teslim Edildi', tone: 'success' },
+  4: { label: 'Eşleştirme', tone: 'neutral' },
+  5: { label: 'OCR', tone: 'neutral' },
+  6: { label: 'Kayıt Tamamlandı', tone: 'neutral' },
+  10: { label: 'Kayıt Tamamlandı', tone: 'neutral' },
 };
 
 type Tone = 'info' | 'success' | 'warning' | 'neutral' | 'publish';
@@ -119,7 +123,11 @@ export default class Surecler implements OnInit {
   readonly externalInstitutions = signal<ExternalInstitutionModel[]>([]);
 
   readonly docStatus = computed(() => {
-    const status = this.documentDetail()?.status;
+    const doc = this.documentDetail();
+    if (doc && isSentToPublish(doc)) {
+      return { label: publishStatusLabel(doc), tone: isPublished(doc) ? 'success' as const : 'warning' as const };
+    }
+    const status = doc?.status;
     return (status != null && DOC_STATUS[status]) || { label: '-', tone: 'neutral' as const };
   });
 

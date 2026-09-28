@@ -20,10 +20,8 @@ import { DocumentAllocationModel } from '../../models/documentallocation.model';
 import { AllocationStatusEnum, AllocationStatusLabels } from '../../models/allocationstatus.model';
 import { SecurityDegreeBadgeClass, SecurityDegreeIcons, SecurityDegreeLabels } from '../../models/securitydegree.model';
 import { UrgencyDegreeBadgeClass, UrgencyDegreeInitials, UrgencyDegreeLabels } from '../../models/urgencydegree.model';
+import { isPublished, isPublishFailed, isPublishing, publishStatusLabel } from '../../models/publishstatus.model';
 
-// Gelen evrak durumları (backend DocumentStatusEnum): 6 Yayınlanma Sırasında, 10 Yayınlandı.
-const STATUS_YAYIN_SIRASINDA = 6;
-const STATUS_YAYINLANDI = 10;
 
 type ListFilter = 'all' | 'published' | 'publishing' | 'inprocess';
 type SortColumn = 'qrCode' | 'subject' | 'documentDate';
@@ -105,12 +103,14 @@ export default class IncomingDepartmentDocument {
   readonly sortColumn = signal<SortColumn | null>(null);
   readonly sortDirection = signal<'asc' | 'desc'>('asc');
 
+  // Yayın durumu akış durumundan ayrı alanda (submissionStatus; bkz. publishstatus.model).
+  // Aktarım hatalı evrak da servis yeniden deneyeceği için yayın sırasında sayılır.
   isPublished(doc: IncomingDocumentModel): boolean {
-    return doc.status === STATUS_YAYINLANDI;
+    return isPublished(doc);
   }
 
   isPublishing(doc: IncomingDocumentModel): boolean {
-    return doc.status === STATUS_YAYIN_SIRASINDA;
+    return isPublishing(doc) || isPublishFailed(doc);
   }
 
   // Yayınlanmamış ve yayın sırasında olmayan evraklar kayıt / işlem aşamasındadır.
@@ -120,7 +120,7 @@ export default class IncomingDepartmentDocument {
 
   statusLabel(doc: IncomingDocumentModel): string {
     if (this.isPublished(doc)) return 'Yayınlandı';
-    if (this.isPublishing(doc)) return 'Yayınlanma Sırasında';
+    if (this.isPublishing(doc)) return publishStatusLabel(doc);
     return 'İşlemde';
   }
 

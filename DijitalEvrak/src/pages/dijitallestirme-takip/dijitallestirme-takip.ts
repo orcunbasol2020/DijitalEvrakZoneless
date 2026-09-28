@@ -14,6 +14,7 @@ type SortColumn = 'documentName' | 'documentType' | 'pageCount' | 'status';
     FormsModule
   ],
   templateUrl: './dijitallestirme-takip.html',
+  styleUrls: ['../home/dashboard.css', './dijitallestirme-takip.css'],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

@@ -1,84 +1,76 @@
 <app-generic pageTitle="OCR Takip Paneli"
     [breadcrumbs]="[{title: 'OCR Takip', url: 'ocrtakip', icon:''}]" />
 
-<div class="page-header d-flex justify-content-between align-items-center">
-    <h1 class="page-title d-flex align-items-center">OCR Sistemi Takip</h1>
-    <div class="d-flex header-actions">
-        <button class="btn btn-sm btn-outline-info" (click)="refresh()" [disabled]="loading()">
-            <span class="material-symbols-outlined" [class.spin]="loading()" title="Güncel Verileri Getir">refresh</span>
+<div class="dt-page">
+
+<!-- Karşılama şeridi: Kontrol Paneli ile aynı mavi gradyan -->
+<section class="ad-hero">
+    <div class="ad-hero-glow ad-hero-glow-a"></div>
+    <div class="ad-hero-glow ad-hero-glow-b"></div>
+
+    <div class="ad-hero-text">
+        <div class="ad-hero-kicker">
+            <span class="material-symbols-outlined">document_scanner</span>
+            OCR SİSTEMİ TAKİP
+        </div>
+        <div class="ad-hero-sub">
+            <span>Taranan belgelerin metin tanıma durumu</span>
+        </div>
+    </div>
+
+    <div class="ad-hero-actions">
+        <button type="button" class="ad-hero-btn ad-hero-btn-icon" title="Güncel Verileri Getir"
+            [class.is-spinning]="loading()" [disabled]="loading()" (click)="refresh()">
+            <span class="material-symbols-outlined">refresh</span>
         </button>
     </div>
-</div>
+</section>
 
-<!-- Özet Kartlar -->
-<div class="row g-3 mb-4">
-    <div class="col-md-6 col-lg-3">
-        <div class="card stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="card-subtitle text-muted">Toplam Belge</h6>
-                        <h4 class="card-title mt-2">{{ stats().total }}</h4>
-                    </div>
-                    <div class="stat-icon stat-icon-pro bg-gradient-info">
-                        <span class="material-symbols-outlined" style="font-size: 22px;">description</span>
-                    </div>
-                </div>
-            </div>
+<!-- Özet kartlar: tıklanınca liste o duruma göre filtrelenir -->
+<div class="ad-stats">
+    <button type="button" class="ad-stat" [class.is-selected]="statusFilter() === 'all'" (click)="onStatusFilterChange('all')">
+        <div class="ad-stat-body">
+            <div class="ad-stat-label">TOPLAM BELGE</div>
+            <div class="ad-stat-value">{{ stats().total }}</div>
         </div>
-    </div>
+        <span class="ad-stat-icon">
+            <span class="material-symbols-outlined">description</span>
+        </span>
+    </button>
 
-    <div class="col-md-6 col-lg-3">
-        <div class="card stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="card-subtitle text-muted">Başarılı</h6>
-                        <h4 class="card-title mt-2 text-success">{{ stats().success }}</h4>
-                    </div>
-                    <div class="stat-icon stat-icon-pro bg-gradient-success">
-                        <span class="material-symbols-outlined" style="font-size: 22px;">check_circle</span>
-                    </div>
-                </div>
-            </div>
+    <button type="button" class="ad-stat" [class.is-selected]="statusFilter() === 1" (click)="onStatusFilterChange(1)">
+        <div class="ad-stat-body">
+            <div class="ad-stat-label">BAŞARILI</div>
+            <div class="ad-stat-value">{{ stats().success }}</div>
         </div>
-    </div>
+        <span class="ad-stat-icon">
+            <span class="material-symbols-outlined">check_circle</span>
+        </span>
+    </button>
 
-    <div class="col-md-6 col-lg-3">
-        <div class="card stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="card-subtitle text-muted">İşleniyor</h6>
-                        <h4 class="card-title mt-2 text-warning">{{ stats().processing }}</h4>
-                    </div>
-                    <div class="stat-icon stat-icon-pro bg-gradient-warning">
-                        <span class="material-symbols-outlined" style="font-size: 22px;">sync</span>
-                    </div>
-                </div>
-            </div>
+    <button type="button" class="ad-stat" [class.is-selected]="statusFilter() === 2" (click)="onStatusFilterChange(2)">
+        <div class="ad-stat-body">
+            <div class="ad-stat-label">İŞLENİYOR</div>
+            <div class="ad-stat-value">{{ stats().processing }}</div>
         </div>
-    </div>
+        <span class="ad-stat-icon">
+            <span class="material-symbols-outlined">sync</span>
+        </span>
+    </button>
 
-    <div class="col-md-6 col-lg-3">
-        <div class="card stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="card-subtitle text-muted">Hatalı</h6>
-                        <h4 class="card-title mt-2 text-danger">{{ stats().failed }}</h4>
-                    </div>
-                    <div class="stat-icon stat-icon-pro bg-gradient-danger">
-                        <span class="material-symbols-outlined" style="font-size: 22px;">error</span>
-                    </div>
-                </div>
-            </div>
+    <button type="button" class="ad-stat" [class.is-selected]="statusFilter() === 3" (click)="onStatusFilterChange(3)">
+        <div class="ad-stat-body">
+            <div class="ad-stat-label">HATALI</div>
+            <div class="ad-stat-value">{{ stats().failed }}</div>
         </div>
-    </div>
+        <span class="ad-stat-icon">
+            <span class="material-symbols-outlined">error</span>
+        </span>
+    </button>
 </div>
 
 <!-- Filtre Alanı -->
-<div class="card mb-3 shadow-sm">
+<div class="card premium-card dt-filter-card mb-3">
     <div class="card-body">
         <div class="row g-3 align-items-end">
 
@@ -130,15 +122,21 @@
 
 <!-- OCR Liste -->
 <div class="card premium-card orders-card">
-    <div class="card-header dashboard-header d-flex justify-content-between align-items-center">
-        <h5 class="card-title mb-0 fw-semibold">Belge Listesi</h5>
-        <span class="text-muted small">{{ filteredData().length }} / {{ stats().total }} kayıt gösteriliyor</span>
+    <div class="card-header dashboard-header ad-head">
+        <span class="ad-head-icon">
+            <span class="material-symbols-outlined">document_scanner</span>
+        </span>
+        <div class="ad-head-text">
+            <h5 class="ad-head-title">Belge Listesi</h5>
+            <div class="ad-head-sub">OCR durumu, tarihi ve doğruluk oranı</div>
+        </div>
+        <span class="ad-period">{{ filteredData().length }} / {{ stats().total }} kayıt</span>
     </div>
 
     <div class="card-body p-0 position-relative">
 
         <div *ngIf="loading()" class="d-flex justify-content-center align-items-center py-5">
-            <div class="spinner-border text-primary" role="status">
+            <div class="spinner-border dt-spinner" role="status">
                 <span class="visually-hidden">Yükleniyor...</span>
             </div>
         </div>
@@ -286,4 +284,6 @@
             </ul>
         </nav>
     </div>
+</div>
+
 </div>

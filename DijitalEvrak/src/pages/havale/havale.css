@@ -1,0 +1,230 @@
+/* ============================================================
+   Havale (AI): Kontrol Paneli (dashboard.css) ile aynı görsel dil.
+   Global .havale-page kuralları (styles.css) açık turkuaz tonunu
+   kullanıyor; burada panelin petrol → turkuaz tonuna çekilir.
+   ============================================================ */
+
+.havale-page .ad-hero-kicker {
+    letter-spacing: 0.06em;
+}
+
+/* Kartlar: panel kartları gibi sabit, hover'da zıplamaz */
+.havale-page .havale-card,
+.havale-page .info-panel {
+    border-radius: 16px;
+    border: 1px solid #e7eaf0;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    overflow: hidden;
+}
+
+.havale-page .havale-card:hover,
+.havale-page .info-panel:hover {
+    transform: none;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.havale-page .havale-card .card-header,
+.havale-page .info-panel .card-header {
+    border-radius: 0;
+}
+
+/* Global .havale-card .card-header kalın yazı veriyor; alt başlık panelde normal ağırlıkta */
+.havale-page .ad-head-sub {
+    font-weight: 400;
+}
+
+/* Liste başlığındaki sayı rozeti: panelin açık petrol rozeti */
+.havale-page .havale-lists .badge {
+    min-width: 28px;
+    color: #0369a1 !important;
+    background: #e0f2fe !important;
+    border: 1px solid rgba(3, 105, 161, 0.18) !important;
+}
+
+/* Temizle: ikincil eylem, sade çerçeveli */
+.havale-page .card-footer .btn-secondary {
+    color: #475569;
+    background: #fff;
+    border-color: #cbd5e1;
+}
+
+.havale-page .card-footer .btn-secondary:hover {
+    color: #0369a1;
+    background: #f0f9ff;
+    border-color: #7dd3fc;
+}
+
+/* ---------- Form ---------- */
+.havale-page .form-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #64748b !important;
+}
+
+.havale-page .form-control:focus,
+.havale-page .form-select:focus {
+    border-color: #7dd3fc;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+}
+
+.havale-page .input-group-text {
+    color: #0c4a6e;
+}
+
+.havale-page .btn-primary,
+.havale-page .btn-success {
+    color: #fff;
+    background: linear-gradient(135deg, #0284c7, #0ea5e9);
+    border-color: #0284c7;
+}
+
+.havale-page .btn-primary:hover,
+.havale-page .btn-success:hover {
+    color: #fff;
+    background: linear-gradient(135deg, #0369a1, #0284c7);
+    border-color: #0369a1;
+}
+
+.havale-page .btn-success:disabled {
+    background: linear-gradient(135deg, #0284c7, #0ea5e9);
+    border-color: #0284c7;
+    opacity: 0.5;
+}
+
+/* Seçili birim rozeti */
+.havale-page .source-badge-evraktakip {
+    color: #0369a1;
+    background: #e0f2fe;
+    border: 1px solid rgba(3, 105, 161, 0.18);
+}
+
+/* ---------- Listeler ---------- */
+.havale-page .havale-lists h6 {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.havale-page .havale-list-icon,
+.havale-page .havale-lists .text-success {
+    color: #0369a1 !important;
+}
+
+.havale-page .havale-lists .list-group-item {
+    margin-bottom: 6px;
+    border: 1px solid #e7eaf0;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.havale-page .havale-lists .list-group-item:hover {
+    background: #f0f9ff;
+    border-color: #7dd3fc;
+    transform: none;
+    box-shadow: none;
+}
+
+.havale-page .havale-lists .btn-outline-primary {
+    color: #0369a1;
+    border-color: #7dd3fc;
+}
+
+.havale-page .havale-lists .btn-outline-primary:hover {
+    color: #fff;
+    background: linear-gradient(135deg, #0284c7, #0ea5e9);
+    border-color: #0284c7;
+}
+
+/* ---------- Bilgilendirme paneli ---------- */
+.havale-page .info-panel .sec-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    margin-top: 0;
+    border-radius: 10px;
+    font-size: 19px;
+    color: #0c4a6e;
+    background: #eaf3f8;
+    border: 1px solid #d6e4ed;
+}
+
+.havale-page .info-item strong {
+    color: #1e293b;
+}
+
+.havale-page .info-item p {
+    color: #64748b;
+}
+
+.havale-page .detail-card-hr {
+    border-top: 1px solid #eef2f7;
+}
+
+/* ============================================================
+   Koyu tema
+   ============================================================ */
+[data-theme="dark"] .havale-page .havale-card,
+[data-theme="dark"] .havale-page .info-panel {
+    border-color: #4a5568;
+}
+
+[data-theme="dark"] .havale-page .havale-lists .badge {
+    color: #7dd3fc !important;
+    background: rgba(14, 165, 233, 0.14) !important;
+    border-color: rgba(125, 211, 252, 0.28) !important;
+}
+
+[data-theme="dark"] .havale-page .card-footer {
+    background: transparent !important;
+}
+
+[data-theme="dark"] .havale-page .card-footer .btn-secondary {
+    color: #cbd5e1;
+    background: transparent;
+    border-color: rgba(148, 163, 184, 0.35);
+}
+
+[data-theme="dark"] .havale-page .form-label {
+    color: #a0aec0 !important;
+}
+
+[data-theme="dark"] .havale-page .input-group-text,
+[data-theme="dark"] .havale-page .havale-list-icon,
+[data-theme="dark"] .havale-page .havale-lists .text-success,
+[data-theme="dark"] .havale-page .havale-lists .btn-outline-primary {
+    color: #7dd3fc !important;
+}
+
+[data-theme="dark"] .havale-page .havale-lists h6,
+[data-theme="dark"] .havale-page .info-item strong {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .havale-page .havale-lists .list-group-item {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(148, 163, 184, 0.2);
+}
+
+[data-theme="dark"] .havale-page .havale-lists .list-group-item:hover {
+    background: rgba(14, 165, 233, 0.1);
+    border-color: rgba(125, 211, 252, 0.4);
+}
+
+[data-theme="dark"] .havale-page .source-badge-evraktakip,
+[data-theme="dark"] .havale-page .info-panel .sec-icon {
+    color: #7dd3fc;
+    background: rgba(14, 165, 233, 0.14);
+    border-color: rgba(125, 211, 252, 0.28);
+}
+
+[data-theme="dark"] .havale-page .info-item p {
+    color: #a0aec0;
+}
+
+[data-theme="dark"] .havale-page .detail-card-hr {
+    border-top-color: rgba(148, 163, 184, 0.18);
+}

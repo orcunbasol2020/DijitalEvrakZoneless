@@ -38,6 +38,12 @@
     border-color: #fcd34d;
 }
 
+.ek-status-pill[data-tone="danger"] {
+    color: #b91c1c;
+    background: #fee2e2;
+    border-color: #fca5a5;
+}
+
 /* ---- Sekme seçici (Teslim türü segment seçicisiyle aynı dil) ---- */
 .ek-tabs {
     display: grid;
@@ -934,6 +940,12 @@ textarea.ok-input {
     color: #fcd34d;
     background: rgba(245, 158, 11, 0.18);
     border-color: rgba(245, 158, 11, 0.35);
+}
+
+[data-theme="dark"] .ek-status-pill[data-tone="danger"] {
+    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.18);
+    border-color: rgba(239, 68, 68, 0.35);
 }
 
 [data-theme="dark"] .ek-tabs {

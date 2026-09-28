@@ -1,0 +1,46 @@
+/* ============================================================
+   Kullanıcılar sayfası
+   Kart başlığı Roller sayfasıyla aynı (st-card-head + zl-head-tools);
+   flexi-grid'in kendi başlığı kapalı, ızgara kartın gövdesine oturur.
+   ============================================================ */
+
+.us-head {
+    flex-wrap: wrap;
+}
+
+.us-head-tools {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.us-head-tools .zl-btn-primary {
+    text-decoration: none;
+}
+
+/* Filtre satırı açıkken buton seçili görünür */
+.us-head-tools .zl-icon-btn.is-on {
+    color: #0369a1;
+    background: #e0f2fe;
+    border-color: #7dd3fc;
+}
+
+/* Izgara kartın içinde: kendi çerçevesi, gölgesi ve köşe yuvarlaması yok */
+.us-grid .flexi-grid-table-container,
+.us-grid .flexi-grid-table-container-wrapper {
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+[data-theme="dark"] .us-head-tools .zl-icon-btn.is-on {
+    color: #7dd3fc;
+    background: rgba(14, 165, 233, 0.16);
+    border-color: rgba(125, 211, 252, 0.4);
+}
+
+@media (max-width: 767.98px) {
+    .us-head-tools {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}
