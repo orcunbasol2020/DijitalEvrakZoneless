@@ -40,6 +40,12 @@
     border-radius: 16px;
 }
 
+/* Zimmetlerim ve Birim Gelen Evrakları: başlık kartı ortak split düzeninden 10px daha alçak */
+.sp-hero.zl-hero.zl-hero-split.zl-hero-slim {
+    padding-top: 19px;
+    padding-bottom: 19px;
+}
+
 .sp-hero.zl-hero.zl-hero-split::after {
     font-size: 150px;
     right: -22px;

@@ -38,6 +38,11 @@ export interface ActiveDocumentModel {
   status: AllocationStatusEnum;
   source: AllocationSourceEnum;
   allocatedDate: string;             // UTC
+  // Liste uç noktası bu alanları döndürmüyor; Zimmetlerim ekranı her evrağı kendi
+  // GetById ucundan çekip doldurur (backend eklerse ek istek atılmaz).
+  subject?: string | null;
+  securityDegree?: number | null;
+  urgencyDegree?: number | null;
 }
 
 export interface ActiveDocumentsResponse {

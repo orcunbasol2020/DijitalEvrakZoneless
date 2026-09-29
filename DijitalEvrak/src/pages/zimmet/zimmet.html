@@ -218,6 +218,8 @@
                             <div class="zm-doc-body">
                                 <div class="zm-doc-no">{{ d.qrCode }}</div>
                             </div>
+                            <span class="material-symbols-outlined iz-doc-delivered" *ngIf="isDelivered(d)"
+                                title="Bu evrak daha önce teslim edilmiş">hand_package</span>
                             <span class="material-symbols-outlined iz-doc-chevron">chevron_right</span>
                             <button type="button" class="zm-doc-remove" title="Listeden çıkar"
                                 [disabled]="saving()" (click)="removeDocument(d.id, $event)">
@@ -237,7 +239,7 @@
                     </span>
                     <ng-container *ngIf="!isMulti()">
                         <span class="material-symbols-outlined zm-summary-arrow">arrow_forward</span>
-                        <span class="zm-summary-target">{{ activeAllocation()?.fullName || 'Zimmet yok' }}</span>
+                        <span class="zm-summary-target">{{ activeAllocation()?.fullName || 'Zimmet yok' }}<ng-container *ngIf="activeAllocationDeptShortName() as dept"> ({{ dept }})</ng-container></span>
                         <span class="zm-summary-note" *ngIf="activeAllocation()">
                             (Aktif Zimmet)
                         </span>
@@ -399,7 +401,9 @@
                                 <span class="zm-avatar">{{ initials(p.name) }}</span>
                                 <div class="zm-person-info">
                                     <div class="zm-person-name">{{ p.name }}</div>
-                                    <div class="zm-person-meta">{{ isMulti() ? docsLabel() + ' bu personele devredilecek' : 'Evrak bu personele devredilecek' }}</div>
+                                    <div class="zm-person-meta">{{ selectedIsActiveHolder()
+                                        ? (isMulti() ? 'Listedeki evrakların tümü zaten bu personelin üzerinde' : 'Evrak zaten bu personelin üzerinde')
+                                        : (isMulti() ? docsLabel() + ' bu personele devredilecek' : 'Evrak bu personele devredilecek') }}</div>
                                 </div>
                                 <button type="button" class="zm-icon-btn" title="Seçimi kaldır" (click)="clearPerson()">
                                     <span class="material-symbols-outlined">close</span>
@@ -431,7 +435,8 @@
                     <div class="zm-footer-actions">
                         <button type="button" class="btn btn-outline-success zm-back-btn"
                             *ngIf="zimmetType() === 'other'"
-                            [disabled]="saving() || !selectedPerson()"
+                            [disabled]="saving() || !selectedPerson() || hasDeliveredDoc() || selectedIsActiveHolder()"
+                            [title]="selectedIsActiveHolder() ? 'Aktif zimmet seçtiğiniz kişide' : hasDeliveredDoc() ? (isMulti() ? 'Listede daha önce teslim edilmiş evrak var' : 'Evrak zaten teslim edilmiş') : ''"
                             (click)="saveZimmet(AllocationStatus.Teslim)">
                             <span class="material-symbols-outlined">hand_package</span>
                             Teslim Et
@@ -439,7 +444,8 @@
                         <!-- Tür değişince ikon/metin DOM'da yeniden oluşturulur ki belirme animasyonu tekrar oynasın. -->
                         <button type="button" class="btn btn-primary zimmet-submit-btn"
                             [attr.data-mode]="zimmetType() === 'self' ? 'self' : 'internal'"
-                            [disabled]="saving() || (zimmetType() === 'other' && !selectedPerson())"
+                            [disabled]="saving() || (zimmetType() === 'other' && !selectedPerson()) || selectedIsActiveHolder()"
+                            [title]="selectedIsActiveHolder() ? 'Aktif zimmet seçtiğiniz kişide' : ''"
                             (click)="saveZimmet(AllocationStatus.Devir)">
                             @if (saving()) {
                                 <span class="spinner-border spinner-border-sm zimmet-submit-icon"></span>
@@ -453,6 +459,17 @@
                             }
                         </button>
                     </div>
+                </div>
+
+                <!-- Alt butonların zimmet durumuna etkisi; kartın en altına yapışık şerit -->
+                <div class="zm-action-note">
+                    <span class="material-symbols-outlined">info</span>
+                    <span>
+                        <ng-container *ngIf="zimmetType() === 'other'">
+                            <strong>Teslim Et:</strong> zimmetleme yapılır, durum <strong>Teslim Edildi</strong> olur.
+                        </ng-container>
+                        <strong [class.ms-2]="zimmetType() === 'other'">Zimmetle:</strong> zimmetleme yapılır, durum <strong>Devir Edildi</strong> olur.
+                    </span>
                 </div>
             </ng-container>
         </div>
@@ -481,6 +498,30 @@
       </div>
 
       <div class="iz-modal-body">
+      @if (r.succeeded.length + r.skipped.length + r.failed.length === 1) {
+        <!-- Tek evrak: sayı kutuları yerine evrak no ve sonuç mesajı -->
+        @if (r.succeeded[0]; as d) {
+          <div class="iz-result-single is-ok">
+            <span class="material-symbols-outlined">check_circle</span>
+            <span class="iz-result-single-no">{{ d.qrCode }}</span>
+            <span class="iz-result-single-msg">Zimmetlendi</span>
+          </div>
+        }
+        @if (r.skipped[0]; as d) {
+          <div class="iz-result-single is-skip">
+            <span class="material-symbols-outlined">skip_next</span>
+            <span class="iz-result-single-no">{{ d.qrCode }}</span>
+            <span class="iz-result-single-msg">Evrak zaten {{ r.targetName }} üzerinde; yeni kayıt açılmadı.</span>
+          </div>
+        }
+        @if (r.failed[0]; as d) {
+          <div class="iz-result-single is-fail">
+            <span class="material-symbols-outlined">error</span>
+            <span class="iz-result-single-no">{{ d.qrCode }}</span>
+            <span class="iz-result-single-msg">Evrak zimmetlenemedi; listede kaldı, yeniden deneyebilirsiniz.</span>
+          </div>
+        }
+      } @else {
         <!-- Sayılar -->
         <div class="iz-result-stats">
           <div class="iz-result-stat is-ok" [class.is-zero]="!r.succeeded.length">
@@ -528,6 +569,7 @@
             <span class="iz-result-chip">Başarısız</span>
           </div>
         </div>
+      }
       </div>
 
       <div class="iz-modal-footer">

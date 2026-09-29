@@ -408,6 +408,27 @@
     transition: color 0.15s ease, transform 0.15s ease;
 }
 
+/* Daha önce teslim edilmiş evrak: satırda kehribar ikon (tüm listede "Teslim Et"i kapatan evrak) */
+.iz-doc-delivered {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    font-size: 18px;
+    color: #b45309;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+}
+
+[data-theme="dark"] .iz-doc-delivered {
+    color: #fbbf24;
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
 .iz-doc-row:hover .iz-doc-chevron,
 .iz-doc-row:focus-visible .iz-doc-chevron {
     color: #0ea5e9;
@@ -742,6 +763,39 @@
 .iz-result-row.is-skip { --tone: #b45309; }
 .iz-result-row.is-fail { --tone: #b91c1c; }
 
+/* Tek evrak sonucu: kutular yerine ortalanmış evrak no + mesaj */
+.iz-result-single {
+    --tone: #15803d;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 18px 12px 8px;
+    text-align: center;
+}
+
+.iz-result-single .material-symbols-outlined {
+    font-size: 44px;
+    color: var(--tone);
+}
+
+.iz-result-single-no {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: #0f172a;
+    font-variant-numeric: tabular-nums;
+}
+
+.iz-result-single-msg {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--tone);
+}
+
+.iz-result-single.is-skip { --tone: #b45309; }
+.iz-result-single.is-fail { --tone: #b91c1c; }
+
 @media (max-width: 575.98px) {
     .iz-result-stats {
         gap: 6px;
@@ -782,6 +836,14 @@
 [data-theme="dark"] .iz-result-row.is-skip { --tone: #fbbf24; }
 [data-theme="dark"] .iz-result-row.is-fail { --tone: #f87171; }
 
+[data-theme="dark"] .iz-result-single.is-ok   { --tone: #4ade80; }
+[data-theme="dark"] .iz-result-single.is-skip { --tone: #fbbf24; }
+[data-theme="dark"] .iz-result-single.is-fail { --tone: #f87171; }
+
+[data-theme="dark"] .iz-result-single-no {
+    color: #e2e8f0;
+}
+
 [data-theme="dark"] .iz-result-row:hover {
     box-shadow: none;
 }
@@ -789,4 +851,30 @@
 [data-theme="dark"] .iz-result-chip {
     background: color-mix(in srgb, var(--tone) 16%, #0f172a);
     border-color: color-mix(in srgb, var(--tone) 32%, #0f172a);
+}
+
+/* Alt şerit: Zimmetle / Teslim Et butonlarının zimmet durumuna etkisini anlatan küçük not */
+.zm-action-note {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 6px;
+    padding: 11px 16px;
+    border-radius: 0 0 var(--bs-card-inner-border-radius, 12px) var(--bs-card-inner-border-radius, 12px);
+    background: linear-gradient(120deg, #334155 0%, #0369a1 55%, #0ea5e9 100%);
+    border-top: 1px solid rgba(125, 211, 252, 0.35);
+    font-size: 11px;
+    line-height: 1.4;
+    color: #e0f2fe;
+}
+
+.zm-action-note .material-symbols-outlined {
+    font-size: 17px;
+    color: #7dd3fc;
+}
+
+.zm-action-note strong {
+    color: #fff;
+    font-weight: 600;
 }

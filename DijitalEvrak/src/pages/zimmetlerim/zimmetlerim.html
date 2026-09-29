@@ -4,7 +4,7 @@
 
 <div class="st-page">
   <!-- Üst kart: başlık (arama liste kartının başlığında) -->
-  <section class="sp-hero zl-hero zl-hero-split">
+  <section class="sp-hero zl-hero zl-hero-split zl-hero-slim">
     <div class="sp-hero-top">
       <span class="sp-hero-icon">
         <span class="material-symbols-outlined">inventory_2</span>
@@ -80,7 +80,7 @@
           <input
             type="text"
             class="sp-search-input"
-            placeholder="Belge no, belge adı, kurum veya birim ara..."
+            placeholder="Belge no, konu, kurum veya birim ara..."
             [ngModel]="searchQuery()"
             (ngModelChange)="setSearchQuery($event)" />
           <div class="sp-search-end">
@@ -141,13 +141,15 @@
                 <th class="zl-th-sort" [class.is-active]="sortColumn() === 'qrCode'" (click)="toggleSort('qrCode')">
                   <span class="zl-th-inner">BELGE NO <span class="material-symbols-outlined zl-sort-icon">{{ sortIcon('qrCode') }}</span></span>
                 </th>
-                <th class="zl-th-sort" [class.is-active]="sortColumn() === 'documentName'" (click)="toggleSort('documentName')">
-                  <span class="zl-th-inner">BELGE ADI <span class="material-symbols-outlined zl-sort-icon">{{ sortIcon('documentName') }}</span></span>
-                </th>
                 <th>NEREDEN / NEREYE</th>
+                <th class="zl-th-sort" [class.is-active]="sortColumn() === 'subject'" (click)="toggleSort('subject')">
+                  <span class="zl-th-inner">KONU <span class="material-symbols-outlined zl-sort-icon">{{ sortIcon('subject') }}</span></span>
+                </th>
+                <th class="zl-center">İVEDİLİK</th>
                 <th class="zl-th-sort" [class.is-active]="sortColumn() === 'documentDate'" (click)="toggleSort('documentDate')">
                   <span class="zl-th-inner">BELGE TARİHİ <span class="material-symbols-outlined zl-sort-icon">{{ sortIcon('documentDate') }}</span></span>
                 </th>
+                <th class="zl-center">GİZLİLİK</th>
                 <th class="zl-th-sort zl-center" [class.is-active]="sortColumn() === 'documentDirection'" (click)="toggleSort('documentDirection')">
                   <span class="zl-th-inner">YÖN <span class="material-symbols-outlined zl-sort-icon">{{ sortIcon('documentDirection') }}</span></span>
                 </th>
@@ -174,9 +176,6 @@
                     </span>
                   </td>
                   <td>
-                    <div class="zl-doc-name" [title]="item.documentName ?? ''">{{ item.documentName || '-' }}</div>
-                  </td>
-                  <td>
                     <div class="zl-route">
                       <span [title]="item.fromName ?? ''">
                         <span class="material-symbols-outlined">north_east</span>
@@ -189,10 +188,33 @@
                     </div>
                   </td>
                   <td>
+                    <div class="zl-doc-name" [title]="item.subject ?? ''">{{ item.subject || '-' }}</div>
+                  </td>
+                  <td class="zl-center">
+                    @if (item.urgencyDegree != null && urgencyDegreeInitialMap[item.urgencyDegree]) {
+                      <span class="degree-badge-circle {{ urgencyDegreeBadgeClassMap[item.urgencyDegree] || 'degree-tier-1' }}"
+                        [title]="urgencyDegreeMap[item.urgencyDegree] || '-'">
+                        {{ urgencyDegreeInitialMap[item.urgencyDegree] }}
+                      </span>
+                    } @else {
+                      <span class="zl-route-empty">-</span>
+                    }
+                  </td>
+                  <td>
                     <span class="zl-date">
                       <span class="material-symbols-outlined">calendar_today</span>
                       {{ item.documentDate ? (item.documentDate | date:'dd.MM.yyyy') : '-' }}
                     </span>
+                  </td>
+                  <td class="zl-center">
+                    @if (item.securityDegree != null && securityDegreeMap[item.securityDegree]) {
+                      <span class="degree-badge-circle {{ securityDegreeBadgeClassMap[item.securityDegree] || 'degree-tier-1' }}"
+                        [title]="securityDegreeMap[item.securityDegree]">
+                        <span class="material-symbols-outlined" style="font-size: 16px;">{{ securityDegreeIconMap[item.securityDegree] || 'help' }}</span>
+                      </span>
+                    } @else {
+                      <span class="zl-route-empty">-</span>
+                    }
                   </td>
                   <td class="zl-center">
                     <span class="zl-dir"
@@ -237,7 +259,7 @@
                           </span>
                           <div class="min-w-0">
                             <div class="zl-pop-title">Zimmet Geçmişi</div>
-                            <div class="zl-pop-sub">{{ item.qrCode || item.documentNo }} · {{ item.documentName || directionLabels[item.documentDirection] }}</div>
+                            <div class="zl-pop-sub">{{ item.qrCode || item.documentNo }} · {{ item.subject || directionLabels[item.documentDirection] }}</div>
                           </div>
                         </div>
 

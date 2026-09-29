@@ -19,28 +19,9 @@
 }
 
 /* Dört istatistik kutusu */
-.zl-stats.idd-stats {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-@media (max-width: 1199.98px) {
-    .zl-stats.idd-stats {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 575.98px) {
-    .zl-stats.idd-stats {
-        grid-template-columns: minmax(0, 1fr);
-    }
-}
-
-.zl-stat-icon.idd-published {
+/* Üç kutu (Toplam / Teslim Alınan / Teslim Alınmayı Bekleyen): zl-stats'ın varsayılan 3 sütunu kullanılır */
+.zl-stat-icon.idd-delivered-stat {
     background: linear-gradient(135deg, #059669, #34d399);
-}
-
-.zl-stat-icon.idd-inprocess {
-    background: linear-gradient(135deg, #475569, #94a3b8);
 }
 
 /* Satırlar salt okunur; tıklanabilir görünmesin */
@@ -58,7 +39,7 @@
     display: inline-block;
     max-width: 240px;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 400;
     color: #334155;
     white-space: nowrap;
     overflow: hidden;
@@ -72,9 +53,12 @@
 
 
 /* Yayınlanma durumu çipi */
+/* Tüm durum çipleri aynı genişlikte (en uzun etiket "Aktarım Hatalı" sığar), içerik ortalı */
 .idd-status {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
+    width: 128px;
     gap: 5px;
     padding: 3px 10px;
     border-radius: 999px;
@@ -96,8 +80,30 @@
 }
 
 .idd-status.is-publishing {
+    color: #0369a1;
+    background: #f0f9ff;
+    border-color: #bae6fd;
+}
+
+.idd-status.is-publishing .material-symbols-outlined {
+    animation: idd-sync-spin 2.4s linear infinite;
+}
+
+@keyframes idd-sync-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .idd-status.is-publishing .material-symbols-outlined {
+        animation: none;
+    }
+}
+
+.idd-status.is-retry {
     color: #b45309;
-    background: #fef3c7;
+    background: #fffbeb;
     border-color: #fde68a;
 }
 
@@ -107,7 +113,38 @@
     border-color: #e2e8f0;
 }
 
+/* Teslim sütunu: diğer satır aksiyonlarıyla (zl-act) aynı kare buton, yeşil tonda.
+   Evrak teslim edildiyse (status 3) görünür; tıklanınca teslim bilgisi açılır. */
+.zl-act.idd-act-delivered {
+    color: #047857;
+    border-color: rgba(4, 120, 87, 0.25);
+    background: #ecfdf5;
+}
+
+.zl-act.idd-act-delivered:hover:not(:disabled) {
+    color: #065f46;
+    border-color: rgba(4, 120, 87, 0.4);
+    background: #d1fae5;
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
+}
+
+/* Teslim Bilgisi popup'ı: teslim alan kartı, altında küçük "Teslim eden" satırı */
+.idd-delivery .zh-hero {
+    margin: 0;
+}
+
+.idd-delivery .zh-meta {
+    margin-top: 3px;
+}
+
 /* ---- Koyu tema ---- */
+[data-theme="dark"] .zl-act.idd-act-delivered,
+[data-theme="dark"] .zl-act.idd-act-delivered:hover:not(:disabled) {
+    color: #34d399;
+    background: rgba(16, 185, 129, 0.14);
+    border-color: rgba(16, 185, 129, 0.32);
+}
+
 [data-theme="dark"] .idd-dest {
     color: #cbd5e1;
 }
@@ -123,6 +160,12 @@
 }
 
 [data-theme="dark"] .idd-status.is-publishing {
+    color: #7dd3fc;
+    background: rgba(14, 165, 233, 0.14);
+    border-color: rgba(56, 189, 248, 0.35);
+}
+
+[data-theme="dark"] .idd-status.is-retry {
     color: #fcd34d;
     background: rgba(245, 158, 11, 0.16);
     border-color: rgba(251, 191, 36, 0.35);

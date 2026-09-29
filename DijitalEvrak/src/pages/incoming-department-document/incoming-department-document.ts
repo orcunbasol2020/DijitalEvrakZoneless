@@ -9,6 +9,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { httpResource } from '@angular/common/http';
 import { FlexiToastService } from 'flexi-toast';
 import GenericModel from '../../../components/generic-model/generic-model';
 import { IncomingDocumentService } from '../../services/incomingdocument';
@@ -17,13 +18,14 @@ import { Common } from '../../services/common';
 import { ExternalInstitution, ExternalInstitutionModel } from '../../services/external-institution';
 import { IncomingDocumentModel } from '../../models/incoming-document/incoming-document.model';
 import { DocumentAllocationModel } from '../../models/documentallocation.model';
+import { UserModel } from '../users/users';
 import { AllocationStatusEnum, AllocationStatusLabels } from '../../models/allocationstatus.model';
 import { SecurityDegreeBadgeClass, SecurityDegreeIcons, SecurityDegreeLabels } from '../../models/securitydegree.model';
 import { UrgencyDegreeBadgeClass, UrgencyDegreeInitials, UrgencyDegreeLabels } from '../../models/urgencydegree.model';
 import { isPublished, isPublishFailed, isPublishing, publishStatusLabel } from '../../models/publishstatus.model';
 
 
-type ListFilter = 'all' | 'published' | 'publishing' | 'inprocess';
+type ListFilter = 'all' | 'delivered' | 'undelivered';
 type SortColumn = 'qrCode' | 'subject' | 'documentDate';
 
 /**
@@ -113,25 +115,31 @@ export default class IncomingDepartmentDocument {
     return isPublishing(doc) || isPublishFailed(doc);
   }
 
-  // Yayınlanmamış ve yayın sırasında olmayan evraklar kayıt / işlem aşamasındadır.
-  isInProcess(doc: IncomingDocumentModel): boolean {
-    return !this.isPublished(doc) && !this.isPublishing(doc);
+  // Teslim sütunu ve üstteki teslim filtresi: evrak akış durumu 3 = Teslim Edildi.
+  isDelivered(doc: IncomingDocumentModel): boolean {
+    return doc.status === 3;
   }
 
   statusLabel(doc: IncomingDocumentModel): string {
     if (this.isPublished(doc)) return 'Yayınlandı';
-    if (this.isPublishing(doc)) return publishStatusLabel(doc);
+    if (isPublishFailed(doc)) return publishStatusLabel(doc);
+    // Aktarım Sırasında (2) ve Aktarılıyor (3) bu listede tek etiketle gösterilir.
+    if (this.isPublishing(doc)) return 'Aktarılıyor';
     return 'İşlemde';
   }
 
   statusIcon(doc: IncomingDocumentModel): string {
     if (this.isPublished(doc)) return 'check_circle';
-    if (this.isPublishing(doc)) return 'hourglass_bottom';
+    if (isPublishFailed(doc)) return 'sync_problem';
+    if (this.isPublishing(doc)) return 'sync';
     return 'pending';
   }
 
+  // Aktarım hatalı evrak yayın sırasında sayılır ama servis yeniden deneyeceği için
+  // ayrı (amber) tonla gösterilir; normal aktarımda ikon yavaşça döner.
   statusClass(doc: IncomingDocumentModel): string {
     if (this.isPublished(doc)) return 'is-published';
+    if (isPublishFailed(doc)) return 'is-retry';
     if (this.isPublishing(doc)) return 'is-publishing';
     return 'is-inprocess';
   }
@@ -147,9 +155,8 @@ export default class IncomingDepartmentDocument {
     const filtered = this.documents()
       .filter(doc => {
         switch (filter) {
-          case 'published': return this.isPublished(doc);
-          case 'publishing': return this.isPublishing(doc);
-          case 'inprocess': return this.isInProcess(doc);
+          case 'delivered': return this.isDelivered(doc);
+          case 'undelivered': return !this.isDelivered(doc);
           default: return true;
         }
       })
@@ -175,9 +182,8 @@ export default class IncomingDepartmentDocument {
   readonly isFiltering = computed(() => !!this.searchQuery().trim() || this.listFilter() !== 'all');
 
   readonly totalCount = computed(() => this.documents().length);
-  readonly publishedCount = computed(() => this.documents().filter(d => this.isPublished(d)).length);
-  readonly publishingCount = computed(() => this.documents().filter(d => this.isPublishing(d)).length);
-  readonly inProcessCount = computed(() => this.documents().filter(d => this.isInProcess(d)).length);
+  readonly deliveredCount = computed(() => this.documents().filter(d => this.isDelivered(d)).length);
+  readonly undeliveredCount = computed(() => this.totalCount() - this.deliveredCount());
 
   setListFilter(filter: ListFilter): void {
     this.listFilter.set(filter);
@@ -330,8 +336,53 @@ export default class IncomingDepartmentDocument {
     return `${first}${last}`.toLocaleUpperCase('tr');
   }
 
+  // Popup'ta kişi adının yanında çalıştığı birimin kısa adı parantez içinde gösterilir.
+  // Zimmet kaydı birim taşımadığı için kullanıcı listesinden userId ile eşlenir; liste
+  // sayfa açılışını yavaşlatmasın diye popup ilk açıldığında bir kez yüklenir.
+  private readonly allUsersRequested = signal(false);
+  readonly allUsersResult = httpResource<UserModel[]>(() => this.allUsersRequested() ? 'api/Users/GetAll' : undefined);
+  readonly userDepartmentShortMap = computed(() => {
+    const map: Record<string, string> = {};
+    for (const u of this.allUsersResult.value() ?? []) {
+      const short = u.departmentShortName?.trim() || u.departmentName?.trim();
+      if (u.id && short) map[u.id.toLowerCase()] = short;
+    }
+    return map;
+  });
+
+  personLabel(a: DocumentAllocationModel): string {
+    const name = a.fullName || '-';
+    const short = a.userId ? this.userDepartmentShortMap()[a.userId.toLowerCase()] : undefined;
+    return short ? `${name} (${short})` : name;
+  }
+
+  // Hareket kartının altında, Ön Kayıt dışındaki durumlarda işlemi yapan kişi küçük
+  // gösterilir ("Devreden: …", "Teslim eden: …"). Gelen evrak zimmet kaydı işlemi yapanı
+  // taşımadığından kişi zincirden bulunur: kayıttan hemen önceki (tarihe göre) zimmetin
+  // sahibi evrakı devreden / teslim eden kişidir.
+  readonly allocationActorLabels: Partial<Record<AllocationStatusEnum, string>> = {
+    [AllocationStatusEnum.Devir]: 'Devreden',
+    [AllocationStatusEnum.Teslim]: 'Teslim eden',
+    [AllocationStatusEnum.TeslimAlindi]: 'Teslim eden',
+    [AllocationStatusEnum.Arsiv]: 'Arşive kaldıran',
+    [AllocationStatusEnum.KargoyaVerildi]: 'Kargoya veren'
+  };
+
+  readonly zimmetActors = computed(() => {
+    const chronological = [...this.zimmetHistory()]
+      .sort((a, b) => new Date(a.createdDate).getTime() - new Date(b.createdDate).getTime());
+    const actors: Record<string, string> = {};
+    chronological.forEach((h, i) => {
+      if (h.status === AllocationStatusEnum.IlkKayit || !this.allocationActorLabels[h.status]) return;
+      const previous = chronological[i - 1];
+      if (previous) actors[h.id] = this.personLabel(previous);
+    });
+    return actors;
+  });
+
   openZimmetHistory(item: IncomingDocumentModel): void {
     if (!item.id) return;
+    this.allUsersRequested.set(true);
     this.zimmetHistoryDoc.set(item);
     this.zimmetHistory.set([]);
     this.zimmetHistoryExpanded.set(true);
@@ -364,5 +415,49 @@ export default class IncomingDepartmentDocument {
 
   toggleZimmetHistoryExpanded(): void {
     this.zimmetHistoryExpanded.update(v => !v);
+  }
+
+  // ---- Teslim Bilgisi popup ----
+  // Teslim sütunundaki ikona tıklanınca evrakı kimin teslim ettiği ve kimin teslim
+  // aldığı gösterilir. Zimmet kaydı işlemi yapanı taşımadığından teslim eden, en son
+  // teslim kaydından hemen önceki (tarihe göre) zimmetin sahibidir.
+  readonly deliveryVisible = signal(false);
+  readonly deliveryLoading = signal(false);
+  readonly deliveryDoc = signal<IncomingDocumentModel | null>(null);
+  readonly deliveryInfo = signal<{ receiver: DocumentAllocationModel; giver: DocumentAllocationModel | null } | null>(null);
+
+  openDelivery(item: IncomingDocumentModel): void {
+    if (!item.id) return;
+    this.allUsersRequested.set(true);
+    this.deliveryDoc.set(item);
+    this.deliveryInfo.set(null);
+    this.deliveryVisible.set(true);
+    this.deliveryLoading.set(true);
+
+    this.allocationService.getByDocumentId(item.id).subscribe({
+      next: (history) => {
+        const chronological = (history ?? [])
+          .filter(h => !h.isDeleted)
+          .sort((a, b) => new Date(a.createdDate).getTime() - new Date(b.createdDate).getTime());
+        // Önce en son "Teslim Edildi" kaydı; yoksa "Teslim Alındı" kaydı esas alınır.
+        const lastIndexOf = (status: AllocationStatusEnum) =>
+          chronological.map(h => h.status).lastIndexOf(status);
+        let index = lastIndexOf(AllocationStatusEnum.Teslim);
+        if (index < 0) index = lastIndexOf(AllocationStatusEnum.TeslimAlindi);
+        this.deliveryInfo.set(index >= 0
+          ? { receiver: chronological[index], giver: chronological[index - 1] ?? null }
+          : null);
+        this.deliveryLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Teslim bilgisi alınamadı:', err);
+        this.deliveryLoading.set(false);
+        this.toast.showToast('Hata', 'Teslim bilgisi alınamadı', 'error');
+      }
+    });
+  }
+
+  closeDelivery(): void {
+    this.deliveryVisible.set(false);
   }
 }

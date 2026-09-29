@@ -4,7 +4,7 @@
 <div class="row">
     <!-- SOL PANEL: QR okutma + okutulan evraklar -->
     <div class="col-lg-6 col-12">
-        <div class="card zm-card">
+        <div class="card zm-card d-flex flex-column">
             <div class="card-header dashboard-header d-flex align-items-center">
                 <span class="material-symbols-outlined me-2 text-info">approval_delegation</span>
                 <h5 class="card-title mb-0 fw-semibold">Giden Evrak Teslim Al</h5>
@@ -158,6 +158,16 @@
                     </div>
                 </ng-container>
             </div>
+
+            <!-- Okutulan listeyi temizleme: sol kartın sağ altında -->
+            <div class="card-footer zm-footer mt-auto" *ngIf="documents.length > 0">
+                <div class="zm-footer-actions">
+                    <button type="button" class="btn btn-light zm-back-btn" (click)="reset()">
+                        <span class="material-symbols-outlined">restart_alt</span>
+                        Temizle
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -283,17 +293,26 @@
                             <span class="zm-mode-label">Teslim Al</span>
                             <span class="zm-mode-sub">Kendime</span>
                         </button>
-                        <button type="button" class="zm-mode" [class.is-active]="mode() === 'internal'" (click)="setMode('internal')">
+                        <button type="button" class="zm-mode" [class.is-active]="mode() === 'internal'"
+                            [disabled]="mustTakeOverFirst()"
+                            [title]="mustTakeOverFirst() ? 'Önce evrakları Teslim Al ile üzerinize almalısınız' : ''"
+                            (click)="setMode('internal')">
                             <span class="material-symbols-outlined">person</span>
                             <span class="zm-mode-label">Zimmetle</span>
                             <span class="zm-mode-sub">İç kullanıcı</span>
                         </button>
-                        <button type="button" class="zm-mode" [class.is-active]="mode() === 'external'" (click)="setMode('external')">
+                        <button type="button" class="zm-mode" [class.is-active]="mode() === 'external'"
+                            [disabled]="mustTakeOverFirst()"
+                            [title]="mustTakeOverFirst() ? 'Önce evrakları Teslim Al ile üzerinize almalısınız' : ''"
+                            (click)="setMode('external')">
                             <span class="material-symbols-outlined">handshake</span>
                             <span class="zm-mode-label">Teslim Et</span>
                             <span class="zm-mode-sub">Dış kurum</span>
                         </button>
-                        <button type="button" class="zm-mode" [class.is-active]="mode() === 'cargo'" (click)="setMode('cargo')">
+                        <button type="button" class="zm-mode" [class.is-active]="mode() === 'cargo'"
+                            [disabled]="mustTakeOverFirst()"
+                            [title]="mustTakeOverFirst() ? 'Önce evrakları Teslim Al ile üzerinize almalısınız' : ''"
+                            (click)="setMode('cargo')">
                             <span class="material-symbols-outlined">local_shipping</span>
                             <span class="zm-mode-label">Kargoya Ver</span>
                             <span class="zm-mode-sub">Kargo / Posta</span>
@@ -452,10 +471,6 @@
                         </span>
                     </div>
                     <div class="zm-footer-actions">
-                        <button type="button" class="btn btn-light zm-back-btn" (click)="reset()">
-                            <span class="material-symbols-outlined">restart_alt</span>
-                            Temizle
-                        </button>
                         <!-- Mod değişince ikon/metin DOM'da yeniden oluşturulur ki belirme animasyonu tekrar oynasın. -->
                         <button type="button" class="btn btn-primary zimmet-submit-btn" [attr.data-mode]="mode()"
                             [disabled]="!canSubmit() || documents.length === 0 || saving()" (click)="addZimmet()">

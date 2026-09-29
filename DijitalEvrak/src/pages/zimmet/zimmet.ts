@@ -181,6 +181,31 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     return single ? this.activeAllocationOf(single) : null;
   });
 
+  // Listedeki evraklardan birinin zimmet geçmişinde (yalnızca aktif kayıt değil, tüm kayıtlar)
+  // "Teslim Edildi" varsa evrak tekrar teslim edilemez; "Teslim Et" pasifleşir.
+  readonly hasDeliveredDoc = computed(() => this.docs().some(d => this.isDelivered(d)));
+
+  isDelivered(doc: ScannedDoc): boolean {
+    return doc.allocations.some(a => a.status === AllocationStatusEnum.Teslim);
+  }
+
+  // Zimmet sahibinin birim kısa adı; allocation kaydında gelmediği için kullanıcı listesinden bulunur.
+  readonly activeAllocationDeptShortName = computed(() => {
+    const userId = this.activeAllocation()?.userId?.toLowerCase();
+    if (!userId) return null;
+    return (this.usersResult.value() ?? [])
+      .find(u => u.id?.toLowerCase() === userId)?.departmentShortName || null;
+  });
+
+  // Devret sekmesinde seçilen personel listedeki evrakların tümünün aktif zimmet
+  // sahibiyse işlem bir şey değiştirmez; Zimmetle / Teslim Et pasifleşir.
+  readonly selectedIsActiveHolder = computed(() => {
+    const personId = this.selectedPerson()?.id?.toLowerCase();
+    const docs = this.docs();
+    if (this.zimmetType() !== 'other' || !personId || docs.length === 0) return false;
+    return docs.every(d => this.activeAllocationOf(d)?.userId?.toLowerCase() === personId);
+  });
+
   // Alt özet şeridinde "Evrak No → Ad Soyad" biçiminde gösterilecek hedef.
   readonly targetLabel = computed<string | null>(() => {
     if (this.zimmetType() === 'self') return this.currentUserName || null;

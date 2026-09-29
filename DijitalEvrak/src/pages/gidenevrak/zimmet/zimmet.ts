@@ -273,6 +273,17 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     return !!me && summary?.kind === 'single' && summary.allocation.userId?.toLowerCase() === me;
   });
 
+  // Evraklar (hepsi) kullanıcının üzerinde değilse önce "Teslim Al" ile üzerine alması
+  // gerekir; bu durumda Zimmetle / Teslim Et / Kargoya Ver seçilemez. Zimmet bilgisi
+  // yüklenirken de kapalı tutulur ki kullanıcı sonradan geri alınacak bir seçim yapmasın.
+  readonly mustTakeOverFirst = computed(() => !this.isActiveOnCurrentUser());
+
+  // Zimmet bilgisi yüklendi ve evraklar kullanıcıda değil: sekme Teslim Al'a zorlanır.
+  private readonly ownershipKnownNotMine = computed(() => {
+    const summary = this.ownerSummary();
+    return !!summary && summary.kind !== 'loading' && !this.isActiveOnCurrentUser();
+  });
+
   // documents değiştikten sonra çağrılır: sayıyı günceller, haritada olmayan evrakların
   // aktif zimmetini yükler ve listeden çıkanları haritadan düşer.
   private syncActiveAllocations(): void {
@@ -438,9 +449,13 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
   readonly cargoReady = computed(() => this.trackingNumber().trim().length > 0);
 
   // Gönder butonunun aktifliği: kargo modunda takip numarası, diğer modlarda kişi seçimi gerekir.
-  readonly canSubmit = computed(() =>
-    this.mode() === 'cargo' ? this.cargoReady() : !!this.selectedPersonId()
-  );
+  // Seçili sekme o an izinli olmalı: Teslim Al yalnızca evraklar kullanıcıda değilken,
+  // diğerleri yalnızca evraklar kullanıcıdayken gönderilebilir.
+  readonly canSubmit = computed(() => {
+    const allowed = this.mode() === 'self' ? !this.isActiveOnCurrentUser() : !this.mustTakeOverFirst();
+    if (!allowed) return false;
+    return this.mode() === 'cargo' ? this.cargoReady() : !!this.selectedPersonId();
+  });
 
   // Alt özet şeridinde "3 evrak → Ad Soyad" biçiminde gösterilecek hedef.
   // Kargo modunda "PTT · 1234567890" ya da kurum seçiliyse "Kurum Adı · PTT · 1234567890".
@@ -521,6 +536,14 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     effect(() => {
       if (this.isActiveOnCurrentUser() && this.mode() === 'self') {
         this.setMode(this.previewEnvelope?.targetDepartmentId ? 'internal' : 'external');
+      }
+    });
+
+    // Tersi: evraklar kullanıcının üzerinde değilse (zarf durumu ya da ?mode= başka bir
+    // sekme seçtirmiş olsa bile) yalnızca Teslim Al kullanılabilir.
+    effect(() => {
+      if (this.ownershipKnownNotMine() && this.mode() !== 'self') {
+        this.setMode('self');
       }
     });
   }

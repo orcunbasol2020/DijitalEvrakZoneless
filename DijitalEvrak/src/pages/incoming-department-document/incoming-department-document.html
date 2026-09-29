@@ -4,7 +4,7 @@
 
 <div class="st-page">
   <!-- Üst kart: solda sayfa kimliği, sağda birim çipi ve yenile -->
-  <section class="sp-hero zl-hero zl-hero-split idd-hero">
+  <section class="sp-hero zl-hero zl-hero-split zl-hero-slim idd-hero">
     <div class="sp-hero-top">
       <span class="sp-hero-icon">
         <span class="material-symbols-outlined">move_to_inbox</span>
@@ -58,37 +58,26 @@
         <span class="material-symbols-outlined zl-stat-check">{{ listFilter() === 'all' ? 'check_circle' : 'radio_button_unchecked' }}</span>
       </button>
 
-      <button type="button" class="zl-stat" [class.is-active]="listFilter() === 'published'" (click)="setListFilter('published')">
-        <span class="zl-stat-icon idd-published">
-          <span class="material-symbols-outlined">check_circle</span>
+      <button type="button" class="zl-stat" [class.is-active]="listFilter() === 'delivered'" (click)="setListFilter('delivered')">
+        <span class="zl-stat-icon idd-delivered-stat">
+          <span class="material-symbols-outlined">handshake</span>
         </span>
         <span class="zl-stat-body">
-          <span class="zl-stat-label d-block">YAYINLANAN</span>
-          <span class="zl-stat-value d-block">{{ publishedCount() }}</span>
+          <span class="zl-stat-label d-block">TESLİM ALINANLAR</span>
+          <span class="zl-stat-value d-block">{{ deliveredCount() }}</span>
         </span>
-        <span class="material-symbols-outlined zl-stat-check">{{ listFilter() === 'published' ? 'check_circle' : 'radio_button_unchecked' }}</span>
+        <span class="material-symbols-outlined zl-stat-check">{{ listFilter() === 'delivered' ? 'check_circle' : 'radio_button_unchecked' }}</span>
       </button>
 
-      <button type="button" class="zl-stat" [class.is-active]="listFilter() === 'publishing'" (click)="setListFilter('publishing')">
+      <button type="button" class="zl-stat" [class.is-active]="listFilter() === 'undelivered'" (click)="setListFilter('undelivered')">
         <span class="zl-stat-icon is-out">
-          <span class="material-symbols-outlined">hourglass_bottom</span>
+          <span class="material-symbols-outlined">hourglass_top</span>
         </span>
         <span class="zl-stat-body">
-          <span class="zl-stat-label d-block">YAYINLANMA SIRASINDA</span>
-          <span class="zl-stat-value d-block">{{ publishingCount() }}</span>
+          <span class="zl-stat-label d-block">TESLİM ALINMAYI BEKLEYENLER</span>
+          <span class="zl-stat-value d-block">{{ undeliveredCount() }}</span>
         </span>
-        <span class="material-symbols-outlined zl-stat-check">{{ listFilter() === 'publishing' ? 'check_circle' : 'radio_button_unchecked' }}</span>
-      </button>
-
-      <button type="button" class="zl-stat" [class.is-active]="listFilter() === 'inprocess'" (click)="setListFilter('inprocess')">
-        <span class="zl-stat-icon idd-inprocess">
-          <span class="material-symbols-outlined">pending</span>
-        </span>
-        <span class="zl-stat-body">
-          <span class="zl-stat-label d-block">İŞLEMDE</span>
-          <span class="zl-stat-value d-block">{{ inProcessCount() }}</span>
-        </span>
-        <span class="material-symbols-outlined zl-stat-check">{{ listFilter() === 'inprocess' ? 'check_circle' : 'radio_button_unchecked' }}</span>
+        <span class="material-symbols-outlined zl-stat-check">{{ listFilter() === 'undelivered' ? 'check_circle' : 'radio_button_unchecked' }}</span>
       </button>
     </div>
 
@@ -180,6 +169,7 @@
                   </th>
                   <th class="zl-center">GİZLİLİK</th>
                   <th class="zl-center">DURUM</th>
+                  <th class="zl-center">TESLİM</th>
                   <th class="zl-center">SÜREÇ</th>
                   <th class="zl-center">ZİMMET</th>
                   <th class="zl-center">GEÇMİŞ</th>
@@ -191,9 +181,6 @@
                   <tr class="zl-row idd-row">
                     <td>
                       <span class="zl-doc">
-                        <span class="zl-doc-icon">
-                          <span class="material-symbols-outlined">description</span>
-                        </span>
                         <span>
                           <span class="zl-doc-no d-block">{{ item.qrCode || '-' }}</span>
                           @if (item.orginalNo) {
@@ -245,6 +232,16 @@
                         <span class="material-symbols-outlined">{{ statusIcon(item) }}</span>
                         {{ statusLabel(item) }}
                       </span>
+                    </td>
+                    <td class="zl-center">
+                      <!-- Evrak akış durumu 3 = Teslim Edildi -->
+                      @if (isDelivered(item)) {
+                        <button type="button" class="zl-act idd-act-delivered" title="Teslim bilgisi" (click)="openDelivery(item)">
+                          <span class="material-symbols-outlined">handshake</span>
+                        </button>
+                      } @else {
+                        <span class="idd-muted">-</span>
+                      }
                     </td>
                     <td class="zl-center">
                       <button type="button" class="zl-act" title="Süreçler" (click)="goToProcess(item.id)">
@@ -311,6 +308,69 @@
   }
 </div>
 
+<!-- Teslim Bilgisi Popup: evrakı teslim eden ve teslim alan (Zimmet Geçmişi popup'ının görsel dili) -->
+@if (deliveryVisible()) {
+  <div class="modal-overlay" (click)="closeDelivery()">
+    <div class="modal-box zh-modal" (click)="$event.stopPropagation()">
+      <div class="zh-header">
+        <div class="zh-header-top">
+          <div class="zh-title">Teslim Bilgisi</div>
+          <button type="button" class="zh-close" title="Kapat" (click)="closeDelivery()">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <div class="zh-header-main">
+          <div class="zh-header-icon">
+            <span class="material-symbols-outlined">handshake</span>
+          </div>
+          <div class="zh-header-text">
+            <div class="zh-doc-no">{{ deliveryDoc()?.qrCode }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="zh-body">
+        @if (deliveryLoading()) {
+          <div class="zh-state">
+            <div class="spinner-border spinner-border-sm text-primary"></div>
+            <span>Teslim bilgisi yükleniyor</span>
+          </div>
+        } @else if (deliveryInfo(); as d) {
+          <div class="idd-delivery">
+            <div class="zh-hero is-active">
+              <span class="zh-avatar">{{ initials(d.receiver.fullName) }}</span>
+              <div class="zh-hero-text">
+                <div class="zh-hero-label">Teslim Alan</div>
+                <div class="zh-hero-name">{{ personLabel(d.receiver) }}</div>
+                @if (d.giver; as g) {
+                  <div class="zh-meta">
+                    <span class="material-symbols-outlined">person</span>
+                    <span class="zh-meta-by">Teslim eden: <strong>{{ personLabel(g) }}</strong></span>
+                  </div>
+                }
+              </div>
+              <div class="zh-hero-side">
+                <span class="zh-date">
+                  <span class="material-symbols-outlined">schedule</span>
+                  {{ d.receiver.createdDate | date:'dd.MM.yyyy HH:mm' }}
+                </span>
+              </div>
+            </div>
+          </div>
+        } @else {
+          <div class="zh-state is-empty">
+            <span class="zh-state-icon">
+              <span class="material-symbols-outlined">help</span>
+            </span>
+            <div class="zh-state-title">Teslim kaydı bulunamadı</div>
+            <div class="zh-state-desc">Bu evrakın zimmet kayıtlarında teslim hareketi yok.</div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}
+
 <!-- Zimmet Geçmişi Popup: evrakın mevcut ve geçmiş zimmetleri (Gelen Evraklar ekranıyla aynı) -->
 @if (zimmetHistoryVisible()) {
   <div class="modal-overlay" (click)="closeZimmetHistory()">
@@ -343,8 +403,9 @@
                 <span class="zh-pulse"></span>
                 Aktif Zimmet
               </div>
-              <div class="zh-hero-name">{{ a.fullName || '-' }}</div>
+              <div class="zh-hero-name">{{ personLabel(a) }}</div>
             </div>
+            <!-- Aktif zimmette durum çipi gösterilmez; durum zaten hareket listesinde görünür. -->
             <div class="zh-hero-side">
               <span class="zh-date">
                 <span class="material-symbols-outlined">schedule</span>
@@ -394,7 +455,13 @@
                   </span>
                   <div class="zh-card">
                     <div class="zh-card-main">
-                      <div class="zh-name" [title]="h.fullName">{{ h.fullName || '-' }}</div>
+                      <div class="zh-name" [title]="personLabel(h)">{{ personLabel(h) }}</div>
+                      @if (zimmetActors()[h.id]; as actor) {
+                        <div class="zh-meta">
+                          <span class="material-symbols-outlined">person</span>
+                          <span class="zh-meta-by">{{ allocationActorLabels[h.status] }}: <strong>{{ actor }}</strong></span>
+                        </div>
+                      }
                     </div>
                     <div class="zh-card-side">
                       <span class="zh-status-chip {{ allocationStatusClass[h.status] || '' }}">

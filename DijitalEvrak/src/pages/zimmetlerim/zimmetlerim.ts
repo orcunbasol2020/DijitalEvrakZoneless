@@ -9,7 +9,7 @@ import {
   HostListener
 } from '@angular/core';
 import { httpResource } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of } from 'rxjs';
 import GenericModel from '../../../components/generic-model/generic-model';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -26,9 +26,13 @@ import {
   DocumentDirectionLabels
 } from '../../models/activedocument.model';
 import { AllocationStatusEnum, AllocationStatusLabels } from '../../models/allocationstatus.model';
+import { SecurityDegreeBadgeClass, SecurityDegreeIcons, SecurityDegreeLabels } from '../../models/securitydegree.model';
+import { UrgencyDegreeBadgeClass, UrgencyDegreeInitials, UrgencyDegreeLabels } from '../../models/urgencydegree.model';
+import { IncomingDocumentService } from '../../services/incomingdocument';
+import { OutgoingDocumentService } from '../../services/outgoingdocument';
 
 type DirectionFilter = 'all' | DocumentDirectionEnum;
-type SortColumn = 'qrCode' | 'documentName' | 'documentDate' | 'documentDirection';
+type SortColumn = 'qrCode' | 'subject' | 'documentDate' | 'documentDirection';
 
 // Geçmiş paneli: gelen (DocumentAllocations) ve giden (OutgoingDocumentAllocations)
 // kayıtları aynı biçime indirgenir.
@@ -63,12 +67,22 @@ export default class Zimmetlerim {
   private readonly toast = inject(FlexiToastService);
   private readonly common = inject(Common);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly incomingDocumentService = inject(IncomingDocumentService);
+  private readonly outgoingDocumentService = inject(OutgoingDocumentService);
 
   readonly Direction = DocumentDirectionEnum;
   readonly Source = AllocationSourceEnum;
   readonly directionLabels = DocumentDirectionLabels;
   readonly sourceLabels = AllocationSourceLabels;
   readonly statusLabels = AllocationStatusLabels;
+
+  // Gizlilik / ivedilik rozetleri Birim Gelen Evrakları listesiyle aynı (degree-tier-* styles.css)
+  readonly securityDegreeMap: Record<number, string> = SecurityDegreeLabels;
+  readonly securityDegreeIconMap: Record<number, string> = SecurityDegreeIcons;
+  readonly securityDegreeBadgeClassMap: Record<number, string> = SecurityDegreeBadgeClass;
+  readonly urgencyDegreeMap: Record<number, string> = UrgencyDegreeLabels;
+  readonly urgencyDegreeInitialMap: Record<number, string> = UrgencyDegreeInitials;
+  readonly urgencyDegreeBadgeClassMap: Record<number, string> = UrgencyDegreeBadgeClass;
 
   readonly user = computed(() => this.common.user());
 
@@ -94,7 +108,7 @@ export default class Zimmetlerim {
       .filter(item => !query
         || matches(item.qrCode)
         || matches(item.documentNo)
-        || matches(item.documentName)
+        || matches(item.subject)
         || matches(item.fromName)
         || matches(item.toName));
 
@@ -318,6 +332,39 @@ export default class Zimmetlerim {
     this.loadZimmetlerim();
   }
 
+  // Konu, gizlilik ve ivedilik zimmet listesinde gelmediği için evrak başına gelen
+  // (IncomingDocuments) ya da giden (OutgoingDocuments) GetById ucundan çekilir. Atlas
+  // zimmetlerinin evrağı bu sistemde olmadığından atlanır. Geç dönen yanıtın yeni bir
+  // yüklemenin üzerine yazmaması için loadSeq ile eşlenir.
+  private loadSeq = 0;
+
+  private loadDocumentDetails(items: ActiveDocumentModel[], loadId: number): void {
+    const pending = items.filter(i => !this.isAtlas(i) && i.documentId && i.subject == null);
+    if (!pending.length) return;
+
+    const requests = pending.map(item => {
+      const request$: Observable<{ subject?: string | null; securityDegree?: number | null; urgencyDegree?: number | null }> =
+        item.documentDirection === DocumentDirectionEnum.Giden
+          ? this.outgoingDocumentService.getById(item.documentId)
+          : this.incomingDocumentService.getIncomingDocumentByDocumentId(item.documentId);
+      return request$.pipe(
+        map(doc => ({ key: item.allocationId, subject: doc?.subject, securityDegree: doc?.securityDegree, urgencyDegree: doc?.urgencyDegree })),
+        catchError(() => of(null))
+      );
+    });
+
+    forkJoin(requests).subscribe(details => {
+      if (loadId !== this.loadSeq) return;
+      const byAllocation = new Map(details.filter(d => !!d).map(d => [d!.key, d!]));
+      this.zimmetlerim.update(list => list.map(item => {
+        const d = byAllocation.get(item.allocationId);
+        return d
+          ? { ...item, subject: d.subject ?? null, securityDegree: d.securityDegree ?? null, urgencyDegree: d.urgencyDegree ?? null }
+          : item;
+      }));
+    });
+  }
+
   loadZimmetlerim(): void {
     this.closeDetail();
     this.currentPage.set(1);
@@ -328,10 +375,13 @@ export default class Zimmetlerim {
     }
 
     this.loading.set(true);
+    const loadId = ++this.loadSeq;
     this.allocationService.getActiveDocumentsByUserId(currentUserId).subscribe({
       next: (res) => {
-        this.zimmetlerim.set(res?.items ?? []);
+        const items = res?.items ?? [];
+        this.zimmetlerim.set(items);
         this.loading.set(false);
+        this.loadDocumentDetails(items, loadId);
       },
       error: () => {
         this.zimmetlerim.set([]);
