@@ -73,6 +73,12 @@ export const navigations: NavigationModel[] = [
         roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Ön Kayıt"]
     },
     {
+        // Rol kısıtı yok: her kullanıcıya evrak devredilebilir
+        title: "Zimmet Onayları",
+        url: "/zimmet-onaylari",
+        icon: "assignment_turned_in"
+    },
+    {
         title: "Havale (AI)",
         url: "/havale",
         icon: "neurology",

@@ -1,0 +1,425 @@
+<app-generic pageTitle="Zimmet Onayları"
+  [breadcrumbs]="[{title: 'Zimmet Onayları', url: 'zimmet-onaylari', icon: ''}]">
+</app-generic>
+
+<div class="st-page">
+  <!-- Üst kart -->
+  <section class="sp-hero zl-hero zl-hero-split zl-hero-slim">
+    <div class="sp-hero-top">
+      <span class="sp-hero-icon">
+        <span class="material-symbols-outlined">assignment_turned_in</span>
+      </span>
+      <div>
+        <h4 class="sp-hero-title">Zimmet Onayları</h4>
+        <div class="sp-hero-text">
+          Size devredilen ya da teslim edilen evrakları onaylayın veya reddedin; gönderdiğiniz taleplerin durumunu izleyin.
+          Onay verilene kadar evrak devreden kişinin üzerinde kalır.
+        </div>
+      </div>
+    </div>
+
+    <div class="zl-hero-side">
+      <button type="button" class="st-hero-btn" [disabled]="loading()" (click)="reload()">
+        Yenile
+        <span class="material-symbols-outlined" [class.zl-spin]="loading()">refresh</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- Sekmeler: istatistik kutuları -->
+  <div class="zl-stats za-stats">
+    <button type="button" class="zl-stat" [class.is-active]="activeTab() === 'bekleyen'" (click)="setTab('bekleyen')">
+      <span class="zl-stat-icon za-stat-icon-in">
+        <span class="material-symbols-outlined">inbox</span>
+      </span>
+      <span class="zl-stat-body">
+        <span class="zl-stat-label d-block">ONAYIMI BEKLEYENLER</span>
+        <span class="zl-stat-value d-block">{{ incoming().length }}</span>
+      </span>
+      <span class="material-symbols-outlined zl-stat-check">{{ activeTab() === 'bekleyen' ? 'check_circle' : 'radio_button_unchecked' }}</span>
+    </button>
+
+    <button type="button" class="zl-stat" [class.is-active]="activeTab() === 'gonderilen'" (click)="setTab('gonderilen')">
+      <span class="zl-stat-icon za-stat-icon-out">
+        <span class="material-symbols-outlined">outbox</span>
+      </span>
+      <span class="zl-stat-body">
+        <span class="zl-stat-label d-block">GÖNDERDİKLERİM</span>
+        <span class="zl-stat-value d-block">{{ sent().length }}</span>
+      </span>
+      <span class="material-symbols-outlined zl-stat-check">{{ activeTab() === 'gonderilen' ? 'check_circle' : 'radio_button_unchecked' }}</span>
+    </button>
+
+    <button type="button" class="zl-stat" [class.is-active]="activeTab() === 'bildirimler'" (click)="setTab('bildirimler')">
+      <span class="zl-stat-icon za-stat-icon-bell">
+        <span class="material-symbols-outlined">notifications</span>
+      </span>
+      <span class="zl-stat-body">
+        <span class="zl-stat-label d-block">OKUNMAMIŞ BİLDİRİM</span>
+        <span class="zl-stat-value d-block">{{ unreadCount() }}</span>
+      </span>
+      <span class="material-symbols-outlined zl-stat-check">{{ activeTab() === 'bildirimler' ? 'check_circle' : 'radio_button_unchecked' }}</span>
+    </button>
+  </div>
+
+  @if (activeTab() === 'bildirimler') {
+  <!-- Bildirimler -->
+  <section class="st-card">
+    <div class="st-card-head zl-list-head">
+      <span class="st-card-icon">
+        <span class="material-symbols-outlined">notifications</span>
+      </span>
+      <div>
+        <h4 class="st-card-title">Bildirimler</h4>
+      </div>
+      <div class="zl-head-tools">
+        <div class="sp-search zl-head-search">
+          <span class="material-symbols-outlined sp-search-icon">search</span>
+          <input
+            type="text"
+            class="sp-search-input"
+            placeholder="Bildirimlerde ara..."
+            [ngModel]="searchQuery()"
+            (ngModelChange)="setSearchQuery($event)" />
+          <div class="sp-search-end">
+            @if (searchQuery().trim()) {
+              <button type="button" class="sp-search-clear" title="Aramayı temizle" (click)="setSearchQuery('')">
+                <span class="material-symbols-outlined">close</span>
+              </button>
+            }
+          </div>
+        </div>
+        <button type="button" class="za-btn is-sm" [disabled]="!unreadCount()" (click)="markAllRead()">
+          <span class="material-symbols-outlined">done_all</span>
+          Tümünü okundu say
+        </button>
+      </div>
+    </div>
+
+    <div class="st-card-body zl-body">
+      @if (notificationsLoading() && !notifications().length) {
+        <div class="zl-loading">
+          <span class="spinner-border" role="status"></span>
+          Bildirimler yükleniyor...
+        </div>
+      } @else if (!filteredNotifications().length) {
+        <div class="zl-empty-wrap">
+          <div class="sp-empty">
+            <span class="sp-empty-icon">
+              <span class="material-symbols-outlined">{{ searchQuery().trim() ? 'search_off' : 'notifications_off' }}</span>
+            </span>
+            @if (searchQuery().trim()) {
+              <div class="sp-empty-title">Sonuç bulunamadı</div>
+              <div class="sp-empty-text">"{{ searchQuery() }}" ile eşleşen bir bildirim yok.</div>
+            } @else {
+              <div class="sp-empty-title">Bildiriminiz yok</div>
+              <div class="sp-empty-text">Zimmet talepleriniz onaylandığında, reddedildiğinde ya da geri çekildiğinde burada görünür.</div>
+            }
+          </div>
+        </div>
+      } @else {
+        <ul class="za-notifs">
+          @for (n of filteredNotifications(); track n.id) {
+            <li>
+              <button type="button" class="za-notif {{ notificationTone(n) }}" [class.is-unread]="isUnread(n)" (click)="openNotification(n)">
+                <span class="za-notif-icon">
+                  <span class="material-symbols-outlined">{{ notificationIcon(n) }}</span>
+                </span>
+                <span class="za-notif-body">
+                  <span class="za-notif-top">
+                    <span class="za-notif-title">{{ n.title }}</span>
+                    <span class="za-notif-time">{{ n.createdDate | date:'dd.MM.yyyy HH:mm' }}</span>
+                  </span>
+                  <span class="za-notif-text">{{ n.message }}</span>
+                </span>
+                @if (isUnread(n)) {
+                  <span class="za-notif-dot" title="Okunmadı"></span>
+                }
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+
+    @if (filteredNotifications().length) {
+      <div class="zl-footnote">
+        <span class="material-symbols-outlined">info</span>
+        Bildirime tıklayınca okundu sayılır ve ilgili ekran açılır
+      </div>
+    }
+  </section>
+  } @else {
+  <!-- Liste -->
+  <section class="st-card">
+    <div class="st-card-head zl-list-head">
+      <span class="st-card-icon">
+        <span class="material-symbols-outlined">{{ activeTab() === 'bekleyen' ? 'pending_actions' : 'send' }}</span>
+      </span>
+      <div>
+        <h4 class="st-card-title">{{ activeTab() === 'bekleyen' ? 'Onayınızı Bekleyen Evraklar' : 'Onay Bekleyen Taleplerim' }}</h4>
+      </div>
+      <div class="zl-head-tools">
+        <div class="sp-search zl-head-search">
+          <span class="material-symbols-outlined sp-search-icon">search</span>
+          <input
+            type="text"
+            class="sp-search-input"
+            placeholder="Belge no, konu veya kişi ara..."
+            [ngModel]="searchQuery()"
+            (ngModelChange)="setSearchQuery($event)" />
+          <div class="sp-search-end">
+            @if (searchQuery().trim()) {
+              <button type="button" class="sp-search-clear" title="Aramayı temizle" (click)="setSearchQuery('')">
+                <span class="material-symbols-outlined">close</span>
+              </button>
+            }
+          </div>
+        </div>
+        <span class="st-count">
+          <span class="material-symbols-outlined">filter_list</span>
+          {{ filteredList().length }} / {{ currentList().length }}
+        </span>
+      </div>
+    </div>
+
+    <!-- İşlenemeyen talepler -->
+    @if (failedRows().length) {
+      <div class="za-failed">
+        <div class="za-failed-head">
+          <span class="material-symbols-outlined">warning</span>
+          {{ failedRows().length }} talep işlenemedi
+          <button type="button" class="za-failed-close" title="Kapat" (click)="failedRows.set([])">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <ul>
+          @for (f of failedRows(); track $index) {
+            <li><b>{{ f.label }}</b> · {{ f.reason }}</li>
+          }
+        </ul>
+      </div>
+    }
+
+    <!-- Seçim çubuğu -->
+    @if (selectedInView().length) {
+      <div class="za-bulk">
+        <span class="za-bulk-count">
+          <span class="material-symbols-outlined">check_box</span>
+          {{ selectedInView().length }} evrak seçildi
+        </span>
+        <div class="za-bulk-actions">
+          @if (activeTab() === 'bekleyen') {
+            <button type="button" class="za-btn is-reject" [disabled]="processing()" (click)="openNoteForSelected('reject')">
+              <span class="material-symbols-outlined">block</span>
+              Seçilenleri Reddet
+            </button>
+            <button type="button" class="za-btn is-approve" [disabled]="processing()" (click)="approveSelected()">
+              @if (processing()) { <span class="spinner-border"></span> } @else { <span class="material-symbols-outlined">done_all</span> }
+              Seçilenleri Onayla
+            </button>
+          } @else {
+            <button type="button" class="za-btn is-reject" [disabled]="processing()" (click)="openNoteForSelected('cancel')">
+              <span class="material-symbols-outlined">undo</span>
+              Seçilenleri Geri Çek
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+    <div class="st-card-body zl-body">
+      @if (loading() && !currentList().length) {
+        <div class="zl-loading">
+          <span class="spinner-border" role="status"></span>
+          Talepler yükleniyor...
+        </div>
+      } @else if (!filteredList().length) {
+        <div class="zl-empty-wrap">
+          <div class="sp-empty">
+            <span class="sp-empty-icon">
+              <span class="material-symbols-outlined">{{ searchQuery().trim() ? 'search_off' : 'task_alt' }}</span>
+            </span>
+            @if (searchQuery().trim()) {
+              <div class="sp-empty-title">Sonuç bulunamadı</div>
+              <div class="sp-empty-text">"{{ searchQuery() }}" ile eşleşen bir talep yok.</div>
+              <button type="button" class="sp-pill-btn" (click)="setSearchQuery('')">
+                <span class="material-symbols-outlined">restart_alt</span>
+                Aramayı temizle
+              </button>
+            } @else if (activeTab() === 'bekleyen') {
+              <div class="sp-empty-title">Onayınızı bekleyen evrak yok</div>
+              <div class="sp-empty-text">Size bir evrak devredildiğinde ya da teslim edildiğinde burada listelenir.</div>
+            } @else {
+              <div class="sp-empty-title">Onay bekleyen talebiniz yok</div>
+              <div class="sp-empty-text">Başka bir personele devrettiğiniz ya da teslim ettiğiniz evraklar, alıcı onaylayana kadar burada görünür.</div>
+            }
+          </div>
+        </div>
+      } @else {
+        <div class="zl-table-wrap">
+          <table class="zl-table za-table">
+            <thead>
+              <tr>
+                <th class="za-check-cell">
+                  <input type="checkbox" class="form-check-input za-check"
+                    [checked]="allInViewSelected()"
+                    [indeterminate]="!!selectedInView().length && !allInViewSelected()"
+                    [disabled]="processing()"
+                    title="Tümünü seç"
+                    (change)="toggleAll()" />
+                </th>
+                <th>BELGE NO</th>
+                <th>KONU</th>
+                <th>{{ activeTab() === 'bekleyen' ? 'DEVREDEN' : 'ALICI' }}</th>
+                <th class="zl-center">İŞLEM</th>
+                <th>TALEP TARİHİ</th>
+                @if (activeTab() === 'gonderilen') {
+                  <th class="zl-center">HATIRLATMA</th>
+                }
+                <th class="zl-center">{{ activeTab() === 'bekleyen' ? 'ONAY' : 'GERİ ÇEK' }}</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (row of filteredList(); track row.id) {
+                <tr class="zl-row" [class.is-open]="isSelected(row)" (click)="processing() || toggleRow(row)">
+                  <td class="za-check-cell" (click)="$event.stopPropagation()">
+                    <input type="checkbox" class="form-check-input za-check"
+                      [checked]="isSelected(row)"
+                      [disabled]="processing()"
+                      (change)="toggleRow(row)" />
+                  </td>
+                  <td>
+                    <span class="zl-doc">
+                      <span class="zl-doc-icon">
+                        <span class="material-symbols-outlined">description</span>
+                      </span>
+                      <span>
+                        <span class="zl-doc-no d-block">{{ docLabel(row) }}</span>
+                        @if (row.orginalNo && row.orginalNo !== docLabel(row)) {
+                          <span class="zl-doc-sub">{{ row.orginalNo }}</span>
+                        }
+                      </span>
+                    </span>
+                  </td>
+                  <td>
+                    <div class="zl-doc-name" [title]="row.subject ?? ''">{{ row.subject || '-' }}</div>
+                  </td>
+                  <td>
+                    @if (activeTab() === 'bekleyen') {
+                      <div class="za-person">{{ row.requestedByFullName || '-' }}</div>
+                      @if (showHolder(row)) {
+                        <div class="za-person-sub">Zimmet sahibi: {{ row.fromUserFullName }}</div>
+                      }
+                    } @else {
+                      <div class="za-person">{{ row.toUserFullName || '-' }}</div>
+                    }
+                  </td>
+                  <td class="zl-center">
+                    <span class="za-op" [class.is-teslim]="+row.requestedAllocationStatus === Teslim">
+                      <span class="material-symbols-outlined">{{ +row.requestedAllocationStatus === Teslim ? 'handshake' : 'swap_horiz' }}</span>
+                      {{ operationLabel(row.requestedAllocationStatus) }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="zl-date">
+                      <span class="material-symbols-outlined">schedule</span>
+                      {{ row.createdDate | date:'dd.MM.yyyy HH:mm' }}
+                    </span>
+                  </td>
+                  @if (activeTab() === 'gonderilen') {
+                    <td class="zl-center">
+                      <span class="za-reminder" [class.is-zero]="!row.reminderCount"
+                        [title]="row.lastReminderDate ? ('Son hatırlatma: ' + (row.lastReminderDate | date:'dd.MM.yyyy HH:mm')) : 'Henüz hatırlatma yapılmadı'">
+                        <span class="material-symbols-outlined">notifications</span>
+                        {{ row.reminderCount || 0 }}
+                      </span>
+                    </td>
+                  }
+                  <td class="zl-center" (click)="$event.stopPropagation()">
+                    @if (activeTab() === 'bekleyen') {
+                      <div class="za-row-actions">
+                        <button type="button" class="za-btn is-approve is-sm" [disabled]="processing()" (click)="approve([row.id])">
+                          <span class="material-symbols-outlined">check</span>
+                          Onayla
+                        </button>
+                        <button type="button" class="za-btn is-reject is-sm" [disabled]="processing()" (click)="openNote('reject', [row.id])">
+                          <span class="material-symbols-outlined">close</span>
+                          Reddet
+                        </button>
+                      </div>
+                    } @else {
+                      <button type="button" class="zl-act" title="Talebi geri çek" [disabled]="processing()" (click)="openNote('cancel', [row.id])">
+                        <span class="material-symbols-outlined">undo</span>
+                      </button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+
+    @if (filteredList().length) {
+      <div class="zl-footnote">
+        <span class="material-symbols-outlined">info</span>
+        Birden fazla evrakı seçmek için satırlara tıklayın; seçilenleri tek seferde işleyebilirsiniz
+      </div>
+    }
+  </section>
+  }
+</div>
+
+<!-- Red / geri çekme penceresi -->
+@if (noteAction(); as action) {
+  <div class="modal-overlay" (click)="closeNote()">
+    <div class="modal-box zl-modal" (click)="$event.stopPropagation()">
+      <div class="zl-modal-head">
+        <span class="st-card-icon">
+          <span class="material-symbols-outlined">{{ action === 'reject' ? 'block' : 'undo' }}</span>
+        </span>
+        <div>
+          <h4 class="st-card-title">{{ noteTitle() }}</h4>
+          <div class="st-card-sub">
+            @if (action === 'reject') {
+              Reddedilen evraklar devreden kişinin üzerinde kalır.
+            } @else {
+              Geri çekilen talepte evrak üzerinizde kalır; alıcıya bildirim gider.
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="zl-modal-body">
+        <div class="za-note-docs">
+          @for (r of noteRows(); track r.id) {
+            <span class="za-note-doc">{{ docLabel(r) }}</span>
+          }
+        </div>
+
+        <label class="za-note-label" for="zaNote">Gerekçe <span>(isteğe bağlı)</span></label>
+        <textarea id="zaNote" class="za-note" rows="3"
+          [attr.maxlength]="noteMax"
+          [ngModel]="noteText()"
+          (ngModelChange)="noteText.set($event)"
+          placeholder="Karşı tarafa iletilecek açıklama"></textarea>
+        <div class="za-note-count">{{ noteText().length }} / {{ noteMax }}</div>
+      </div>
+
+      <div class="zl-modal-foot">
+        <button type="button" class="zl-btn-ghost" [disabled]="processing()" (click)="closeNote()">Vazgeç</button>
+        <button type="button" class="za-btn is-reject is-solid" [disabled]="processing()" (click)="confirmNote()">
+          @if (processing()) {
+            <span class="spinner-border"></span>
+          } @else {
+            <span class="material-symbols-outlined">{{ action === 'reject' ? 'block' : 'undo' }}</span>
+          }
+          {{ action === 'reject' ? 'Reddet' : 'Geri Çek' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,167 @@
+@if (visible()) {
+    <div class="pd-overlay" (click)="close()">
+        <div class="pd-modal" [class.is-wide]="hasApprovals() || hasNotifications()" role="dialog" aria-modal="true" aria-labelledby="lrTitle" (click)="$event.stopPropagation()">
+            <div class="pd-header">
+                <span class="pd-header-glow"></span>
+                <span class="pd-header-icon">
+                    <span class="material-symbols-outlined">{{ hasApprovals() || hasNotifications() ? 'notifications_active' : 'pending_actions' }}</span>
+                </span>
+                <div class="pd-header-text">
+                    <div class="pd-title" id="lrTitle">{{ title() }}</div>
+                    @if (hasDelivery() && user()?.departmentName) {
+                        <div class="pd-dept">{{ user()?.departmentName }}</div>
+                    }
+                </div>
+                <button type="button" class="pd-close" title="Kapat" (click)="close()">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <!-- Zimmet onayları: evraklar tek tek -->
+            @if (hasApprovals()) {
+                <div class="lr-section">
+                    @if (sectionCount() > 1) {
+                        <div class="lr-section-head">
+                            <span class="lr-section-icon"><span class="material-symbols-outlined">assignment_turned_in</span></span>
+                            Zimmet onayınızı bekleyen evraklar
+                        </div>
+                    }
+                    <div class="lr-approval-lead">
+                        <b>{{ approvals().length }}</b> evrak size devredildi ya da teslim edildi.
+                        Onay verene kadar evraklar devreden kişinin üzerinde kalır.
+                    </div>
+                    <ul class="lr-approvals">
+                        @for (a of approvalPreview(); track a.id) {
+                            <li class="lr-approval">
+                                <span class="lr-approval-icon">
+                                    <span class="material-symbols-outlined">{{ +a.requestedAllocationStatus === 3 ? 'handshake' : 'swap_horiz' }}</span>
+                                </span>
+                                <span class="lr-approval-body">
+                                    <span class="lr-approval-top">
+                                        <span class="lr-approval-no">{{ a.qrCode || a.orginalNo || '-' }}</span>
+                                        <span class="lr-approval-subject" [title]="a.subject ?? ''">{{ a.subject || '-' }}</span>
+                                    </span>
+                                    <span class="lr-approval-meta">
+                                        {{ a.requestedByFullName }} · {{ operationLabel(a.requestedAllocationStatus) }} · {{ a.createdDate | date:'dd.MM.yyyy HH:mm' }}
+                                    </span>
+                                </span>
+                            </li>
+                        }
+                    </ul>
+                    @if (approvalMore() > 0) {
+                        <div class="lr-approval-more">+{{ approvalMore() }} evrak daha</div>
+                    }
+                </div>
+            }
+
+            <!-- Birim: teslim alınmayı bekleyen evraklar -->
+            @if (delivery(); as d) {
+                @if (d.pending > 0) {
+                    <div class="lr-section">
+                        @if (sectionCount() > 1) {
+                            <div class="lr-section-head">
+                                <span class="lr-section-icon"><span class="material-symbols-outlined">pending_actions</span></span>
+                                Teslim alınmayı bekleyen birim evrakları
+                            </div>
+                        }
+                        <div class="pd-body" [class.is-compact]="sectionCount() > 1">
+                            <div class="pd-gauge">
+                                <svg viewBox="0 0 120 120" aria-hidden="true">
+                                    <defs>
+                                        <linearGradient id="pdGaugeGradient" x1="0" y1="0" x2="1" y2="1">
+                                            <stop offset="0%" stop-color="#0369a1" />
+                                            <stop offset="100%" stop-color="#06b6d4" />
+                                        </linearGradient>
+                                    </defs>
+                                    <circle class="pd-gauge-track" cx="60" cy="60" r="50" />
+                                    <circle class="pd-gauge-value" cx="60" cy="60" r="50"
+                                            [style.stroke-dashoffset]="314.16 * (1 - deliveryPercent() / 100)" />
+                                </svg>
+                                <div class="pd-gauge-center">
+                                    <div class="pd-count">{{ d.pending }}</div>
+                                    <div class="pd-count-unit">EVRAK</div>
+                                </div>
+                            </div>
+
+                            <div class="pd-stats">
+                                <div class="pd-stat">
+                                    <span class="pd-stat-icon"><span class="material-symbols-outlined">folder_open</span></span>
+                                    <span class="pd-stat-label">Toplam birim evrakı</span>
+                                    <span class="pd-stat-value">{{ d.total }}</span>
+                                </div>
+                                <div class="pd-stat">
+                                    <span class="pd-stat-icon"><span class="material-symbols-outlined">handshake</span></span>
+                                    <span class="pd-stat-label">Teslim alınan</span>
+                                    <span class="pd-stat-value">{{ d.total - d.pending }}</span>
+                                </div>
+                                <div class="pd-stat is-accent">
+                                    <span class="pd-stat-icon"><span class="material-symbols-outlined">donut_large</span></span>
+                                    <span class="pd-stat-label">Bekleyen oranı</span>
+                                    <span class="pd-stat-value">%{{ deliveryPercent() }}</span>
+                                </div>
+                                <div class="pd-bar"><span [style.width.%]="deliveryPercent()"></span></div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+
+            <!-- Okunmamış bildirimler -->
+            @if (hasNotifications()) {
+                <div class="lr-section">
+                    @if (sectionCount() > 1) {
+                        <div class="lr-section-head">
+                            <span class="lr-section-icon"><span class="material-symbols-outlined">notifications</span></span>
+                            Okunmamış bildirimleriniz
+                        </div>
+                    }
+                    <ul class="lr-approvals lr-notifs">
+                        @for (n of notificationPreview(); track n.id) {
+                            <li class="lr-approval lr-notif {{ notificationTone(n) }}">
+                                <span class="lr-approval-icon">
+                                    <span class="material-symbols-outlined">{{ notificationIcon(n) }}</span>
+                                </span>
+                                <span class="lr-approval-body">
+                                    <span class="lr-approval-top">
+                                        <span class="lr-approval-no">{{ n.title }}</span>
+                                    </span>
+                                    <span class="lr-notif-text">{{ n.message }}</span>
+                                    <span class="lr-approval-meta">{{ n.createdDate | date:'dd.MM.yyyy HH:mm' }}</span>
+                                </span>
+                            </li>
+                        }
+                    </ul>
+                    @if (notificationMore() > 0) {
+                        <div class="lr-approval-more">+{{ notificationMore() }} bildirim daha</div>
+                    }
+                </div>
+            }
+
+            <div class="pd-footer">
+                <button type="button" class="btn btn-light" (click)="close()">Kapat</button>
+                @if (hasDelivery()) {
+                    <button type="button" class="d-flex align-items-center gap-1"
+                        [class.qr-manual-btn]="!hasApprovals() && !hasNotifications()"
+                        [class.btn]="hasApprovals() || hasNotifications()"
+                        [class.btn-outline-primary]="hasApprovals() || hasNotifications()"
+                        (click)="goToPendingDocuments()">
+                        <span class="material-symbols-outlined" style="font-size: 18px;">arrow_forward</span>
+                        Evrakları Görüntüle
+                    </button>
+                }
+                <!-- Zimmet Onayları ekranı bildirimleri de bir sekmede gösterir; onay varsa önce onaylar açılır -->
+                @if (hasApprovals()) {
+                    <button type="button" class="qr-manual-btn d-flex align-items-center gap-1" (click)="goToApprovals()">
+                        <span class="material-symbols-outlined" style="font-size: 18px;">assignment_turned_in</span>
+                        Onaylara Git
+                    </button>
+                } @else if (hasNotifications()) {
+                    <button type="button" class="qr-manual-btn d-flex align-items-center gap-1" (click)="goToNotifications()">
+                        <span class="material-symbols-outlined" style="font-size: 18px;">notifications</span>
+                        Bildirimleri Gör
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+}

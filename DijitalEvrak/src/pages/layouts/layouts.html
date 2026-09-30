@@ -106,6 +106,81 @@
                     </li>
                     <li><hr class="dropdown-divider"></li>
 
+                    <!-- Zimmet onayı: bildirim tek satır, evraklar tek tek listelenir -->
+                    @if (approvals().length > 0) {
+                        <li>
+                            <a class="dropdown-item notification-item" routerLink="/zimmet-onaylari">
+                                <div class="notification-icon bg-success">
+                                    <span class="material-symbols-outlined"
+                                        style="font-size:18px;">assignment_turned_in</span>
+                                </div>
+                                <div class="notification-content">
+                                    <p class="notification-text">Zimmet Onayınızı Bekleyenler</p>
+                                    <p class="notification-time"><b>{{ approvals().length }}</b> Evrak
+                                        Onay Bekliyor</p>
+                                </div>
+                            </a>
+                        </li>
+                        @for (a of approvalPreview(); track a.id) {
+                            <li>
+                                <a class="dropdown-item notification-approval" routerLink="/zimmet-onaylari"
+                                    [title]="a.subject ?? ''">
+                                    <span class="notification-approval-no">{{ a.qrCode || a.orginalNo || '-' }}</span>
+                                    <span class="notification-approval-subject">{{ a.subject || '-' }}</span>
+                                    <span class="notification-approval-meta">
+                                        {{ a.requestedByFullName }} · {{ approvalOperation(a.requestedAllocationStatus) }}
+                                    </span>
+                                </a>
+                            </li>
+                        }
+                        <li>
+                            <a class="dropdown-item notification-approval-more" routerLink="/zimmet-onaylari">
+                                @if (approvals().length > approvalPreview().length) {
+                                    +{{ approvals().length - approvalPreview().length }} evrak daha ·
+                                }
+                                Tümünü gör ve onayla
+                                <span class="material-symbols-outlined">arrow_forward</span>
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                    }
+
+                    <!-- Okunmamış bildirimler: onaylandı / reddedildi / geri çekildi / gecikme / geçersiz -->
+                    @if (notifications().length > 0) {
+                        <li class="notification-section-head">
+                            <span>Bildirimler</span>
+                            <button type="button" class="notification-read-all" (click)="markAllNotificationsRead($event)">
+                                Tümünü okundu say
+                            </button>
+                        </li>
+                        @for (n of notificationPreview(); track n.id) {
+                            <li>
+                                <a class="dropdown-item notification-msg {{ notificationTone(n) }}" href="javascript:void(0)"
+                                    (click)="openNotification(n)">
+                                    <span class="notification-msg-icon">
+                                        <span class="material-symbols-outlined">{{ notificationIcon(n) }}</span>
+                                    </span>
+                                    <span class="notification-msg-body">
+                                        <span class="notification-msg-title">{{ n.title }}</span>
+                                        <span class="notification-msg-text">{{ n.message }}</span>
+                                        <span class="notification-msg-time">{{ n.createdDate | date:'dd.MM.yyyy HH:mm' }}</span>
+                                    </span>
+                                </a>
+                            </li>
+                        }
+                        <li>
+                            <a class="dropdown-item notification-approval-more is-neutral" routerLink="/zimmet-onaylari"
+                                [queryParams]="{ sekme: 'bildirimler' }">
+                                @if (notifications().length > notificationPreview().length) {
+                                    +{{ notifications().length - notificationPreview().length }} bildirim daha ·
+                                }
+                                Tüm bildirimler
+                                <span class="material-symbols-outlined">arrow_forward</span>
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                    }
+
                     @if (pendingCount() > 0) {
                         <li>
                             <a class="dropdown-item notification-item" href="javascript:void(0)"
@@ -332,3 +407,6 @@
         </a>
     </div>
 </footer>
+
+<!-- Girişte tek hatırlatma popup'ı: zimmet onayları + birim teslim bekleyenler -->
+<app-login-reminder />

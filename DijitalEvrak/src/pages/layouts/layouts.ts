@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal, ViewEncapsulation } from '@angular/core';
-import { NgClass } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, signal, ViewEncapsulation } from '@angular/core';
+import { DatePipe, NgClass } from '@angular/common';
 import Breadcrumb from './breadcrumb/breadcrumb';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { navigations } from '../../navigation';
@@ -12,6 +12,11 @@ import { Sidebar } from './sidebar/sidebar/sidebar';
 import { RoleService } from '../../services/role-service';
 import { DocumentAllocation } from '../../services/documentallocation';
 import { getUserAvatar } from '../../services/user-avatar';
+import { AllocationRequestService } from '../../services/allocationrequest';
+import { allocationRequestOperationLabel } from '../../models/allocationrequest.model';
+import { LoginReminder } from './login-reminder/login-reminder';
+import { NotificationService } from '../../services/notification';
+import { NotificationModel, NotificationTypeEnum, NotificationTypeIcons, NotificationTypeTones } from '../../models/notification.model';
 
 type DocumentSearchStatus = 'beklemede' | 'işlemde' | 'tamamlandı';
 type DocumentSearchType = 'dahili' | 'harici';
@@ -33,7 +38,9 @@ interface DocumentSearchResult {
     Sidebar,
     FormsModule,
     RouterOutlet,
-    NgClass
+    NgClass,
+    DatePipe,
+    LoginReminder
   ],
   templateUrl: './layouts.html',
   encapsulation: ViewEncapsulation.None,
@@ -143,10 +150,46 @@ export default class Layouts {
   readonly #allocationService = inject(DocumentAllocation);
   readonly transferredToMeCount = signal<number>(0);
   readonly transferCount = signal<number>(0);
+
+  // Zimmet onayı bekleyen evraklar: zil menüsünde ilk birkaçı tek tek listelenir
+  readonly #allocationRequests = inject(AllocationRequestService);
+  readonly approvals = this.#allocationRequests.pendingForMe;
+  readonly approvalPreview = computed(() => this.approvals().slice(0, Layouts.APPROVAL_PREVIEW));
+  readonly approvalOperation = allocationRequestOperationLabel;
+  private static readonly APPROVAL_PREVIEW = 5;
+
+  // Okunmamış bildirimler (onay talebi / hatırlatma hariç; onlar yukarıdaki evrak listesinde)
+  readonly #notificationService = inject(NotificationService);
+  readonly notifications = this.#notificationService.unreadVisible;
+  readonly notificationPreview = computed(() => this.notifications().slice(0, Layouts.NOTIFICATION_PREVIEW));
+  private static readonly NOTIFICATION_PREVIEW = 5;
+
+  notificationIcon(n: NotificationModel): string {
+    return NotificationTypeIcons[n.type as NotificationTypeEnum] ?? 'notifications';
+  }
+
+  notificationTone(n: NotificationModel): string {
+    return NotificationTypeTones[n.type as NotificationTypeEnum] ?? 'is-muted';
+  }
+
+  openNotification(n: NotificationModel): void {
+    const userId = this.user()?.id;
+    if (userId) this.#notificationService.open(n, userId);
+  }
+
+  // Menü açık kalsın diye tıklama dropdown'a iletilmez
+  markAllNotificationsRead(event: Event): void {
+    event.stopPropagation();
+    const userId = this.user()?.id;
+    if (userId) this.#notificationService.markAllAsRead(userId).subscribe();
+  }
+
   readonly totalNotificationCount = computed(() =>
     this.pendingCount() +
     this.transferredToMeCount() +
-    this.transferCount()
+    this.transferCount() +
+    this.approvals().length +
+    this.notifications().length
   );
 
   constructor() {
@@ -155,6 +198,10 @@ export default class Layouts {
     const userId = this.user()?.id;
 
     if (userId) {
+      const destroyRef = inject(DestroyRef);
+      this.#allocationRequests.startPolling(userId, destroyRef);
+      this.#notificationService.startPolling(userId, destroyRef);
+
       this.#incomingDocumentService
         .getPendingCount(userId)
         .subscribe(c => this.pendingCount.set(c));

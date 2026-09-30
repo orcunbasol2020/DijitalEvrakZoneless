@@ -7,6 +7,7 @@ import { RoleService } from '../../../../services/role-service';
 import { SearchMenuPipe } from '../../../../pipes/search-menu-pipe';
 import { NavigationModel } from '../../../../navigation';
 import { Common } from '../../../../services/common';
+import { AllocationRequestService } from '../../../../services/allocationrequest';
 
 interface NavGroup {
   category: string | null;
@@ -33,6 +34,7 @@ export class Sidebar {
   private roleService = inject(RoleService);
   private common = inject(Common);
   private router = inject(Router);
+  private readonly allocationRequests = inject(AllocationRequestService);
   private readonly searchPipe = new SearchMenuPipe();
 
   /** Header'daki bildirim sayacıyla aynı kaynak; "Gelen Evraklar" menüsünün yanında rozet olarak gösterilir. */
@@ -179,7 +181,10 @@ export class Sidebar {
   }
 
   badgeFor(item: NavigationModel): number {
-    return item.url === '/scanlist' ? this.pendingCount() : 0;
+    if (item.url === '/scanlist') return this.pendingCount();
+    // Zimmet onayı bekleyen evrak sayısı (zil menüsüyle aynı liste)
+    if (item.url === '/zimmet-onaylari') return this.allocationRequests.pendingForMe().length;
+    return 0;
   }
 
   // ----- Mini (yalnız ikon) mod tooltip'i -----

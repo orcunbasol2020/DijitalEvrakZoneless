@@ -71,6 +71,12 @@ export const routes: Routes = [
                 loadComponent: () => import('./pages/zimmetlerim/zimmetlerim')
             },
             {
+                // Kurum içi Devir / Teslim talepleri: alıcı onaylar, devreden izler.
+                // Her kullanıcıya evrak devredilebildiği için rol kısıtı yok.
+                path: 'zimmet-onaylari',
+                loadComponent: () => import('./pages/zimmet-onaylari/zimmet-onaylari')
+            },
+            {
                 path: 'scanneddocument',
                 loadComponent: () => import('./pages/scanneddocument/scanneddocument'),
                 canActivate: [roleGuard],
