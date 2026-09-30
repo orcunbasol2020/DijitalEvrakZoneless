@@ -98,6 +98,9 @@ export default class Login {
 
         const storage = rememberMe ? localStorage : sessionStorage;
         storage.setItem('user', JSON.stringify(res));
+        // Girişteki hatırlatma popup'ı (zimmet onayları, birim teslim bekleyenler) her girişte
+        // yalnızca bir kez açılır; popup bu bayrağı okuyup siler (bkz. LoginReminder).
+        sessionStorage.setItem('loginReminderPopup', '1');
         this.#router.navigateByUrl('/');
       },
       error: () => {

@@ -167,7 +167,8 @@ export default class Evrakkayit implements OnInit {
 
   private static readonly stampLabels: Partial<Record<SecurityDegreeEnum, string>> = {
     [SecurityDegreeEnum.Confidential]: 'GİZLİ',
-    [SecurityDegreeEnum.TopSecret]: 'ÇOK GİZLİ'
+    [SecurityDegreeEnum.TopSecret]: 'ÇOK GİZLİ',
+    [SecurityDegreeEnum.Crypto]: 'KRİPTO'
   };
 
   readonly securityStamp = computed(() => Evrakkayit.stampLabels[this.selectedSecurityDegree()] ?? null);

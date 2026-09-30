@@ -100,23 +100,24 @@
     align-items: center;
 }
 
+/* Başlık, Birim panelindeki teslim bekleyen evrak popup'ının başlığıyla aynı dilde:
+   normal harfli kalın başlık, harf aralığı yok. */
 .ad-hero-kicker {
     display: contents;
-    font-size: 14px;
+    font-size: 17px;
     font-weight: 700;
-    letter-spacing: 0.16em;
-    color: #f8fafc;
+    line-height: 1.25;
+    color: #fff;
 }
 
 /* Yönetici paneli başlığı bir punto büyük; tarih satırı başlığa 2px daha yakın */
 app-admin-dashboard .ad-hero-kicker {
-    font-size: 15px;
+    font-size: 18px;
 }
 
-/* Gelen Evrak paneli (Gelen Evrak ve Ön Kayıt rolleri) başlığı bir punto büyük, harf aralığı daha sıkı */
+/* Gelen Evrak paneli (Gelen Evrak ve Ön Kayıt rolleri) başlığı bir punto büyük */
 app-gelen-evrak-dashboard .ad-hero-kicker {
-    font-size: 15px;
-    letter-spacing: 0.12em;
+    font-size: 18px;
 }
 
 app-admin-dashboard .ad-hero-text {
@@ -139,14 +140,13 @@ app-admin-dashboard app-currentdocument .ad-head-title,
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
-    font-size: 28px;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    font-size: 24px;
     color: #fff;
-    background: rgba(255, 255, 255, 0.18);
-    border: 1px solid rgba(255, 255, 255, 0.35);
-    box-shadow: 0 6px 18px rgba(3, 105, 161, 0.3);
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.28);
 }
 
 .ad-hero-sub {

@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { httpResource } from '@angular/common/http';
 import { FlexiToastService } from 'flexi-toast';
 import GenericModel from '../../../components/generic-model/generic-model';
@@ -253,6 +253,10 @@ export default class IncomingDepartmentDocument {
   }
 
   constructor() {
+    // Kontrol panelindeki teslim bekleyen evrak popup'ından gelindiğinde liste süzgeci hazır açılır.
+    if (inject(ActivatedRoute).snapshot.queryParamMap.get('filtre') === 'teslim-bekleyen') {
+      this.listFilter.set('undelivered');
+    }
     this.loadDocuments();
     this.externalInstitutionService.getExternalInstitutions().subscribe({
       next: (res) => this.externalInstitutions.set(res ?? []),
@@ -316,7 +320,8 @@ export default class IncomingDepartmentDocument {
     [AllocationStatusEnum.Teslim]: 'handshake',
     [AllocationStatusEnum.Arsiv]: 'inventory_2',
     [AllocationStatusEnum.TeslimAlindi]: 'move_to_inbox',
-    [AllocationStatusEnum.KargoyaVerildi]: 'local_shipping'
+    [AllocationStatusEnum.KargoyaVerildi]: 'local_shipping',
+    [AllocationStatusEnum.DevirAlindi]: 'how_to_reg'
   };
 
   readonly allocationStatusClass: Record<number, string> = {
@@ -325,7 +330,8 @@ export default class IncomingDepartmentDocument {
     [AllocationStatusEnum.Teslim]: 'is-teslim',
     [AllocationStatusEnum.Arsiv]: 'is-arsiv',
     [AllocationStatusEnum.TeslimAlindi]: 'is-teslimalindi',
-    [AllocationStatusEnum.KargoyaVerildi]: 'is-kargo'
+    [AllocationStatusEnum.KargoyaVerildi]: 'is-kargo',
+    [AllocationStatusEnum.DevirAlindi]: 'is-devir'
   };
 
   initials(fullName?: string | null): string {
@@ -365,7 +371,8 @@ export default class IncomingDepartmentDocument {
     [AllocationStatusEnum.Teslim]: 'Teslim eden',
     [AllocationStatusEnum.TeslimAlindi]: 'Teslim eden',
     [AllocationStatusEnum.Arsiv]: 'Arşive kaldıran',
-    [AllocationStatusEnum.KargoyaVerildi]: 'Kargoya veren'
+    [AllocationStatusEnum.KargoyaVerildi]: 'Kargoya veren',
+    [AllocationStatusEnum.DevirAlindi]: 'Devreden'
   };
 
   readonly zimmetActors = computed(() => {

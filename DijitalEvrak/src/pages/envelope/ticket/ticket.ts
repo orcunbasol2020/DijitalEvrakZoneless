@@ -487,9 +487,10 @@ export default class Ticket implements OnInit {
   readonly manualEntrySaving = signal(false);
   private pendingManualEnvelopeId: string | null = null;
 
-  manualEntryForm: { qrCode: string; documentDate: string; subject: string; externalInstitutionId: string | null } = {
+  manualEntryForm: { qrCode: string; documentDate: string; securityDegree: number; subject: string; externalInstitutionId: string | null } = {
     qrCode: '',
     documentDate: '',
+    securityDegree: SecurityDegreeEnum.ServiceUseOnly,
     subject: '',
     externalInstitutionId: null
   };
@@ -502,6 +503,7 @@ export default class Ticket implements OnInit {
     this.manualEntryForm = {
       qrCode,
       documentDate: '',
+      securityDegree: SecurityDegreeEnum.ServiceUseOnly,
       subject: '',
       externalInstitutionId: defaultInstitutionId
     };
@@ -541,6 +543,7 @@ export default class Ticket implements OnInit {
         this.outgoingDocumentService.createOutgoingDocument({
           qrCode: this.manualEntryForm.qrCode,
           documentDate: this.manualEntryForm.documentDate,
+          securityDegree: this.manualEntryForm.securityDegree,
           subject: this.manualEntryForm.subject.trim() || undefined,
           departmentId,
           externalInstitutonId: this.manualEntryForm.externalInstitutionId,
