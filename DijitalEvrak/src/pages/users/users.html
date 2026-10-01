@@ -76,7 +76,7 @@
         @if (item.roles?.length) {
           <div class="us-roles">
             @for (role of item.roles; track role.id) {
-              <span class="us-role-chip">
+              <span class="us-role-chip" [class.is-admin-chip]="role.name === 'Yönetici'">
                 <span class="material-symbols-outlined"
                   [class.is-admin]="role.name === 'Yönetici'"
                   [class.is-unit-manager]="role.name === 'Birim Yöneticisi'">{{ roleIcon(role.name) }}</span>

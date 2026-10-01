@@ -84,7 +84,6 @@
                 </span>
                 <div class="ad-head-text">
                     <h5 class="ad-head-title">Birimimdeki Kullanıcılar</h5>
-                    <div class="ad-head-sub">Biriminize kayıtlı kullanıcılar ve durumları</div>
                 </div>
                 <span class="ad-period" title="Aktif / Toplam">
                     {{ departmentActiveUserCount() }} / {{ departmentUsers().length }} aktif
@@ -96,12 +95,13 @@
                         <thead>
                             <tr>
                                 <th scope="col">KULLANICI</th>
+                                <th scope="col">ROLLER</th>
                                 <th scope="col">E-POSTA</th>
                                 <th scope="col" class="text-center">DURUM</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr *ngFor="let u of departmentUsers()" [class.table-active]="isCurrentUser(u)">
+                            <tr *ngFor="let u of departmentUsers()" [class.table-active]="isCurrentUser(u)" [class.ad-admin-row]="isAdmin(u)" [class.ad-unit-manager-row]="isUnitManager(u)">
                                 <td>
                                     <div class="d-flex align-items-center gap-2 institution-cell">
                                         <span class="avatar-circle ad-avatar">{{ getInitials(u) }}</span>
@@ -115,23 +115,34 @@
                                     </div>
                                 </td>
                                 <td>
+                                    <div *ngIf="u.roles?.length; else noRole" class="ad-roles">
+                                        <span *ngFor="let role of u.roles" class="ad-role-chip" [title]="role.name">
+                                            <span class="material-symbols-outlined"
+                                                [class.is-admin]="role.name === 'Yönetici'"
+                                                [class.is-unit-manager]="role.name === 'Birim Yöneticisi'">{{ roleIcon(role.name) }}</span>
+                                            <span class="ad-role-name">{{ role.name }}</span>
+                                        </span>
+                                    </div>
+                                    <ng-template #noRole><span class="text-muted small">-</span></ng-template>
+                                </td>
+                                <td>
                                     <span class="text-muted small">{{ u.email || '-' }}</span>
                                 </td>
                                 <td class="text-center">
-                                    <span class="badge rounded-pill"
+                                    <span class="badge rounded-pill ad-status-badge"
                                         [ngClass]="u.isActive ? 'badge-soft-success' : 'badge-soft-secondary'">
                                         {{ u.isActive ? 'Aktif' : 'Pasif' }}
                                     </span>
                                 </td>
                             </tr>
                             <tr *ngIf="usersLoading() && departmentUsers().length === 0">
-                                <td colspan="3" class="text-center text-muted py-4">
+                                <td colspan="4" class="text-center text-muted py-4">
                                     <span class="spinner-border spinner-border-sm me-2" role="status"></span>
                                     Kullanıcılar yükleniyor...
                                 </td>
                             </tr>
                             <tr *ngIf="!usersLoading() && departmentUsers().length === 0">
-                                <td colspan="3" class="text-center text-muted py-5">
+                                <td colspan="4" class="text-center text-muted py-5">
                                     <span class="material-symbols-outlined d-block mb-2" style="font-size: 28px;">group_off</span>
                                     Biriminizde kayıtlı kullanıcı bulunmuyor.
                                 </td>
@@ -152,7 +163,6 @@
                 </span>
                 <div class="ad-head-text">
                     <h5 class="ad-head-title">Bekleyenler</h5>
-                    <div class="ad-head-sub">İşlem bekleyen evraklarınız</div>
                 </div>
                 @if (pendingTotal() > 0) {
                     <span class="ad-period">{{ pendingTotal() }} evrak</span>

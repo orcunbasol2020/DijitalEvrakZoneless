@@ -5,7 +5,7 @@ import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import GenericModel from '../../../components/generic-model/generic-model';
 import { UserService } from '../../services/user';
-import { normalizeRoleName } from '../../services/role-service';
+import { normalizeRoleName, roleIcon } from '../../services/role-service';
 import { RoleModel } from './role/role';
 
 export interface UserModel{
@@ -33,21 +33,6 @@ export interface UserRoleRef {
 
 /** Listede gösterilen satır: rol adları ızgara araması ve Excel çıktısı için tek metne çevrilir. */
 type UserRow = UserModel & { roleNames: string };
-
-/** Rol rozetlerinin simgeleri; listede olmayan roller varsayılan simgeyle gösterilir. */
-const ROLE_ICONS: Record<string, string> = {
-  'Admin': 'admin_panel_settings',
-  'Yönetici': 'shield_person',
-  'Birim Yöneticisi': 'supervisor_account',
-  'Birim Evrak Sorumlusu': 'badge',
-  'Gelen Evrak': 'move_to_inbox',
-  'Giden Evrak': 'outbox',
-  'Ön Kayıt': 'app_registration',
-  'Misyon Yetkilisi': 'flag',
-  'Misyon Evrak Sorumlusu': 'public',
-  'Kurye': 'local_shipping',
-  'Kurye Takip': 'share_location',
-};
 
 /** Rol filtresinde "rolü olmayan kullanıcılar" seçeneği. */
 const NO_ROLE = 'none';
@@ -122,7 +107,7 @@ export default class Users {
   readonly #userService = inject(UserService);
 
   roleIcon(name: string): string {
-    return ROLE_ICONS[name] ?? 'verified_user';
+    return roleIcon(name);
   }
 
   changeIsAdmin(data:UserRow){

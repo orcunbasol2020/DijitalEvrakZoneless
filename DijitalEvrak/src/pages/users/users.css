@@ -42,17 +42,22 @@
     border-color: #7dd3fc;
 }
 
-/* Birim etiketi: zemin sitenin amber ailesi (Evrak Kayıt ve teslim kartlarındaki sarı ton), yazı siyah */
+/* Birim etiketi: zeminsiz, ince gri çerçeve, yazı siyah */
 .us-dept-badge {
     color: #0f172a;
-    background-color: #fef3c7;
-    border: 1px solid #fde68a;
+    background-color: transparent;
+    border: 1px solid #d1d5db;
+    /* Ortak .badge (styles.css: 0.65rem yazı, 0.25em dolgu) üzerine: yazı 0.2px büyük,
+       üstten ve alttan 2px fazla dolgu (toplam 4px daha yüksek) */
+    font-size: calc(0.65rem + 0.2px);
+    padding-top: calc(0.25em + 2px);
+    padding-bottom: calc(0.25em + 2px);
 }
 
 [data-theme="dark"] .us-dept-badge {
     color: #f8fafc;
-    background-color: rgba(245, 158, 11, 0.14);
-    border-color: rgba(251, 191, 36, 0.35);
+    background-color: transparent;
+    border-color: rgba(156, 163, 175, 0.4);
 }
 
 .us-roles {
@@ -67,7 +72,7 @@
     display: inline-flex;
     align-items: center;
     gap: 3px;
-    padding: 2px 10px 2px 3px;
+    padding: 2px 14px 2px 3px;
     border-radius: 999px;
     font-size: 11.5px;
     font-weight: 600;
@@ -98,6 +103,18 @@
 
 [data-theme="dark"] .us-role-chip .material-symbols-outlined {
     color: #7dd3fc;
+}
+
+/* Yönetici rozeti diğer rol rozetlerinden %10 büyük (dolgu ve simge 1.1 katı); yazı boyutu aynı */
+.us-role-chip.is-admin-chip {
+    gap: 3.3px;
+    padding: 2.2px 15px 2.2px 3.3px;
+}
+
+.us-role-chip.is-admin-chip .material-symbols-outlined {
+    width: 24px;
+    height: 24px;
+    font-size: 16px;
 }
 
 /* Yönetim rolleri simge rengiyle ayrışır: Yönetici amber, Birim Yöneticisi zümrüt */

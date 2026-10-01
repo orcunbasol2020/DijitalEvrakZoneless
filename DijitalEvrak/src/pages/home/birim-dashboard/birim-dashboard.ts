@@ -9,6 +9,7 @@ import { DocumentAllocation } from '../../../services/documentallocation';
 import { AllocationRequestService } from '../../../services/allocationrequest';
 import { IncomingDocumentTodayStats } from '../../../models/dashboard/IncomingDocumentTodayStats.model';
 import { UserModel } from '../../users/users';
+import { normalizeRoleName, roleIcon } from '../../../services/role-service';
 
 @Component({
   selector: 'app-birim-dashboard',
@@ -60,8 +61,18 @@ export default class BirimDashboard implements OnInit {
     if (!departmentId) return [];
     return (this.usersResult.value() ?? [])
       .filter(u => !u.isDeleted)
-      .sort((a, b) => `${a.name} ${a.surname}`.localeCompare(`${b.name} ${b.surname}`, 'tr'));
+      .map(u => ({ ...u, roles: (u.roles ?? []).map(r => ({ ...r, name: normalizeRoleName(r.name) })) }))
+      .sort((a, b) => this.roleRank(a) - this.roleRank(b)
+        || `${a.name} ${a.surname}`.localeCompare(`${b.name} ${b.surname}`, 'tr'));
   });
+
+  /** Liste sırası: önce Yönetici, sonra Birim Yöneticisi, ardından diğerleri. */
+  private roleRank(u: UserModel): number {
+    const names = (u.roles ?? []).map(r => r.name);
+    if (names.includes('Yönetici')) return 0;
+    if (names.includes('Birim Yöneticisi')) return 1;
+    return 2;
+  }
   readonly departmentActiveUserCount = computed(() => this.departmentUsers().filter(u => u.isActive).length);
 
   ngOnInit() {
@@ -72,6 +83,18 @@ export default class BirimDashboard implements OnInit {
     const first = (u.name ?? '').trim().charAt(0);
     const last = (u.surname ?? '').trim().charAt(0);
     return `${first}${last}`.toLocaleUpperCase('tr');
+  }
+
+  isAdmin(u: UserModel): boolean {
+    return this.roleRank(u) === 0;
+  }
+
+  isUnitManager(u: UserModel): boolean {
+    return this.roleRank(u) === 1;
+  }
+
+  roleIcon(name: string): string {
+    return roleIcon(name);
   }
 
   isCurrentUser(u: UserModel): boolean {
