@@ -11,6 +11,9 @@ export function normalizeRoleName(role: string): string {
   return ROLE_NAME_FIXES[role] ?? role;
 }
 
+/** Birim düzeyindeki evrak rolleri. Birim Yöneticisi şimdilik yalnızca ana sayfa panelinde ayrışır. */
+const BIRIM_EVRAK_ROLES = ['Birim Evrak Sorumlusu', 'Birim Yöneticisi'];
+
 @Injectable({ providedIn: 'root' })
 export class RoleService {
 
@@ -39,6 +42,11 @@ export class RoleService {
   hasAny(roles: string[]): boolean {
     const current = this.roles;
     return roles.some(r => current.includes(normalizeRoleName(r)));
+  }
+
+  /** Birim Evrak Sorumlusu ya da Birim Yöneticisi; ikisi şimdilik aynı menü ve yetkilere sahiptir. */
+  hasBirimEvrakRole(): boolean {
+    return this.hasAny(BIRIM_EVRAK_ROLES);
   }
 
   getMenu(): NavigationModel[] {

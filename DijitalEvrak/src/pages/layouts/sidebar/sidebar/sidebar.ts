@@ -57,9 +57,10 @@ export class Sidebar {
     return `${first}${last}`.toLocaleUpperCase('tr') || '?';
   });
   readonly isAdmin = computed(() => this.roleService.has('Yönetici'));
-  readonly isBirimEvrakSorumlusu = computed(() => this.roleService.has('Birim Evrak Sorumlusu'));
+  readonly isBirimEvrakSorumlusu = computed(() => this.roleService.hasBirimEvrakRole());
   readonly userRoleLabel = computed(() => {
     if (this.isAdmin()) return 'Yönetici';
+    if (this.roleService.has('Birim Yöneticisi')) return 'Birim Yöneticisi';
     if (this.isBirimEvrakSorumlusu()) return 'Birim Evrak Sorumlusu';
     return this.roleService.roles[0] ?? '';
   });
@@ -90,7 +91,7 @@ export class Sidebar {
 
   // Birim Evrak Sorumlusu'nun menüsü kısa olduğundan tüm kategoriler açık başlar
   // ve kategoriler birbirinden bağımsız açılıp kapanır (akordeon davranışı yok).
-  private readonly expandAllByDefault = this.roleService.has('Birim Evrak Sorumlusu');
+  private readonly expandAllByDefault = this.roleService.hasBirimEvrakRole();
 
   private collapsedCategories = signal<Set<string>>(
     this.expandAllByDefault

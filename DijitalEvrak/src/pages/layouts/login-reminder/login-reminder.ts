@@ -89,7 +89,7 @@ export class LoginReminder implements OnInit {
     if (!userId || !LoginReminder.consumeLoginFlag()) return;
 
     const departmentId = this.user()?.departmentId;
-    const delivery$ = departmentId && this.roleService.has('Birim Evrak Sorumlusu')
+    const delivery$ = departmentId && this.roleService.hasBirimEvrakRole()
       ? this.incomingDocumentService.getAllIncomingDocuments(departmentId).pipe(
           map(docs => {
             const list = (docs ?? []).filter(d => !d.isDeleted);

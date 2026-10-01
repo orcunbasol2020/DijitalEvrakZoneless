@@ -360,7 +360,7 @@ export default class Ticket implements OnInit {
 
     // Birim Evrak Sorumlusu: sadece kendi biriminin evrakını zarfa ekleyebilir;
     // girilen numaraya ait giden evrak yoksa manuel evrak ekleme popup'ı açılır.
-    if (this.#roleService.has('Birim Evrak Sorumlusu')) {
+    if (this.#roleService.hasBirimEvrakRole()) {
       await this.addDocumentByQrForBirimSorumlusu(qrCode, envelopeId, createdUserId);
       return;
     }

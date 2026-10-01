@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, OnInit, signal, ViewEncapsulation } from '@angular/core';
 import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import { httpResource } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
@@ -25,6 +25,9 @@ export default class BirimDashboard implements OnInit {
   private readonly documentAllocation = inject(DocumentAllocation);
 
   readonly user = computed(() => this.common.user());
+
+  /** Üst şerit başlığı; Birim Yöneticisi paneli kendi başlığını verir. */
+  readonly heading = input('Birim Evrak Paneli');
 
   // Üst şerit
   readonly today = new Date();

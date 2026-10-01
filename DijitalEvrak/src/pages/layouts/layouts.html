@@ -307,7 +307,7 @@
                             </span>
                         </div>
                     </li>
-                    @if (!roleService.has('Birim Evrak Sorumlusu')) {
+                    @if (!roleService.hasBirimEvrakRole()) {
                         <li>
                             <a class="dropdown-item user-dropdown-item" routerLink="/users/profile" routerLinkActive="active">
                                 <span class="user-dropdown-icon user-dropdown-icon-primary">

@@ -7,4 +7,7 @@
 
 <app-on-kayit-dashboard *ngIf="roleService.has('Misyon')" />
 
-<app-birim-dashboard *ngIf="roleService.has('Birim Evrak Sorumlusu')" />
+<!-- İki birim rolü birlikte verilmişse yönetici paneli gösterilir. -->
+<app-birim-yonetici-dashboard *ngIf="roleService.has('Birim Yöneticisi')" />
+
+<app-birim-dashboard *ngIf="roleService.has('Birim Evrak Sorumlusu') && !roleService.has('Birim Yöneticisi')" />

@@ -44,7 +44,7 @@ export const routes: Routes = [
                 path: "zimmet",
                 loadComponent: () => import("./pages/zimmet/zimmet"),
                 canActivate: [roleGuard],
-                data: { roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Ön Kayıt"] }
+                data: { roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Birim Yöneticisi", "Ön Kayıt"] }
             },
             {
                 path: 'scanlist',
@@ -58,7 +58,7 @@ export const routes: Routes = [
                 path: 'incomingDepartmentDocument',
                 loadComponent: () => import('./pages/incoming-department-document/incoming-department-document'),
                 canActivate: [roleGuard],
-                data: { roles: ["Birim Evrak Sorumlusu"] }
+                data: { roles: ["Birim Evrak Sorumlusu", "Birim Yöneticisi"] }
             },
             {
                 path: 'documentlist',
@@ -166,7 +166,7 @@ export const routes: Routes = [
                 path: 'envelope',
                 loadComponent: () => import('./pages/envelope/envelope/envelope'),
                 canActivate: [roleGuard],
-                data: { roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Giden Evrak", "Ön Kayıt", "Yönetici"] }
+                data: { roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Birim Yöneticisi", "Giden Evrak", "Ön Kayıt", "Yönetici"] }
             },
                         {
                 path: 'gidenzimmet',
@@ -176,7 +176,7 @@ export const routes: Routes = [
                 path: 'ticket',
                 loadComponent: () => import('./pages/envelope/ticket/ticket'),
                 canActivate: [roleGuard],
-                data: { roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Giden Evrak", "Ön Kayıt"] }
+                data: { roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Birim Yöneticisi", "Giden Evrak", "Ön Kayıt"] }
             },
             {
                 path: 'settings',
