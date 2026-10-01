@@ -286,7 +286,7 @@
             <span class="material-symbols-outlined">open_in_new</span>
             <span>Yeni Sekmede</span>
           </a>
-          <!-- Belge yüklenmemişse başlığın sağında yükleme butonu; Gizli / Çok Gizli evrakta
+          <!-- Belge yüklenmemişse başlığın sağında yükleme butonu; Gizli / Çok Gizli / Kripto evrakta
                belgenin tamamı yerine kapak yazısı da yüklenebilir -->
           <button type="button" class="ek-head-upload-btn" *ngIf="!hasDocument() && canUploadDocument()"
             (click)="openUpload()">
@@ -297,9 +297,9 @@
       </div>
 
       <div class="card-body ek-pdf-body">
-        <!-- Belge yüklenmemiş + Gizli / Çok Gizli: gizlilik mührü -->
+        <!-- Belge yüklenmemiş + Gizli / Çok Gizli / Kripto: gizlilik mührü -->
         <!-- Belge yüklenmemiş: "belge sahnesi" — masa üstünde boş bir sayfa silueti,
-             (Gizli / Çok Gizli seçiliyse üzerinde mühür), durum hapı ve üç adım -->
+             (Gizli / Çok Gizli / Kripto seçiliyse üzerinde mühür), durum hapı ve üç adım -->
         <div class="ek-stage" *ngIf="!hasDocument()">
           <button type="button" class="ek-sheet" [class.is-clickable]="canUploadDocument()"
             [disabled]="!canUploadDocument()"

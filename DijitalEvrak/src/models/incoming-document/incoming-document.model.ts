@@ -43,4 +43,6 @@ export interface IncomingDocumentModel {
   actionRequired?: boolean | null;
 
   currentAssignmentUserId : string;
+  // Atanan personelin adı (GetAll yanıtında gelir; gelmezse kullanıcı listesinden çözülür)
+  currentAssignmentUser?: string | null;
 }

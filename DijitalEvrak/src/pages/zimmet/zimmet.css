@@ -645,7 +645,7 @@
 
 .iz-result-stats {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 10px;
     margin-top: 14px;
 }
@@ -877,4 +877,137 @@
 .zm-action-note strong {
     color: #fff;
     font-weight: 600;
+}
+
+/* ---- Onaya gönderildi: kurum içi Devir / Teslim alıcının onayını bekler ---- */
+.iz-result-stat.is-pending   { --tone: #0369a1; --tone-bg: #f0f9ff; --tone-border: #bae6fd; }
+.iz-result-row.is-pending    { --tone: #0369a1; }
+.iz-result-single.is-pending { --tone: #0369a1; }
+
+.iz-result-note.is-pending {
+    color: #075985;
+    background: #f0f9ff;
+    border-color: #bae6fd;
+}
+
+.iz-result-single-sub {
+    font-size: 12.5px;
+    color: #64748b;
+}
+
+.iz-result-reason {
+    margin-top: 2px;
+    font-size: 12px;
+    line-height: 1.35;
+    color: #b91c1c;
+}
+
+@media (max-width: 575.98px) {
+    .iz-result-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+[data-theme="dark"] .iz-result-stat.is-pending,
+[data-theme="dark"] .iz-result-row.is-pending,
+[data-theme="dark"] .iz-result-single.is-pending { --tone: #7dd3fc; }
+
+[data-theme="dark"] .iz-result-note.is-pending {
+    color: #bae6fd;
+    background: rgba(14, 165, 233, 0.12);
+    border-color: rgba(14, 165, 233, 0.3);
+}
+
+[data-theme="dark"] .iz-result-single-sub { color: #94a3b8; }
+[data-theme="dark"] .iz-result-reason { color: #f87171; }
+
+/* ---- Onay bekleyen zimmet talebi ---- */
+.iz-doc-pending {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    font-size: 17px;
+    color: #0369a1;
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+}
+
+.iz-pending-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: #075985;
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+}
+
+.iz-pending-icon {
+    flex: 0 0 auto;
+    font-size: 22px;
+    color: #0369a1;
+}
+
+.iz-pending-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.iz-pending-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #0c4a6e;
+}
+
+.iz-pending-hint {
+    margin-top: 4px;
+    font-size: 11.5px;
+    color: #64748b;
+}
+
+.iz-pending-btn {
+    flex: 0 0 auto;
+    align-self: center;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 700;
+    white-space: nowrap;
+    color: #b91c1c;
+    background: #fff;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+}
+
+.iz-pending-btn .material-symbols-outlined { font-size: 17px; }
+.iz-pending-btn:hover:not(:disabled) { color: #991b1b; background: #fef2f2; border-color: #fca5a5; }
+
+@media (max-width: 575.98px) {
+    .iz-pending-banner { flex-wrap: wrap; }
+    .iz-pending-btn { width: 100%; justify-content: center; }
+}
+
+[data-theme="dark"] .iz-doc-pending,
+[data-theme="dark"] .iz-pending-banner {
+    color: #bae6fd;
+    background: rgba(14, 165, 233, 0.12);
+    border-color: rgba(14, 165, 233, 0.3);
+}
+
+[data-theme="dark"] .iz-pending-icon { color: #7dd3fc; }
+[data-theme="dark"] .iz-pending-title { color: #e0f2fe; }
+[data-theme="dark"] .iz-pending-hint { color: #94a3b8; }
+
+[data-theme="dark"] .iz-pending-btn {
+    color: #f87171;
+    background: #1a2436;
+    border-color: rgba(239, 68, 68, 0.35);
 }

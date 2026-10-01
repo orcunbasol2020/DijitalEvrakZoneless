@@ -1,79 +1,205 @@
 <div class="card premium-card orders-card h-100">
     <div class="card-header dashboard-header ad-head">
         <span class="ad-head-icon">
-            <span class="material-symbols-outlined">inbox</span>
+            <span class="material-symbols-outlined">{{ isAttention() ? 'bolt' : 'inbox' }}</span>
         </span>
         <div class="ad-head-text">
-            <h5 class="ad-head-title">Son Gelen Evraklar</h5>
-            <div class="ad-head-sub">Sisteme en son kaydedilen evraklar</div>
+            <h5 class="ad-head-title">{{ isAttention() ? 'Yüksek Öncelikli Evraklar' : 'Son Gelen Evraklar' }}</h5>
+            @if (showSubtitle()) {
+                <div class="ad-head-sub">
+                    {{ isAttention() ? 'Yıldırım, Günlüdür, Çok Acele ve Acele evraklar' : 'Sisteme en son kaydedilen evraklar' }}
+                </div>
+            }
         </div>
-        <span class="ad-live">
-            <span class="ad-live-dot"></span>
-            Canlı
-        </span>
-        <a class="ad-link" [routerLink]="allLink()" title="Tüm gelen evraklar">
-            Tümü
-            <span class="material-symbols-outlined">chevron_right</span>
-        </a>
+        @if (isAttention()) {
+            <!-- Kartta ilk 5 evrak; fazlası varsa tümü aynı tabloyla popup'ta -->
+            @if (hasMore()) {
+                <button type="button" class="ad-link attention-all-btn" (click)="openAll()">
+                    Tümünü gör ({{ attentionRows().length }})
+                    <span class="material-symbols-outlined">chevron_right</span>
+                </button>
+            }
+        } @else {
+            <a class="ad-link" [routerLink]="allLink()" title="Tüm gelen evraklar">
+                Tümü
+                <span class="material-symbols-outlined">chevron_right</span>
+            </a>
+        }
     </div>
 
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover orders-table align-middle">
-                <thead>
-                    <tr>
-                        <th scope="col">KURUM</th>
-                        <th scope="col">BELGE NO</th>
-                        @if (showCustodian()) {
-                            <th scope="col" class="col-custodian">ZİMMET</th>
-                        }
-                        <th scope="col">DURUM</th>
-                        <th scope="col" class="text-end">TARİH</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @for (doc of recentDocuments(); track doc.id) {
-                        <tr class="clickable-row" tabindex="0" title="Evrak detayına git"
-                            (click)="goDetail(doc.id)" (keydown.enter)="goDetail(doc.id)">
-                            <td>
-                                <div class="d-flex align-items-center gap-2 institution-cell" [title]="doc.institution">
-                                    <span class="institution-name text-truncate">{{ doc.institution }}</span>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="document-no">{{ doc.documentNo }}</span>
-                            </td>
-                            @if (showCustodian()) {
-                                <td class="col-custodian">
-                                    <div class="d-flex align-items-center gap-1">
-                                        <span class="material-symbols-outlined text-muted" style="font-size: 16px;">person</span>
-                                        {{ doc.custodian }}
-                                    </div>
-                                </td>
-                            }
-                            <td>
-                                <span class="badge rounded-pill py-2 d-inline-flex align-items-center gap-1"
-                                    [class]="getStatusConfig(doc.status).badgeClass">
-                                    <span class="material-symbols-outlined" style="font-size: 14px;">{{ getStatusConfig(doc.status).icon }}</span>
-                                    {{ getStatusConfig(doc.status).label }}
-                                </span>
-                            </td>
-                            <td class="text-end">
-                                <div class="date-cell" [title]="getFullDateTime(doc.date)">
-                                    {{ getRelativeDateLabel(doc.date) }}
-                                </div>
-                            </td>
-                        </tr>
-                    } @empty {
+            @if (isAttention()) {
+                <ng-container *ngTemplateOutlet="attentionTable; context: { $implicit: rows() }"></ng-container>
+            } @else {
+                <table class="table orders-table align-middle">
+                    <thead>
                         <tr>
-                            <td [attr.colspan]="showCustodian() ? 5 : 4" class="text-center text-muted py-5">
-                                <span class="material-symbols-outlined d-block mb-2" style="font-size: 28px;">inbox</span>
-                                Henüz gelen evrak bulunmuyor.
-                            </td>
+                            <th scope="col">KURUM</th>
+                            <th scope="col">BELGE NO</th>
+                            @if (showCustodian()) {
+                                <th scope="col" class="col-custodian">ATANAN</th>
+                            }
+                            <th scope="col">DURUM</th>
+                            <th scope="col" class="text-end">TARİH</th>
                         </tr>
-                    }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @if (loading()) {
+                            <tr>
+                                <td [attr.colspan]="showCustodian() ? 5 : 4" class="text-center text-muted py-5">Yükleniyor…</td>
+                            </tr>
+                        } @else if (failed()) {
+                            <tr>
+                                <td [attr.colspan]="showCustodian() ? 5 : 4" class="text-center text-muted py-5">
+                                    <span class="material-symbols-outlined d-block mb-2" style="font-size: 28px;">cloud_off</span>
+                                    Evraklar alınamadı.
+                                </td>
+                            </tr>
+                        } @else {
+                            @for (doc of rows(); track doc.id) {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2 institution-cell" [title]="doc.institution">
+                                            <span class="institution-name text-truncate">{{ doc.institution }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="document-no">{{ doc.documentNo }}</span>
+                                    </td>
+                                    @if (showCustodian()) {
+                                        <td class="col-custodian">
+                                            @if (doc.assignee) {
+                                                <div class="d-flex align-items-center gap-1">
+                                                    <span class="material-symbols-outlined text-muted" style="font-size: 16px;">person</span>
+                                                    {{ doc.assignee }}
+                                                </div>
+                                            } @else {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                    }
+                                    <td>
+                                        <span class="badge rounded-pill py-2 d-inline-flex align-items-center gap-1"
+                                            [class]="getStatusConfig(doc.status).badgeClass">
+                                            <span class="material-symbols-outlined" style="font-size: 14px;">{{ getStatusConfig(doc.status).icon }}</span>
+                                            {{ getStatusConfig(doc.status).label }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="date-cell" [title]="getFullDateTime(doc.date)">
+                                            {{ getRelativeDateLabel(doc.date) }}
+                                        </div>
+                                    </td>
+                                </tr>
+                            } @empty {
+                                <tr>
+                                    <td [attr.colspan]="showCustodian() ? 5 : 4" class="text-center text-muted py-5">
+                                        <span class="material-symbols-outlined d-block mb-2" style="font-size: 28px;">inbox</span>
+                                        Henüz gelen evrak bulunmuyor.
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            }
         </div>
     </div>
 </div>
+
+<!-- Yüksek öncelikli evrakların tamamı: kartla aynı tablo, uzarsa gövde kayar -->
+@if (allOpen()) {
+    <div class="modal-overlay" (click)="closeAll()">
+        <div class="modal-box attention-modal" role="dialog" aria-modal="true" aria-labelledby="attention-modal-title"
+            (click)="$event.stopPropagation()">
+            <div class="attention-modal-head">
+                <span class="ad-head-icon">
+                    <span class="material-symbols-outlined">bolt</span>
+                </span>
+                <div class="attention-modal-title" id="attention-modal-title">
+                    Yüksek Öncelikli Evraklar
+                    <span class="attention-modal-count">{{ attentionRows().length }}</span>
+                </div>
+                <button type="button" class="attention-modal-close" title="Kapat" (click)="closeAll()">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="attention-modal-body">
+                <ng-container *ngTemplateOutlet="attentionTable; context: { $implicit: attentionRows() }"></ng-container>
+            </div>
+        </div>
+    </div>
+}
+
+<ng-template #attentionTable let-list>
+    <table class="table table-hover orders-table align-middle">
+        <thead>
+            <tr>
+                <th scope="col">EVRAK</th>
+                <th scope="col">İVEDİLİK</th>
+                <th scope="col">YAYIN</th>
+                <th scope="col">TESLİM</th>
+                <th scope="col" class="text-end" title="Son hareketten bu yana geçen süre">BEKLEME</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (loading()) {
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-5">Yükleniyor…</td>
+                </tr>
+            } @else if (failed()) {
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-5">
+                        <span class="material-symbols-outlined d-block mb-2" style="font-size: 28px;">cloud_off</span>
+                        Evraklar alınamadı.
+                    </td>
+                </tr>
+            } @else {
+                @for (doc of list; track doc.id) {
+                    <tr class="clickable-row attention-row tone-{{ doc.tone }}" tabindex="0" title="Evrak detayına git"
+                        (click)="goDetail(doc.id)" (keydown.enter)="goDetail(doc.id)">
+                        <td>
+                            <div class="attention-doc">
+                                <span class="document-no">{{ doc.documentNo }}</span>
+                                <span class="institution-name text-truncate" [title]="doc.institution">{{ doc.institution }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="attention-reason">
+                                <span class="attention-reason-main">{{ doc.reason }}</span>
+                                @if (doc.reasonSub) {
+                                    <span class="attention-reason-sub">{{ doc.reasonSub }}</span>
+                                }
+                            </div>
+                        </td>
+                        <td>
+                            <span class="attention-state {{ getPublishConfig(doc.publish).cls }}">
+                                {{ getPublishConfig(doc.publish).label }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="attention-state" [class.is-done]="doc.delivered" [class.is-idle]="!doc.delivered">
+                                {{ doc.delivered ? 'Teslim alındı' : 'Bekliyor' }}
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            <span class="attention-idle" [class.is-late]="isLate(doc)"
+                                [class.is-critical]="isLightningLate(doc)"
+                                [title]="'Kayıt: ' + getFullDateTime(doc.date)">
+                                {{ getIdleLabel(doc) }}
+                            </span>
+                        </td>
+                    </tr>
+                } @empty {
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-5">
+                            <span class="material-symbols-outlined d-block mb-2" style="font-size: 28px;">task_alt</span>
+                            Bekleyen ivedi evrak yok.
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</ng-template>

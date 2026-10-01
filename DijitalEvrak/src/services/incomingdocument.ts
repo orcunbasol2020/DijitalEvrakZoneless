@@ -3,7 +3,7 @@ import { HttpService } from './http';
 import { IncomingDocumentModel } from '../models/incoming-document/incoming-document.model';
 import { IncomingDocumentPreRegisterModel } from '../models/incoming-document/incomingdocument-pregister.model';
 import { IncomingDocumentTodayStats } from '../models/dashboard/IncomingDocumentTodayStats.model';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, map } from 'rxjs';
 import { IncomingDocumentLast30DaysStats } from '../models/dashboard/IncomingDocument30DaysStats.model';
 import { IncomingDocumentPendingScanStats } from '../models/dashboard/IncomingDocumentPendingScanStats.model';
 import { IncomingDocumentOcrQueueStats } from '../models/dashboard/IncomingDocumentOcrQueueStats.model';
@@ -64,6 +64,17 @@ export class IncomingDocumentService {
     const query = departmentId ? `?departmentId=${encodeURIComponent(departmentId)}` : '';
     return this.httpService.get<IncomingDocumentModel[]>(
       this.baseUrl + "GetAll" + query
+    );
+  }
+
+  // Birimin teslim alınmayı bekleyen evrakları: Birim Gelen Evrakları ekranındaki
+  // "Teslim Alınmayı Bekleyenler" süzgeciyle aynı sayım (silinmemiş ve Teslim Edildi olmayan)
+  getDepartmentDeliveryStats(departmentId: string) {
+    return this.getAllIncomingDocuments(departmentId).pipe(
+      map(docs => {
+        const list = (docs ?? []).filter(d => !d.isDeleted);
+        return { pending: list.filter(d => d.status !== 3).length, total: list.length };
+      })
     );
   }
 

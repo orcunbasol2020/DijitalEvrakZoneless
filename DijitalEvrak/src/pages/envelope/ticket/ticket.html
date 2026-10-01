@@ -541,15 +541,17 @@
 
         <div class="doc-detail-body doc-manual-body">
             <div class="doc-detail-form">
-                <div class="doc-detail-field doc-detail-field-full">
-                    <label>Konu</label>
-                    <textarea class="form-control" rows="2" [(ngModel)]="manualEntryForm.subject"></textarea>
-                </div>
                 <div class="doc-detail-field">
                     <label>Belge Tarihi</label>
                     <input type="date" class="form-control" [(ngModel)]="manualEntryForm.documentDate" />
                 </div>
                 <div class="doc-detail-field">
+                    <label>Gizlilik Derecesi</label>
+                    <select class="form-select" [(ngModel)]="manualEntryForm.securityDegree">
+                        <option *ngFor="let opt of securityDegreeOptions" [ngValue]="opt.value">{{ opt.label }}</option>
+                    </select>
+                </div>
+                <div class="doc-detail-field doc-detail-field-full">
                     <label>Nereye</label>
                     <select class="form-select" [(ngModel)]="manualEntryForm.externalInstitutionId">
                         <option [ngValue]="null">Seçiniz</option>
@@ -560,6 +562,10 @@
                             <option *ngFor="let inst of institutionOptions" [ngValue]="inst.id">{{ inst.name }}</option>
                         </optgroup>
                     </select>
+                </div>
+                <div class="doc-detail-field doc-detail-field-full">
+                    <label>Konu <span class="doc-detail-optional">(opsiyonel)</span></label>
+                    <input type="text" class="form-control" [(ngModel)]="manualEntryForm.subject" placeholder="Evrakın konusu" />
                 </div>
             </div>
             <div class="doc-detail-actions">

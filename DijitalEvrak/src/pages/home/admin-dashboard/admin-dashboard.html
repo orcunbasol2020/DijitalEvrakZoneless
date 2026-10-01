@@ -6,10 +6,10 @@
     <div class="ad-hero-text">
         <div class="ad-hero-kicker">
             <span class="material-symbols-outlined">shield_person</span>
-            YÖNETİCİ PANELİ
+            Yönetici Paneli
         </div>
         <div class="ad-hero-sub">
-            <span class="ad-hero-date">{{ today | date:'EEEE, d MMMM yyyy' }}</span>
+            <span class="ad-hero-date">{{ today | date:'d MMMM yyyy, EEEE' }}</span>
             <span class="ad-hero-dot"></span>
             <span>Son güncelleme {{ lastUpdated() | date:'HH:mm' }}</span>
         </div>
@@ -57,8 +57,8 @@
 <!-- ===================== Son evraklar / anlık durum / AI ===================== -->
 <div class="row g-3 mb-4">
     <div class="col-lg-6">
-        <!-- Son Gelen Evraklar: Gelen Evrak paneliyle ortak bileşen -->
-        <app-currentdocument allLink="/documentlist" [showCustodian]="false" class="d-block h-100"></app-currentdocument>
+        <!-- Yüksek Öncelikli Evraklar: Gelen Evrak panelindeki Son Gelen Evraklar ile ortak bileşen -->
+        <app-currentdocument mode="attention" allLink="/documentlist" [showSubtitle]="false" class="d-block h-100"></app-currentdocument>
     </div>
 
     <div class="col-lg-3">

@@ -106,6 +106,77 @@
                     </li>
                     <li><hr class="dropdown-divider"></li>
 
+                    <!-- Özet kartları: yalnız sayılar; evrakların listesi ilgili ekranlardadır -->
+                    @if (approvals().length > 0 || isDepartmentOfficer()) {
+                        <li class="notification-stats">
+                            @if (approvals().length > 0) {
+                                <a class="notification-stat is-approval is-link" routerLink="/zimmet-onaylari">
+                                    <span class="notification-stat-title">Zimmet Onayı Bekleyen</span>
+                                    <span class="notification-stat-row">
+                                        <span class="notification-stat-icon">
+                                            <span class="material-symbols-outlined">assignment_turned_in</span>
+                                        </span>
+                                        <span class="notification-stat-value">{{ approvals().length }} <small>evrak</small></span>
+                                    </span>
+                                </a>
+                            }
+
+                            <!-- Birim Evrak Sorumlusu: biriminde teslim alınmayı bekleyen evrak sayısı -->
+                            @if (isDepartmentOfficer()) {
+                                <a class="notification-stat is-delivery is-link" [class.is-clear]="departmentPendingCount() === 0"
+                                    routerLink="/incomingDepartmentDocument" [queryParams]="{ filtre: 'teslim-bekleyen' }">
+                                    <span class="notification-stat-title">Biriminizde Teslim Alınmayı Bekleyen</span>
+                                    <span class="notification-stat-row">
+                                        <span class="notification-stat-icon">
+                                            <span class="material-symbols-outlined">hourglass_top</span>
+                                        </span>
+                                        <span class="notification-stat-value">{{ departmentPendingCount() }} <small>evrak</small></span>
+                                    </span>
+                                </a>
+                            }
+                        </li>
+                    }
+
+                    @if (approvals().length > 0 || isDepartmentOfficer()) {
+                        <li><hr class="dropdown-divider"></li>
+                    }
+
+                    <!-- Okunmamış bildirimler: onaylandı / reddedildi / geri çekildi / gecikme / geçersiz -->
+                    @if (notifications().length > 0) {
+                        <li class="notification-section-head">
+                            <span>Bildirimler</span>
+                            <button type="button" class="notification-read-all" (click)="markAllNotificationsRead($event)">
+                                Tümünü okundu say
+                            </button>
+                        </li>
+                        @for (n of notificationPreview(); track n.id) {
+                            <li>
+                                <a class="dropdown-item notification-msg {{ notificationTone(n) }}" href="javascript:void(0)"
+                                    (click)="openNotification(n)">
+                                    <span class="notification-msg-icon">
+                                        <span class="material-symbols-outlined">{{ notificationIcon(n) }}</span>
+                                    </span>
+                                    <span class="notification-msg-body">
+                                        <span class="notification-msg-title">{{ n.title }}</span>
+                                        <span class="notification-msg-text">{{ n.message }}</span>
+                                        <span class="notification-msg-time">{{ n.createdDate | date:'dd.MM.yyyy HH:mm' }}</span>
+                                    </span>
+                                </a>
+                            </li>
+                        }
+                        <li>
+                            <a class="dropdown-item notification-approval-more is-neutral" routerLink="/zimmet-onaylari"
+                                [queryParams]="{ sekme: 'bildirimler' }">
+                                @if (notifications().length > notificationPreview().length) {
+                                    +{{ notifications().length - notificationPreview().length }} bildirim daha ·
+                                }
+                                Tüm bildirimler
+                                <span class="material-symbols-outlined">arrow_forward</span>
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                    }
+
                     @if (pendingCount() > 0) {
                         <li>
                             <a class="dropdown-item notification-item" href="javascript:void(0)"
@@ -122,7 +193,7 @@
                                 </div>
                             </a>
                         </li>
-                    } @else {
+                    } @else if (!isDepartmentOfficer()) {
                         <li class="notification-empty">
                             <span class="material-symbols-outlined">task_alt</span>
                             <p>Bekleyen atanmış evrakınız bulunmuyor</p>
@@ -143,25 +214,6 @@
                                     <p class="notification-time"><b>{{
                                             transferCount() }}</b> Evrak
                                         Devredildi</p>
-                                </div>
-                            </a>
-                        </li>
-                    }
-
-                    @if (transferredToMeCount() > 0) {
-                        <li>
-                            <a class="dropdown-item notification-item"
-                                routerLink="/zimmetlerim">
-                                <div class="notification-icon bg-info">
-                                    <span class="material-symbols-outlined"
-                                        style="font-size:18px;">move_to_inbox</span>
-                                </div>
-                                <div class="notification-content">
-                                    <p class="notification-text">Size Devredilen
-                                        Zimmetler</p>
-                                    <p class="notification-time"><b>{{
-                                            transferredToMeCount() }}</b> Evrak
-                                        Zimmetinizde</p>
                                 </div>
                             </a>
                         </li>
@@ -232,7 +284,7 @@
                             </span>
                         </div>
                     </li>
-                    @if (!roleService.has('Birim Evrak Sorumlusu')) {
+                    @if (!roleService.hasBirimEvrakRole()) {
                         <li>
                             <a class="dropdown-item user-dropdown-item" routerLink="/users/profile" routerLinkActive="active">
                                 <span class="user-dropdown-icon user-dropdown-icon-primary">
@@ -332,3 +384,6 @@
         </a>
     </div>
 </footer>
+
+<!-- Girişte tek hatırlatma popup'ı: zimmet onayları + birim teslim bekleyenler -->
+<app-login-reminder />

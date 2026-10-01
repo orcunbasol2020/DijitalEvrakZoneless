@@ -76,7 +76,7 @@ export default class Envelopes {
       }));
   });
   readonly loading = computed(() => this.result.isLoading());
-  readonly isBirimEvrakSorumlusu = computed(() => this.#roleService.has('Birim Evrak Sorumlusu'));
+  readonly isBirimEvrakSorumlusu = computed(() => this.#roleService.hasBirimEvrakRole());
   // Giden Evrak rolündeki kullanıcılar tüm birimlerin zarflarını görebildiği için,
   // kendi biriminin kaydetmediği bir zarfta "Zarfı Teslim Et" yerine "Teslim Al"
   // ikonu gösteriliyor.

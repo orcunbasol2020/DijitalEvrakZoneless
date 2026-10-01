@@ -9,7 +9,7 @@ import {
   HostListener
 } from '@angular/core';
 import { httpResource } from '@angular/common/http';
-import { Observable, catchError, forkJoin, map, of } from 'rxjs';
+import { Observable, catchError, firstValueFrom, forkJoin, map, of } from 'rxjs';
 import GenericModel from '../../../components/generic-model/generic-model';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -30,6 +30,9 @@ import { SecurityDegreeBadgeClass, SecurityDegreeIcons, SecurityDegreeLabels } f
 import { UrgencyDegreeBadgeClass, UrgencyDegreeInitials, UrgencyDegreeLabels } from '../../models/urgencydegree.model';
 import { IncomingDocumentService } from '../../services/incomingdocument';
 import { OutgoingDocumentService } from '../../services/outgoingdocument';
+import { AllocationRequestService } from '../../services/allocationrequest';
+import { AllocationRequestModel } from '../../models/allocationrequest.model';
+import { Router } from '@angular/router';
 
 type DirectionFilter = 'all' | DocumentDirectionEnum;
 type SortColumn = 'qrCode' | 'subject' | 'documentDate' | 'documentDirection';
@@ -69,6 +72,8 @@ export default class Zimmetlerim {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly incomingDocumentService = inject(IncomingDocumentService);
   private readonly outgoingDocumentService = inject(OutgoingDocumentService);
+  private readonly allocationRequestService = inject(AllocationRequestService);
+  private readonly router = inject(Router);
 
   readonly Direction = DocumentDirectionEnum;
   readonly Source = AllocationSourceEnum;
@@ -207,6 +212,32 @@ export default class Zimmetlerim {
   // Atlas kaynaklı zimmetler bu sistemde yönetilmez: devir ve geçmiş kapalıdır.
   isAtlas(item: ActiveDocumentModel): boolean {
     return item.source === AllocationSourceEnum.Atlas;
+  }
+
+  // Gelen evrakta devrettiğim ama alıcının henüz onaylamadığı talepler, evrak Id'sine göre.
+  // Evrak onaylanana kadar bu listede kalır; satırda "Onay bekliyor" rozeti çıkar ve
+  // yeni devir kilitlenir (backend bekleyen talep varken her türlü zimmeti reddeder).
+  readonly pendingSent = signal<ReadonlyMap<string, AllocationRequestModel>>(new Map());
+
+  pendingRequestOf(item: ActiveDocumentModel): AllocationRequestModel | null {
+    if (item.documentDirection !== DocumentDirectionEnum.Gelen) return null;
+    return this.pendingSent().get(item.documentId.toLowerCase()) ?? null;
+  }
+
+  loadPendingSent(): void {
+    const userId = this.currentUserId;
+    if (!userId) {
+      this.pendingSent.set(new Map());
+      return;
+    }
+    this.allocationRequestService.getSentByUserId(userId, true).subscribe({
+      next: list => this.pendingSent.set(new Map(list.map(r => [r.incomingDocumentId.toLowerCase(), r]))),
+      error: err => console.error('Onay bekleyen devir talepleri alınamadı:', err)
+    });
+  }
+
+  goToSentApprovals(): void {
+    this.router.navigate(['/zimmet-onaylari'], { queryParams: { sekme: 'gonderilen' } });
   }
 
   // "Geçmiş" paneli: seçili evrağın tüm zimmet geçmişini (kimde, ne zaman) gösterir.
@@ -376,6 +407,7 @@ export default class Zimmetlerim {
 
     this.loading.set(true);
     const loadId = ++this.loadSeq;
+    this.loadPendingSent();
     this.allocationService.getActiveDocumentsByUserId(currentUserId).subscribe({
       next: (res) => {
         const items = res?.items ?? [];
@@ -391,7 +423,7 @@ export default class Zimmetlerim {
   }
 
   openTransferModal(item: ActiveDocumentModel) {
-    if (this.isAtlas(item)) return;
+    if (this.isAtlas(item) || this.pendingRequestOf(item)) return;
 
     this.transferItem.set(item);
     this.selectedPersonId.set(null);
@@ -435,15 +467,29 @@ export default class Zimmetlerim {
           userType: 1
         });
       } else {
-        await new Promise<void>((resolve, reject) =>
-          this.allocationService.createAllocation({
-            incomingDocumentId: item.documentId,
-            userId: personId,
-            createdUserId,
-            status: AllocationStatusEnum.Devir,
-            userType: 1
-          }).subscribe({ next: () => resolve(), error: reject })
-        );
+        // Gelen evrakta devir alıcının onayına gider; zimmet onaylanana kadar bu listede kalır.
+        const res = await firstValueFrom(this.allocationService.createAllocation({
+          incomingDocumentId: item.documentId,
+          userId: personId,
+          createdUserId,
+          status: AllocationStatusEnum.Devir,
+          userType: 1
+        }));
+        const outcome = DocumentAllocation.classifyCreateResponse(res);
+
+        if (outcome.kind === 'failed') {
+          this.transferLoading.set(false);
+          this.toast.showToast('Uyarı', outcome.reason, 'warning');
+          return;
+        }
+
+        // Sonuç satırdaki "Onay bekliyor" rozetinde görünür; ayrıca bildirim gösterilmez
+        if (outcome.kind === 'pending') {
+          this.transferLoading.set(false);
+          this.closeTransferModal();
+          this.loadPendingSent();
+          return;
+        }
       }
 
       this.transferLoading.set(false);

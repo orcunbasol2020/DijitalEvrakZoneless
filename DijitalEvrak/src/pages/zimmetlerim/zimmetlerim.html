@@ -172,6 +172,14 @@
                         @if (item.documentNo) {
                           <span class="zl-doc-sub">{{ item.documentNo }}</span>
                         }
+                        @if (pendingRequestOf(item); as req) {
+                          <button type="button" class="zl-pending"
+                            title="Alıcı onay verene kadar evrak üzerinizde kalır. Talebi Zimmet Onayları ekranından geri çekebilirsiniz."
+                            (click)="goToSentApprovals(); $event.stopPropagation()">
+                            <span class="material-symbols-outlined">hourglass_top</span>
+                            Onay bekliyor · {{ req.toUserFullName }}
+                          </button>
+                        }
                       </span>
                     </span>
                   </td>
@@ -235,8 +243,10 @@
                   </td>
                   <td class="zl-center">
                     <button type="button" class="zl-act"
-                      [disabled]="isAtlas(item)"
-                      [title]="isAtlas(item) ? 'Atlas zimmetleri için devir desteklenmiyor' : 'Zimmeti Devret'"
+                      [disabled]="isAtlas(item) || !!pendingRequestOf(item)"
+                      [title]="isAtlas(item) ? 'Atlas zimmetleri için devir desteklenmiyor'
+                        : pendingRequestOf(item) ? (pendingRequestOf(item)!.toUserFullName + ' kişisinin onayı bekleniyor')
+                        : 'Zimmeti Devret'"
                       (click)="openTransferModal(item); $event.stopPropagation()">
                       <span class="material-symbols-outlined" style="transform: scaleX(-1);">assignment_return</span>
                     </button>

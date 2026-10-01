@@ -100,23 +100,24 @@
     align-items: center;
 }
 
+/* Başlık, Birim panelindeki teslim bekleyen evrak popup'ının başlığıyla aynı dilde:
+   normal harfli kalın başlık, harf aralığı yok. */
 .ad-hero-kicker {
     display: contents;
-    font-size: 14px;
+    font-size: 17px;
     font-weight: 700;
-    letter-spacing: 0.16em;
-    color: #f8fafc;
+    line-height: 1.25;
+    color: #fff;
 }
 
 /* Yönetici paneli başlığı bir punto büyük; tarih satırı başlığa 2px daha yakın */
 app-admin-dashboard .ad-hero-kicker {
-    font-size: 15px;
+    font-size: 18px;
 }
 
-/* Gelen Evrak paneli (Gelen Evrak ve Ön Kayıt rolleri) başlığı bir punto büyük, harf aralığı daha sıkı */
+/* Gelen Evrak paneli (Gelen Evrak ve Ön Kayıt rolleri) başlığı bir punto büyük */
 app-gelen-evrak-dashboard .ad-hero-kicker {
-    font-size: 15px;
-    letter-spacing: 0.12em;
+    font-size: 18px;
 }
 
 app-admin-dashboard .ad-hero-text {
@@ -139,14 +140,13 @@ app-admin-dashboard app-currentdocument .ad-head-title,
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
-    font-size: 28px;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    font-size: 24px;
     color: #fff;
-    background: rgba(255, 255, 255, 0.18);
-    border: 1px solid rgba(255, 255, 255, 0.35);
-    box-shadow: 0 6px 18px rgba(3, 105, 161, 0.3);
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.28);
 }
 
 .ad-hero-sub {
@@ -672,6 +672,68 @@ app-admin-dashboard app-currentdocument .ad-head-title,
 .ad-quick .quick-link-icon .material-symbols-outlined {
     color: #0c4a6e;
 }
+
+/* Hızlı Erişim alt satırda tam genişlik: bağlantılar yan yana */
+.quick-links.ad-quick-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 991.98px) {
+    .quick-links.ad-quick-row { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---------- Bekleyenler ---------- */
+/* Liste ve satırları kartın gövdesini tam genişlikte doldurur */
+.quick-links.ad-pending,
+.ad-pending .quick-link {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* İkon renkleri zil menüsü ve ilgili ekranların istatistik kutularıyla aynı */
+.ad-pending .quick-link-icon.is-approval { background: linear-gradient(135deg, #0284c7, #22d3ee); }
+.ad-pending .quick-link-icon.is-delivery { background: linear-gradient(135deg, #d97706, #fbbf24); }
+
+.ad-pending-count {
+    flex: 0 0 auto;
+    min-width: 34px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 15px;
+    font-weight: 700;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    color: #1e293b;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+}
+
+.ad-pending-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 100%;
+    min-height: 120px;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.ad-pending-empty .material-symbols-outlined {
+    font-size: 30px;
+    color: #059669;
+}
+
+[data-theme="dark"] .ad-pending-count {
+    color: var(--text-color);
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="dark"] .ad-pending-empty { color: var(--text-muted); }
+[data-theme="dark"] .ad-pending-empty .material-symbols-outlined { color: #6ee7b7; }
 
 /* ---------- Tablo içi hatırlat butonu ---------- */
 .ad-reminder {
@@ -1376,4 +1438,114 @@ app-admin-dashboard app-currentdocument .ad-head-title,
 
 [data-theme="dark"] .ad-bar {
     background: rgba(148, 163, 184, 0.2);
+}
+
+/* Birimimdeki Kullanıcılar: rol rozetleri Kullanıcılar ekranındaki rozetlerle aynı görünümde */
+.ad-roles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.ad-role-chip {
+    display: inline-flex;
+    width: 170px;
+    box-sizing: border-box;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 12px 2px 3px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.6;
+    white-space: nowrap;
+    color: #0c4a6e;
+    background: rgba(125, 211, 252, 0.12);
+    border: 1px solid rgba(3, 105, 161, 0.45);
+}
+
+/* Rozetler eşit genişlikte; sığmayan uzun rol adı üç noktayla kısalır (tam adı title gösterir) */
+.ad-role-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ad-role-chip .material-symbols-outlined {
+    flex-shrink: 0;
+    width: 21px;
+    height: 21px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14.5px;
+    color: #0369a1;
+}
+
+.ad-role-chip .material-symbols-outlined.is-admin {
+    color: #d97706;
+}
+
+.ad-role-chip .material-symbols-outlined.is-unit-manager {
+    color: #059669;
+}
+
+[data-theme="dark"] .ad-role-chip {
+    color: #e0f2fe;
+    background: rgba(125, 211, 252, 0.08);
+    border-color: rgba(125, 211, 252, 0.45);
+}
+
+[data-theme="dark"] .ad-role-chip .material-symbols-outlined {
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .ad-role-chip .material-symbols-outlined.is-admin {
+    color: #fbbf24;
+}
+
+[data-theme="dark"] .ad-role-chip .material-symbols-outlined.is-unit-manager {
+    color: #34d399;
+}
+
+/* Yönetici satırı: solda ince amber çizgi ve hafif amber zemin (Yönetici rozet simgesiyle aynı ton).
+   Zemin background-color yerine iç gölgeyle verilir: Bootstrap hücre zeminini kendi iç gölge katmanıyla,
+   dark tema ise "background-color: var(--card-bg) !important" ile ezdiği için background görünmüyordu. */
+.customers-table tbody tr.ad-admin-row > td {
+    box-shadow: inset 0 0 0 9999px rgba(217, 119, 6, 0.07);
+}
+
+.customers-table tbody tr.ad-admin-row > td:first-child {
+    box-shadow: inset 3px 0 0 #d97706, inset 0 0 0 9999px rgba(217, 119, 6, 0.07);
+}
+
+[data-theme="dark"] .customers-table tbody tr.ad-admin-row > td {
+    box-shadow: inset 0 0 0 9999px rgba(251, 191, 36, 0.08);
+}
+
+[data-theme="dark"] .customers-table tbody tr.ad-admin-row > td:first-child {
+    box-shadow: inset 3px 0 0 #fbbf24, inset 0 0 0 9999px rgba(251, 191, 36, 0.08);
+}
+
+/* Birim Yöneticisi satırı: aynı vurgu, Birim Yöneticisi rozet simgesinin zümrüt tonunda */
+.customers-table tbody tr.ad-unit-manager-row > td {
+    box-shadow: inset 0 0 0 9999px rgba(5, 150, 105, 0.07);
+}
+
+.customers-table tbody tr.ad-unit-manager-row > td:first-child {
+    box-shadow: inset 3px 0 0 #059669, inset 0 0 0 9999px rgba(5, 150, 105, 0.07);
+}
+
+[data-theme="dark"] .customers-table tbody tr.ad-unit-manager-row > td {
+    box-shadow: inset 0 0 0 9999px rgba(52, 211, 153, 0.08);
+}
+
+[data-theme="dark"] .customers-table tbody tr.ad-unit-manager-row > td:first-child {
+    box-shadow: inset 3px 0 0 #34d399, inset 0 0 0 9999px rgba(52, 211, 153, 0.08);
+}
+
+/* Birimimdeki Kullanıcılar durum etiketi: genel .badge dolgusundan 4px daha yüksek */
+.badge.ad-status-badge {
+    padding-top: calc(0.25em + 2px);
+    padding-bottom: calc(0.25em + 2px);
 }

@@ -1,11 +1,12 @@
 import { httpResource } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, computed, inject, ViewEncapsulation } from '@angular/core';
-import { FlexiGridModule } from 'flexi-grid';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, ViewEncapsulation } from '@angular/core';
+import { FlexiGridFilterDataModel, FlexiGridModule } from 'flexi-grid';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { NgClass } from '@angular/common';
 import GenericModel from '../../../components/generic-model/generic-model';
 import { UserService } from '../../services/user';
+import { normalizeRoleName, roleIcon } from '../../services/role-service';
+import { RoleModel } from './role/role';
 
 export interface UserModel{
   id?: string;
@@ -21,7 +22,20 @@ export interface UserModel{
   createDate: string;
   updateDate: string;
   password?: string;
+  /** Kullanıcının etkin rolleri; yalnızca Users/GetAll doldurur (GetById'de null gelir). */
+  roles?: UserRoleRef[] | null;
 }
+
+export interface UserRoleRef {
+  id: string;
+  name: string;
+}
+
+/** Listede gösterilen satır: rol adları ızgara araması ve Excel çıktısı için tek metne çevrilir. */
+type UserRow = UserModel & { roleNames: string };
+
+/** Rol filtresinde "rolü olmayan kullanıcılar" seçeneği. */
+const NO_ROLE = 'none';
 
 export const initialUser:UserModel = {
   name: "",
@@ -42,8 +56,7 @@ export const initialUser:UserModel = {
     GenericModel,
     FlexiGridModule,
     RouterLink,
-    FormsModule,
-    NgClass
+    FormsModule
   ],
   templateUrl: './users.html',
   // Roller sayfasıyla aynı kart başlığı: kart iskeleti (st-*) ve başlık araçları (zl-*) paylaşılır.
@@ -57,30 +70,60 @@ export const initialUser:UserModel = {
 })
 export default class Users {
   readonly result = httpResource<UserModel[]>(() => "api/Users/GetAll");
-  readonly data = computed(() => this.result.value() ?? []);
   readonly loading = computed(() => this.result.isLoading());
-  readonly activeCount = computed(() => this.data().filter(u => u.isActive).length);
+
+  readonly rolesResult = httpResource<RoleModel[]>(() => "api/Roles/GetAll");
+  readonly roleOptions = computed(() =>
+    (this.rolesResult.value() ?? [])
+      .filter(r => r.isActive && !r.isDeleted && r.id)
+      .map(r => ({ id: r.id!.toLowerCase(), name: normalizeRoleName(r.name) }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'tr')));
+
+  readonly NO_ROLE = NO_ROLE;
+  /** Boş: tüm kullanıcılar; NO_ROLE: rolü olmayanlar; aksi halde rol id'si (küçük harf). */
+  readonly roleFilter = signal<string>('');
+
+  private readonly rows = computed<UserRow[]>(() =>
+    (this.result.value() ?? []).map(u => ({
+      ...u,
+      roles: (u.roles ?? []).map(r => ({ ...r, name: normalizeRoleName(r.name) })),
+      roleNames: (u.roles ?? []).map(r => normalizeRoleName(r.name)).join(', ')
+    })));
+
+  // Users/GetAll id'leri büyük harfle, Roles/GetAll küçük harfle döndürüyor; karşılaştırma küçük harfle yapılır.
+  readonly data = computed(() => {
+    const filter = this.roleFilter();
+    const rows = this.rows();
+    if (!filter) return rows;
+    if (filter === NO_ROLE) return rows.filter(u => !u.roles?.length);
+    return rows.filter(u => u.roles?.some(r => r.id.toLowerCase() === filter));
+  });
+  /** Birimi sütununun seçmeli filtresi: listedeki kullanıcıların birimleri, alfabetik. */
+  readonly departmentFilterData = computed<FlexiGridFilterDataModel[]>(() =>
+    [...new Set(this.rows().map(u => u.departmentName).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b, 'tr'))
+      .map(name => ({ value: name, name })));
   showFilters = false;
   readonly #userService = inject(UserService);
 
-  private readonly departmentBadgeClasses: Record<string, string> = {
-    'BK': 'badge-soft-info',
-    'BE': 'badge-soft-warning',
-  };
-
-  getDepartmentBadgeClass(shortName: string): string {
-    return this.departmentBadgeClasses[shortName] ?? 'badge-soft-secondary';
+  roleIcon(name: string): string {
+    return roleIcon(name);
   }
 
-  changeIsAdmin(data:UserModel){
-    this.#userService.update(data as Partial<UserModel> & { id: string }).subscribe(() => {
+  changeIsAdmin(data:UserRow){
+    this.#userService.update(this.toUpdatePayload(data)).subscribe(() => {
       this.result.reload();
     });
   }
 
-  changeIsActive(data:UserModel){
-    this.#userService.update(data as Partial<UserModel> & { id: string }).subscribe(() => {
+  changeIsActive(data:UserRow){
+    this.#userService.update(this.toUpdatePayload(data)).subscribe(() => {
       this.result.reload();
     });
+  }
+
+  /** Satıra eklenen rol alanları güncelleme isteğine gönderilmez. */
+  private toUpdatePayload({ roles, roleNames, ...user }: UserRow) {
+    return user as Partial<UserModel> & { id: string };
   }
 }

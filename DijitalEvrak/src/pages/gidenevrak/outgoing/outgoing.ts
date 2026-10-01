@@ -164,7 +164,7 @@ export default class Outgoing {
 
   showFilters = false;
 
-  readonly isBirimEvrakSorumlusu = computed(() => this.roleService.has('Birim Evrak Sorumlusu'));
+  readonly isBirimEvrakSorumlusu = computed(() => this.roleService.hasBirimEvrakRole());
 
   private emptyToastShown = false;
 

@@ -108,7 +108,7 @@ export default class Surecler implements OnInit {
   // Birim Evrak Sorumlusu olanlar Birim Gelen Evrakları (incomingDepartmentDocument).
   readonly listUrl = this.roleService.hasAny(['Gelen Evrak', 'Ön Kayıt'])
     ? '/scanlist'
-    : (this.roleService.has('Birim Evrak Sorumlusu') ? '/incomingDepartmentDocument' : '/scanlist');
+    : (this.roleService.hasBirimEvrakRole() ? '/incomingDepartmentDocument' : '/scanlist');
 
   securityDegreeMap: Record<number, string> = SecurityDegreeLabels;
   securityDegreeStyle: Record<number, string> = SecurityDegreeBadgeClass;

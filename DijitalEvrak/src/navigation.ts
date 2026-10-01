@@ -51,7 +51,7 @@ export const navigations: NavigationModel[] = [
         title: "Gelen Evraklar",
         url: "/incomingDepartmentDocument",
         icon: "add_notes",
-        roles: ["Birim Evrak Sorumlusu"],
+        roles: ["Birim Evrak Sorumlusu", "Birim Yöneticisi"],
         excludeRoles: ["Gelen Evrak", "Ön Kayıt"]
     },
     {
@@ -70,13 +70,19 @@ export const navigations: NavigationModel[] = [
         title: "Zimmet",
         url: "/zimmet",
         icon: "contract_edit",
-        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Ön Kayıt"]
+        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Birim Yöneticisi", "Ön Kayıt"]
+    },
+    {
+        // Rol kısıtı yok: her kullanıcıya evrak devredilebilir
+        title: "Zimmet Onayları",
+        url: "/zimmet-onaylari",
+        icon: "assignment_turned_in"
     },
     {
         title: "Havale (AI)",
         url: "/havale",
         icon: "neurology",
-        excludeRoles: ["Birim Evrak Sorumlusu", "Ön Kayıt"]
+        excludeRoles: ["Birim Evrak Sorumlusu", "Birim Yöneticisi", "Ön Kayıt"]
     },
     {
         title: "OCR Takip",
@@ -106,13 +112,13 @@ export const navigations: NavigationModel[] = [
         title: "Zarflar",
         url: "/envelope",
         icon: "stacked_email",
-        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Giden Evrak", "Ön Kayıt", "Yönetici"]
+        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Birim Yöneticisi", "Giden Evrak", "Ön Kayıt", "Yönetici"]
     },
     {
         title: "Zarf Etiketi",
         url: "/ticket",
         icon: "book",
-        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Giden Evrak", "Ön Kayıt"]
+        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Birim Yöneticisi", "Giden Evrak", "Ön Kayıt"]
     },
     {
         title: "Teslim Al / Zimmetle",
@@ -168,24 +174,24 @@ export const navigations: NavigationModel[] = [
         title: "Birimler",
         url: "/birimler",
         icon: "apartment",
-        excludeRoles: ["Birim Evrak Sorumlusu", "Ön Kayıt"]
+        excludeRoles: ["Birim Evrak Sorumlusu", "Birim Yöneticisi", "Ön Kayıt"]
     },
     {
         title: "Dış Kurumlar",
         url: "/externalinstitution",
         icon: "moving_ministry",
-        excludeRoles: ["Birim Evrak Sorumlusu", "Ön Kayıt"]
+        excludeRoles: ["Birim Evrak Sorumlusu", "Birim Yöneticisi", "Ön Kayıt"]
     },
     {
         title: "Diller",
         url: "/parameters/languages",
         icon: "language_chinese_array",
-        excludeRoles: ["Birim Evrak Sorumlusu", "Ön Kayıt"]
+        excludeRoles: ["Birim Evrak Sorumlusu", "Birim Yöneticisi", "Ön Kayıt"]
     },
     {
         title: "Raporlar",
         url: "/reports",
         icon: "monitoring",
-        excludeRoles: ["Birim Evrak Sorumlusu", "Ön Kayıt"]
+        excludeRoles: ["Birim Evrak Sorumlusu", "Birim Yöneticisi", "Ön Kayıt"]
     }
 ];

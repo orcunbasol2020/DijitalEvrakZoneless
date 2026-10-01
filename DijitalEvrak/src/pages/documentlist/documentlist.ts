@@ -282,7 +282,8 @@ export default class Documentlist {
     [AllocationStatusEnum.Teslim]: 'handshake',
     [AllocationStatusEnum.Arsiv]: 'inventory_2',
     [AllocationStatusEnum.TeslimAlindi]: 'move_to_inbox',
-    [AllocationStatusEnum.KargoyaVerildi]: 'local_shipping'
+    [AllocationStatusEnum.KargoyaVerildi]: 'local_shipping',
+    [AllocationStatusEnum.DevirAlindi]: 'how_to_reg'
   };
 
   readonly allocationStatusClass: Record<number, string> = {
@@ -291,7 +292,8 @@ export default class Documentlist {
     [AllocationStatusEnum.Teslim]: 'is-teslim',
     [AllocationStatusEnum.Arsiv]: 'is-arsiv',
     [AllocationStatusEnum.TeslimAlindi]: 'is-teslimalindi',
-    [AllocationStatusEnum.KargoyaVerildi]: 'is-kargo'
+    [AllocationStatusEnum.KargoyaVerildi]: 'is-kargo',
+    [AllocationStatusEnum.DevirAlindi]: 'is-devir'
   };
 
   initials(fullName?: string | null): string {
@@ -311,7 +313,8 @@ export default class Documentlist {
     [AllocationStatusEnum.Teslim]: 'Teslim eden',
     [AllocationStatusEnum.TeslimAlindi]: 'Teslim eden',
     [AllocationStatusEnum.Arsiv]: 'Arşive kaldıran',
-    [AllocationStatusEnum.KargoyaVerildi]: 'Kargoya veren'
+    [AllocationStatusEnum.KargoyaVerildi]: 'Kargoya veren',
+    [AllocationStatusEnum.DevirAlindi]: 'Devreden'
   };
 
   readonly zimmetActors = computed(() => {

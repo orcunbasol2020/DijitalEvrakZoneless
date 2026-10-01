@@ -191,6 +191,46 @@
                     </div>
                 </div>
 
+                <!-- Onay bekleyen zimmet talebi: evrak alıcı onaylayana kadar yeniden zimmetlenemez -->
+                @if (pendingDocs().length) {
+                    <div class="iz-pending-banner">
+                        <span class="material-symbols-outlined iz-pending-icon">hourglass_top</span>
+                        <div class="iz-pending-text">
+                            @if (singleDoc()?.pendingRequest; as req) {
+                                <div class="iz-pending-title">{{ req.toUserFullName }} kişisinin zimmet onayı bekleniyor</div>
+                                <div>
+                                    {{ req.requestedByFullName }} · {{ operationLabel(req.requestedAllocationStatus) }} ·
+                                    {{ req.createdDate | date:'dd.MM.yyyy HH:mm' }}.
+                                    Onaylanana kadar evrak mevcut zimmet sahibinde kalır; yeni zimmet için önce talep geri çekilmeli.
+                                </div>
+                            } @else {
+                                <div class="iz-pending-title">{{ pendingDocs().length }} evrakta onay bekleyen zimmet talebi var</div>
+                                <div>
+                                    @for (d of pendingDocs(); track d.id; let last = $last) {
+                                        <b>{{ d.qrCode }}</b> ({{ d.pendingRequest!.toUserFullName }}){{ last ? '' : ', ' }}
+                                    }
+                                    — bu evraklar talep geri çekilene kadar zimmetlenmez.
+                                </div>
+                            }
+                            @if (cancellablePendingDocs().length < pendingDocs().length) {
+                                <div class="iz-pending-hint">Talebi yalnızca devreden ya da işlemi yapan kişi geri çekebilir.</div>
+                            }
+                        </div>
+                        @if (cancellablePendingDocs().length) {
+                            <button type="button" class="btn btn-sm iz-pending-btn"
+                                [disabled]="cancellingRequests() || saving()"
+                                (click)="cancelPendingRequests()">
+                                @if (cancellingRequests()) {
+                                    <span class="spinner-border spinner-border-sm"></span>
+                                } @else {
+                                    <span class="material-symbols-outlined">undo</span>
+                                }
+                                {{ cancellablePendingDocs().length > 1 ? 'Talepleri Geri Çek' : 'Talebi Geri Çek' }}
+                            </button>
+                        }
+                    </div>
+                }
+
                 <!-- TEK EVRAK: bilgiler ve zimmet geçmişi açık gelir -->
                 <ng-container *ngIf="singleDoc() as single">
                     <ng-container *ngTemplateOutlet="docPanel; context: { $implicit: single, tab: activeTab }"></ng-container>
@@ -218,6 +258,8 @@
                             <div class="zm-doc-body">
                                 <div class="zm-doc-no">{{ d.qrCode }}</div>
                             </div>
+                            <span class="material-symbols-outlined iz-doc-pending" *ngIf="d.pendingRequest as req"
+                                [title]="req.toUserFullName + ' kişisinin zimmet onayı bekleniyor'">hourglass_top</span>
                             <span class="material-symbols-outlined iz-doc-delivered" *ngIf="isDelivered(d)"
                                 title="Bu evrak daha önce teslim edilmiş">hand_package</span>
                             <span class="material-symbols-outlined iz-doc-chevron">chevron_right</span>
@@ -435,8 +477,8 @@
                     <div class="zm-footer-actions">
                         <button type="button" class="btn btn-outline-success zm-back-btn"
                             *ngIf="zimmetType() === 'other'"
-                            [disabled]="saving() || !selectedPerson() || hasDeliveredDoc() || selectedIsActiveHolder()"
-                            [title]="selectedIsActiveHolder() ? 'Aktif zimmet seçtiğiniz kişide' : hasDeliveredDoc() ? (isMulti() ? 'Listede daha önce teslim edilmiş evrak var' : 'Evrak zaten teslim edilmiş') : ''"
+                            [disabled]="saving() || !selectedPerson() || hasDeliveredDoc() || selectedIsActiveHolder() || allDocsPending()"
+                            [title]="allDocsPending() ? 'Evrakın onay bekleyen zimmet talebi var' : selectedIsActiveHolder() ? 'Aktif zimmet seçtiğiniz kişide' : hasDeliveredDoc() ? (isMulti() ? 'Listede daha önce teslim edilmiş evrak var' : 'Evrak zaten teslim edilmiş') : ''"
                             (click)="saveZimmet(AllocationStatus.Teslim)">
                             <span class="material-symbols-outlined">hand_package</span>
                             Teslim Et
@@ -444,8 +486,8 @@
                         <!-- Tür değişince ikon/metin DOM'da yeniden oluşturulur ki belirme animasyonu tekrar oynasın. -->
                         <button type="button" class="btn btn-primary zimmet-submit-btn"
                             [attr.data-mode]="zimmetType() === 'self' ? 'self' : 'internal'"
-                            [disabled]="saving() || (zimmetType() === 'other' && !selectedPerson()) || selectedIsActiveHolder()"
-                            [title]="selectedIsActiveHolder() ? 'Aktif zimmet seçtiğiniz kişide' : ''"
+                            [disabled]="saving() || (zimmetType() === 'other' && !selectedPerson()) || selectedIsActiveHolder() || allDocsPending()"
+                            [title]="allDocsPending() ? 'Evrakın onay bekleyen zimmet talebi var' : selectedIsActiveHolder() ? 'Aktif zimmet seçtiğiniz kişide' : ''"
                             (click)="saveZimmet(AllocationStatus.Devir)">
                             @if (saving()) {
                                 <span class="spinner-border spinner-border-sm zimmet-submit-icon"></span>
@@ -498,13 +540,21 @@
       </div>
 
       <div class="iz-modal-body">
-      @if (r.succeeded.length + r.skipped.length + r.failed.length === 1) {
+      @if (r.succeeded.length + r.pending.length + r.skipped.length + r.failed.length === 1) {
         <!-- Tek evrak: sayı kutuları yerine evrak no ve sonuç mesajı -->
         @if (r.succeeded[0]; as d) {
           <div class="iz-result-single is-ok">
             <span class="material-symbols-outlined">check_circle</span>
             <span class="iz-result-single-no">{{ d.qrCode }}</span>
             <span class="iz-result-single-msg">Zimmetlendi</span>
+          </div>
+        }
+        @if (r.pending[0]; as d) {
+          <div class="iz-result-single is-pending">
+            <span class="material-symbols-outlined">hourglass_top</span>
+            <span class="iz-result-single-no">{{ d.qrCode }}</span>
+            <span class="iz-result-single-msg">{{ r.targetName }} kişisinin onayına gönderildi</span>
+            <span class="iz-result-single-sub">Onay verilene kadar evrak mevcut zimmet sahibinde kalır.</span>
           </div>
         }
         @if (r.skipped[0]; as d) {
@@ -518,7 +568,7 @@
           <div class="iz-result-single is-fail">
             <span class="material-symbols-outlined">error</span>
             <span class="iz-result-single-no">{{ d.qrCode }}</span>
-            <span class="iz-result-single-msg">Evrak zimmetlenemedi; listede kaldı, yeniden deneyebilirsiniz.</span>
+            <span class="iz-result-single-msg">{{ r.failReasons[d.id] || 'Evrak zimmetlenemedi; listede kaldı, yeniden deneyebilirsiniz.' }}</span>
           </div>
         }
       } @else {
@@ -528,6 +578,11 @@
             <span class="material-symbols-outlined">check_circle</span>
             <span class="iz-result-stat-no">{{ r.succeeded.length }}</span>
             <span class="iz-result-stat-label">Zimmetlendi</span>
+          </div>
+          <div class="iz-result-stat is-pending" [class.is-zero]="!r.pending.length">
+            <span class="material-symbols-outlined">hourglass_top</span>
+            <span class="iz-result-stat-no">{{ r.pending.length }}</span>
+            <span class="iz-result-stat-label">Onaya gönderildi</span>
           </div>
           <div class="iz-result-stat is-skip" [class.is-zero]="!r.skipped.length">
             <span class="material-symbols-outlined">skip_next</span>
@@ -542,7 +597,11 @@
         </div>
 
         <!-- Açıklama satırı -->
-        <div class="iz-result-note" *ngIf="r.skipped.length && !r.succeeded.length && !r.failed.length">
+        <div class="iz-result-note is-pending" *ngIf="r.pending.length">
+          <span class="material-symbols-outlined">hourglass_top</span>
+          Onaya gönderilen evraklar {{ r.targetName }} onay verene kadar mevcut zimmet sahibinde kalır.
+        </div>
+        <div class="iz-result-note" *ngIf="r.skipped.length && !r.succeeded.length && !r.pending.length && !r.failed.length">
           <span class="material-symbols-outlined">info</span>
           {{ r.skipped.length > 1 ? 'Listedeki evrakların tümü zaten ' : 'Evrak zaten ' }}{{ r.targetName }} üzerinde; yeni kayıt açılmadı.
         </div>
@@ -558,6 +617,11 @@
             <div class="zm-doc-body"><div class="zm-doc-no">{{ d.qrCode }}</div></div>
             <span class="iz-result-chip">Zimmetlendi</span>
           </div>
+          <div class="zm-doc iz-result-row is-pending" *ngFor="let d of r.pending">
+            <span class="material-symbols-outlined iz-result-row-icon">hourglass_top</span>
+            <div class="zm-doc-body"><div class="zm-doc-no">{{ d.qrCode }}</div></div>
+            <span class="iz-result-chip">Onaya gönderildi</span>
+          </div>
           <div class="zm-doc iz-result-row is-skip" *ngFor="let d of r.skipped">
             <span class="material-symbols-outlined iz-result-row-icon">skip_next</span>
             <div class="zm-doc-body"><div class="zm-doc-no">{{ d.qrCode }}</div></div>
@@ -565,7 +629,12 @@
           </div>
           <div class="zm-doc iz-result-row is-fail" *ngFor="let d of r.failed">
             <span class="material-symbols-outlined iz-result-row-icon">error</span>
-            <div class="zm-doc-body"><div class="zm-doc-no">{{ d.qrCode }}</div></div>
+            <div class="zm-doc-body">
+              <div class="zm-doc-no">{{ d.qrCode }}</div>
+              @if (r.failReasons[d.id]; as reason) {
+                <div class="iz-result-reason">{{ reason }}</div>
+              }
+            </div>
             <span class="iz-result-chip">Başarısız</span>
           </div>
         </div>

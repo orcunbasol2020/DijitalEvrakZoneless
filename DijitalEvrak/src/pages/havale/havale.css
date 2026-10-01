@@ -4,10 +4,6 @@
    kullanıyor; burada panelin petrol → turkuaz tonuna çekilir.
    ============================================================ */
 
-.havale-page .ad-hero-kicker {
-    letter-spacing: 0.06em;
-}
-
 /* Kartlar: panel kartları gibi sabit, hover'da zıplamaz */
 .havale-page .havale-card,
 .havale-page .info-panel {
