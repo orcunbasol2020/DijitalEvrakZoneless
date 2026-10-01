@@ -82,7 +82,7 @@ export class AdminDashboard {
   // ---- Üst şerit ----
   readonly today = new Date();
 
-  /** Yenile butonu: Dikkat Gerektiren Evraklar kartını yeniden yükler, "son güncelleme" zamanını tazeler. */
+  /** Yenile butonu: Yüksek Öncelikli Evraklar kartını yeniden yükler, "son güncelleme" zamanını tazeler. */
   readonly lastUpdated = signal(new Date());
   readonly refreshing = signal(false);
   private readonly attentionCard = viewChild(Currentdocument);

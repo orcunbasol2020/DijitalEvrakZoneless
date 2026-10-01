@@ -9564,7 +9564,7 @@ button:disabled {
 .orders-table .doc-status.doc-status-yayinlandi { --st-dot: #22c55e; }
 .orders-table .doc-status.doc-status-kayit      { --st-dot: #6366f1; }
 
-/* Dikkat Gerektiren Evraklar (Yönetici paneli)
+/* Yüksek Öncelikli Evraklar (Yönetici paneli)
    Satır başına tek vurgu: sol çizginin ve neden metninin rengi önceliği taşır
    (critical: Yıldırım, high: Günlüdür, medium: İvedi Süreli / Çok Acele, low: gizlilik / bekleyen gereği). */
 .orders-table tbody tr.attention-row {
@@ -9671,6 +9671,112 @@ button:disabled {
 [data-theme="dark"] .orders-table .attention-state.is-idle {
     --state-dot: #475569;
     color: #64748b;
+}
+
+/* "Tümünü gör": kart başlığındaki ad-link bağlantısıyla aynı görünen buton */
+.attention-all-btn {
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
+/* Tüm yüksek öncelikli evraklar popup'ı: başlık sabit, liste uzarsa yalnız gövde kayar */
+.modal-box.attention-modal {
+    width: 860px;
+    max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 64px);
+    display: flex;
+    flex-direction: column;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+}
+
+.attention-modal-head {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 14px 14px 18px;
+    border-bottom: 1px solid #eef2f7;
+}
+
+.attention-modal-title {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.attention-modal-count {
+    padding: 1px 9px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #0369a1;
+    background: #e0f2fe;
+}
+
+.attention-modal-close {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    background: transparent;
+}
+
+.attention-modal-close:hover {
+    color: #334155;
+    background: #f1f5f9;
+}
+
+.attention-modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.attention-modal-body .orders-table {
+    margin-bottom: 0;
+}
+
+/* Gövde kayarken sütun başlıkları üstte kalır */
+.attention-modal-body .orders-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #fff;
+}
+
+[data-theme="dark"] .modal-box.attention-modal,
+[data-theme="dark"] .attention-modal-body .orders-table thead th {
+    background: #1e293b;
+}
+
+[data-theme="dark"] .attention-modal-head {
+    border-bottom-color: rgba(148, 163, 184, 0.18);
+}
+
+[data-theme="dark"] .attention-modal-title {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .attention-modal-count {
+    color: #7dd3fc;
+    background: rgba(14, 165, 233, 0.16);
+}
+
+[data-theme="dark"] .attention-modal-close:hover {
+    color: #e2e8f0;
+    background: rgba(148, 163, 184, 0.14);
 }
 
 [data-theme="dark"] .orders-table .attention-idle.is-late {

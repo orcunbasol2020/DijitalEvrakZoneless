@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, ViewEncapsulation, computed, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, HostListener, ViewEncapsulation, computed, inject, input, signal } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { httpResource } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
@@ -53,6 +54,9 @@ const URGENCY_TONE: Record<number, AttentionTone> = {
 
 const ROW_LIMIT = 6;
 
+/** Yönetici kartında gösterilen yüksek öncelikli evrak sayısı; fazlası "Tümünü gör" popup'ında. */
+const ATTENTION_CARD_LIMIT = 5;
+
 /** Yıldırım dışındaki evrakta bekleme bu kadar günü geçince süre amber yazılır. */
 const LATE_DAYS = 3;
 
@@ -77,9 +81,10 @@ const URGENCY_WEIGHT: Record<number, number> = {
 };
 const HIGH_URGENCY = new Set<number>(Object.keys(URGENCY_WEIGHT).map(Number));
 
-// Evrakın işi Atlas'ta yayınlanınca biter; teslim edilmiş ya da aktarımı süren evrak açıktır.
+// Evrakın işi hem Atlas'ta yayınlanınca hem de teslim alınınca (status 3) biter;
+// ikisinden biri eksikse evrak açıktır ve listede kalır.
 function isOpen(doc: IncomingDocumentModel): boolean {
-  return !isPublished(doc);
+  return !(isPublished(doc) && doc.status === 3);
 }
 
 /**
@@ -87,7 +92,7 @@ function isOpen(doc: IncomingDocumentModel): boolean {
  * Tablo stilleri (orders-table, doc-status) styles.css'ten, başlık (ad-head) dashboard.css'ten gelir.
  */
 @Component({
-  imports: [RouterLink],
+  imports: [RouterLink, NgTemplateOutlet],
   standalone: true,
   selector: 'app-currentdocument',
   templateUrl: './currentdocument.html',
@@ -136,21 +141,42 @@ export class Currentdocument {
     return map;
   });
 
-  readonly rows = computed<DocRow[]>(() => {
+  private readonly allRows = computed<DocRow[]>(() => {
     const now = Date.now();
-    const rows = this.documents()
+    return this.documents()
       .filter(doc => !doc.isDeleted && doc.id)
       .map(doc => this.toRow(doc, now));
+  });
 
-    if (!this.isAttention()) {
-      return rows.sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, ROW_LIMIT);
-    }
-
-    return rows
+  /** Yüksek öncelikli evrakların tamamı (popup'ta listelenir) */
+  readonly attentionRows = computed<DocRow[]>(() =>
+    this.allRows()
       .filter(r => r.score > 0)
       .sort((a, b) => b.score - a.score || b.idleMinutes - a.idleMinutes)
-      .slice(0, ROW_LIMIT);
+  );
+
+  /** Kartta gösterilen satırlar */
+  readonly rows = computed<DocRow[]>(() => {
+    if (this.isAttention()) return this.attentionRows().slice(0, ATTENTION_CARD_LIMIT);
+    return [...this.allRows()].sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, ROW_LIMIT);
   });
+
+  readonly hasMore = computed(() => this.attentionRows().length > ATTENTION_CARD_LIMIT);
+
+  readonly allOpen = signal(false);
+
+  openAll(): void {
+    this.allOpen.set(true);
+  }
+
+  closeAll(): void {
+    this.allOpen.set(false);
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.allOpen()) this.closeAll();
+  }
 
   constructor() {
     this.reload();
@@ -246,7 +272,7 @@ export class Currentdocument {
     }
   }
 
-  // Dikkat listesindeki Yayın sütunu: kısa etiket ve nokta rengi (yayınlanan evrak listeye girmez)
+  // Dikkat listesindeki Yayın sütunu: kısa etiket ve nokta rengi (yayınlanmış ama teslim alınmamış evrak listede kalır)
   private readonly publishConfig: Record<PublishStatusEnum, { label: string; cls: string }> = {
     [PublishStatusEnum.Yayinlanmadi]: { label: 'Yayınlanmadı', cls: 'is-idle' },
     [PublishStatusEnum.AktarimSirasinda]: { label: 'Aktarılıyor', cls: 'is-progress' },
@@ -302,6 +328,7 @@ export class Currentdocument {
   /** Yönetici: atama (işleme alma) ya da kilit kontrolü yapmadan belge detayına gider. */
   goDetail(id: string) {
     if (!this.isAttention()) return;
+    this.closeAll();
     this.incomingDocumentService.setSelectedIncomingDocument(id);
     this.incomingDocumentService.setIncomingDocumentUpdateType('1');
     this.router.navigate(['/evrakkayit']);
