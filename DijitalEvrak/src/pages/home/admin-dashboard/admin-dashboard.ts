@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, ViewEncapsulation, computed, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ViewEncapsulation, computed, signal, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CommonModule, DatePipe } from '@angular/common';
 import { MapWorld } from '../../map-world/map-world';
@@ -82,13 +82,15 @@ export class AdminDashboard {
   // ---- Üst şerit ----
   readonly today = new Date();
 
-  /** Yenile butonu: veriler bağlanana kadar yalnızca "son güncelleme" zamanını tazeler. */
+  /** Yenile butonu: Dikkat Gerektiren Evraklar kartını yeniden yükler, "son güncelleme" zamanını tazeler. */
   readonly lastUpdated = signal(new Date());
   readonly refreshing = signal(false);
+  private readonly attentionCard = viewChild(Currentdocument);
 
   refresh(): void {
     if (this.refreshing()) return;
     this.refreshing.set(true);
+    this.attentionCard()?.reload();
     setTimeout(() => {
       this.lastUpdated.set(new Date());
       this.refreshing.set(false);

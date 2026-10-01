@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, viewChild, ViewEncapsulation } from '@angular/core';
 import { IncomingDocumentTodayStats } from '../../../models/dashboard/IncomingDocumentTodayStats.model';
 import { IncomingDocumentService } from '../../../services/incomingdocument';
 import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
@@ -52,6 +52,7 @@ export default class GelenEvrakDashboard {
   statsSignal = signal<IncomingDocumentTodayStats>({ todayCount: 0, changePercent: 0 });
   last30DaysStatsSignal = signal<IncomingDocumentLast30DaysStats>({ last30DaysCount: 0, changePercent: 0 });
   private refreshInterval: any;
+  private readonly recentCard = viewChild(Currentdocument);
 
   constructor(private incomingDocumentService: IncomingDocumentService) { }
 
@@ -114,6 +115,7 @@ export default class GelenEvrakDashboard {
   }
 
   loadAll() {
+    this.recentCard()?.reload();
     this.loadTodayStats();
     this.loadLast30DaysStats();
     this.loadPendingScanStats();

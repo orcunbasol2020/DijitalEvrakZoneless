@@ -9501,6 +9501,124 @@ button:disabled {
 .orders-table .doc-status.doc-status-onkayit    { --st-dot: #94a3b8; }
 .orders-table .doc-status.doc-status-ocr        { --st-dot: #0ea5e9; }
 .orders-table .doc-status.doc-status-yayinlandi { --st-dot: #22c55e; }
+.orders-table .doc-status.doc-status-kayit      { --st-dot: #6366f1; }
+
+/* Dikkat Gerektiren Evraklar (Yönetici paneli)
+   Satır başına tek vurgu: sol çizginin ve neden metninin rengi önceliği taşır
+   (critical: Yıldırım, high: Günlüdür, medium: İvedi Süreli / Çok Acele, low: gizlilik / bekleyen gereği). */
+.orders-table tbody tr.attention-row {
+    --att-tone: #94a3b8;
+}
+
+.orders-table tbody tr.attention-row.tone-critical { --att-tone: #dc2626; }
+.orders-table tbody tr.attention-row.tone-high     { --att-tone: #ea580c; }
+.orders-table tbody tr.attention-row.tone-medium   { --att-tone: #d97706; }
+
+.orders-table tbody tr.attention-row > td:first-child {
+    box-shadow: inset 3px 0 0 0 var(--att-tone);
+}
+
+.orders-table .attention-doc {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    max-width: 240px;
+}
+
+.orders-table .attention-doc .institution-name,
+.orders-table .attention-reason-sub {
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+.orders-table .attention-reason {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    line-height: 1.25;
+}
+
+.orders-table .attention-reason-main {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #334155;
+}
+
+.orders-table tr.tone-critical .attention-reason-main,
+.orders-table tr.tone-high .attention-reason-main,
+.orders-table tr.tone-medium .attention-reason-main {
+    color: var(--att-tone);
+}
+
+/* Yayın / Teslim sütunları: renkli nokta + kısa metin (rozet yok) */
+.orders-table .attention-state {
+    --state-dot: #94a3b8;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: #475569;
+    white-space: nowrap;
+}
+
+.orders-table .attention-state::before {
+    content: "";
+    flex: 0 0 auto;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--state-dot);
+}
+
+.orders-table .attention-state.is-done     { --state-dot: #22c55e; }
+.orders-table .attention-state.is-progress { --state-dot: #0ea5e9; }
+.orders-table .attention-state.is-warn     { --state-dot: #f59e0b; }
+.orders-table .attention-state.is-idle     { --state-dot: #cbd5e1; color: #94a3b8; }
+
+.orders-table .attention-idle {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #475569;
+    white-space: nowrap;
+}
+
+.orders-table .attention-idle.is-late {
+    color: #b45309;
+}
+
+.orders-table .attention-idle.is-critical {
+    color: #dc2626;
+    font-weight: 700;
+}
+
+[data-theme="dark"] .orders-table tbody tr.attention-row.tone-critical { --att-tone: #f87171; }
+[data-theme="dark"] .orders-table tbody tr.attention-row.tone-high     { --att-tone: #fb923c; }
+[data-theme="dark"] .orders-table tbody tr.attention-row.tone-medium   { --att-tone: #fbbf24; }
+
+[data-theme="dark"] .orders-table .attention-doc .institution-name,
+[data-theme="dark"] .orders-table .attention-reason-sub {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .orders-table .attention-reason-main,
+[data-theme="dark"] .orders-table .attention-state,
+[data-theme="dark"] .orders-table .attention-idle {
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .orders-table .attention-state.is-idle {
+    --state-dot: #475569;
+    color: #64748b;
+}
+
+[data-theme="dark"] .orders-table .attention-idle.is-late {
+    color: #fbbf24;
+}
+
+[data-theme="dark"] .orders-table .attention-idle.is-critical {
+    color: #f87171;
+}
 
 [data-theme="dark"] .orders-table .doc-status {
     color: #cbd5e1;
