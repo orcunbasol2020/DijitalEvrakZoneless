@@ -673,6 +673,68 @@ app-admin-dashboard app-currentdocument .ad-head-title,
     color: #0c4a6e;
 }
 
+/* Hızlı Erişim alt satırda tam genişlik: bağlantılar yan yana */
+.quick-links.ad-quick-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 991.98px) {
+    .quick-links.ad-quick-row { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---------- Bekleyenler ---------- */
+/* Liste ve satırları kartın gövdesini tam genişlikte doldurur */
+.quick-links.ad-pending,
+.ad-pending .quick-link {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* İkon renkleri zil menüsü ve ilgili ekranların istatistik kutularıyla aynı */
+.ad-pending .quick-link-icon.is-approval { background: linear-gradient(135deg, #0284c7, #22d3ee); }
+.ad-pending .quick-link-icon.is-delivery { background: linear-gradient(135deg, #d97706, #fbbf24); }
+
+.ad-pending-count {
+    flex: 0 0 auto;
+    min-width: 34px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 15px;
+    font-weight: 700;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    color: #1e293b;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+}
+
+.ad-pending-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 100%;
+    min-height: 120px;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.ad-pending-empty .material-symbols-outlined {
+    font-size: 30px;
+    color: #059669;
+}
+
+[data-theme="dark"] .ad-pending-count {
+    color: var(--text-color);
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="dark"] .ad-pending-empty { color: var(--text-muted); }
+[data-theme="dark"] .ad-pending-empty .material-symbols-outlined { color: #6ee7b7; }
+
 /* ---------- Tablo içi hatırlat butonu ---------- */
 .ad-reminder {
     width: 32px;

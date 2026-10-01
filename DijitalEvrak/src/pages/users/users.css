@@ -24,6 +24,114 @@
     border-color: #7dd3fc;
 }
 
+/* Rol filtresi: başlık araçlarıyla aynı yükseklik; seçim yapılınca filtre butonu gibi vurgulanır */
+.us-role-select {
+    width: auto;
+    min-width: 170px;
+    height: 34px;
+    padding-top: 0;
+    padding-bottom: 0;
+    font-size: 13px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+}
+
+.us-role-select.is-on {
+    color: #0369a1;
+    background-color: #e0f2fe;
+    border-color: #7dd3fc;
+}
+
+/* Birim etiketi: zemin sitenin amber ailesi (Evrak Kayıt ve teslim kartlarındaki sarı ton), yazı siyah */
+.us-dept-badge {
+    color: #0f172a;
+    background-color: #fef3c7;
+    border: 1px solid #fde68a;
+}
+
+[data-theme="dark"] .us-dept-badge {
+    color: #f8fafc;
+    background-color: rgba(245, 158, 11, 0.14);
+    border-color: rgba(251, 191, 36, 0.35);
+}
+
+.us-roles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+/* Rol rozeti: çerçeveli, zemini düşük opaklıkta turkuaz; premium paletin petrol tonu
+   çerçevede ve yazıda. Simge çerçevesiz, petrol tonunda. */
+.us-role-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 10px 2px 3px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 600;
+    line-height: 1.6;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    color: #0c4a6e;
+    background: rgba(125, 211, 252, 0.12);
+    border: 1px solid rgba(3, 105, 161, 0.45);
+}
+
+.us-role-chip .material-symbols-outlined {
+    width: 21.8px;
+    height: 21.8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14.5px;
+    color: #0369a1;
+    border-radius: 50%;
+}
+
+[data-theme="dark"] .us-role-chip {
+    color: #e0f2fe;
+    background: rgba(125, 211, 252, 0.08);
+    border-color: rgba(125, 211, 252, 0.45);
+}
+
+[data-theme="dark"] .us-role-chip .material-symbols-outlined {
+    color: #7dd3fc;
+}
+
+/* Yönetim rolleri simge rengiyle ayrışır: Yönetici amber, Birim Yöneticisi zümrüt */
+.us-role-chip .material-symbols-outlined.is-admin {
+    color: #d97706;
+}
+
+.us-role-chip .material-symbols-outlined.is-unit-manager {
+    color: #059669;
+}
+
+[data-theme="dark"] .us-role-chip .material-symbols-outlined.is-admin {
+    color: #fbbf24;
+}
+
+[data-theme="dark"] .us-role-chip .material-symbols-outlined.is-unit-manager {
+    color: #34d399;
+}
+
+/* Aktif (4.) ve Sil (6.) başlıkları ortalı. Filtrelenebilir sütunlarda flexi-grid textAlign'ı
+   başlığa uygulamaz (flexi-th başlığı sola, filtre simgesini sağa yaslar), bu yüzden elle ortalanır.
+   Sütun sırası değişirse buradaki sıra numaraları da güncellenmeli. */
+.us-grid thead th:nth-child(4) .flexi-th,
+.us-grid thead th:nth-child(6) .flexi-th {
+    justify-content: center;
+    gap: 4px;
+}
+
+.us-grid thead th:nth-child(4) .flexi-th > .flexi-grid-sortable-th,
+.us-grid thead th:nth-child(6) .flexi-th > .flexi-grid-sortable-th {
+    justify-content: center;
+    width: auto;
+}
+
 /* Izgara kartın içinde: kendi çerçevesi, gölgesi ve köşe yuvarlaması yok */
 .us-grid .flexi-grid-table-container,
 .us-grid .flexi-grid-table-container-wrapper {
@@ -35,6 +143,12 @@
 [data-theme="dark"] .us-head-tools .zl-icon-btn.is-on {
     color: #7dd3fc;
     background: rgba(14, 165, 233, 0.16);
+    border-color: rgba(125, 211, 252, 0.4);
+}
+
+[data-theme="dark"] .us-role-select.is-on {
+    color: #7dd3fc;
+    background-color: rgba(14, 165, 233, 0.16);
     border-color: rgba(125, 211, 252, 0.4);
 }
 

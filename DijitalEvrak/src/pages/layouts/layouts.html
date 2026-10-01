@@ -106,42 +106,38 @@
                     </li>
                     <li><hr class="dropdown-divider"></li>
 
-                    <!-- Zimmet onayı: bildirim tek satır, evraklar tek tek listelenir -->
-                    @if (approvals().length > 0) {
-                        <li>
-                            <a class="dropdown-item notification-item" routerLink="/zimmet-onaylari">
-                                <div class="notification-icon bg-success">
-                                    <span class="material-symbols-outlined"
-                                        style="font-size:18px;">assignment_turned_in</span>
-                                </div>
-                                <div class="notification-content">
-                                    <p class="notification-text">Zimmet Onayınızı Bekleyenler</p>
-                                    <p class="notification-time"><b>{{ approvals().length }}</b> Evrak
-                                        Onay Bekliyor</p>
-                                </div>
-                            </a>
-                        </li>
-                        @for (a of approvalPreview(); track a.id) {
-                            <li>
-                                <a class="dropdown-item notification-approval" routerLink="/zimmet-onaylari"
-                                    [title]="a.subject ?? ''">
-                                    <span class="notification-approval-no">{{ a.qrCode || a.orginalNo || '-' }}</span>
-                                    <span class="notification-approval-subject">{{ a.subject || '-' }}</span>
-                                    <span class="notification-approval-meta">
-                                        {{ a.requestedByFullName }} · {{ approvalOperation(a.requestedAllocationStatus) }}
+                    <!-- Özet kartları: yalnız sayılar; evrakların listesi ilgili ekranlardadır -->
+                    @if (approvals().length > 0 || isDepartmentOfficer()) {
+                        <li class="notification-stats">
+                            @if (approvals().length > 0) {
+                                <a class="notification-stat is-approval is-link" routerLink="/zimmet-onaylari">
+                                    <span class="notification-stat-title">Zimmet Onayı Bekleyen</span>
+                                    <span class="notification-stat-row">
+                                        <span class="notification-stat-icon">
+                                            <span class="material-symbols-outlined">assignment_turned_in</span>
+                                        </span>
+                                        <span class="notification-stat-value">{{ approvals().length }} <small>evrak</small></span>
                                     </span>
                                 </a>
-                            </li>
-                        }
-                        <li>
-                            <a class="dropdown-item notification-approval-more" routerLink="/zimmet-onaylari">
-                                @if (approvals().length > approvalPreview().length) {
-                                    +{{ approvals().length - approvalPreview().length }} evrak daha ·
-                                }
-                                Tümünü gör ve onayla
-                                <span class="material-symbols-outlined">arrow_forward</span>
-                            </a>
+                            }
+
+                            <!-- Birim Evrak Sorumlusu: biriminde teslim alınmayı bekleyen evrak sayısı -->
+                            @if (isDepartmentOfficer()) {
+                                <a class="notification-stat is-delivery is-link" [class.is-clear]="departmentPendingCount() === 0"
+                                    routerLink="/incomingDepartmentDocument" [queryParams]="{ filtre: 'teslim-bekleyen' }">
+                                    <span class="notification-stat-title">Biriminizde Teslim Alınmayı Bekleyen</span>
+                                    <span class="notification-stat-row">
+                                        <span class="notification-stat-icon">
+                                            <span class="material-symbols-outlined">hourglass_top</span>
+                                        </span>
+                                        <span class="notification-stat-value">{{ departmentPendingCount() }} <small>evrak</small></span>
+                                    </span>
+                                </a>
+                            }
                         </li>
+                    }
+
+                    @if (approvals().length > 0 || isDepartmentOfficer()) {
                         <li><hr class="dropdown-divider"></li>
                     }
 
@@ -197,7 +193,7 @@
                                 </div>
                             </a>
                         </li>
-                    } @else {
+                    } @else if (!isDepartmentOfficer()) {
                         <li class="notification-empty">
                             <span class="material-symbols-outlined">task_alt</span>
                             <p>Bekleyen atanmış evrakınız bulunmuyor</p>
@@ -218,25 +214,6 @@
                                     <p class="notification-time"><b>{{
                                             transferCount() }}</b> Evrak
                                         Devredildi</p>
-                                </div>
-                            </a>
-                        </li>
-                    }
-
-                    @if (transferredToMeCount() > 0) {
-                        <li>
-                            <a class="dropdown-item notification-item"
-                                routerLink="/zimmetlerim">
-                                <div class="notification-icon bg-info">
-                                    <span class="material-symbols-outlined"
-                                        style="font-size:18px;">move_to_inbox</span>
-                                </div>
-                                <div class="notification-content">
-                                    <p class="notification-text">Size Devredilen
-                                        Zimmetler</p>
-                                    <p class="notification-time"><b>{{
-                                            transferredToMeCount() }}</b> Evrak
-                                        Zimmetinizde</p>
                                 </div>
                             </a>
                         </li>

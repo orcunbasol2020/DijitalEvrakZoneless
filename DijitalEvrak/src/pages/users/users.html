@@ -10,13 +10,21 @@
     </span>
     <div>
       <h4 class="st-card-title">Kullanıcı Listesi</h4>
-      <div class="st-card-sub">Kullanıcıyı güncellemek için kalem simgesine, durumunu değiştirmek için anahtara tıklayın</div>
     </div>
     <div class="zl-head-tools us-head-tools">
-      <span class="st-count">
-        <span class="material-symbols-outlined">verified_user</span>
-        {{ activeCount() }} / {{ data().length }} aktif
-      </span>
+      <select class="form-select us-role-select" title="Role göre filtrele"
+        [class.is-on]="roleFilter()"
+        [ngModel]="roleFilter()" (ngModelChange)="roleFilter.set($event)">
+        <option value="">Tüm roller</option>
+        @for (role of roleOptions(); track role.id) {
+          <option [value]="role.id">{{ role.name }}</option>
+        }
+        <option [value]="NO_ROLE">Rolü yok</option>
+      </select>
+      <a routerLink="/users/create" class="zl-btn-primary">
+        <span class="material-symbols-outlined">add</span>
+        Kullanıcı Ekle
+      </a>
       <button type="button" class="zl-icon-btn" [class.is-on]="showFilters" title="Filtre Aç/Kapat"
         (click)="showFilters = !showFilters">
         <span class="material-symbols-outlined">filter_alt</span>
@@ -27,10 +35,6 @@
       <button type="button" class="zl-icon-btn" title="Güncel Verileri Getir" (click)="result.reload()">
         <span class="material-symbols-outlined">refresh</span>
       </button>
-      <a routerLink="/users/create" class="zl-btn-primary">
-        <span class="material-symbols-outlined">add</span>
-        Kullanıcı Ekle
-      </a>
     </div>
   </div>
 
@@ -43,7 +47,6 @@
     [showCaption]="false"
     exportExcelFileName="kullanicilar"
     [filterable]="true"
-    commandColumnTitle="Güncelle"
     (onRefresh)="result.reload()">
 
     <flexi-grid-column field="name" title="Kullanıcı" width="220px">
@@ -55,11 +58,11 @@
       </ng-template>
     </flexi-grid-column>
 
-    <flexi-grid-column title="Birimi" width="160px">
+    <flexi-grid-column field="departmentName" title="Birimi" width="160px"
+      filterType="select" [filterData]="departmentFilterData()">
       <ng-template flexiGridCellTemplate let-item>
         @if (item.departmentName) {
-          <span class="badge department-badge" [ngClass]="getDepartmentBadgeClass(item.departmentShortName)" [title]="item.departmentName">
-            <span class="material-symbols-outlined align-middle" style="font-size:13px;">apartment</span>
+          <span class="badge department-badge us-dept-badge" [title]="item.departmentName">
             {{ item.departmentShortName || item.departmentName }}
           </span>
         } @else {
@@ -68,8 +71,27 @@
       </ng-template>
     </flexi-grid-column>
 
+    <flexi-grid-column field="roleNames" title="Roller" width="240px">
+      <ng-template flexiGridCellTemplate let-item>
+        @if (item.roles?.length) {
+          <div class="us-roles">
+            @for (role of item.roles; track role.id) {
+              <span class="us-role-chip">
+                <span class="material-symbols-outlined"
+                  [class.is-admin]="role.name === 'Yönetici'"
+                  [class.is-unit-manager]="role.name === 'Birim Yöneticisi'">{{ roleIcon(role.name) }}</span>
+                {{ role.name }}
+              </span>
+            }
+          </div>
+        } @else {
+          <span class="text-muted small">-</span>
+        }
+      </ng-template>
+    </flexi-grid-column>
+
     <flexi-grid-column field="isActive" title="Aktif" textAlign="center"
-      filterType="boolean" [booleanData]="['Aktif', 'Pasif']" width="110px">
+      filterType="boolean" [booleanData]="['Aktif', 'Pasif']" width="70px">
       <ng-template flexiGridCellTemplate let-item>
         <div class="d-flex align-items-center justify-content-center gap-2">
           <div class="form-check form-switch form-switch-lg mb-0">
@@ -85,9 +107,22 @@
         </div>
       </ng-template>
     </flexi-grid-column>
-    <flexi-grid-column field="isDeleted" title="Silindi" textAlign="center"
+
+    <!-- Güncelle normal sütun: komut sütunu hep en sonda çizildiği için Silindi en sağda kalsın diye -->
+    <flexi-grid-column title="Güncelle" textAlign="center" width="70px" [filterable]="false" [sortable]="false">
+      <ng-template flexiGridCellTemplate let-item>
+        <flexi-button
+          [routerLink]="['/','users','edit',item.id]"
+          btnIcon="edit"
+          btnColor="info"
+          title="Güncelle"
+          flexiTooltip />
+      </ng-template>
+    </flexi-grid-column>
+
+    <flexi-grid-column field="isDeleted" title="Sil" textAlign="center"
       filterType="boolean" [booleanData]="['Silindi', 'Silinmedi']"
-      width="110px">
+      width="70px">
       <ng-template flexiGridCellTemplate let-item>
         <div class="d-flex align-items-center justify-content-center gap-2">
           <div class="form-check form-switch form-switch-lg mb-0">
@@ -103,15 +138,6 @@
         </div>
       </ng-template>
     </flexi-grid-column>
-
-    <ng-template flexiGridColumnCommandTemplate let-item>
-      <flexi-button
-        [routerLink]="['/','users','edit',item.id]"
-        btnIcon="edit"
-        btnColor="info"
-        title="Güncelle"
-        flexiTooltip />
-    </ng-template>
 
   </flexi-grid>
 </div>

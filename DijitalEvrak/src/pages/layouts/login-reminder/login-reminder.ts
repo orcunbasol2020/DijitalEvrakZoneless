@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal, ViewEncapsulation } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { Router } from '@angular/router';
-import { catchError, forkJoin, map, of } from 'rxjs';
+import { catchError, forkJoin, of } from 'rxjs';
 import { Common } from '../../../services/common';
 import { RoleService } from '../../../services/role-service';
 import { IncomingDocumentService } from '../../../services/incomingdocument';
@@ -15,9 +15,18 @@ interface DeliveryStats {
   total: number;
 }
 
+type ReminderTab = 'onay' | 'teslim' | 'bildirim';
+
+interface ReminderTabItem {
+  key: ReminderTab;
+  label: string;
+  icon: string;
+  count: number;
+}
+
 // Girişten hemen sonra açılan tek hatırlatma popup'ı. Birden fazla hatırlatma aynı
-// anda üst üste açılmasın diye hepsi burada bölüm bölüm toplanır; yalnızca içeriği
-// olan bölüm görünür, hiçbiri yoksa popup açılmaz:
+// anda üst üste açılmasın diye hepsi burada toplanır; birden fazlaysa her biri ayrı sekmede,
+// yalnızca içeriği olan sekme görünür, hiçbiri yoksa popup açılmaz:
 //  - Zimmet onayınızı bekleyen evraklar (her kullanıcı), evraklar tek tek listelenir
 //  - Teslim alınmayı bekleyen birim evrakları (Birim Evrak Sorumlusu)
 //  - Okunmamış bildirimler (talebiniz onaylandı, reddedildi, geri çekildi…)
@@ -69,6 +78,26 @@ export class LoginReminder implements OnInit {
   readonly sectionCount = computed(() =>
     [this.hasApprovals(), this.hasDelivery(), this.hasNotifications()].filter(Boolean).length);
 
+  // Birden fazla bölüm varsa her biri ayrı sekmede; yalnızca içeriği olan sekme görünür.
+  // Seçili sekme boşalırsa (ör. bildirimler okundu) ilk dolu sekmeye geçilir.
+  readonly tabs = computed<ReminderTabItem[]>(() => {
+    const tabs: ReminderTabItem[] = [];
+    if (this.hasApprovals()) tabs.push({ key: 'onay', label: 'Zimmet Onayları', icon: 'assignment_turned_in', count: this.approvals().length });
+    if (this.hasDelivery()) tabs.push({ key: 'teslim', label: 'Birim Evrakları', icon: 'pending_actions', count: this.delivery()!.pending });
+    if (this.hasNotifications()) tabs.push({ key: 'bildirim', label: 'Bildirimler', icon: 'notifications', count: this.notifications().length });
+    return tabs;
+  });
+  private readonly selectedTab = signal<ReminderTab | null>(null);
+  readonly activeTab = computed<ReminderTab | null>(() => {
+    const tabs = this.tabs();
+    const selected = this.selectedTab();
+    return tabs.some(t => t.key === selected) ? selected : (tabs[0]?.key ?? null);
+  });
+
+  selectTab(tab: ReminderTab): void {
+    this.selectedTab.set(tab);
+  }
+
   readonly title = computed(() => {
     if (this.sectionCount() > 1) return 'Bekleyen İşleriniz';
     if (this.hasApprovals()) return 'Zimmet Onayınızı Bekleyen Evraklar';
@@ -90,11 +119,7 @@ export class LoginReminder implements OnInit {
 
     const departmentId = this.user()?.departmentId;
     const delivery$ = departmentId && this.roleService.hasBirimEvrakRole()
-      ? this.incomingDocumentService.getAllIncomingDocuments(departmentId).pipe(
-          map(docs => {
-            const list = (docs ?? []).filter(d => !d.isDeleted);
-            return { pending: list.filter(d => d.status !== 3).length, total: list.length };
-          }),
+      ? this.incomingDocumentService.getDepartmentDeliveryStats(departmentId).pipe(
           catchError(err => {
             console.error('Teslim bekleyen evraklar alınamadı:', err);
             return of(null);

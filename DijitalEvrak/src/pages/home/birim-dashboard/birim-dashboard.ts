@@ -6,6 +6,7 @@ import { Common } from '../../../services/common';
 import { IncomingDocumentService } from '../../../services/incomingdocument';
 import { OutgoingDocumentService } from '../../../services/outgoingdocument';
 import { DocumentAllocation } from '../../../services/documentallocation';
+import { AllocationRequestService } from '../../../services/allocationrequest';
 import { IncomingDocumentTodayStats } from '../../../models/dashboard/IncomingDocumentTodayStats.model';
 import { UserModel } from '../../users/users';
 
@@ -39,6 +40,13 @@ export default class BirimDashboard implements OnInit {
   readonly outgoingCount = computed(() => this.outgoingResult.value()?.length ?? 0);
 
   readonly zimmetCount = signal<number>(0);
+
+  // Bekleyenler: zimmet onayı bekleyenler ortak listeden (zil menüsüyle birlikte güncellenir),
+  // teslim bekleyenler Birim Gelen Evrakları ekranındaki süzgeçle aynı sayım
+  private readonly allocationRequests = inject(AllocationRequestService);
+  readonly approvalCount = computed(() => this.allocationRequests.pendingForMe().length);
+  readonly deliveryPendingCount = signal<number>(0);
+  readonly pendingTotal = computed(() => this.approvalCount() + this.deliveryPendingCount());
 
   // Birimdeki kullanıcılar: Users/GetAll opsiyonel departmentId parametresiyle
   // sunucu tarafında birime göre filtrelenir. departmentId yoksa istek atılmaz.
@@ -83,6 +91,15 @@ export default class BirimDashboard implements OnInit {
 
     if (userId) {
       this.documentAllocation.getActiveByUserId(userId).subscribe(list => this.zimmetCount.set(list?.length ?? 0));
+      this.allocationRequests.refreshPendingForMe(userId).subscribe();
+    }
+
+    const departmentId = this.user()?.departmentId;
+    if (departmentId) {
+      this.incomingDocumentService.getDepartmentDeliveryStats(departmentId).subscribe({
+        next: s => this.deliveryPendingCount.set(s.pending),
+        error: err => console.error('Teslim bekleyen evraklar alınamadı:', err)
+      });
     }
   }
 }

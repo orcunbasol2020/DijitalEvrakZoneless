@@ -13,7 +13,6 @@ import { RoleService } from '../../services/role-service';
 import { DocumentAllocation } from '../../services/documentallocation';
 import { getUserAvatar } from '../../services/user-avatar';
 import { AllocationRequestService } from '../../services/allocationrequest';
-import { allocationRequestOperationLabel } from '../../models/allocationrequest.model';
 import { LoginReminder } from './login-reminder/login-reminder';
 import { NotificationService } from '../../services/notification';
 import { NotificationModel, NotificationTypeEnum, NotificationTypeIcons, NotificationTypeTones } from '../../models/notification.model';
@@ -148,15 +147,15 @@ export default class Layouts {
   readonly roleService = inject(RoleService);
   readonly isAdmin = computed(() => this.roleService.has('Yönetici'));
   readonly #allocationService = inject(DocumentAllocation);
-  readonly transferredToMeCount = signal<number>(0);
   readonly transferCount = signal<number>(0);
 
-  // Zimmet onayı bekleyen evraklar: zil menüsünde ilk birkaçı tek tek listelenir
+  // Birim Evrak Sorumlusu: biriminde teslim alınmayı bekleyen evrak sayısı
+  readonly isDepartmentOfficer = computed(() => this.roleService.hasBirimEvrakRole());
+  readonly departmentPendingCount = signal<number>(0);
+
+  // Zimmet onayı bekleyen evraklar: zil menüsünde yalnız sayısı gösterilir, liste onay ekranındadır
   readonly #allocationRequests = inject(AllocationRequestService);
   readonly approvals = this.#allocationRequests.pendingForMe;
-  readonly approvalPreview = computed(() => this.approvals().slice(0, Layouts.APPROVAL_PREVIEW));
-  readonly approvalOperation = allocationRequestOperationLabel;
-  private static readonly APPROVAL_PREVIEW = 5;
 
   // Okunmamış bildirimler (onay talebi / hatırlatma hariç; onlar yukarıdaki evrak listesinde)
   readonly #notificationService = inject(NotificationService);
@@ -186,7 +185,7 @@ export default class Layouts {
 
   readonly totalNotificationCount = computed(() =>
     this.pendingCount() +
-    this.transferredToMeCount() +
+    this.departmentPendingCount() +
     this.transferCount() +
     this.approvals().length +
     this.notifications().length
@@ -206,9 +205,12 @@ export default class Layouts {
         .getPendingCount(userId)
         .subscribe(c => this.pendingCount.set(c));
 
-      this.#allocationService
-        .getActiveByUserId(userId)
-        .subscribe(allocations => this.transferredToMeCount.set(allocations?.length ?? 0));
+      const departmentId = this.user()?.departmentId;
+      if (departmentId && this.isDepartmentOfficer()) {
+        this.#incomingDocumentService
+          .getDepartmentDeliveryStats(departmentId)
+          .subscribe(s => this.departmentPendingCount.set(s.pending));
+      }
 
       this.#allocationService
         .getTransferCountByUserId(userId)

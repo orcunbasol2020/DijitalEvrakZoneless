@@ -143,8 +143,65 @@
         </div>
     </div>
 
-    <!-- Hızlı Erişim -->
+    <!-- Bekleyenler: zimmet onayı bekleyen ve birimde teslim alınmayı bekleyen evraklar; yalnız sayısı olanlar listelenir -->
     <div class="col-lg-4">
+        <div class="card premium-card h-100">
+            <div class="card-header dashboard-header ad-head">
+                <span class="ad-head-icon">
+                    <span class="material-symbols-outlined">pending_actions</span>
+                </span>
+                <div class="ad-head-text">
+                    <h5 class="ad-head-title">Bekleyenler</h5>
+                    <div class="ad-head-sub">İşlem bekleyen evraklarınız</div>
+                </div>
+                @if (pendingTotal() > 0) {
+                    <span class="ad-period">{{ pendingTotal() }} evrak</span>
+                }
+            </div>
+            <div class="card-body">
+                @if (pendingTotal() > 0) {
+                    <div class="quick-links ad-pending">
+                        @if (approvalCount() > 0) {
+                            <a routerLink="/zimmet-onaylari" class="quick-link">
+                                <span class="quick-link-icon is-approval">
+                                    <span class="material-symbols-outlined">assignment_turned_in</span>
+                                </span>
+                                <span class="quick-link-text">
+                                    <span class="quick-link-title">Zimmet Onayı Bekleyen</span>
+                                    <span class="quick-link-subtitle">Size devredilen, onayınızı bekleyen evraklar</span>
+                                </span>
+                                <span class="ad-pending-count">{{ approvalCount() }}</span>
+                            </a>
+                        }
+                        @if (deliveryPendingCount() > 0) {
+                            <a routerLink="/incomingDepartmentDocument" [queryParams]="{ filtre: 'teslim-bekleyen' }" class="quick-link">
+                                <span class="quick-link-icon is-delivery">
+                                    <span class="material-symbols-outlined">hourglass_top</span>
+                                </span>
+                                <span class="quick-link-text">
+                                    <span class="quick-link-title">Teslim Alınmayı Bekleyen</span>
+                                    <span class="quick-link-subtitle">Biriminize gelen, teslim alınmamış evraklar</span>
+                                </span>
+                                <span class="ad-pending-count">{{ deliveryPendingCount() }}</span>
+                            </a>
+                        }
+                    </div>
+                } @else {
+                    <div class="ad-pending-empty">
+                        <span class="material-symbols-outlined">task_alt</span>
+                        <span>Bekleyen evrakınız bulunmuyor</span>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="row g-3 mb-4">
+
+    <!-- Hızlı Erişim -->
+    <div class="col-12">
         <div class="card premium-card h-100">
             <div class="card-header dashboard-header ad-head">
                 <span class="ad-head-icon">
@@ -156,7 +213,7 @@
                 </div>
             </div>
             <div class="card-body">
-                <div class="quick-links ad-quick">
+                <div class="quick-links ad-quick ad-quick-row">
                     <a routerLink="/zimmetlerim" class="quick-link">
                         <span class="quick-link-icon">
                             <span class="material-symbols-outlined">inventory_2</span>

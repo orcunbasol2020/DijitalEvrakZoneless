@@ -17,19 +17,25 @@
                 </button>
             </div>
 
-            <!-- Zimmet onayları: evraklar tek tek -->
-            @if (hasApprovals()) {
-                <div class="lr-section">
-                    @if (sectionCount() > 1) {
-                        <div class="lr-section-head">
-                            <span class="lr-section-icon"><span class="material-symbols-outlined">assignment_turned_in</span></span>
-                            Zimmet onayınızı bekleyen evraklar
-                        </div>
+            <!-- Birden fazla hatırlatma: her biri ayrı sekmede -->
+            @if (tabs().length > 1) {
+                <div class="lr-tabs" role="tablist">
+                    @for (t of tabs(); track t.key) {
+                        <button type="button" class="lr-tab" role="tab"
+                            [class.is-active]="activeTab() === t.key"
+                            [attr.aria-selected]="activeTab() === t.key"
+                            (click)="selectTab(t.key)">
+                            <span class="material-symbols-outlined">{{ t.icon }}</span>
+                            {{ t.label }}
+                            <span class="lr-tab-count">{{ t.count }}</span>
+                        </button>
                     }
-                    <div class="lr-approval-lead">
-                        <b>{{ approvals().length }}</b> evrak size devredildi ya da teslim edildi.
-                        Onay verene kadar evraklar devreden kişinin üzerinde kalır.
-                    </div>
+                </div>
+            }
+
+            <!-- Zimmet onayları: evraklar tek tek -->
+            @if (activeTab() === 'onay') {
+                <div class="lr-section">
                     <ul class="lr-approvals">
                         @for (a of approvalPreview(); track a.id) {
                             <li class="lr-approval">
@@ -42,8 +48,12 @@
                                         <span class="lr-approval-subject" [title]="a.subject ?? ''">{{ a.subject || '-' }}</span>
                                     </span>
                                     <span class="lr-approval-meta">
-                                        {{ a.requestedByFullName }} · {{ operationLabel(a.requestedAllocationStatus) }} · {{ a.createdDate | date:'dd.MM.yyyy HH:mm' }}
+                                        {{ a.requestedByFullName }} · {{ operationLabel(a.requestedAllocationStatus) }}
                                     </span>
+                                </span>
+                                <span class="lr-approval-when">
+                                    <span class="lr-approval-date">{{ a.createdDate | date:'dd.MM.yyyy' }}</span>
+                                    <span class="lr-approval-time">{{ a.createdDate | date:'HH:mm' }}</span>
                                 </span>
                             </li>
                         }
@@ -51,20 +61,18 @@
                     @if (approvalMore() > 0) {
                         <div class="lr-approval-more">+{{ approvalMore() }} evrak daha</div>
                     }
+                    <div class="lr-approval-lead">
+                        <span class="material-symbols-outlined">info</span>
+                        <span><b>{{ approvals().length }}</b> adet zimmet onayı bekleyen evrakınız var.</span>
+                    </div>
                 </div>
             }
 
             <!-- Birim: teslim alınmayı bekleyen evraklar -->
-            @if (delivery(); as d) {
-                @if (d.pending > 0) {
+            @if (activeTab() === 'teslim') {
+                @if (delivery(); as d) {
                     <div class="lr-section">
-                        @if (sectionCount() > 1) {
-                            <div class="lr-section-head">
-                                <span class="lr-section-icon"><span class="material-symbols-outlined">pending_actions</span></span>
-                                Teslim alınmayı bekleyen birim evrakları
-                            </div>
-                        }
-                        <div class="pd-body" [class.is-compact]="sectionCount() > 1">
+                        <div class="pd-body">
                             <div class="pd-gauge">
                                 <svg viewBox="0 0 120 120" aria-hidden="true">
                                     <defs>
@@ -107,14 +115,8 @@
             }
 
             <!-- Okunmamış bildirimler -->
-            @if (hasNotifications()) {
+            @if (activeTab() === 'bildirim') {
                 <div class="lr-section">
-                    @if (sectionCount() > 1) {
-                        <div class="lr-section-head">
-                            <span class="lr-section-icon"><span class="material-symbols-outlined">notifications</span></span>
-                            Okunmamış bildirimleriniz
-                        </div>
-                    }
                     <ul class="lr-approvals lr-notifs">
                         @for (n of notificationPreview(); track n.id) {
                             <li class="lr-approval lr-notif {{ notificationTone(n) }}">
@@ -137,29 +139,28 @@
                 </div>
             }
 
+            <!-- Alt düğme açık sekmenin ekranına götürür -->
             <div class="pd-footer">
                 <button type="button" class="btn btn-light" (click)="close()">Kapat</button>
-                @if (hasDelivery()) {
-                    <button type="button" class="d-flex align-items-center gap-1"
-                        [class.qr-manual-btn]="!hasApprovals() && !hasNotifications()"
-                        [class.btn]="hasApprovals() || hasNotifications()"
-                        [class.btn-outline-primary]="hasApprovals() || hasNotifications()"
-                        (click)="goToPendingDocuments()">
-                        <span class="material-symbols-outlined" style="font-size: 18px;">arrow_forward</span>
-                        Evrakları Görüntüle
-                    </button>
-                }
-                <!-- Zimmet Onayları ekranı bildirimleri de bir sekmede gösterir; onay varsa önce onaylar açılır -->
-                @if (hasApprovals()) {
-                    <button type="button" class="qr-manual-btn d-flex align-items-center gap-1" (click)="goToApprovals()">
-                        <span class="material-symbols-outlined" style="font-size: 18px;">assignment_turned_in</span>
-                        Onaylara Git
-                    </button>
-                } @else if (hasNotifications()) {
-                    <button type="button" class="qr-manual-btn d-flex align-items-center gap-1" (click)="goToNotifications()">
-                        <span class="material-symbols-outlined" style="font-size: 18px;">notifications</span>
-                        Bildirimleri Gör
-                    </button>
+                @switch (activeTab()) {
+                    @case ('onay') {
+                        <button type="button" class="qr-manual-btn d-flex align-items-center gap-1" (click)="goToApprovals()">
+                            <span class="material-symbols-outlined" style="font-size: 18px;">assignment_turned_in</span>
+                            Onaylara Git
+                        </button>
+                    }
+                    @case ('teslim') {
+                        <button type="button" class="qr-manual-btn d-flex align-items-center gap-1" (click)="goToPendingDocuments()">
+                            <span class="material-symbols-outlined" style="font-size: 18px;">arrow_forward</span>
+                            Evrakları Görüntüle
+                        </button>
+                    }
+                    @case ('bildirim') {
+                        <button type="button" class="qr-manual-btn d-flex align-items-center gap-1" (click)="goToNotifications()">
+                            <span class="material-symbols-outlined" style="font-size: 18px;">notifications</span>
+                            Bildirimleri Gör
+                        </button>
+                    }
                 }
             </div>
         </div>

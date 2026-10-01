@@ -10,6 +10,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { httpResource } from '@angular/common/http';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FlexiToastService } from 'flexi-toast';
 import GenericModel from '../../../components/generic-model/generic-model';
 import { IncomingDocumentService } from '../../services/incomingdocument';
@@ -253,10 +254,13 @@ export default class IncomingDepartmentDocument {
   }
 
   constructor() {
-    // Kontrol panelindeki teslim bekleyen evrak popup'ından gelindiğinde liste süzgeci hazır açılır.
-    if (inject(ActivatedRoute).snapshot.queryParamMap.get('filtre') === 'teslim-bekleyen') {
-      this.listFilter.set('undelivered');
-    }
+    // Giriş popup'ından veya zil menüsünden gelindiğinde liste süzgeci hazır açılır; sayfa zaten
+    // açıkken zil menüsüne tıklanırsa bileşen yeniden oluşmadığı için parametre izlenir.
+    inject(ActivatedRoute).queryParamMap
+      .pipe(takeUntilDestroyed())
+      .subscribe(params => {
+        if (params.get('filtre') === 'teslim-bekleyen') this.setListFilter('undelivered');
+      });
     this.loadDocuments();
     this.externalInstitutionService.getExternalInstitutions().subscribe({
       next: (res) => this.externalInstitutions.set(res ?? []),

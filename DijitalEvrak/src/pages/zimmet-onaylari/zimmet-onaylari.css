@@ -276,6 +276,14 @@
     .za-bulk-actions .za-btn { flex: 1; justify-content: center; }
 }
 
+/* Liste altındaki dipnot: listeden ince bir çizgiyle ayrılır */
+.za-footnote {
+    margin-top: 12px;
+    padding-top: 12px;
+    padding-bottom: 14px;
+    border-top: 1px solid #eef2f7;
+}
+
 /* ---- Koyu tema ---- */
 [data-theme="dark"] .za-bulk {
     background: rgba(14, 165, 233, 0.1);
@@ -283,6 +291,8 @@
 }
 
 [data-theme="dark"] .za-bulk-count { color: #7dd3fc; }
+
+[data-theme="dark"] .za-footnote { border-top-color: rgba(148, 163, 184, 0.18); }
 
 [data-theme="dark"] .za-btn {
     background: #1a2436;
