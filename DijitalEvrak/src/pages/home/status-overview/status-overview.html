@@ -6,10 +6,13 @@
         <div class="ad-head-text">
             <h5 class="ad-head-title">Anlık Durum</h5>
         </div>
-        <div class="ad-tabs">
-            <button type="button" class="ad-tab" [class.is-active]="statusTab() === 'incoming'" (click)="statusTab.set('incoming')">Gelen</button>
-            <button type="button" class="ad-tab" [class.is-active]="statusTab() === 'outgoing'" (click)="statusTab.set('outgoing')">Giden</button>
-        </div>
+        <!-- Giden kapalıysa (Gelen Evrak paneli) yalnızca gelen veriler gösterilir, sekmeye gerek yok -->
+        @if (showOutgoing()) {
+            <div class="ad-tabs">
+                <button type="button" class="ad-tab" [class.is-active]="statusTab() === 'incoming'" (click)="statusTab.set('incoming')">Gelen</button>
+                <button type="button" class="ad-tab" [class.is-active]="statusTab() === 'outgoing'" (click)="statusTab.set('outgoing')">Giden</button>
+            </div>
+        }
     </div>
 
     <div class="card-body">

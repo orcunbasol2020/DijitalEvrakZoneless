@@ -137,6 +137,9 @@
         <thead>
             <tr>
                 <th scope="col">EVRAK</th>
+                @if (showRoute()) {
+                    <th scope="col">NEREDEN / NEREYE</th>
+                }
                 <th scope="col">İVEDİLİK</th>
                 <th scope="col">YAYIN</th>
                 <th scope="col">TESLİM</th>
@@ -146,25 +149,55 @@
         <tbody>
             @if (loading()) {
                 <tr>
-                    <td colspan="5" class="text-center text-muted py-5">Yükleniyor…</td>
+                    <td [attr.colspan]="showRoute() ? 6 : 5" class="text-center text-muted py-5">Yükleniyor…</td>
                 </tr>
             } @else if (failed()) {
                 <tr>
-                    <td colspan="5" class="text-center text-muted py-5">
+                    <td [attr.colspan]="showRoute() ? 6 : 5" class="text-center text-muted py-5">
                         <span class="material-symbols-outlined d-block mb-2" style="font-size: 28px;">cloud_off</span>
                         Evraklar alınamadı.
                     </td>
                 </tr>
             } @else {
                 @for (doc of list; track doc.id) {
-                    <tr class="clickable-row attention-row tone-{{ doc.tone }}" tabindex="0" title="Evrak detayına git"
-                        (click)="goDetail(doc.id)" (keydown.enter)="goDetail(doc.id)">
+                    <tr class="attention-row tone-{{ doc.tone }}" [class.clickable-row]="isRowClickable(doc)"
+                        [class.is-busy]="processingId() === doc.id"
+                        [attr.tabindex]="isRowClickable(doc) ? 0 : null" [title]="getRowTitle(doc)"
+                        (click)="onRowClick(doc)" (keydown.enter)="onRowClick(doc)">
                         <td>
                             <div class="attention-doc">
                                 <span class="document-no">{{ doc.documentNo }}</span>
-                                <span class="institution-name text-truncate" [title]="doc.institution">{{ doc.institution }}</span>
+                                @if (showRoute()) {
+                                    @if (doc.documentDate) {
+                                        <span class="institution-name attention-doc-date">{{ getShortDate(doc.documentDate) }}</span>
+                                    }
+                                } @else {
+                                    <span class="institution-name text-truncate" [title]="doc.institution">{{ doc.institution }}</span>
+                                }
                             </div>
                         </td>
+                        @if (showRoute()) {
+                            <td>
+                                @if (doc.origin || doc.destination) {
+                                    <div class="attention-route is-stacked">
+                                        <!-- Üstte nereden; altında bir kademe içeride, solunda okla nereye -->
+                                        @if (doc.origin) {
+                                            <span class="attention-route-part is-origin" [title]="'Nereden: ' + doc.origin">
+                                                <span class="text-truncate">{{ doc.origin }}</span>
+                                            </span>
+                                        }
+                                        @if (doc.destination) {
+                                            <span class="attention-route-part is-target" [title]="'Nereye: ' + (doc.destinationFull || doc.destination)">
+                                                <span class="material-symbols-outlined attention-route-icon">subdirectory_arrow_right</span>
+                                                <span class="text-truncate">{{ doc.destination }}</span>
+                                            </span>
+                                        }
+                                    </div>
+                                } @else {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                        }
                         <td>
                             <div class="attention-reason">
                                 <span class="attention-reason-main">{{ doc.reason }}</span>
@@ -193,7 +226,7 @@
                     </tr>
                 } @empty {
                     <tr>
-                        <td colspan="5" class="text-center text-muted py-5">
+                        <td [attr.colspan]="showRoute() ? 6 : 5" class="text-center text-muted py-5">
                             <span class="material-symbols-outlined d-block mb-2" style="font-size: 28px;">task_alt</span>
                             Bekleyen ivedi evrak yok.
                         </td>

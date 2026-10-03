@@ -735,6 +735,291 @@ app-admin-dashboard app-currentdocument .ad-head-title,
 [data-theme="dark"] .ad-pending-empty { color: var(--text-muted); }
 [data-theme="dark"] .ad-pending-empty .material-symbols-outlined { color: #6ee7b7; }
 
+/* ============================================================
+   Teslim Alınmayı Bekleyen Evraklar (delivery-pending)
+   Tablo Yüksek Öncelikli Evraklar ile aynı: orders-table + attention-row
+   (sol çizgi tonu styles.css). Burada yalnızca karta özgü hücreler var.
+   ============================================================ */
+
+/* Alt sayfanın özet kartları bilgi amaçlı: tıklanmadığı için hover'da kalkmaz */
+.tb-page .ad-stat:hover {
+    border-color: #e7eaf0;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    transform: none;
+}
+
+[data-theme="dark"] .tb-page .ad-stat:hover {
+    border-color: #4a5568;
+    box-shadow: none;
+}
+
+/* Ivedi evrakı olmayan birimde sol çizgi yok */
+.orders-table tbody tr.attention-row.tone-none > td:first-child {
+    box-shadow: none;
+}
+
+.dp-table tbody tr.attention-row {
+    transition: background-color 0.15s ease;
+}
+
+.dp-table tbody tr.attention-row:hover > td {
+    background-color: rgba(3, 105, 161, 0.035);
+}
+
+/* Birim: uzun ad kırpılmaz, altında kısa ad */
+.dp-unit {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 220px;
+}
+
+.dp-unit-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #1e293b;
+    line-height: 1.3;
+}
+
+.dp-unit-code {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: #94a3b8;
+}
+
+/* Evrak sorumluları: alt alta, sade metin */
+.dp-people {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.8rem;
+    color: #475569;
+}
+
+.dp-person {
+    white-space: nowrap;
+}
+
+.dp-person.is-missing {
+    color: #94a3b8;
+    font-style: italic;
+}
+
+/* Gelen: düz sayı */
+.dp-num {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #64748b;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Bekleyen: nötr çerçeveli hap, sayı amber; tıklanınca birimin evrakları açılır */
+.dp-pending-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    min-width: 58px;
+    justify-content: flex-end;
+    padding: 3px 4px 3px 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 999px;
+    background: #fff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #b45309;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.dp-pending-toggle .material-symbols-outlined {
+    font-size: 18px;
+    color: #94a3b8;
+    transition: transform 0.2s ease, color 0.15s ease;
+}
+
+.dp-pending-toggle:hover,
+.dp-pending-toggle.is-open {
+    border-color: #fcd34d;
+    background: #fffbeb;
+}
+
+.dp-pending-toggle:hover .material-symbols-outlined,
+.dp-pending-toggle.is-open .material-symbols-outlined {
+    color: #b45309;
+}
+
+.dp-pending-toggle.is-open .material-symbols-outlined {
+    transform: rotate(180deg);
+}
+
+/* Açık satır ve altındaki evrak listesi tek blok gibi okunur */
+.dp-table tbody tr.is-expanded > td {
+    border-bottom-color: transparent;
+    background-color: rgba(3, 105, 161, 0.035);
+}
+
+.dp-table tbody tr.dp-detail-row > td {
+    padding: 0 16px 14px;
+    background-color: rgba(3, 105, 161, 0.035);
+    box-shadow: inset 3px 0 0 0 var(--att-tone, transparent);
+}
+
+.dp-table tbody tr.dp-detail-row { --att-tone: #94a3b8; }
+.dp-table tbody tr.dp-detail-row.tone-critical { --att-tone: #dc2626; }
+.dp-table tbody tr.dp-detail-row.tone-high     { --att-tone: #ea580c; }
+.dp-table tbody tr.dp-detail-row.tone-medium   { --att-tone: #d97706; }
+.dp-table tbody tr.dp-detail-row.tone-none     { --att-tone: transparent; }
+
+.dp-docs {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+    overflow: hidden;
+    animation: dp-docs-open 0.2s ease both;
+}
+
+@keyframes dp-docs-open {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: none; }
+}
+
+.dp-docs-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.dp-docs-table th {
+    padding: 7px 12px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: #64748b;
+    background: #f8fafc;
+    border-bottom: 1px solid #eef2f7;
+    text-align: left;
+}
+
+.dp-docs-table td {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    color: #475569;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+}
+
+.dp-docs-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.dp-doc-date {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* Nereden: düz ağırlıkta; uzun kurum adı sarılır */
+.dp-docs-table td.dp-doc-origin {
+    color: #334155;
+    min-width: 180px;
+    max-width: 320px;
+}
+
+[data-theme="dark"] .dp-docs-table td.dp-doc-origin {
+    color: #cbd5e1;
+}
+
+/* İvedilik: Yüksek Öncelikli Evraklar'daki neden metni gibi tonla renklenir */
+.dp-urgency {
+    font-weight: 600;
+    color: #64748b;
+}
+
+.dp-urgency.tone-critical { color: #dc2626; }
+.dp-urgency.tone-high     { color: #ea580c; }
+.dp-urgency.tone-medium   { color: #d97706; }
+.dp-urgency.tone-low      { color: #475569; }
+.dp-urgency.tone-none     { color: #94a3b8; font-weight: 500; }
+
+/* Gizlilik: Gizli ve üstü kilit simgesiyle */
+.dp-security {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    color: #64748b;
+}
+
+.dp-security.is-high {
+    font-weight: 600;
+    color: #334155;
+}
+
+.dp-security .material-symbols-outlined {
+    font-size: 15px;
+    color: #64748b;
+}
+
+/* Sayfalama şeridi kartın içinde: köşeler kartla aynı */
+.ad-delivery-card .dp-footer {
+    background: transparent;
+    border-radius: 0 0 16px 16px;
+}
+
+[data-theme="dark"] .dp-unit-name { color: #e2e8f0; }
+[data-theme="dark"] .dp-unit-code,
+[data-theme="dark"] .dp-person.is-missing { color: #64748b; }
+[data-theme="dark"] .dp-people,
+[data-theme="dark"] .dp-num { color: #cbd5e1; }
+
+[data-theme="dark"] .dp-table tbody tr.attention-row:hover > td,
+[data-theme="dark"] .dp-table tbody tr.is-expanded > td,
+[data-theme="dark"] .dp-table tbody tr.dp-detail-row > td {
+    background-color: rgba(14, 165, 233, 0.06);
+}
+
+[data-theme="dark"] .dp-table tbody tr.dp-detail-row.tone-critical { --att-tone: #f87171; }
+[data-theme="dark"] .dp-table tbody tr.dp-detail-row.tone-high     { --att-tone: #fb923c; }
+[data-theme="dark"] .dp-table tbody tr.dp-detail-row.tone-medium   { --att-tone: #fbbf24; }
+
+[data-theme="dark"] .dp-pending-toggle {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(148, 163, 184, 0.24);
+    color: #fbbf24;
+}
+
+[data-theme="dark"] .dp-pending-toggle:hover,
+[data-theme="dark"] .dp-pending-toggle.is-open {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(251, 191, 36, 0.4);
+}
+
+[data-theme="dark"] .dp-pending-toggle:hover .material-symbols-outlined,
+[data-theme="dark"] .dp-pending-toggle.is-open .material-symbols-outlined {
+    color: #fbbf24;
+}
+
+[data-theme="dark"] .dp-docs {
+    background: rgba(15, 23, 42, 0.35);
+    border-color: rgba(148, 163, 184, 0.18);
+}
+
+[data-theme="dark"] .dp-docs-table th {
+    background: rgba(148, 163, 184, 0.08);
+    color: #94a3b8;
+    border-bottom-color: rgba(148, 163, 184, 0.16);
+}
+
+[data-theme="dark"] .dp-docs-table td {
+    color: #cbd5e1;
+    border-bottom-color: rgba(148, 163, 184, 0.1);
+}
+
+[data-theme="dark"] .dp-urgency.tone-critical { color: #f87171; }
+[data-theme="dark"] .dp-urgency.tone-high     { color: #fb923c; }
+[data-theme="dark"] .dp-urgency.tone-medium   { color: #fbbf24; }
+[data-theme="dark"] .dp-urgency.tone-low,
+[data-theme="dark"] .dp-security.is-high      { color: #e2e8f0; }
+
 /* ---------- Tablo içi hatırlat butonu ---------- */
 .ad-reminder {
     width: 32px;
@@ -1350,7 +1635,7 @@ app-admin-dashboard app-currentdocument .ad-head-title,
 .ad-status-rows {
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 26px;
     padding-top: 10px;
 }
 
@@ -1359,7 +1644,7 @@ app-admin-dashboard app-currentdocument .ad-head-title,
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    margin-bottom: 5px;
+    margin-bottom: 7px;
 }
 
 .ad-status-label {
@@ -1548,4 +1833,24 @@ app-admin-dashboard app-currentdocument .ad-head-title,
 .badge.ad-status-badge {
     padding-top: calc(0.25em + 2px);
     padding-bottom: calc(0.25em + 2px);
+}
+
+/* Evrak kayıt paneli: Yüksek Öncelikli Evraklar ve Anlık Durum kartlarının zemini bir ton koyu
+   (açık tema; koyu temanın kart renkleri değişmez) */
+html:not([data-theme="dark"]) app-gelen-evrak-dashboard app-currentdocument .premium-card,
+html:not([data-theme="dark"]) app-gelen-evrak-dashboard status-overview .premium-card,
+html:not([data-theme="dark"]) .ad-delivery-card {
+    background: #f8fafc;
+}
+
+html:not([data-theme="dark"]) app-gelen-evrak-dashboard app-currentdocument .premium-card .card-header,
+html:not([data-theme="dark"]) app-gelen-evrak-dashboard status-overview .premium-card .card-header,
+html:not([data-theme="dark"]) .ad-delivery-card .card-header {
+    background: #f1f5f9;
+}
+
+/* Tablo hücreleri Bootstrap'in beyaz zeminini taşımasın, kart zemini görünsün */
+app-gelen-evrak-dashboard app-currentdocument .premium-card .orders-table,
+.ad-delivery-card .orders-table {
+    --bs-table-bg: transparent;
 }

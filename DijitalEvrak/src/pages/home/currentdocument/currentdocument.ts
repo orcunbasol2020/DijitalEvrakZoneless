@@ -12,10 +12,18 @@ import { SecurityDegreeEnum, SecurityDegreeLabels } from '../../../models/securi
 import { UrgencyDegreeEnum, UrgencyDegreeLabels } from '../../../models/urgencydegree.model';
 import { isPublished, PublishStatusEnum, publishStatusOf } from '../../../models/publishstatus.model';
 import { UserModel } from '../../users/users';
+import { DocumentAssignmentService } from '../../../services/documentassignment';
+import { Common } from '../../../services/common';
+import { FlexiToastService } from 'flexi-toast';
 
 /** recent: en son kaydedilen evraklar (Gelen Evrak paneli)
  *  attention: işi bitmemiş evraklardan dikkat gerektirenler (Yönetici paneli) */
 export type CurrentDocumentMode = 'recent' | 'attention';
+
+export type AttentionRowAction = 'detail' | 'process';
+
+/** Ön kayıt / kayıt aşamaları (1, 2, 4): bu evraklarda İşleme Al kilidi geçerli */
+const IN_REGISTRATION = new Set<number>([1, 2, 4]);
 
 type DocStatusKey = 'onkayit' | 'kayit' | 'ocr' | 'teslim' | 'yayinlandi';
 
@@ -28,6 +36,18 @@ interface DocRow {
   idleMinutes: number;
   lightning: boolean;
   assignee: string | null;
+  assigneeId: string | null;
+  /** Gönderen kurum ve evrakın gideceği birim (Nereden / Nereye); yoksa null */
+  origin: string | null;
+  /** Merkez birim kısa adıyla (shortName) gösterilir; tam adı destinationFull'da */
+  destination: string | null;
+  destinationFull: string | null;
+  /** Evrakın üzerindeki belge tarihi; girilmemişse null */
+  documentDate: Date | null;
+  /** Belge taranmış (dosyası var) */
+  scanned: boolean;
+  /** Ham akış durumu (İşleme Al kilidi için) */
+  docStatus: number;
   /** Atlas yayın durumu (submissionStatus) */
   publish: PublishStatusEnum;
   /** Evrak akış durumu 3 = Teslim Edildi (Teslim Alındı onayıyla backend atar) */
@@ -104,6 +124,9 @@ export class Currentdocument {
   private readonly departmentService = inject(Department);
   private readonly externalInstitutionService = inject(ExternalInstitution);
   private readonly router = inject(Router);
+  private readonly assignmentService = inject(DocumentAssignmentService);
+  private readonly common = inject(Common);
+  private readonly toast = inject(FlexiToastService);
 
   readonly mode = input<CurrentDocumentMode>('recent');
 
@@ -115,6 +138,16 @@ export class Currentdocument {
 
   /** Başlık altındaki açıklama satırı; Yönetici panelinde gösterilmez */
   readonly showSubtitle = input<boolean>(true);
+
+  /** Dikkat listesinde satıra tıklayınca ne olacağı.
+   *  detail: kilitsiz belge detayı (Yönetici), process: Gelen Evraklar'daki İşleme Al akışı (evrak kayıt personeli) */
+  readonly rowAction = input<AttentionRowAction>('detail');
+
+  /** Evrak hücresinde Nereden (gönderen kurum) / Nereye (birim) satırı; evrak kayıt panelinde açık */
+  readonly showRoute = input<boolean>(false);
+
+  /** İşleme Al akışında satırın açılışı sürüyor (çift tıklamada ikinci atama gitmesin) */
+  readonly processingId = signal<string | null>(null);
 
   readonly isAttention = computed(() => this.mode() === 'attention');
 
@@ -128,6 +161,8 @@ export class Currentdocument {
 
   private readonly documents = signal<IncomingDocumentModel[]>([]);
   private readonly placeNames = signal<Map<string, string>>(new Map());
+  /** Merkez birimlerin kısa adları (shortName); boşsa tam ada düşülür */
+  private readonly departmentShortNames = signal<Map<string, string>>(new Map());
   readonly loading = signal(true);
   readonly failed = signal(false);
 
@@ -194,9 +229,15 @@ export class Currentdocument {
     }).subscribe({
       next: ({ docs, departments, institutions }) => {
         const names = new Map<string, string>();
-        for (const d of departments ?? []) if (d.id) names.set(d.id.toLowerCase(), d.name);
+        const shortNames = new Map<string, string>();
+        for (const d of departments ?? []) {
+          if (!d.id) continue;
+          names.set(d.id.toLowerCase(), d.name);
+          shortNames.set(d.id.toLowerCase(), d.shortName?.trim() || d.name);
+        }
         for (const i of institutions ?? []) if (i.id) names.set(i.id.toLowerCase(), i.name);
         this.placeNames.set(names);
+        this.departmentShortNames.set(shortNames);
         this.documents.set(docs ?? []);
         this.loading.set(false);
       },
@@ -239,6 +280,15 @@ export class Currentdocument {
       idleMinutes,
       lightning: urgency === UrgencyDegreeEnum.Lightning,
       assignee: this.assigneeName(doc),
+      assigneeId: doc.currentAssignmentUserId || null,
+      origin: this.placeNameOrNull(doc.externalInstitutionId),
+      destination: doc.departmentId
+        ? this.departmentShortNames().get(doc.departmentId.toLowerCase()) ?? null
+        : null,
+      destinationFull: this.placeNameOrNull(doc.departmentId),
+      documentDate: this.validDate(doc.documentDate),
+      scanned: !!doc.documentName,
+      docStatus: doc.status,
       publish: publishStatusOf(doc),
       delivered: doc.status === 3,
       status: this.statusKey(doc),
@@ -252,8 +302,23 @@ export class Currentdocument {
   }
 
   private placeName(id?: string | null): string {
-    if (!id) return '-';
-    return this.placeNames().get(id.toLowerCase()) ?? '-';
+    return this.placeNameOrNull(id) ?? '-';
+  }
+
+  // Girilmemiş tarih boş ya da varsayılan (0001-01-01) gelebilir
+  private validDate(value?: string | null): Date | null {
+    if (!value) return null;
+    const date = new Date(value);
+    return isNaN(date.getTime()) || date.getFullYear() < 1900 ? null : date;
+  }
+
+  getShortDate(date: Date): string {
+    return date.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+
+  private placeNameOrNull(id?: string | null): string | null {
+    if (!id) return null;
+    return this.placeNames().get(id.toLowerCase()) ?? null;
   }
 
   private assigneeName(doc: IncomingDocumentModel): string | null {
@@ -325,12 +390,72 @@ export class Currentdocument {
     return date.toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
 
+  // GUID karşılaştırmaları harf duyarsız (backend kaynağına göre büyük/küçük değişebiliyor)
+  private isMe(id?: string | null): boolean {
+    const me = this.common.user()?.id;
+    return !!id && !!me && id.toLowerCase() === me.toLowerCase();
+  }
+
+  /** İşleme Al akışında açılamayan satır: belge taranmamış ya da kayıttaki evrak başka personelde */
+  private blockReason(row: DocRow): string | null {
+    if (this.rowAction() !== 'process') return null;
+    if (!row.scanned) return 'Belge henüz taranmadı';
+    if (IN_REGISTRATION.has(row.docStatus) && row.assigneeId && !this.isMe(row.assigneeId)) {
+      return `${row.assignee || 'Başka bir personel'} üzerinde işlemde`;
+    }
+    return null;
+  }
+
+  isRowClickable(row: DocRow): boolean {
+    return this.blockReason(row) === null;
+  }
+
+  /** Gelen Evraklar'daki İşleme Al düğmesinin başlıklarıyla aynı */
+  getRowTitle(row: DocRow): string {
+    if (this.rowAction() !== 'process') return 'Evrak detayına git';
+    const blocked = this.blockReason(row);
+    if (blocked) return blocked;
+    if (!IN_REGISTRATION.has(row.docStatus)) return 'Belge Detayına Git';
+    return this.isMe(row.assigneeId) ? 'İşleme Devam Et' : 'İşleme Al';
+  }
+
+  onRowClick(row: DocRow): void {
+    if (!this.isAttention() || !this.isRowClickable(row)) return;
+    if (this.rowAction() === 'process') this.processRow(row);
+    else this.goDetail(row.id);
+  }
+
   /** Yönetici: atama (işleme alma) ya da kilit kontrolü yapmadan belge detayına gider. */
-  goDetail(id: string) {
-    if (!this.isAttention()) return;
+  private goDetail(id: string) {
     this.closeAll();
     this.incomingDocumentService.setSelectedIncomingDocument(id);
     this.incomingDocumentService.setIncomingDocumentUpdateType('1');
     this.router.navigate(['/evrakkayit']);
+  }
+
+  /** Evrak kayıt personeli: Gelen Evraklar'daki İşleme Al ile aynı akış. Evrak giriş yapan
+   *  kullanıcıya atanır, ardından Evrak Kayıt ekranı açılır. */
+  private processRow(row: DocRow): void {
+    if (this.processingId()) return;
+    const userId = this.common.user()?.id;
+    if (!userId) {
+      this.toast.showToast('Hata', 'Kullanıcı bulunamadı', 'error');
+      return;
+    }
+
+    this.processingId.set(row.id);
+    this.assignmentService.createAssignment({ documentId: row.id, userId }).subscribe({
+      next: () => {
+        this.processingId.set(null);
+        this.closeAll();
+        this.incomingDocumentService.setSelectedIncomingDocument(row.id);
+        this.incomingDocumentService.setIncomingDocumentUpdateType('1');
+        this.router.navigate(['/evrakkayit']);
+      },
+      error: () => {
+        this.processingId.set(null);
+        this.toast.showToast('Hata', 'Atama oluşturulamadı', 'error');
+      },
+    });
   }
 }

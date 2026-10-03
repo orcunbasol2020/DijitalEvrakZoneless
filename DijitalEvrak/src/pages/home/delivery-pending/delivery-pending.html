@@ -1,0 +1,224 @@
+<!-- Liste görünümü Yüksek Öncelikli Evraklar kartıyla aynı (orders-table, attention-row tonları styles.css) -->
+<div class="card premium-card orders-card ad-delivery-card h-100">
+    <div class="card-header dashboard-header ad-head">
+        <span class="ad-head-icon">
+            <span class="material-symbols-outlined">pending_actions</span>
+        </span>
+        <div class="ad-head-text">
+            <h5 class="ad-head-title">Teslim Alınmayı Bekleyen Evraklar</h5>
+        </div>
+        @if (searchable()) {
+            <!-- Birim araması: Birim Gelen Evrakları ekranıyla aynı kutu (sp-search: support.css, zl-head-search: zimmetlerim.css) -->
+            <div class="sp-search zl-head-search">
+                <span class="material-symbols-outlined sp-search-icon">search</span>
+                <input type="text" class="sp-search-input" placeholder="Birim ara..."
+                    [value]="searchQuery()" (input)="setSearchQuery($any($event.target).value)" />
+                <div class="sp-search-end">
+                    @if (searchQuery().trim()) {
+                        <button type="button" class="sp-search-clear" title="Aramayı temizle" (click)="setSearchQuery('')">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                    }
+                </div>
+            </div>
+        }
+        @if (!loading() && !failed()) {
+            <span class="ad-pending-count" title="Tüm birimlerde teslim alınmayı bekleyen evrak sayısı">{{ pendingTotal() }}</span>
+        }
+        @if (showAllLink()) {
+            <a class="ad-link" routerLink="/teslim-bekleyenler">
+                Tümü
+                <span class="material-symbols-outlined">chevron_right</span>
+            </a>
+        }
+    </div>
+
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table orders-table dp-table align-middle">
+                <thead>
+                    <tr>
+                        <ng-container
+                            *ngTemplateOutlet="headCell; context: { $implicit: 'unit', label: 'BİRİM' }"></ng-container>
+                        <ng-container
+                            *ngTemplateOutlet="headCell; context: { $implicit: 'people', label: 'EVRAK SORUMLULARI' }"></ng-container>
+                        <ng-container
+                            *ngTemplateOutlet="headCell; context: { $implicit: 'incoming', label: 'GELEN', cls: 'text-end' }"></ng-container>
+                        <ng-container
+                            *ngTemplateOutlet="headCell; context: { $implicit: 'pending', label: 'BEKLEYEN', cls: 'text-end' }"></ng-container>
+                        <th scope="col" class="text-center">HATIRLAT</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (loading()) {
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-5">Yükleniyor…</td>
+                        </tr>
+                    } @else if (failed()) {
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-5">
+                                <span class="material-symbols-outlined d-block mb-2" style="font-size: 28px;">cloud_off</span>
+                                Evraklar alınamadı.
+                            </td>
+                        </tr>
+                    } @else {
+                        @for (row of rows(); track row.departmentId) {
+                            <!-- Sol çizgi: birimde bekleyen en ivedi evrakın rengi (Yüksek Öncelikli Evraklar ile aynı) -->
+                            <tr class="attention-row tone-{{ row.tone }}" [class.is-expanded]="expandedId() === row.departmentId">
+                                <td>
+                                    <div class="dp-unit">
+                                        <span class="dp-unit-name">{{ row.fullName }}</span>
+                                        @if (row.code && row.code !== row.fullName) {
+                                            <span class="dp-unit-code">{{ row.code }}</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="dp-people">
+                                        @for (p of row.people; track p.email) {
+                                            <span class="dp-person" [title]="p.email">{{ p.name }}</span>
+                                        } @empty {
+                                            <span class="dp-person is-missing">Sorumlu tanımlı değil</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="text-end">
+                                    <span class="dp-num">{{ row.incoming }}</span>
+                                </td>
+                                <td class="text-end">
+                                    <button type="button" class="dp-pending-toggle"
+                                        [class.is-open]="expandedId() === row.departmentId"
+                                        [attr.aria-expanded]="expandedId() === row.departmentId"
+                                        [title]="expandedId() === row.departmentId ? 'Evrak listesini kapat' : 'Bekleyen evrakları göster'"
+                                        (click)="toggleExpand(row)">
+                                        {{ row.pending }}
+                                        <span class="material-symbols-outlined">expand_more</span>
+                                    </button>
+                                </td>
+                                <td class="text-center">
+                                    @if (reminderMailto(row); as href) {
+                                        <a class="ad-reminder" [href]="href"
+                                            title="Evrak sorumlularına bilgilendirme e-postası yaz">
+                                            <span class="material-symbols-outlined">mail</span>
+                                        </a>
+                                    } @else {
+                                        <button type="button" class="ad-reminder" disabled
+                                            title="Birimde e-posta adresi olan evrak sorumlusu yok">
+                                            <span class="material-symbols-outlined">mail</span>
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                            @if (expandedId() === row.departmentId) {
+                                <!-- Bekleyen evraklar: seçilen birimin hemen altına açılan satır -->
+                                <tr class="dp-detail-row tone-{{ row.tone }}">
+                                    <td colspan="5">
+                                        <div class="dp-docs">
+                                            <table class="dp-docs-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th scope="col">EVRAK NO</th>
+                                                        <th scope="col">NEREDEN</th>
+                                                        <th scope="col">BELGE TARİHİ</th>
+                                                        <th scope="col">İVEDİLİK</th>
+                                                        <th scope="col">GİZLİLİK</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @for (doc of row.pendingDocs; track doc.id) {
+                                                        <tr>
+                                                            <td><span class="document-no">{{ doc.documentNo }}</span></td>
+                                                            <td class="dp-doc-origin">
+                                                                @if (doc.origin) {
+                                                                    <span [title]="doc.origin">{{ doc.origin }}</span>
+                                                                } @else {
+                                                                    <span class="text-muted">—</span>
+                                                                }
+                                                            </td>
+                                                            <td class="dp-doc-date">{{ doc.date ? (doc.date | date:'dd.MM.yyyy') : '—' }}</td>
+                                                            <td><span class="dp-urgency tone-{{ doc.tone }}">{{ doc.urgency }}</span></td>
+                                                            <td>
+                                                                <span class="dp-security" [class.is-high]="doc.highSecurity">
+                                                                    @if (doc.highSecurity) {
+                                                                        <span class="material-symbols-outlined">lock</span>
+                                                                    }
+                                                                    {{ doc.security }}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        } @empty {
+                            <tr>
+                                <td colspan="5">
+                                    @if (searchQuery().trim() && pendingTotal()) {
+                                        <div class="ad-pending-empty">
+                                            <span class="material-symbols-outlined text-muted">search_off</span>
+                                            "{{ searchQuery() }}" ile eşleşen bir birim yok.
+                                        </div>
+                                    } @else {
+                                        <div class="ad-pending-empty">
+                                            <span class="material-symbols-outlined">task_alt</span>
+                                            Teslim alınmayı bekleyen evrak yok.
+                                        </div>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Sayfalama: Birim Gelen Evrakları ekranıyla aynı şerit (zl-* stilleri zimmetlerim.css'ten) -->
+        @if (paged() && !loading() && !failed() && totalRows()) {
+            <div class="zl-footer dp-footer">
+                <div class="zl-range">
+                    Toplam <b>{{ totalRows() }}</b> birimden <b>{{ pageRangeStart() }}-{{ pageRangeEnd() }}</b> arası gösteriliyor
+                </div>
+
+                @if (totalPages() > 1) {
+                    <div class="zl-pager">
+                        <button type="button" class="zl-page" [disabled]="page() === 1" (click)="goToPage(page() - 1)">
+                            <span class="material-symbols-outlined">chevron_left</span>
+                        </button>
+                        @if (pageNumbers()[0] > 1) {
+                            <button type="button" class="zl-page" (click)="goToPage(1)">1</button>
+                        }
+                        @if (pageNumbers()[0] > 2) {
+                            <span class="zl-page-gap">…</span>
+                        }
+                        @for (p of pageNumbers(); track p) {
+                            <button type="button" class="zl-page" [class.is-active]="p === page()" (click)="goToPage(p)">{{ p }}</button>
+                        }
+                        @if (pageNumbers()[pageNumbers().length - 1] < totalPages() - 1) {
+                            <span class="zl-page-gap">…</span>
+                        }
+                        @if (pageNumbers()[pageNumbers().length - 1] < totalPages()) {
+                            <button type="button" class="zl-page" (click)="goToPage(totalPages())">{{ totalPages() }}</button>
+                        }
+                        <button type="button" class="zl-page" [disabled]="page() === totalPages()" (click)="goToPage(page() + 1)">
+                            <span class="material-symbols-outlined">chevron_right</span>
+                        </button>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Sütun başlığı: sortable açıksa tıklanabilir (zl-th-sort, zimmetlerim.css), değilse düz başlık -->
+<ng-template #headCell let-column let-label="label" let-cls="cls">
+    @if (sortable()) {
+        <th scope="col" class="zl-th-sort {{ cls ?? '' }}" [class.is-active]="sortColumn() === column" (click)="toggleSort(column)">
+            <span class="zl-th-inner">{{ label }} <span class="material-symbols-outlined zl-sort-icon">{{ sortIcon(column) }}</span></span>
+        </th>
+    } @else {
+        <th scope="col" [class]="cls ?? ''">{{ label }}</th>
+    }
+</ng-template>

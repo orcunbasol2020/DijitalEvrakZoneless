@@ -16,6 +16,11 @@ export class UserService {
         return this.httpService.post<UserModel>(`${this.baseUrl}Login`, body);
     }
 
+    // Rolleriyle birlikte tüm kullanıcılar (roles yalnızca GetAll'da dolu gelir)
+    getAll() {
+        return this.httpService.get<UserModel[]>(`${this.baseUrl}GetAll`);
+    }
+
     getById(id: string) {
         return this.httpService.get<UserModel>(
             `${this.baseUrl}GetById?id=${encodeURIComponent(id)}`

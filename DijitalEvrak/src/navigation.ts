@@ -193,5 +193,11 @@ export const navigations: NavigationModel[] = [
         url: "/reports",
         icon: "monitoring",
         excludeRoles: ["Birim Evrak Sorumlusu", "Birim Yöneticisi", "Ön Kayıt"]
+    },
+    {
+        title: "Uygulama Ayarları",
+        url: "/app-settings",
+        icon: "tune",
+        roles: ["Yönetici"]
     }
 ];

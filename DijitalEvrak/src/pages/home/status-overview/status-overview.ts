@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ViewEncapsulation, computed, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ViewEncapsulation, computed, input, signal } from '@angular/core';
 
 type Direction = 'incoming' | 'outgoing';
 
@@ -24,10 +24,10 @@ const STATUS_VIEWS: Record<Direction, StatusView> = {
   incoming: {
     total: 237, totalLabel: 'gelen evrak', done: 221, doneLabel: 'kaydı tamamlandı',
     bars: [
-      { label: 'OCR bekleyen', icon: 'hourglass', value: 26, total: 237, tone: 'alert' },
-      { label: 'Kurye bekleyen', icon: 'airplane_ticket', value: 14, total: 112, tone: 'warning' },
       { label: 'Kaydı tamamlanan', icon: 'done_all', value: 221, total: 237, tone: 'success' },
-      { label: 'Teslim edilen', icon: 'approval_delegation', value: 56, total: 237, tone: 'info' },
+      { label: 'Aktarılmayı bekleyen', icon: 'cloud_upload', value: 18, total: 237, tone: 'warning' },
+      { label: 'OCR bekleyen', icon: 'hourglass', value: 26, total: 237, tone: 'alert' },
+      { label: 'Teslim bekleyen', icon: 'approval_delegation', value: 181, total: 237, tone: 'info' },
     ],
   },
   outgoing: {
@@ -52,6 +52,9 @@ const STATUS_VIEWS: Record<Direction, StatusView> = {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class StatusOverview {
+  /** Giden verileri ve Gelen/Giden sekmeleri gösterilsin mi (Gelen Evrak panelinde kapalı: yalnızca gelen) */
+  readonly showOutgoing = input(true);
+
   readonly statusTab = signal<Direction>('incoming');
   readonly statusView = computed(() => STATUS_VIEWS[this.statusTab()]);
 

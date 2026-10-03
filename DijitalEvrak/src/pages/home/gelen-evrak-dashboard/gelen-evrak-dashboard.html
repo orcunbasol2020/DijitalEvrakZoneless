@@ -97,78 +97,23 @@
 <!-- ===================== Son gelen evraklar / Anlık durum ===================== -->
 <div class="row g-3 mb-4">
     <div class="col-lg-9">
-        <!-- Son Gelen Evraklar: Yönetici paneliyle ortak bileşen -->
-        <app-currentdocument allLink="/evrakkayit" class="d-block h-100"></app-currentdocument>
+        <!-- Yüksek Öncelikli Evraklar: Yönetici panelindekiyle aynı kart; satırlar İşleme Al akışıyla açılır,
+             evrak hücresinde Nereden / Nereye gösterilir -->
+        <app-currentdocument mode="attention" [showSubtitle]="false" rowAction="process" [showRoute]="true"
+            class="d-block h-100"></app-currentdocument>
     </div>
 
     <div class="col-lg-3">
-        <!-- Anlık Durum: Yönetici paneliyle ortak bileşen (aynı veri ve sekmeler) -->
-        <status-overview class="d-block h-100"></status-overview>
+        <!-- Anlık Durum: Yönetici paneliyle ortak bileşen; Gelen Evrak yetkilisi sekmesiz, yalnızca gelen evrak durumunu görür -->
+        <status-overview class="d-block h-100" [showOutgoing]="false"></status-overview>
     </div>
 </div>
 
 <!-- ===================== Teslim edilmeyi bekleyenler / akıllı havale ===================== -->
 <div class="row g-3 mb-4">
     <div class="col-lg-9">
-        <div class="card premium-card h-100">
-            <div class="card-header dashboard-header ad-head">
-                <span class="ad-head-icon">
-                    <span class="material-symbols-outlined">pending_actions</span>
-                </span>
-                <div class="ad-head-text">
-                    <h5 class="ad-head-title">Teslim Edilmeyi Bekleyenler</h5>
-                    <div class="ad-head-sub">Birim evrak sorumlularına teslim edilmemiş evraklar</div>
-                </div>
-                <a class="ad-link" (click)="goToIncoming()" role="button" tabindex="0">
-                    Tümü
-                    <span class="material-symbols-outlined">chevron_right</span>
-                </a>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table customers-table">
-                        <thead>
-                            <tr>
-                                <th scope="col">BİRİM</th>
-                                <th scope="col">EVRAK SORUMLULARI</th>
-                                <th scope="col">GELEN</th>
-                                <th scope="col">BEKLEYEN</th>
-                                <th scope="col" class="text-center">HATIRLAT</th>
-                            </tr>
-                        </thead>
-                        <tbody [attr.data-tick]="reminderTick()">
-                            @for (row of reminderRows; track row.code) {
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center gap-2 institution-cell">
-                                            <span class="institution-name" [title]="row.fullName">{{ row.code }}</span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        @for (p of row.people; track p.name) {
-                                            <span [title]="p.name + ', Dahili: ' + p.ext">{{ p.name }}</span>@if (!$last) {<br>}
-                                        }
-                                    </td>
-                                    <td><span class="count-chip">{{ row.incoming }}</span></td>
-                                    <td><span class="count-chip count-chip-alert">{{ row.pending }}</span></td>
-                                    <td class="text-center">
-                                        <button type="button" class="ad-reminder"
-                                            [class.is-sent]="row.mailSent"
-                                            [title]="row.mailSent ? 'Bilgilendirme e-postası gönderildi' : 'Evrak sorumlusuna bilgilendirme e-postası gönder'"
-                                            (click)="sendReminder(row)"
-                                            [disabled]="row.loading || row.mailSent">
-                                            <span class="material-symbols-outlined" [class.spin]="row.loading">
-                                                {{ row.loading ? 'sync' : (row.mailSent ? 'check_circle' : 'mail') }}
-                                            </span>
-                                        </button>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+        <!-- Teslim Alınmayı Bekleyen Evraklar: ilk 5 birim; tümü /teslim-bekleyenler sayfasında -->
+        <delivery-pending class="d-block h-100" [limit]="5"></delivery-pending>
     </div>
 
     <div class="col-lg-3">

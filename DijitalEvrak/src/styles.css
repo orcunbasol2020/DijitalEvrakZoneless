@@ -9194,73 +9194,6 @@ button:disabled {
     box-shadow: 0 4px 14px rgba(99, 102, 241, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
-.qr-link-btn-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-.qr-link-btn {
-    background: #f5f5f5;
-    /* hafif gri, flat */
-    border: 1px solid #fff;
-    /* ince sınır */
-    padding: 6px 14px;
-    /* dikdörtgen form */
-    border-radius: 6px;
-    /* hafif köşe radius */
-    font-size: 0.8rem;
-    color: #555;
-    cursor: pointer;
-    transition: all 0.25s ease;
-}
-
-.qr-link-btn:hover {
-    background: linear-gradient(135deg, #e6f0ff, #cce0ff);
-    border-color: #007bff;
-    color: #007bff;
-    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.25);
-}
-
-.qr-link-btn.selected {
-    background: #007bff;
-    /* seçili mavi */
-    color: white;
-    border-color: #007bff;
-    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.45);
-}
-
-.qr-placeholder-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-}
-
-.qr-placeholder-item {
-    width: 90px;
-    text-align: center;
-}
-
-.qr-placeholder-box {
-    width: 70px;
-    height: 70px;
-    border: 2px dashed #ccc;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: auto;
-    font-size: 12px;
-    color: #888;
-    background: #f9f9f9;
-    border-radius: 6px;
-}
-
-.qr-placeholder-text {
-    font-size: 10px;
-    margin-top: 4px;
-    word-break: break-word;
-}
-
 .btn-gradient-print {
     display: inline-flex;
     align-items: center;
@@ -9318,7 +9251,6 @@ button:disabled {
 .qr-summary-label {
     color: #94a3b8;
     font-weight: 600;
-    text-transform: uppercase;
     font-size: 0.7rem;
     letter-spacing: 0.06em;
 }
@@ -9332,42 +9264,157 @@ button:disabled {
     color: #94a3b8;
 }
 
-/* Önizleme notu: kutuların temsili olduğunu açıklar; grid'in altında sağa dayalı. */
-.qr-preview-note {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 6px;
-    width: fit-content;
-    margin-left: auto;
-    margin-top: 16px;
-    padding: 6px 12px;
-    border-radius: 8px;
-    background: #eef2ff;
-    color: #4338ca;
-    font-size: 0.8rem;
+.btn-gradient-print:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    box-shadow: none;
 }
 
-.qr-preview-note .material-symbols-outlined {
-    font-size: 16px;
-}
-
-/* Gösterilmeyen etiketlerin özeti (1000 seçildiğinde 1000 kutu çizilmez). */
-.qr-preview-more {
+/* Etiket adedi (1–100): başlıktaki butonlarla aynı hizada kompakt alan. */
+.qr-count-field {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    margin-top: 16px;
-    padding: 8px 14px;
-    border: 1px dashed #cbd5e1;
-    border-radius: 8px;
+    gap: 8px;
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: 600;
     color: #64748b;
-    font-size: 0.85rem;
+}
+
+.qr-count-field input {
+    width: 76px;
+    text-align: center;
     font-variant-numeric: tabular-nums;
 }
 
-.qr-preview-more strong {
+/* Havuz minStock altına düştüğünde. */
+.qr-summary-item.is-warning,
+.qr-summary-item.is-warning .material-symbols-outlined,
+.qr-summary-item.is-warning strong {
+    color: #b45309;
+}
+
+/* Havuzda istenenden az numara varsa backend mesajı. */
+.qr-notice {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    color: #92400e;
+    font-size: 0.85rem;
+}
+
+.qr-notice .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.qr-empty {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 22px 18px;
+    border: 1px dashed #cbd5e1;
+    border-radius: 12px;
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+.qr-empty .material-symbols-outlined {
+    font-size: 40px;
+    color: #94a3b8;
+}
+
+.qr-empty strong {
     color: #1e293b;
+}
+
+.qr-label-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 14px;
+}
+
+.qr-label-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 10px;
+    border: 1px solid #e7eaf0;
+    border-radius: 12px;
+    background: #fff;
+    position: relative;
+}
+
+.qr-label-no {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #1e293b;
+    font-variant-numeric: tabular-nums;
+    word-break: break-all;
+    text-align: center;
+}
+
+/* Sağ üst köşede küçük çarpı: basınca numara doğrudan iptal edilir. */
+.qr-label-cancel {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.qr-label-cancel:hover:not(:disabled) {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.qr-label-cancel:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+}
+
+.qr-label-cancel.is-busy {
+    opacity: 1;
+    color: #dc2626;
+}
+
+.qr-label-cancel .material-symbols-outlined {
+    font-size: 16px;
+}
+
+.qr-label-card.is-cancelled {
+    background: #f8fafc;
+    border-style: dashed;
+}
+
+.qr-label-card.is-cancelled qrcode {
+    opacity: 0.25;
+}
+
+.qr-label-card.is-cancelled .qr-label-no {
+    color: #94a3b8;
+    text-decoration: line-through;
+}
+
+.qr-label-state {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #dc2626;
 }
 
 [data-theme="dark"] .qr-summary {
@@ -9376,19 +9423,59 @@ button:disabled {
     color: #cbd5e1;
 }
 
-[data-theme="dark"] .qr-summary-item strong,
-[data-theme="dark"] .qr-preview-more strong {
+[data-theme="dark"] .qr-summary-item strong {
     color: #e2e8f0;
 }
 
-[data-theme="dark"] .qr-preview-note {
-    background: rgba(99, 102, 241, 0.18);
-    color: #c7d2fe;
+[data-theme="dark"] .qr-summary-item.is-warning,
+[data-theme="dark"] .qr-summary-item.is-warning .material-symbols-outlined,
+[data-theme="dark"] .qr-summary-item.is-warning strong {
+    color: #fbbf24;
 }
 
-[data-theme="dark"] .qr-preview-more {
+[data-theme="dark"] .qr-count-field {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .qr-notice {
+    background: rgba(251, 191, 36, 0.12);
+    border-color: rgba(251, 191, 36, 0.35);
+    color: #fcd34d;
+}
+
+[data-theme="dark"] .qr-empty {
     border-color: #334155;
     color: #94a3b8;
+}
+
+[data-theme="dark"] .qr-empty strong,
+[data-theme="dark"] .qr-label-no {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .qr-label-card {
+    background: #1c2231;
+    border-color: #2b3445;
+}
+
+/* QR koyu zeminde de okunabilsin diye beyaz kutu içinde kalır. */
+[data-theme="dark"] .qr-label-card qrcode {
+    background: #fff;
+    border-radius: 6px;
+}
+
+[data-theme="dark"] .qr-label-card.is-cancelled {
+    background: #1a2030;
+}
+
+[data-theme="dark"] .qr-label-cancel {
+    color: #64748b;
+}
+
+[data-theme="dark"] .qr-label-cancel:hover:not(:disabled),
+[data-theme="dark"] .qr-label-cancel.is-busy {
+    background: rgba(248, 113, 113, 0.12);
+    color: #f87171;
 }
 
 .clickable-row {
@@ -9593,6 +9680,73 @@ button:disabled {
     color: #64748b;
 }
 
+/* Belge tarihi: evrak no altında bir ton açık */
+.orders-table .attention-doc .attention-doc-date {
+    color: #94a3b8;
+}
+
+/* Evrak kayıt paneli: Nereden / Nereye sütunu ve belge tarihi */
+.orders-table .attention-route {
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 12px;
+    row-gap: 1px;
+    min-width: 0;
+    font-size: 0.75rem;
+    color: #475569;
+}
+
+.orders-table .attention-route.is-stacked {
+    flex-direction: column;
+    max-width: 280px;
+}
+
+.orders-table .attention-route-part {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    min-width: 0;
+    max-width: 100%;
+}
+
+/* Nereden satırı: belge tarihiyle aynı yazı tipi ve boyut, evrak no ile aynı renk */
+.orders-table .attention-route-part.is-origin {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #334155;
+}
+
+[data-theme="dark"] .orders-table .attention-route-part.is-origin {
+    color: #cbd5e1;
+}
+
+/* Nereye satırı: nereden'in altında bir kademe içeride, solunda ok ikonu */
+.orders-table .attention-route-part.is-target {
+    align-items: center;
+    gap: 2px;
+    padding-left: 6px;
+}
+
+.orders-table .attention-route-icon {
+    flex: 0 0 auto;
+    font-size: 15px;
+    line-height: 1;
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .orders-table .attention-route-icon {
+    color: #64748b;
+}
+
+.orders-table tbody tr.attention-row.is-busy {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+[data-theme="dark"] .orders-table .attention-route {
+    color: #cbd5e1;
+}
+
 .orders-table .attention-reason {
     display: flex;
     flex-direction: column;
@@ -9660,6 +9814,10 @@ button:disabled {
 [data-theme="dark"] .orders-table .attention-doc .institution-name,
 [data-theme="dark"] .orders-table .attention-reason-sub {
     color: #94a3b8;
+}
+
+[data-theme="dark"] .orders-table .attention-doc .attention-doc-date {
+    color: #64748b;
 }
 
 [data-theme="dark"] .orders-table .attention-reason-main,

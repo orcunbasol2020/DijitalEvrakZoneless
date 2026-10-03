@@ -89,6 +89,13 @@ export const routes: Routes = [
                 data: { roles: ["Gelen Evrak", "Yönetici"] }
             },
             {
+                // Gelen Evrak panelindeki "Teslim Alınmayı Bekleyen Evraklar" kartının tüm birimleri
+                path: "teslim-bekleyenler",
+                loadComponent: () => import("./pages/teslim-bekleyenler/teslim-bekleyenler"),
+                canActivate: [roleGuard],
+                data: { roles: ["Gelen Evrak", "Yönetici"] }
+            },
+            {
                 path: "dijitallestirme-takip",
                 loadComponent: () => import("./pages/dijitallestirme-takip/dijitallestirme-takip"),
                 canActivate: [roleGuard],
@@ -181,6 +188,13 @@ export const routes: Routes = [
             {
                 path: 'settings',
                 loadComponent: () => import('./pages/settings/settings')
+            },
+            {
+                // Uygulama ayarları (AppSettings): yalnızca yönetici görür ve değiştirir
+                path: 'app-settings',
+                loadComponent: () => import('./pages/app-settings/app-settings'),
+                canActivate: [roleGuard],
+                data: { roles: ["Yönetici"] }
             },
             {
                 path: 'support',
