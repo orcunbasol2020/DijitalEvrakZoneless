@@ -31,6 +31,30 @@ import { httpResource } from '@angular/common/http';
 import { UPLOAD_DOCUMENT_ROLES, UploadDocumentModal } from '../../../components/upload-document-modal/upload-document-modal';
 import { DocumentNumberUploadError, DocumentUploadFlow } from '../../services/document-upload-flow';
 import { isPublished, isPublishFailed, isPublishing, isSentToPublish, publishStatusLabel } from '../../models/publishstatus.model';
+import { DocumentTypeLabels } from '../../models/documenttype.model';
+import { actionRequiredBadgeClass, actionRequiredIcon, actionRequiredLabel } from '../../models/actionrequired.model';
+import { Department } from '../../services/department';
+import { ExternalInstitution } from '../../services/external-institution';
+
+// İşleme Al yalnızca dosyası olan ve Ön Kayıt / Kayıt Tamamlandı / Eşleştirme durumundaki evrakta yapılır
+const PROCESSABLE_STATUSES: ReadonlySet<number> = new Set([1, 2, 4]);
+
+// Evrak Bilgileri popup'ında gösterilen akış durumu (status) metinleri
+const DOCUMENT_STATUS_LABELS: Record<number, string> = {
+  1: 'Ön Kayıt',
+  2: 'Kayıt Tamamlandı',
+  3: 'Teslim Edildi',
+  4: 'Eşleştirme',
+  5: 'OCR',
+  6: 'Kayıt Tamamlandı',
+  10: 'Kayıt Tamamlandı'
+};
+
+const OCR_STATUS_LABELS: Record<number, string> = {
+  0: 'Bekliyor',
+  1: 'Tamamlandı',
+  2: 'Hatalı'
+};
 
 // Atama popup'ında yalnızca evrak kaydı yapabilen (Gelen Evrak rolündeki) personel listelenir.
 const ASSIGNABLE_ROLE = 'Gelen Evrak';
@@ -523,6 +547,138 @@ export default class Scanlist {
         this.zimmetHistoryLoading.set(false);
         this.#toast.showToast('Hata', 'Zimmet geçmişi alınamadı', 'error');
       }
+    });
+  }
+
+  // ---- Evrak Bilgileri popup ----
+  // İşleme alınamayan evrakta (dosyası yok ya da akış durumu uygun değil) İşleme Al
+  // alanında bir bağlantı çıkar; evrakın tüm bilgileri salt okunur popup'ta gösterilir.
+  // Ek bilgisi gibi alanlar liste yanıtında eksik olabileceğinden evrak GetById ile tazelenir.
+  private readonly departmentService = inject(Department);
+  private readonly externalInstitutionService = inject(ExternalInstitution);
+  private readonly departmentNames = signal<Record<string, string>>({});
+  private readonly institutionNames = signal<Record<string, string>>({});
+  private lookupsRequested = false;
+
+  readonly infoVisible = signal(false);
+  readonly infoLoading = signal(false);
+  readonly infoDoc = signal<ScanListRow | null>(null);
+
+  isProcessable(item: IncomingDocumentModel): boolean {
+    return !!item.documentName && PROCESSABLE_STATUSES.has(item.status);
+  }
+
+  // Bağlantının üzerinde neden işleme alınamadığı yazar
+  notProcessableReason(item: IncomingDocumentModel): string {
+    if (!item.documentName) return 'Belge dosyası yüklenmemiş';
+    return `Evrak ${DOCUMENT_STATUS_LABELS[item.status] ?? 'bu'} durumunda`;
+  }
+
+  // Popup içeriği: başlıkta evrak no + konu ve durum çipleri, altında sınıflandırma
+  // şeridi (tür, gizlilik, ivedilik, Gereği/Bilgi), gövdede solda Nereden -> Nereye ve
+  // künye bilgileri, sağda Belge Özellikleri paneli, en altta atanan personel ve tarihler.
+  readonly infoView = computed(() => {
+    const d = this.infoDoc();
+    if (!d) return null;
+    const text = (v: unknown) => (v === null || v === undefined || v === '' ? '-' : String(v));
+    const date = (v?: string | Date | null) => v ? new Date(v).toLocaleDateString('tr-TR') : '-';
+    const dateTime = (v?: string | Date | null) => v
+      ? new Date(v).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+      : '-';
+    const languages: Record<number, string> = { 1: 'Türkçe', 2: 'İngilizce' };
+    const ocr = d.ocrStatus ?? 0;
+
+    return {
+      qrCode: text(d.qrCode),
+      subject: d.subject?.trim() || '',
+      documentType: text(DocumentTypeLabels[d.documentTypeId as keyof typeof DocumentTypeLabels]),
+      documentDate: date(d.documentDate),
+      orginalNo: text(d.orginalNo),
+      notes: d.notes?.trim() || '',
+
+      security: {
+        label: text(this.securityDegreeMap[d.securityDegree]),
+        icon: this.securityDegreeIconMap[d.securityDegree] || 'help',
+        tier: this.securityDegreeBadgeClassMap[d.securityDegree] || 'degree-tier-1'
+      },
+      urgency: {
+        label: text(d.urgencyDegree != null ? this.urgencyDegreeMap[d.urgencyDegree] : null),
+        initial: (d.urgencyDegree != null && this.urgencyDegreeInitialMap[d.urgencyDegree]) || '-',
+        tier: (d.urgencyDegree != null && this.urgencyDegreeBadgeClassMap[d.urgencyDegree]) || 'degree-tier-1'
+      },
+      action: {
+        label: actionRequiredLabel(d.actionRequired),
+        icon: actionRequiredIcon(d.actionRequired),
+        cls: actionRequiredBadgeClass(d.actionRequired)
+      },
+
+      from: text(d.externalInstitutionId ? this.institutionNames()[d.externalInstitutionId.toLowerCase()] : null),
+      to: text(d.departmentId ? this.departmentNames()[d.departmentId.toLowerCase()] : null),
+
+      pageCount: d.pageCount != null && String(d.pageCount) !== '' ? String(d.pageCount) : '-',
+      hasAttachment: d.hasAttachment ?? null,
+      attachmentDescription: d.attachmentDescription?.trim() || '',
+      electronicCopy: d.electronicCopy === true ? 'Var' : d.electronicCopy === false ? 'Yok' : '-',
+      language: text(languages[d.languageId]),
+      hasFile: !!d.documentName,
+
+      // Başlıktaki durum çipleri; tone renk tonunu belirler
+      status: [
+        { label: 'Durum', value: text(DOCUMENT_STATUS_LABELS[d.status]), tone: d.status === 3 ? 'success' : d.status === 1 ? 'info' : 'neutral' },
+        {
+          label: 'Yayın', value: publishStatusLabel(d),
+          tone: isPublished(d) ? 'success' : isPublishFailed(d) ? 'danger' : isPublishing(d) ? 'warning' : 'neutral'
+        },
+        { label: 'OCR', value: OCR_STATUS_LABELS[ocr] ?? '-', tone: ocr === 1 ? 'success' : ocr === 2 ? 'danger' : 'warning' }
+      ],
+
+      // En altta küçük bilgi satırı
+      meta: [
+        { icon: 'person', label: 'Atanan Personel', value: text(d.currentAssignmentUser) },
+        { icon: 'calendar_add_on', label: 'Oluşturulma', value: dateTime(d.createdDate) },
+        { icon: 'update', label: 'Son Güncelleme', value: dateTime(d.updateDate) }
+      ]
+    };
+  });
+
+  openInfo(item: ScanListRow): void {
+    if (!item.id) return;
+    this.infoDoc.set(item);
+    this.infoVisible.set(true);
+    this.infoLoading.set(true);
+    this.loadLookupsOnce();
+
+    this.incomingDocumentService.getIncomingDocumentByDocumentId(item.id).subscribe({
+      next: (fresh) => {
+        // Atanan personelin adı yalnızca liste satırında gelir; tazelenen kayda taşınır
+        if (fresh) this.infoDoc.set({ ...fresh, currentAssignmentUser: fresh.currentAssignmentUser ?? item.currentAssignmentUser });
+        this.infoLoading.set(false);
+      },
+      error: (err) => {
+        // Tazelenemezse liste satırındaki bilgilerle gösterilir
+        console.error('Evrak bilgileri alınamadı:', err);
+        this.infoLoading.set(false);
+      }
+    });
+  }
+
+  closeInfo(): void {
+    this.infoVisible.set(false);
+  }
+
+  // Nereden / Nereye adları için birim ve dış kurum listeleri popup ilk açıldığında bir kez çekilir
+  private loadLookupsOnce(): void {
+    if (this.lookupsRequested) return;
+    this.lookupsRequested = true;
+    this.departmentService.getDepartments().subscribe({
+      next: (list) => this.departmentNames.set(
+        Object.fromEntries((list ?? []).filter(x => x.id).map(x => [x.id!.toLowerCase(), x.name]))),
+      error: (err) => console.error('Birimler alınamadı:', err)
+    });
+    this.externalInstitutionService.getExternalInstitutions().subscribe({
+      next: (list) => this.institutionNames.set(
+        Object.fromEntries((list ?? []).filter(x => x.id).map(x => [x.id!.toLowerCase(), x.name]))),
+      error: (err) => console.error('Dış kurumlar alınamadı:', err)
     });
   }
 

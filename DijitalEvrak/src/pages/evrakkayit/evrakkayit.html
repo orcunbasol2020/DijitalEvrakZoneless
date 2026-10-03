@@ -147,6 +147,22 @@
                 <label class="zm-field-label">Sayfa Sayısı</label>
                 <input type="number" min="0" class="form-control ok-input" formControlName="pageCount">
               </div>
+              <div class="zm-field">
+                <label for="ekVarMi" class="zm-field-label">Ek Var mı?</label>
+                <select id="ekVarMi" class="form-select ok-input" formControlName="hasAttachment">
+                  <option [ngValue]="null">Belirtilmemiş</option>
+                  <option [ngValue]="true">Var</option>
+                  <option [ngValue]="false">Yok</option>
+                </select>
+              </div>
+              <!-- Ek açıklaması yalnızca "Var" seçilince açılır -->
+              <div class="zm-field ek-span-2" *ngIf="hasAttachment() === true">
+                <label for="ekAciklama" class="zm-field-label">Ek Açıklaması</label>
+                <textarea id="ekAciklama" class="form-control ok-input" formControlName="attachmentDescription"
+                  rows="3" [attr.maxlength]="attachmentDescriptionMax"
+                  placeholder="Örn. 1 dergi, 1 flash disk"></textarea>
+                <span class="zm-field-hint text-end">{{ attachmentDescriptionLength() }} / {{ attachmentDescriptionMax }}</span>
+              </div>
             </div>
           </div>
 

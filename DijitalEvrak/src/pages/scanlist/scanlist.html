@@ -172,6 +172,7 @@
     <flexi-grid-column title="İşleme Al" textAlign="center" width="90px"
       field="assignmentStatus">
       <ng-template flexiGridCellTemplate let-item>
+        <div class="sl-process-cell">
         <flexi-button
           *ngIf="item.documentName"
           [btnIcon]="
@@ -209,6 +210,15 @@
     : goToDetail(item.id)
 ">
         </flexi-button>
+        <!-- İşleme alınamayan evrak (dosya yok / durum uygun değil): bilgileri popup'ta gösterilir -->
+        @if (!isProcessable(item)) {
+          <button type="button" class="sl-info-link"
+            [title]="notProcessableReason(item) + ' · Evrak bilgilerini göster'"
+            (click)="openInfo(item)">
+            <span class="material-symbols-outlined">info</span>
+          </button>
+        }
+        </div>
       </ng-template>
     </flexi-grid-column>
     <flexi-grid-column title="Takip" textAlign="center" width="70px">
@@ -497,6 +507,167 @@
           </div>
         }
       </div>
+    </div>
+  </div>
+}
+
+<!-- Evrak Bilgileri Popup: işleme alınamayan evrakın tüm bilgileri (salt okunur) -->
+@if (infoVisible()) {
+  <div class="modal-overlay" (click)="closeInfo()">
+    <div class="modal-box ei-modal" (click)="$event.stopPropagation()" role="dialog" aria-label="Evrak Bilgileri">
+      @if (infoView(); as v) {
+        <!-- Başlık: evrak no + konu, sağda durum çipleri -->
+        <header class="ei-head">
+          <div class="ei-head-icon">
+            <span class="material-symbols-outlined">description</span>
+          </div>
+          <div class="ei-head-text">
+            <div class="ei-overline">
+              Evrak Bilgileri
+              @if (infoLoading()) {
+                <span class="spinner-border ei-spinner" title="Güncel bilgiler getiriliyor"></span>
+              }
+            </div>
+            <div class="ei-doc-no">{{ v.qrCode }}</div>
+            <div class="ei-subject" [class.is-empty]="!v.subject" [title]="v.subject">
+              {{ v.subject || 'Konu girilmemiş' }}
+            </div>
+          </div>
+          <div class="ei-states">
+            @for (s of v.status; track s.label) {
+              <div class="ei-state" [attr.data-tone]="s.tone">
+                <span class="ei-state-label">{{ s.label }}</span>
+                <span class="ei-state-value"><i class="ei-state-dot"></i>{{ s.value }}</span>
+              </div>
+            }
+          </div>
+          <button type="button" class="ei-close" title="Kapat" (click)="closeInfo()">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </header>
+
+        <!-- Sınıflandırma şeridi -->
+        <div class="ei-tags">
+          <span class="ei-tag">
+            <span class="material-symbols-outlined">category</span>
+            {{ v.documentType }}
+          </span>
+          <span class="ei-tag">
+            <span class="degree-badge-circle security-badge ei-tag-badge {{ v.security.tier }}">
+              <span class="material-symbols-outlined">{{ v.security.icon }}</span>
+            </span>
+            {{ v.security.label }}
+          </span>
+          <span class="ei-tag">
+            <span class="degree-badge-circle urgency-badge ei-tag-badge {{ v.urgency.tier }}">{{ v.urgency.initial }}</span>
+            {{ v.urgency.label }}
+          </span>
+          <span class="badge rounded-pill ei-action {{ v.action.cls }}">
+            <span class="material-symbols-outlined">{{ v.action.icon }}</span>
+            {{ v.action.label }}
+          </span>
+        </div>
+
+        <div class="ei-body">
+          <!-- Sol: yazışma yönü ve künye -->
+          <div class="ei-main">
+            <div class="ei-route">
+              <div class="ei-route-card">
+                <span class="ei-route-icon"><span class="material-symbols-outlined">call_made</span></span>
+                <div class="ei-route-text">
+                  <span class="ei-label">Nereden</span>
+                  <span class="ei-route-name" [class.is-empty]="v.from === '-'" [title]="v.from">{{ v.from }}</span>
+                </div>
+              </div>
+              <span class="material-symbols-outlined ei-route-arrow">arrow_forward</span>
+              <div class="ei-route-card is-target">
+                <span class="ei-route-icon"><span class="material-symbols-outlined">call_received</span></span>
+                <div class="ei-route-text">
+                  <span class="ei-label">Nereye</span>
+                  <span class="ei-route-name" [class.is-empty]="v.to === '-'" [title]="v.to">{{ v.to }}</span>
+                </div>
+              </div>
+            </div>
+
+            <dl class="ei-facts">
+              <div class="ei-fact">
+                <dt class="ei-label">Evrak Tarihi</dt>
+                <dd [class.is-empty]="v.documentDate === '-'">{{ v.documentDate }}</dd>
+              </div>
+              <div class="ei-fact">
+                <dt class="ei-label">Orjinal Belge No</dt>
+                <dd [class.is-empty]="v.orginalNo === '-'">{{ v.orginalNo }}</dd>
+              </div>
+            </dl>
+
+            @if (v.notes) {
+              <div class="ei-note">
+                <span class="ei-label">Notlar</span>
+                <p>{{ v.notes }}</p>
+              </div>
+            }
+          </div>
+
+          <!-- Sağ: Belge Özellikleri paneli -->
+          <aside class="ei-side">
+            <div class="ei-side-title">Belge Özellikleri</div>
+
+            <div class="ei-pages">
+              <span class="ei-pages-num" [class.is-empty]="v.pageCount === '-'">{{ v.pageCount }}</span>
+              <span class="ei-label">Sayfa</span>
+            </div>
+
+            <dl class="ei-specs">
+              <div class="ei-spec">
+                <dt>Ek</dt>
+                <dd>
+                  @if (v.hasAttachment === true) {
+                    <span class="ei-pill is-on"><span class="material-symbols-outlined">attach_file</span>Var</span>
+                  } @else if (v.hasAttachment === false) {
+                    <span class="ei-pill">Yok</span>
+                  } @else {
+                    <span class="ei-muted">Belirtilmemiş</span>
+                  }
+                </dd>
+              </div>
+              @if (v.hasAttachment === true) {
+                <div class="ei-attach" [class.is-empty]="!v.attachmentDescription">
+                  {{ v.attachmentDescription || 'Açıklama girilmemiş' }}
+                </div>
+              }
+              <div class="ei-spec">
+                <dt>Elektronik Kopya</dt>
+                <dd [class.ei-muted]="v.electronicCopy === '-'">{{ v.electronicCopy }}</dd>
+              </div>
+              <div class="ei-spec">
+                <dt>Dil</dt>
+                <dd [class.ei-muted]="v.language === '-'">{{ v.language }}</dd>
+              </div>
+              <div class="ei-spec">
+                <dt>Belge Dosyası</dt>
+                <dd>
+                  @if (v.hasFile) {
+                    <span class="ei-pill is-ok"><span class="material-symbols-outlined">check</span>Yüklendi</span>
+                  } @else {
+                    <span class="ei-pill is-warn"><span class="material-symbols-outlined">close</span>Yüklenmedi</span>
+                  }
+                </dd>
+              </div>
+            </dl>
+          </aside>
+        </div>
+
+        <!-- Alt bilgi satırı: atanan personel ve tarihler -->
+        <footer class="ei-meta">
+          @for (m of v.meta; track m.label) {
+            <span class="ei-meta-item" [title]="m.label">
+              <span class="material-symbols-outlined">{{ m.icon }}</span>
+              {{ m.label }}
+              <strong>{{ m.value }}</strong>
+            </span>
+          }
+        </footer>
+      }
     </div>
   </div>
 }

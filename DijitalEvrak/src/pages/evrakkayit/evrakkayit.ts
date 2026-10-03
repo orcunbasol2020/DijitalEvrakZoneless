@@ -35,6 +35,9 @@ const DETAIL_DEFAULTS = {
   languageId: 1,
 } as const;
 
+// Ek açıklaması için sunucunun kabul ettiği en fazla karakter
+const ATTACHMENT_DESCRIPTION_MAX = 1000;
+
 @Component({
   standalone: true,
   imports: [
@@ -289,6 +292,11 @@ export default class Evrakkayit implements OnInit {
     .map(([value, label]) => ({ value: Number(value) as DocumentTypeEnum, label }))
     .filter(opt => !Evrakkayit.hiddenDocumentTypes.has(opt.value));
 
+  // "Diğer Bilgiler" sekmesindeki ek bilgisi: Var / Yok / belirtilmemiş (null)
+  readonly hasAttachment = signal<boolean | null>(null);
+  readonly attachmentDescriptionLength = signal(0);
+  readonly attachmentDescriptionMax = ATTACHMENT_DESCRIPTION_MAX;
+
   private documentTransactionService = inject(DocumentTransaction);
   transactionData = signal<DocumentTransactionModel[]>([]);
   transactionLoading = signal(false);
@@ -320,9 +328,16 @@ export default class Evrakkayit implements OnInit {
       electronicCopy: [DETAIL_DEFAULTS.electronicCopy],
       languageId: [DETAIL_DEFAULTS.languageId],
       pageCount: [''],
+      hasAttachment: [null as boolean | null],
+      attachmentDescription: ['', Validators.maxLength(ATTACHMENT_DESCRIPTION_MAX)],
       ocrStatus: [{ value: '', disabled: true }],
       release: [{ value: '', disabled: true }]
     });
+
+    // Açıklama kutusu yalnızca "Var" seçiliyken görünür (zoneless: şablon sinyalden okur)
+    this.formDetail.controls['hasAttachment'].valueChanges.subscribe(v => this.hasAttachment.set(v ?? null));
+    this.formDetail.controls['attachmentDescription'].valueChanges.subscribe(v =>
+      this.attachmentDescriptionLength.set((v ?? '').length));
 
     // Zoneless CD: şablondaki evrak sayısı metni ham form değeri yerine bu sinyalden okunur,
     // böylece patchValue sonrası görünüm güncellenir.
@@ -469,6 +484,10 @@ export default class Evrakkayit implements OnInit {
   }
 
   saveDetail() {
+    if (this.formDetail.controls['attachmentDescription'].hasError('maxlength')) {
+      this.toast.showToast("Ek açıklaması çok uzun", `Ek açıklaması en fazla ${ATTACHMENT_DESCRIPTION_MAX} karakter olabilir.`, "warning");
+      return;
+    }
     if (!this.formDetail.valid) {
       this.toast.showToast("Eksik bilgi var", "Lütfen gerekli alanları doldurun");
       return;
@@ -481,8 +500,17 @@ export default class Evrakkayit implements OnInit {
     }
     const raw = this.formDetail.value;
 
+    // Ek açıklaması yalnızca "Var" seçiliyken gönderilir. "Yok" seçilince sunucu açıklamayı
+    // kendisi siler; belirtilmemişse (null) alan gönderilmez ve mevcut değer korunur.
+    const hasAttachment: boolean | null = raw.hasAttachment ?? null;
+    const attachmentDescription = hasAttachment === true
+      ? (raw.attachmentDescription ?? '').trim()
+      : hasAttachment === false ? '' : null;
+
     const formData: IncomingDocumentModel = {
       ...raw,
+      hasAttachment,
+      attachmentDescription,
       // Evrak Kayıt sekmesine taşınan alanlar detay güncellemesinde de gönderilir;
       // aksi halde Update bu alanları boşaltabilir.
       securityDegree: this.form.value.securityDegree,
@@ -643,6 +671,8 @@ export default class Evrakkayit implements OnInit {
       languageId: doc.languageId ?? DETAIL_DEFAULTS.languageId,
       electronicCopy: doc.electronicCopy ?? DETAIL_DEFAULTS.electronicCopy,
       pageCount: doc.pageCount,
+      hasAttachment: doc.hasAttachment ?? null,
+      attachmentDescription: doc.attachmentDescription ?? '',
       ocrStatus: doc.ocrStatus,
       release: doc.release,
       status: doc.status,

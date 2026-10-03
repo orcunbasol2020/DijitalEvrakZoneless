@@ -20,6 +20,12 @@ export interface IncomingDocumentModel {
   electronicCopy: boolean;
   release: boolean;
   pageCount: number;
+  // Ek bilgisi: true = ek var, false = ek yok, null = belirtilmemiş.
+  // Update'te null gönderilirse sunucudaki değer korunur.
+  hasAttachment?: boolean | null;
+  // Ekin serbest metin açıklaması (en fazla 1000 karakter); "" gönderilirse silinir,
+  // hasAttachment = false ise sunucuda otomatik silinir.
+  attachmentDescription?: string | null;
 
   documentDate: string;
   releaseDate: string;
