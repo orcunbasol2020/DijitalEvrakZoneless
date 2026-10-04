@@ -92,10 +92,6 @@
             }
           </div>
         </div>
-        <button type="button" class="za-btn is-sm" [disabled]="!unreadCount()" (click)="markAllRead()">
-          <span class="material-symbols-outlined">done_all</span>
-          Tümünü okundu say
-        </button>
       </div>
     </div>
 
@@ -105,7 +101,7 @@
           <span class="spinner-border" role="status"></span>
           Bildirimler yükleniyor...
         </div>
-      } @else if (!filteredNotifications().length) {
+      } @else if (!notifications().length) {
         <div class="zl-empty-wrap">
           <div class="sp-empty">
             <span class="sp-empty-icon">
@@ -122,7 +118,7 @@
         </div>
       } @else {
         <ul class="za-notifs">
-          @for (n of filteredNotifications(); track n.id) {
+          @for (n of notifications(); track n.id) {
             <li>
               <button type="button" class="za-notif {{ notificationTone(n) }}" [class.is-unread]="isUnread(n)" (click)="openNotification(n)">
                 <span class="za-notif-icon">
@@ -145,7 +141,39 @@
       }
     </div>
 
-    @if (filteredNotifications().length) {
+    @if (notifications().length) {
+      <div class="zl-footer">
+        <div class="zl-range">
+          Toplam <b>{{ notificationTotal() }}</b> bildirimden <b>{{ notificationRangeStart() }}-{{ notificationRangeEnd() }}</b> arası gösteriliyor
+        </div>
+
+        @if (notificationTotalPages() > 1) {
+          <div class="zl-pager">
+            <button type="button" class="zl-page" [disabled]="notificationPage() === 1" (click)="goToNotificationPage(notificationPage() - 1)">
+              <span class="material-symbols-outlined">chevron_left</span>
+            </button>
+            @if (notificationPageNumbers()[0] > 1) {
+              <button type="button" class="zl-page" (click)="goToNotificationPage(1)">1</button>
+            }
+            @if (notificationPageNumbers()[0] > 2) {
+              <span class="zl-page-gap">…</span>
+            }
+            @for (p of notificationPageNumbers(); track p) {
+              <button type="button" class="zl-page" [class.is-active]="p === notificationPage()" (click)="goToNotificationPage(p)">{{ p }}</button>
+            }
+            @if (notificationPageNumbers()[notificationPageNumbers().length - 1] < notificationTotalPages() - 1) {
+              <span class="zl-page-gap">…</span>
+            }
+            @if (notificationPageNumbers()[notificationPageNumbers().length - 1] < notificationTotalPages()) {
+              <button type="button" class="zl-page" (click)="goToNotificationPage(notificationTotalPages())">{{ notificationTotalPages() }}</button>
+            }
+            <button type="button" class="zl-page" [disabled]="notificationPage() === notificationTotalPages()" (click)="goToNotificationPage(notificationPage() + 1)">
+              <span class="material-symbols-outlined">chevron_right</span>
+            </button>
+          </div>
+        }
+      </div>
+
       <div class="zl-footnote za-footnote">
         <span class="material-symbols-outlined">info</span>
         Bildirime tıklayınca okundu sayılır ve ilgili ekran açılır

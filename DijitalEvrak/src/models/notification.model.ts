@@ -12,6 +12,16 @@ export interface NotificationModel {
   createdDate: string;
 }
 
+// GetByUserId sayfalı kullanımı (page / pageSize gönderilince). unreadCount arama ve tür
+// filtresinden bağımsızdır; onay talebi / hatırlatma (tür 1, 2) hariç tüm okunmamışları sayar.
+export interface NotificationPageModel {
+  items: NotificationModel[];
+  totalCount: number;
+  unreadCount: number;
+  page: number;
+  pageSize: number;
+}
+
 export enum NotificationTypeEnum {
   ZimmetOnayTalebi = 1,
   ZimmetOnayHatirlatma = 2,
@@ -26,6 +36,11 @@ export enum NotificationTypeEnum {
 // Tür 1 ve 2 "onayınızı bekleyen evraklar"ı haber verir. Bu evraklar zil menüsünde ve
 // girişteki popup'ta zaten tek tek listelendiği için bildirim listelerinde tekrar gösterilmez;
 // talep sonuçlanınca backend bu bildirimleri kendisi okundu sayar.
+export const APPROVAL_REQUEST_NOTIFICATION_TYPES = [
+  NotificationTypeEnum.ZimmetOnayTalebi,
+  NotificationTypeEnum.ZimmetOnayHatirlatma
+];
+
 export function isApprovalRequestNotification(n: NotificationModel): boolean {
   const type = Number(n.type);
   return type === NotificationTypeEnum.ZimmetOnayTalebi || type === NotificationTypeEnum.ZimmetOnayHatirlatma;

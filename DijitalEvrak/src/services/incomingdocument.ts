@@ -53,7 +53,7 @@ export class IncomingDocumentService {
   get currentIncomingDocumentUpdateType(): string | null {
     return this.incomingDocumentUpdateType();
   }
-  setIncomingDocumentSearchType(type: string) {
+  setIncomingDocumentSearchType(type: string | null) {
     this.incomingDocumentSearchType.set(type);
   }
   get currentIncomingDocumentSearchType(): string | null {

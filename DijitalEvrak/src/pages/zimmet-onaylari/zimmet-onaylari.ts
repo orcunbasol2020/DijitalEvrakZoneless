@@ -1,9 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit, signal, ViewEncapsulation } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, OnInit, signal, untracked, ViewEncapsulation } from '@angular/core';
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
-import { Observable, finalize, forkJoin, map } from 'rxjs';
+import { Observable, catchError, debounceTime, distinctUntilChanged, finalize, forkJoin, map, of, switchMap } from 'rxjs';
 import GenericModel from '../../../components/generic-model/generic-model';
 import { Common } from '../../services/common';
 import { AllocationRequestService } from '../../services/allocationrequest';
@@ -17,7 +17,14 @@ import {
 } from '../../models/allocationrequest.model';
 import { AllocationStatusEnum } from '../../models/allocationstatus.model';
 import { NotificationService } from '../../services/notification';
-import { NotificationModel, NotificationTypeEnum, NotificationTypeIcons, NotificationTypeTones } from '../../models/notification.model';
+import {
+  APPROVAL_REQUEST_NOTIFICATION_TYPES,
+  NotificationModel,
+  NotificationPageModel,
+  NotificationTypeEnum,
+  NotificationTypeIcons,
+  NotificationTypeTones
+} from '../../models/notification.model';
 
 // Onayımı bekleyenler (alıcı) / gönderdiklerim (devreden veya işlemi yapan)
 type ApprovalTab = 'bekleyen' | 'gonderilen' | 'bildirimler';
@@ -93,23 +100,68 @@ export default class ZimmetOnaylari implements OnInit {
     return [];
   });
 
-  // ---- Bildirimler sekmesi: tüm bildirimler, okunmamışlar vurgulu ----
+  // ---- Bildirimler sekmesi: sunucuda sayfalanır ve aranır, okunmamışlar vurgulu ----
+  // Onay talebi / hatırlatma (tür 1, 2) bekleyen evrak listesinde olduğu için burada gösterilmez
+  private static readonly NOTIFICATION_PAGE_SIZE = 20;
   readonly notifications = signal<NotificationModel[]>([]);
   readonly notificationsLoading = signal(false);
+  readonly notificationPage = signal(1);
+  readonly notificationTotal = signal(0);
+  private readonly notificationReload = signal(0);
+  // Arama her tuşta değil, yazma bitince sunucuya gider
+  private readonly notificationSearch = toSignal(
+    toObservable(this.searchQuery).pipe(debounceTime(300), map(v => v.trim()), distinctUntilChanged()),
+    { initialValue: '' });
   // Zil rozetiyle aynı okunmamış sayısı (onay talebi / hatırlatma hariç)
-  readonly unreadCount = computed(() => this.notificationService.unreadVisible().length);
-  // Okundu bilgisi ortak listeden okunur; böylece zilde okunan burada da okunmuş görünür
-  private readonly unreadIds = computed(() => new Set(this.notificationService.unread().map(n => n.id)));
+  readonly unreadCount = computed(() => this.notificationService.unreadCount());
+  // Sekmeye girilince okunmamışların tümü okundu sayılır; bu ziyarette hangilerinin yeni
+  // olduğu görünsün diye okundu sayılanlar sayfa açık kaldıkça (sayfa değişse de) vurgulu kalır
+  private readonly freshIds = signal<ReadonlySet<string>>(new Set());
+  private readonly markReadOnView = effect(() => {
+    if (this.activeTab() !== 'bildirimler') return;
+    if (!this.unreadCount() && !this.notifications().some(n => !n.isRead)) return;
+    untracked(() => this.markAllRead());
+  });
 
-  readonly filteredNotifications = computed(() => {
-    const term = this.searchQuery().trim().toLocaleLowerCase('tr');
-    const list = this.notifications();
-    if (!term) return list;
-    return list.filter(n => [n.title, n.message].some(v => (v ?? '').toLocaleLowerCase('tr').includes(term)));
+  readonly notificationTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.notificationTotal() / ZimmetOnaylari.NOTIFICATION_PAGE_SIZE)));
+
+  readonly notificationPageNumbers = computed(() => {
+    const total = this.notificationTotalPages();
+    const current = Math.min(this.notificationPage(), total);
+    const delta = 2;
+    const range: number[] = [];
+    for (let i = Math.max(1, current - delta); i <= Math.min(total, current + delta); i++) range.push(i);
+    return range;
+  });
+
+  readonly notificationRangeStart = computed(() =>
+    this.notificationTotal() === 0 ? 0 : (this.notificationPage() - 1) * ZimmetOnaylari.NOTIFICATION_PAGE_SIZE + 1);
+
+  readonly notificationRangeEnd = computed(() =>
+    Math.min(this.notificationPage() * ZimmetOnaylari.NOTIFICATION_PAGE_SIZE, this.notificationTotal()));
+
+  goToNotificationPage(page: number): void {
+    const clamped = Math.min(Math.max(page, 1), this.notificationTotalPages());
+    if (clamped !== this.notificationPage()) this.notificationPage.set(clamped);
+  }
+
+  // Sayfa, arama ya da yenileme değişince istek atılır; yenisi gelince eski istek iptal olur
+  private readonly notificationLoader = toObservable(computed(() => ({
+    page: this.notificationPage(),
+    search: this.notificationSearch(),
+    reload: this.notificationReload()
+  }))).pipe(
+    switchMap(q => this.fetchNotifications(q.page, q.search)),
+    takeUntilDestroyed()
+  ).subscribe(result => {
+    if (!result) return;
+    this.notifications.set(result.items ?? []);
+    this.notificationTotal.set(result.totalCount ?? 0);
   });
 
   isUnread(n: NotificationModel): boolean {
-    return !n.isRead && this.unreadIds().has(n.id);
+    return this.freshIds().has(n.id);
   }
 
   notificationIcon(n: NotificationModel): string {
@@ -125,30 +177,44 @@ export default class ZimmetOnaylari implements OnInit {
     if (!userId) return;
     // Bildirimler sekmesine yönlendiren türlerde yalnızca okundu işaretlenir
     this.notificationService.open(n, userId);
-    this.notifications.update(list => list.map(x => x.id === n.id ? { ...x, isRead: true } : x));
   }
 
-  markAllRead(): void {
+  private markAllRead(): void {
     const userId = this.userId;
     if (!userId) return;
+    // Diğer sayfalardaki okunmamışlar ortak okunmamış listesinden (zil) alınır
+    const unreadIds = [
+      ...this.notificationService.unread().map(n => n.id),
+      ...this.notifications().filter(n => !n.isRead).map(n => n.id)
+    ];
+    this.freshIds.update(ids => new Set([...ids, ...unreadIds]));
     this.notificationService.markAllAsRead(userId).subscribe();
     this.notifications.update(list => list.map(x => ({ ...x, isRead: true })));
   }
 
-  private loadNotifications(): void {
+  // Okunmamış listesi sayfayla birlikte gelir; böylece sekmede okundu sayma geç gelen
+  // eski sayımla ezilmez
+  private fetchNotifications(page: number, search: string): Observable<NotificationPageModel | null> {
     const userId = this.userId;
-    if (!userId) return;
+    if (!userId) return of(null);
     this.notificationsLoading.set(true);
-    this.notificationService.refreshUnread(userId).subscribe();
-    this.notificationService.getByUserId(userId, false, ZimmetOnaylari.NOTIFICATION_TAKE)
-      .pipe(finalize(() => this.notificationsLoading.set(false)))
-      .subscribe({
-        next: list => this.notifications.set(list),
-        error: err => console.error('Bildirimler alınamadı:', err)
-      });
+    return forkJoin({
+      page: this.notificationService.getPage(userId, {
+        page,
+        pageSize: ZimmetOnaylari.NOTIFICATION_PAGE_SIZE,
+        search: search || undefined,
+        excludeTypes: APPROVAL_REQUEST_NOTIFICATION_TYPES
+      }),
+      unread: this.notificationService.refreshUnread(userId)
+    }).pipe(
+      map(r => r.page),
+      catchError(err => {
+        console.error('Bildirimler alınamadı:', err);
+        return of(null);
+      }),
+      finalize(() => this.notificationsLoading.set(false))
+    );
   }
-
-  private static readonly NOTIFICATION_TAKE = 100;
 
   readonly filteredList = computed(() => {
     const term = this.searchQuery().trim().toLocaleLowerCase('tr');
@@ -185,7 +251,7 @@ export default class ZimmetOnaylari implements OnInit {
   reload(): void {
     this.loadIncoming();
     this.loadSent();
-    this.loadNotifications();
+    this.notificationReload.update(v => v + 1);
   }
 
   private loadIncoming(): void {
@@ -218,6 +284,7 @@ export default class ZimmetOnaylari implements OnInit {
 
   setSearchQuery(value: string): void {
     this.searchQuery.set(value ?? '');
+    this.notificationPage.set(1);
   }
 
   isSelected(row: AllocationRequestModel): boolean {

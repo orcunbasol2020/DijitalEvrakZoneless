@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, signal, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ElementRef, HostListener, inject, signal, viewChild, ViewEncapsulation } from '@angular/core';
 import { DatePipe, NgClass } from '@angular/common';
 import Breadcrumb from './breadcrumb/breadcrumb';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
@@ -17,8 +17,55 @@ import { LoginReminder } from './login-reminder/login-reminder';
 import { SessionTimeout } from './session-timeout/session-timeout';
 import { NotificationService } from '../../services/notification';
 import { NotificationModel, NotificationTypeEnum, NotificationTypeIcons, NotificationTypeTones } from '../../models/notification.model';
+import { isSentToPublish } from '../../models/publishstatus.model';
 
 import { DocumentSearchResult, DocumentSearchService } from '../../services/document-search';
+
+interface HighlightPart {
+  text: string;
+  match: boolean;
+}
+
+interface SearchResultView extends DocumentSearchResult {
+  noParts: HighlightPart[];
+  subjectParts: HighlightPart[];
+}
+
+// Metni aranan kelimelerin geçtiği ve geçmediği parçalara böler (Türkçe küçük harf karşılaştırması;
+// tr küçültme harf sayısını değiştirmediği için konumlar özgün metinde de geçerlidir)
+function highlightParts(text: string, words: string[]): HighlightPart[] {
+  if (!text) return [];
+  const lowerText = text.toLocaleLowerCase('tr');
+  if (lowerText.length !== text.length || !words.length) return [{ text, match: false }];
+
+  const ranges: [number, number][] = [];
+  for (const word of words) {
+    let from = lowerText.indexOf(word);
+    while (from !== -1) {
+      ranges.push([from, from + word.length]);
+      from = lowerText.indexOf(word, from + word.length);
+    }
+  }
+  if (!ranges.length) return [{ text, match: false }];
+
+  ranges.sort((a, b) => a[0] - b[0]);
+  const merged: [number, number][] = [];
+  for (const [start, end] of ranges) {
+    const last = merged[merged.length - 1];
+    if (last && start <= last[1]) last[1] = Math.max(last[1], end);
+    else merged.push([start, end]);
+  }
+
+  const parts: HighlightPart[] = [];
+  let pos = 0;
+  for (const [start, end] of merged) {
+    if (start > pos) parts.push({ text: text.slice(pos, start), match: false });
+    parts.push({ text: text.slice(start, end), match: true });
+    pos = end;
+  }
+  if (pos < text.length) parts.push({ text: text.slice(pos), match: false });
+  return parts;
+}
 
 @Component({
   imports: [
@@ -49,10 +96,26 @@ export default class Layouts {
   readonly #searchIndex = signal<DocumentSearchResult[]>([]);
   readonly searchLoading = signal<boolean>(false);
   #searchIndexRequested = false;
+  private readonly searchInput = viewChild<ElementRef<HTMLInputElement>>('searchInput');
+  // 1200px altında kutu gizlidir; ikona basınca başlığın altında açılır
+  readonly searchOpen = signal<boolean>(false);
 
-  readonly searchResults = computed<DocumentSearchResult[]>(() =>
-    this.#documentSearch.search(this.#searchIndex(), this.search(), Layouts.MAX_SEARCH_RESULTS)
+  // Tüm eşleşmeler sayılır, ilk MAX_SEARCH_RESULTS tanesi listelenir
+  readonly #searchMatches = computed<DocumentSearchResult[]>(() =>
+    this.#documentSearch.search(this.#searchIndex(), this.search(), Number.MAX_SAFE_INTEGER)
   );
+  readonly searchMatchCount = computed(() => this.#searchMatches().length);
+  readonly searchResults = computed(() => this.#searchMatches().slice(0, Layouts.MAX_SEARCH_RESULTS));
+
+  // Aranan kelimeler evrak no ve konuda vurgulanır
+  readonly searchResultViews = computed<SearchResultView[]>(() => {
+    const words = this.search().toLocaleLowerCase('tr').split(/\s+/).filter(Boolean);
+    return this.searchResults().map(r => ({
+      ...r,
+      noParts: highlightParts(r.no, words),
+      subjectParts: highlightParts(r.subject, words)
+    }));
+  });
 
   #loadSearchIndex(): void {
     if (this.#searchIndexRequested) return;
@@ -85,11 +148,41 @@ export default class Layouts {
     if (value.trim()) this.#loadSearchIndex();
   }
 
+  clearSearch(): void {
+    this.onSearchInput('');
+    this.searchInput()?.nativeElement.focus();
+  }
+
+  toggleSearch(): void {
+    const open = !this.searchOpen();
+    this.searchOpen.set(open);
+    if (open) setTimeout(() => this.searchInput()?.nativeElement.focus());
+  }
+
+  // Ctrl+K (Mac'te Cmd+K) ya da "/" ile arama kutusuna gidilir; "/" yazı alanındayken çalışmaz
+  @HostListener('document:keydown', ['$event'])
+  onGlobalKeydown(event: KeyboardEvent): void {
+    const isShortcut = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k';
+    const target = event.target as HTMLElement | null;
+    const typing = !!target && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
+    if (!isShortcut && !(event.key === '/' && !typing)) return;
+
+    event.preventDefault();
+    const input = this.searchInput()?.nativeElement;
+    if (!input) return;
+    if (!input.offsetParent) this.searchOpen.set(true);
+    setTimeout(() => {
+      input.focus();
+      input.select();
+    });
+  }
+
   // Gelen evrak her role açık olan Süreçler (salt okunur) ekranında, giden evrak kendi ekranında açılır
   selectSearchResult(result: DocumentSearchResult): void {
     this.search.set('');
     this.showSearchResults.set(false);
     this.activeResultIndex.set(-1);
+    this.searchOpen.set(false);
 
     if (result.direction === 'in') {
       this.#incomingDocumentService.setSelectedIncomingDocument(result.id);
@@ -100,10 +193,25 @@ export default class Layouts {
   }
 
   onSearchBlur(): void {
-    setTimeout(() => this.showSearchResults.set(false), 150);
+    setTimeout(() => {
+      this.showSearchResults.set(false);
+      // Küçük ekranda boş kutu odaktan çıkınca kapanır
+      if (!this.search().trim()) this.searchOpen.set(false);
+    }, 150);
   }
 
   onSearchKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      if (this.showSearchResults()) {
+        this.showSearchResults.set(false);
+        this.activeResultIndex.set(-1);
+      } else {
+        this.searchOpen.set(false);
+        (event.target as HTMLInputElement).blur();
+      }
+      return;
+    }
+
     const results = this.searchResults();
     if (!this.showSearchResults() || results.length === 0) {
       return;
@@ -115,12 +223,10 @@ export default class Layouts {
     } else if (event.key === 'ArrowUp') {
       event.preventDefault();
       this.activeResultIndex.set((this.activeResultIndex() - 1 + results.length) % results.length);
-    } else if (event.key === 'Enter' && this.activeResultIndex() >= 0) {
+    } else if (event.key === 'Enter') {
+      // Seçili satır yoksa ilk sonuç açılır
       event.preventDefault();
-      this.selectSearchResult(results[this.activeResultIndex()]);
-    } else if (event.key === 'Escape') {
-      this.showSearchResults.set(false);
-      this.activeResultIndex.set(-1);
+      this.selectSearchResult(results[Math.max(this.activeResultIndex(), 0)]);
     }
   }
   readonly navigations = computed(() => navigations);
@@ -146,6 +252,8 @@ export default class Layouts {
   readonly #notificationService = inject(NotificationService);
   readonly notifications = this.#notificationService.unreadVisible;
   readonly notificationPreview = computed(() => this.notifications().slice(0, Layouts.NOTIFICATION_PREVIEW));
+  // Rozet ve "+N bildirim daha" sunucudaki gerçek sayıdan; önizleme listesi en fazla 50 kayıt çeker
+  readonly notificationCount = this.#notificationService.unreadCount;
   private static readonly NOTIFICATION_PREVIEW = 5;
 
   notificationIcon(n: NotificationModel): string {
@@ -168,13 +276,49 @@ export default class Layouts {
     if (userId) this.#notificationService.markAllAsRead(userId).subscribe();
   }
 
+  // Zil menüsünde "Bekleyen İşler" bölümü; Birim Evrak Sorumlusu teslim satırını sıfırken de görür
+  readonly hasPendingTasks = computed(() =>
+    this.approvals().length > 0 ||
+    this.isDepartmentOfficer() ||
+    this.pendingCount() > 0 ||
+    this.transferCount() > 0
+  );
+
+  // Zil rozeti yalnız yapılacak işleri ve okunmamış bildirimleri sayar. Devrettiğiniz zimmetler
+  // bilgi amaçlıdır (devredilen evrakların toplamı), menüde görünür ama rozete katılmaz;
+  // katılsaydı bir kez devir yapan kullanıcının zili hiç sönmezdi.
   readonly totalNotificationCount = computed(() =>
     this.pendingCount() +
     this.departmentPendingCount() +
-    this.transferCount() +
     this.approvals().length +
-    this.notifications().length
+    this.notificationCount()
   );
+
+  readonly bellBadge = computed(() => {
+    const count = this.totalNotificationCount();
+    return count > 9 ? '9+' : String(count);
+  });
+
+  readonly bellLabel = computed(() => {
+    const count = this.totalNotificationCount();
+    return count > 0 ? `${count} bekleyen işlem` : 'Bekleyen işleminiz yok';
+  });
+
+  // Zil sürekli sallanmaz; yalnız sayı arttığında (yeni iş ya da bildirim) bir kez çalar
+  readonly bellRinging = signal(false);
+  #lastBellCount = 0;
+  #bellTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly ringOnIncrease = effect(() => {
+    const count = this.totalNotificationCount();
+    const increased = count > this.#lastBellCount;
+    this.#lastBellCount = count;
+    if (!increased || this.#bellTimer) return;
+    this.bellRinging.set(true);
+    this.#bellTimer = setTimeout(() => {
+      this.bellRinging.set(false);
+      this.#bellTimer = null;
+    }, 1000);
+  });
 
   constructor() {
     this.restoreSidebarMode();
@@ -244,6 +388,28 @@ private restoreSidebarMode(): void {
   } catch { /* localStorage kapalıysa varsayılan (geniş) mod */ }
   this.sidebarCollapsed.set(mini);
   document.body.classList.toggle('sb-mini', mini);
+}
+
+// "Atananlar": kullanıcıya atanmış, henüz yayına gönderilmemiş gelen evraklar (Tarama Listesi'nin
+// "bekleyenler" süzgeciyle aynı kural). Tek evrak varsa doğrudan Evrak Kayıt açılır; evrak zaten
+// kullanıcıya atanmış olduğu için İşleme Al adımı yoktur. Birden fazlaysa liste açılır.
+public goToPendingAssigned() {
+  const userId = this.user()?.id;
+  if (!userId) return;
+  const departmentId = this.roleService.hasAny(['Yönetici', 'Gelen Evrak']) ? undefined : this.user()?.departmentId;
+  this.#incomingDocumentService.getAllIncomingDocuments(departmentId).subscribe({
+    next: docs => {
+      const mine = (docs ?? []).filter(d => d.currentAssignmentUserId === userId && !isSentToPublish(d));
+      if (mine.length === 1 && mine[0].id) {
+        this.#incomingDocumentService.setSelectedIncomingDocument(mine[0].id);
+        this.#incomingDocumentService.setIncomingDocumentUpdateType('1');
+        this.router.navigate(['/evrakkayit']);
+      } else {
+        this.goToPendingScanList();
+      }
+    },
+    error: () => this.goToPendingScanList()
+  });
 }
 
 public goToPendingScanList() {

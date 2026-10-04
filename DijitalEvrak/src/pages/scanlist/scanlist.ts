@@ -5,9 +5,9 @@ import {
   ViewEncapsulation,
   computed,
   inject,
-  effect
+  effect,
+  untracked
 } from '@angular/core';
-import { FlexiGridFilterDataModel, FlexiGridModule } from 'flexi-grid';
 import { Router } from '@angular/router';
 import GenericModel from '../../../components/generic-model/generic-model';
 import { CommonModule } from '@angular/common';
@@ -21,7 +21,7 @@ import { DocumentAllocation } from '../../services/documentallocation';
 import { DocumentAllocationModel } from '../../models/documentallocation.model';
 import { AllocationStatusEnum, AllocationStatusLabels } from '../../models/allocationstatus.model';
 import { SecurityDegreeLabels, SecurityDegreeIcons, SecurityDegreeBadgeClass } from '../../models/securitydegree.model';
-import { UrgencyDegreeLabels, UrgencyDegreeInitials, UrgencyDegreeBadgeClass } from '../../models/urgencydegree.model';
+import { UrgencyDegreeEnum, UrgencyDegreeLabels, UrgencyDegreeInitials, UrgencyDegreeBadgeClass } from '../../models/urgencydegree.model';
 import { HttpService } from '../../services/http';
 import { UserRoleService } from '../../services/user-role';
 import { normalizeRoleName } from '../../services/role-service';
@@ -31,9 +31,15 @@ import { httpResource } from '@angular/common/http';
 import { UPLOAD_DOCUMENT_ROLES, UploadDocumentModal } from '../../../components/upload-document-modal/upload-document-modal';
 import { DocumentNumberUploadError, DocumentUploadFlow } from '../../services/document-upload-flow';
 import { isPublished, isPublishFailed, isPublishing, isSentToPublish, publishStatusLabel } from '../../models/publishstatus.model';
+import { FormsModule } from '@angular/forms';
 import { DocumentTypeLabels } from '../../models/documenttype.model';
 import { actionRequiredBadgeClass, actionRequiredIcon, actionRequiredLabel } from '../../models/actionrequired.model';
 import { Department } from '../../services/department';
+import { DocumentTransaction } from '../../services/documenttransaction';
+import {
+  buildProcessSteps, processMilestoneKind, processPersonLabel, ProcessStep, processTypeIcon, processTypeTone,
+  sortProcessTransactions
+} from '../../models/process-step';
 import { ExternalInstitution } from '../../services/external-institution';
 
 // İşleme Al yalnızca dosyası olan ve Ön Kayıt / Kayıt Tamamlandı / Eşleştirme durumundaki evrakta yapılır
@@ -59,90 +65,338 @@ const OCR_STATUS_LABELS: Record<number, string> = {
 // Atama popup'ında yalnızca evrak kaydı yapabilen (Gelen Evrak rolündeki) personel listelenir.
 const ASSIGNABLE_ROLE = 'Gelen Evrak';
 
-// Grid satırları backend'den gelen evrak alanlarına ek olarak atanan personelin
+// Liste satırları backend'den gelen evrak alanlarına ek olarak atanan personelin
 // adını (currentAssignmentUser) taşır; atama popup'ının başlığında gösterilir.
 type ScanListRow = IncomingDocumentModel & { currentAssignmentUser?: string | null };
 
+// Sayfa evrakları iş kuyruklarına ayırır. Bir evrak yalnızca bir kuyruktadır:
+//  - waiting   Kayıt Bekleyen: kimse işleme almamış, yayına gönderilmemiş
+//  - mine      Üzerimdekiler: bende (İşleme Al ile benim üzerimde), yayına gönderilmemiş
+//  - others    Başka Personelde: başka bir personelde, yayına gönderilmemiş
+//  - published Yayınlanan: yayına gönderilmiş (Yayınlandı / Aktarımda / Aktarım Hatalı)
+// "all" kuyruk değil, hepsini birlikte gösteren görünümdür.
+type QueueKey = 'waiting' | 'mine' | 'others' | 'published';
+type QueueView = QueueKey | 'all';
+
+interface QueueDef {
+  key: QueueView;
+  label: string;
+  hint?: string;
+  icon: string;
+}
+
+const QUEUES: readonly QueueDef[] = [
+  { key: 'waiting', label: 'Kayıt Bekleyen', icon: 'inbox' },
+  { key: 'mine', label: 'Üzerimdekiler', icon: 'pending_actions' },
+  { key: 'others', label: 'Başka Personelde', icon: 'group' },
+  { key: 'published', label: 'Yayınlanan', hint: 'Atlas\'a yayına gönderildi', icon: 'task_alt' },
+  { key: 'all', label: 'Tümü', icon: 'select_all' }
+];
+
+// Yayınlanan kuyruğundaki yayın durumu süzgeci
+type PublishView = 'all' | 'done' | 'progress' | 'failed';
+type FileView = 'all' | 'with' | 'without';
+type SortView = 'priority' | 'newest' | 'oldest' | 'number';
+
+// İvedilik önceliği: dikkat sırası Yıldırım, Günlüdür, Çok Acele, Acele; ardından
+// İvedi Süreli ve Normal. Aynı ivedilikte gizlilik derecesi yüksek olan öne geçer.
+const URGENCY_RANK: Record<number, number> = {
+  [UrgencyDegreeEnum.Lightning]: 0,
+  [UrgencyDegreeEnum.Dated]: 1,
+  [UrgencyDegreeEnum.VeryUrgent]: 2,
+  [UrgencyDegreeEnum.Urgent]: 3,
+  [UrgencyDegreeEnum.UrgentTimeLimited]: 4,
+  [UrgencyDegreeEnum.Normal]: 5
+};
+// Satırın sol şeridi ve vurgusu yalnızca dikkat gerektiren dört ivedilikte renklenir
+const ATTENTION_URGENCIES: ReadonlySet<number> = new Set([
+  UrgencyDegreeEnum.Lightning, UrgencyDegreeEnum.Dated, UrgencyDegreeEnum.VeryUrgent, UrgencyDegreeEnum.Urgent
+]);
+
+const PAGE_SIZE = 20;
+// Seçili kuyruk sekme oturumu boyunca hatırlanır (Evrak Kayıt'tan dönüşte aynı sekme açılır)
+const QUEUE_STORAGE_KEY = 'scanlist.queue';
+
 @Component({
   imports: [
-    FlexiGridModule,
     GenericModel,
     CommonModule,
+    FormsModule,
     UploadDocumentModal
   ],
   templateUrl: './scanlist.html',
-  styleUrls: ['./scanlist.css'],
+  // scanlist.css popup stilleri (pa-, zh-, ei-) Yönetici ve Birim listeleriyle ortaktır;
+  // kuyruk görünümünün stilleri (sq-) yalnızca bu sayfaya aittir.
+  styleUrls: ['./scanlist.css', './scanlist-queue.css'],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export default class Scanlist {
-  selectedOcrFilter = 'completed';
   private assignmentService = inject(DocumentAssignmentService);
   readonly #common = inject(Common);
   readonly #roleService = inject(RoleService);
   readonly user = computed(() => this.#common.user());
-  readonly scanListData = signal<IncomingDocumentModel[]>([]);
+  readonly scanListData = signal<ScanListRow[]>([]);
 
-  // Gizlilik ve İvedilik sütunları Giden Evraklar listesiyle aynı: ikonlu / baş harfli
-  // renkli rozet; filtre ve Excel çıktısı için metin etiketleri satıra eklenir.
+  // Gizlilik ve İvedilik rozetleri Giden Evraklar listesiyle aynı: ikonlu / baş harfli renkli rozet
   readonly securityDegreeMap: Record<number, string> = SecurityDegreeLabels;
   readonly securityDegreeIconMap: Record<number, string> = SecurityDegreeIcons;
   readonly securityDegreeBadgeClassMap: Record<number, string> = SecurityDegreeBadgeClass;
-  readonly securityDegreeFilterData: FlexiGridFilterDataModel[] =
-    Object.values(SecurityDegreeLabels).map(label => ({ name: label, value: label }));
   readonly urgencyDegreeMap: Record<number, string> = UrgencyDegreeLabels;
   readonly urgencyDegreeInitialMap: Record<number, string> = UrgencyDegreeInitials;
   readonly urgencyDegreeBadgeClassMap: Record<number, string> = UrgencyDegreeBadgeClass;
-  readonly urgencyDegreeFilterData: FlexiGridFilterDataModel[] =
-    Object.values(UrgencyDegreeLabels).map(label => ({ name: label, value: label }));
-  // "Dosya" sütunu dosya adı yerine yalnızca dosyanın olup olmadığını gösterir;
-  // filtre ve Excel çıktısı hasFileLabel metniyle çalışır.
-  readonly hasFileFilterData: FlexiGridFilterDataModel[] = [
-    { name: 'Var', value: 'Var' },
-    { name: 'Yok', value: 'Yok' }
-  ];
-  readonly gridRows = computed(() =>
-    this.scanListData().map(doc => ({
-      ...doc,
-      securityDegreeLabel: (doc.securityDegree != null && this.securityDegreeMap[doc.securityDegree]) || '-',
-      urgencyDegreeLabel: (doc.urgencyDegree != null && this.urgencyDegreeMap[doc.urgencyDegree]) || '-',
-      hasFileLabel: doc.documentName ? 'Var' : 'Yok'
-    }))
-  );
-  readonly documentsResourceSig = signal<any>(null);
+  readonly documentTypeLabels: Record<number, string> = DocumentTypeLabels;
+
+  // Süzgeç seçenekleri: ivedilik dikkat sırasıyla, gizlilik yüksekten düşüğe
+  readonly urgencyOptions = Object.entries(UrgencyDegreeLabels)
+    .map(([value, label]) => ({ value: Number(value), label }))
+    .sort((a, b) => (URGENCY_RANK[a.value] ?? 9) - (URGENCY_RANK[b.value] ?? 9));
+  readonly securityOptions = Object.entries(SecurityDegreeLabels)
+    .map(([value, label]) => ({ value: Number(value), label }))
+    .sort((a, b) => b.value - a.value);
+
   readonly #toast = inject(FlexiToastService);
   private readonly router = inject(Router);
   private readonly incomingDocumentService = inject(IncomingDocumentService);
   private readonly allocationService = inject(DocumentAllocation);
+  private readonly transactionService = inject(DocumentTransaction);
   private readonly httpService = inject(HttpService);
   private readonly userRoleService = inject(UserRoleService);
-  readonly loading = computed(() => this.documentsResourceSig()?.isLoading?.() ?? false);
+  readonly loading = signal(false);
+  readonly loadFailed = signal(false);
 
-  showFilters = false;
+  // ---- Kuyruklar ve süzgeçler ----
+  readonly queues = QUEUES;
+  readonly activeQueue = signal<QueueView>(this.readStoredQueue());
+  readonly search = signal('');
+  readonly urgencyFilter = signal<number | null>(null);
+  readonly securityFilter = signal<number | null>(null);
+  readonly personFilter = signal<string | null>(null);
+  readonly fileFilter = signal<FileView>('all');
+  readonly ocrReadyOnly = signal(false);
+  readonly publishFilter = signal<PublishView>('all');
+  readonly sortBy = signal<SortView>('priority');
+  readonly page = signal(1);
 
-  private emptyToastShown = false;
+  // Personel adıyla eşleşme GUID büyük/küçük harf farkından etkilenmesin
+  private readonly myId = computed(() => (this.user()?.id ?? '').toLowerCase());
 
-  setOcrFilter(value: string) {
-    this.selectedOcrFilter = value;
-    this.showPublished = false;
-    this.showPending = false;
-    this.onOcrFilterChange();
+  isMine(item: IncomingDocumentModel): boolean {
+    const me = this.myId();
+    return !!me && (item.currentAssignmentUserId ?? '').toLowerCase() === me;
   }
 
-  readonly personFilter = signal<FlexiGridFilterDataModel[]>([
-    { name: 'Bahadır Tunçay', value: 'Bahadır Tunçay' },
-    { name: 'Bülent Arslan', value: 'Bülent Arslan' },
-    { name: 'Oral Akçakoyun', value: 'Oral Akçakoyun' },
-    { name: 'Ömer Ersoy', value: 'Ömer Ersoy' },
-    { name: 'Yener Şahin', value: 'Yener Şahin' },
-    { name: 'Murat Kale', value: 'Murat Kale' }
-  ]);
+  queueOf(item: IncomingDocumentModel): QueueKey {
+    if (isSentToPublish(item)) return 'published';
+    if (!item.currentAssignmentUserId) return 'waiting';
+    return this.isMine(item) ? 'mine' : 'others';
+  }
 
-  readonly ocrFilter = signal<FlexiGridFilterDataModel[]>([
-    { name: 'Tamamlanmış', value: '1' },
-    { name: 'Beklemede', value: '0' },
-    { name: 'Beklemede', value: '2' }
-  ]);
+  readonly queueCounts = computed(() => {
+    const counts: Record<QueueView, number> = { waiting: 0, mine: 0, others: 0, published: 0, all: 0 };
+    for (const d of this.scanListData()) {
+      counts[this.queueOf(d)]++;
+      counts.all++;
+    }
+    return counts;
+  });
+
+  // Kuyruktaki dikkat gerektiren (Yıldırım, Günlüdür, Çok Acele, Acele) evrak sayısı;
+  // kuyruk kartında küçük bir sinyal olarak gösterilir.
+  readonly queueUrgentCounts = computed(() => {
+    const counts: Record<QueueView, number> = { waiting: 0, mine: 0, others: 0, published: 0, all: 0 };
+    for (const d of this.scanListData()) {
+      if (d.urgencyDegree == null || !ATTENTION_URGENCIES.has(d.urgencyDegree)) continue;
+      const q = this.queueOf(d);
+      // Yayına gönderilmiş evrak artık kayıt işi beklemez; sinyal yalnızca açık kuyruklarda
+      if (q === 'published') continue;
+      counts[q]++;
+      counts.all++;
+    }
+    return counts;
+  });
+
+  // Seçili kuyruktaki evraklar (süzgeçlerden önce): Personel listesi bundan çıkarılır
+  private readonly queueRows = computed(() => {
+    const q = this.activeQueue();
+    const rows = this.scanListData();
+    return q === 'all' ? rows : rows.filter(d => this.queueOf(d) === q);
+  });
+
+  readonly personOptions = computed(() => {
+    const names = new Set<string>();
+    for (const d of this.queueRows()) {
+      const n = d.currentAssignmentUser?.trim();
+      if (n) names.add(n);
+    }
+    return [...names].sort((a, b) => a.localeCompare(b, 'tr'));
+  });
+
+  readonly showPersonFilter = computed(() => this.activeQueue() !== 'waiting' && this.activeQueue() !== 'mine');
+
+  readonly filteredRows = computed(() => {
+    const term = this.search().trim().toLocaleLowerCase('tr');
+    const urgency = this.urgencyFilter();
+    const security = this.securityFilter();
+    const person = this.showPersonFilter() ? this.personFilter() : null;
+    const file = this.fileFilter();
+    const ocrReady = this.ocrReadyOnly();
+    const publish = this.activeQueue() === 'published' ? this.publishFilter() : 'all';
+    const institutions = this.institutionNames();
+
+    const rows = this.queueRows().filter(d => {
+      if (urgency != null && d.urgencyDegree !== urgency) return false;
+      if (security != null && d.securityDegree !== security) return false;
+      if (person && (d.currentAssignmentUser?.trim() ?? '') !== person) return false;
+      if (file === 'with' && !d.documentName) return false;
+      if (file === 'without' && d.documentName) return false;
+      if (ocrReady && d.ocrStatus !== 1) return false;
+      if (publish === 'done' && !isPublished(d)) return false;
+      if (publish === 'progress' && !isPublishing(d)) return false;
+      if (publish === 'failed' && !isPublishFailed(d)) return false;
+      if (term) {
+        const from = d.externalInstitutionId ? institutions[d.externalInstitutionId.toLowerCase()] : '';
+        const haystack = [d.qrCode, d.orginalNo, d.currentAssignmentUser, from]
+          .filter(Boolean).join(' ').toLocaleLowerCase('tr');
+        if (!haystack.includes(term)) return false;
+      }
+      return true;
+    });
+
+    return this.sortRows(rows, this.sortBy());
+  });
+
+  // Filtre düğmesiyle açılan kriter paneli (İvedilik, Gizlilik, Personel, Dosya)
+  readonly filtersOpen = signal(false);
+  readonly selectFilterCount = computed(() =>
+    (this.urgencyFilter() != null ? 1 : 0) + (this.securityFilter() != null ? 1 : 0)
+    + (this.showPersonFilter() && this.personFilter() ? 1 : 0) + (this.fileFilter() !== 'all' ? 1 : 0));
+
+  readonly hasActiveFilters = computed(() =>
+    !!this.search().trim() || this.urgencyFilter() != null || this.securityFilter() != null
+    || (this.showPersonFilter() && !!this.personFilter()) || this.fileFilter() !== 'all'
+    || this.ocrReadyOnly() || (this.activeQueue() === 'published' && this.publishFilter() !== 'all'));
+
+  readonly pageCount = computed(() => Math.max(1, Math.ceil(this.filteredRows().length / PAGE_SIZE)));
+  readonly currentPage = computed(() => Math.min(this.page(), this.pageCount()));
+  readonly pagedRows = computed(() => {
+    const start = (this.currentPage() - 1) * PAGE_SIZE;
+    return this.filteredRows().slice(start, start + PAGE_SIZE);
+  });
+  readonly rangeLabel = computed(() => {
+    const total = this.filteredRows().length;
+    if (!total) return '0';
+    const start = (this.currentPage() - 1) * PAGE_SIZE + 1;
+    return `${start}–${Math.min(start + PAGE_SIZE - 1, total)} / ${total}`;
+  });
+
+  // OCR zorunlu değildir; OCR hataları listeyi kalabalıklaştırmaz, ayrı bir pencerede
+  // izlenir. Yayına gönderilmiş evrakın OCR hatası artık kaydı etkilemediğinden sayılmaz.
+  readonly ocrErrorRows = computed(() =>
+    this.sortRows(this.scanListData().filter(d => d.ocrStatus === 2 && !isSentToPublish(d)), 'priority'));
+  readonly ocrErrorsVisible = signal(false);
+
+  private sortRows(rows: ScanListRow[], sort: SortView): ScanListRow[] {
+    const time = (d: ScanListRow) => new Date(d.createdDate ?? d.documentDate ?? 0).getTime() || 0;
+    const sorted = [...rows];
+    switch (sort) {
+      case 'newest': return sorted.sort((a, b) => time(b) - time(a));
+      case 'oldest': return sorted.sort((a, b) => time(a) - time(b));
+      case 'number': return sorted.sort((a, b) => (a.qrCode ?? '').localeCompare(b.qrCode ?? '', 'tr', { numeric: true }));
+      default:
+        return sorted.sort((a, b) =>
+          this.urgencyRank(a) - this.urgencyRank(b)
+          || (b.securityDegree ?? 0) - (a.securityDegree ?? 0)
+          || time(b) - time(a));
+    }
+  }
+
+  private urgencyRank(d: IncomingDocumentModel): number {
+    return d.urgencyDegree != null ? (URGENCY_RANK[d.urgencyDegree] ?? 6) : 6;
+  }
+
+  isAttention(d: IncomingDocumentModel): boolean {
+    return d.urgencyDegree != null && ATTENTION_URGENCIES.has(d.urgencyDegree);
+  }
+
+  institutionName(d: IncomingDocumentModel): string {
+    return (d.externalInstitutionId && this.institutionNames()[d.externalInstitutionId.toLowerCase()]) || '';
+  }
+
+  setQueue(q: QueueView): void {
+    this.activeQueue.set(q);
+    this.personFilter.set(null);
+    this.publishFilter.set('all');
+    this.page.set(1);
+    try { sessionStorage.setItem(QUEUE_STORAGE_KEY, q); } catch { /* depolama kapalı olabilir */ }
+  }
+
+  private readStoredQueue(): QueueView {
+    try {
+      const v = sessionStorage.getItem(QUEUE_STORAGE_KEY);
+      if (v && QUEUES.some(q => q.key === v)) return v as QueueView;
+    } catch { /* depolama kapalı olabilir */ }
+    return 'waiting';
+  }
+
+  // Süzgeç değişince ilk sayfaya dönülür
+  setFilter<T>(target: { set(v: T): void }, value: T): void {
+    target.set(value);
+    this.page.set(1);
+  }
+
+  clearFilters(): void {
+    this.search.set('');
+    this.urgencyFilter.set(null);
+    this.securityFilter.set(null);
+    this.personFilter.set(null);
+    this.fileFilter.set('all');
+    this.ocrReadyOnly.set(false);
+    this.publishFilter.set('all');
+    this.page.set(1);
+  }
+
+  goToPage(p: number): void {
+    this.page.set(Math.min(Math.max(1, p), this.pageCount()));
+  }
+
+  readonly emptyText = computed(() => {
+    if (this.hasActiveFilters()) return { title: 'Kriterlere uyan evrak yok', desc: 'Arama metnini ya da kriterleri değiştirip yeniden deneyin.' };
+    switch (this.activeQueue()) {
+      case 'waiting': return { title: 'Kayıt bekleyen evrak yok', desc: 'Yeni taranan ya da ön kaydı yapılan evraklar burada görünür.' };
+      case 'mine': return { title: 'Üzerinizde bekleyen evrak yok', desc: 'İşleme aldığınız ve henüz yayınlanmamış evraklar burada görünür.' };
+      case 'others': return { title: 'Başka personelde evrak yok', desc: 'Diğer personelin işleme aldığı evraklar burada görünür.' };
+      case 'published': return { title: 'Yayınlanan evrak yok', desc: 'Yayına gönderilen evraklar burada görünür.' };
+      default: return { title: 'Gelen evrak bulunamadı', desc: 'Listelenecek gelen evrak yok.' };
+    }
+  });
+
+  // Excel'de Türkçe karakterlerin doğru açılması için BOM'lu, noktalı virgül ayraçlı CSV
+  exportCsv(): void {
+    const rows = this.filteredRows();
+    if (!rows.length) return;
+    const header = ['Evrak No', 'Konu', 'Nereden', 'Belge Tarihi', 'İvedilik', 'Gizlilik', 'Atanan Personel', 'Dosya', 'Yayın Durumu'];
+    const cell = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const lines = rows.map(d => [
+      d.qrCode,
+      d.subject,
+      this.institutionName(d),
+      d.documentDate ? new Date(d.documentDate).toLocaleDateString('tr-TR') : '',
+      d.urgencyDegree != null ? this.urgencyDegreeMap[d.urgencyDegree] : '',
+      this.securityDegreeMap[d.securityDegree] ?? '',
+      d.currentAssignmentUser ?? '',
+      d.documentName ? 'Var' : 'Yok',
+      publishStatusLabel(d)
+    ].map(cell).join(';'));
+    const blob = new Blob(['﻿' + [header.map(cell).join(';'), ...lines].join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const queue = QUEUES.find(q => q.key === this.activeQueue())?.label ?? 'Gelen Evraklar';
+    a.href = url;
+    a.download = `Gelen Evraklar - ${queue}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   // ---- Personel atama popup ----
   // Başka bir personele atanmış evrakı yeni bir personele aktarır. Personel listesi
@@ -176,16 +430,20 @@ export default class Scanlist {
   }
 
   constructor() {
-    this.setupDocumentsEffect();
     this.loadDocuments();
+    // Nereden (dış kurum) adı satırda ve aramada kullanıldığından listeler baştan çekilir
+    this.loadLookupsOnce();
 
+    // Üst menüdeki "işlem bekleyenlerim" yönlendirmesi Üzerimdekiler kuyruğunu açar;
+    // istek bir kez tüketilir ki sonraki ziyaretler kullanıcının seçtiği sekmede açılsın.
     effect(() => {
       const type = this.incomingDocumentService.currentIncomingDocumentSearchType;
-
-      if (type === 'pending') {
-        this.showPending = false;
-        this.togglePending();
-      }
+      if (type !== 'pending') return;
+      untracked(() => {
+        this.clearFilters();
+        this.setQueue('mine');
+        this.incomingDocumentService.setIncomingDocumentSearchType(null);
+      });
     });
   }
 
@@ -200,56 +458,22 @@ export default class Scanlist {
     return this.#roleService.hasAny(['Yönetici', 'Gelen Evrak']) ? undefined : this.user()?.departmentId;
   }
 
-  private setupDocumentsEffect(): void {
-    effect(() => {
-      const res = this.documentsResourceSig();
-      if (!res || res.isLoading?.()) return;
-
-      const docs = res.value?.() ?? [];
-
-      if (!docs || docs.length === 0) {
-        if (!this.emptyToastShown) {
-          this.#toast.showToast('Uyarı', 'Herhangi bir belge bulunamadı');
-          this.emptyToastShown = true;
-        }
-        this.scanListData.set([]);
-        return;
+  // Tüm gelen evraklar tek istekte çekilir; kuyruklara ayırma ve süzme istemcide yapılır.
+  // Boş liste toast yerine listenin boş durum alanında anlatılır.
+  loadDocuments(): void {
+    this.loading.set(true);
+    this.loadFailed.set(false);
+    this.incomingDocumentService.getAllIncomingDocuments(this.departmentFilterId).subscribe({
+      next: (docs) => {
+        this.scanListData.set((docs ?? []).filter(d => !d.isDeleted));
+        this.loading.set(false);
+      },
+      error: (err) => {
+        console.error('Gelen evraklar alınamadı:', err);
+        this.loading.set(false);
+        this.loadFailed.set(true);
       }
-
-      this.emptyToastShown = false;
-
-      let mapped = docs.map((item: IncomingDocumentModel) => ({
-        ...item,
-        assignmentStatus: item.currentAssignmentUserId
-          ? (item.currentAssignmentUserId === this.currentUserId ? 'assignedToMe' : 'assignedToOther')
-          : 'unassigned',
-        ocrStr: (item.status ?? 0).toString()
-      }));
-
-      // yayınlanan filtre: yayına gönderilmiş evraklar (submissionStatus >= 2)
-      if (this.showPublished) {
-        mapped = mapped.filter((x: IncomingDocumentModel) => isSentToPublish(x));
-      }
-
-      this.scanListData.set(mapped);
-
     });
-  }
-  private loadDocuments(): void {
-    this.documentsResourceSig.set(
-      this.incomingDocumentService.getIncomingDocumentsByStatus(this.selectedOcrFilter, this.departmentFilterId)
-    );
-  }
-
-  // OCR filtre değiştiğinde yeni resource set et (kritik fix)
-  onOcrFilterChange() {
-    //console.log('change başladı ... ' + this.selectedOcrFilter);
-
-    this.emptyToastShown = false;
-
-    this.documentsResourceSig.set(
-      this.incomingDocumentService.getIncomingDocumentsByStatus(this.selectedOcrFilter, this.departmentFilterId)
-    );
   }
 
   openPersonModal(item: ScanListRow) {
@@ -326,7 +550,7 @@ export default class Scanlist {
       next: () => {
         this.assignSaving.set(false);
         this.assignModalVisible.set(false);
-        this.#toast.showToast('Başarılı', `Evrak ${this.userFullName(person)} personeline atandı`, 'success');
+        // Sonuç listede görünür (satır yeni personelin adıyla yenilenir); ayrıca toast gösterilmez
         this.loadDocuments();
       },
       error: () => {
@@ -334,10 +558,6 @@ export default class Scanlist {
         this.#toast.showToast('Hata', 'Atama oluşturulamadı', 'error');
       }
     });
-  }
-
-  toggleFilter() {
-    this.showFilters = !this.showFilters;
   }
 
 
@@ -368,6 +588,13 @@ export default class Scanlist {
 
   }
 
+  /** Atama (işleme alma) oluşturmadan belge detayına gider; yayınlanan evraklar için. */
+  private openDetailWithoutAssignment(id: string) {
+    this.incomingDocumentService.setSelectedIncomingDocument(id);
+    this.incomingDocumentService.setIncomingDocumentUpdateType('1');
+    this.router.navigate(['/evrakkayit']);
+  }
+
   goToProcess(id: string) {
     this.incomingDocumentService.setSelectedIncomingDocument(id);
     this.router.navigate(['/surecler']);
@@ -377,6 +604,52 @@ export default class Scanlist {
   goToZimmet(id: string) {
     this.incomingDocumentService.setZimmetIncomingDocument(id);
     this.router.navigate(['/zimmet']);
+  }
+
+  // ---- Süreç popup'ı ----
+  // Süreçler sayfasındaki işlem geçmişinin popup karşılığı: yalnızca süreç adımları gösterilir.
+  // Adım gruplama, ikon ve renk kuralları Süreçler sayfasıyla ortaktır (models/process-step.ts).
+
+  readonly processVisible = signal(false);
+  readonly processLoading = signal(false);
+  readonly processFailed = signal(false);
+  readonly processDoc = signal<IncomingDocumentModel | null>(null);
+  readonly processSteps = signal<ProcessStep[]>([]);
+  readonly processTypeIcon = processTypeIcon;
+  readonly processTypeTone = processTypeTone;
+  readonly processMilestoneKind = processMilestoneKind;
+  readonly processPersonLabel = processPersonLabel;
+
+  openProcess(item: IncomingDocumentModel): void {
+    if (!item.id) return;
+    this.processDoc.set(item);
+    this.processSteps.set([]);
+    this.processFailed.set(false);
+    this.processVisible.set(true);
+    this.processLoading.set(true);
+
+    this.transactionService.getTransactionsByDocumentId(item.id).subscribe({
+      next: (res) => {
+        this.processSteps.set(buildProcessSteps(sortProcessTransactions(res)));
+        this.processLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Süreç bilgileri alınamadı:', err);
+        this.processFailed.set(true);
+        this.processLoading.set(false);
+      }
+    });
+  }
+
+  closeProcess(): void {
+    this.processVisible.set(false);
+  }
+
+  // Popup'tan Süreçler sayfasına geçiş (evrak bilgileriyle birlikte tam görünüm)
+  openProcessPage(): void {
+    const id = this.processDoc()?.id;
+    this.closeProcess();
+    if (id) this.goToProcess(id);
   }
 
   // ---- Zimmet Geçmişi popup (tüm roller) ----
@@ -511,7 +784,7 @@ export default class Scanlist {
           this.goToDetail(doc.id);
         } else {
           // Yükleme tamam ama evrak çekilemedi; listede görünsün
-          this.onOcrFilterChange();
+          this.loadDocuments();
         }
       },
       error: (err: DocumentNumberUploadError) => {
@@ -564,14 +837,40 @@ export default class Scanlist {
   readonly infoLoading = signal(false);
   readonly infoDoc = signal<ScanListRow | null>(null);
 
-  isProcessable(item: IncomingDocumentModel): boolean {
-    return !!item.documentName && PROCESSABLE_STATUSES.has(item.status);
+  // Satırın ana eylemi:
+  //  - akış durumu uygun (Ön Kayıt / Kayıt Tamamlandı / Eşleştirme) ise dosya olsun olmasın:
+  //      bende -> Devam Et, başkasında -> Personel Ata (atama popup'ı), kimsede değil -> İşleme Al
+  //    Belge yüklemek zorunlu değildir; dosyasız evrak Evrak Kayıt'ta "Belge henüz yüklenmedi"
+  //    durumuyla açılır ve dosya orada sonradan yüklenebilir.
+  //  - durum uygun değilse ya da evrak yayına gönderildiyse (Yayınlanan kuyruğu):
+  //      dosyası varsa Belge Detayı, yoksa evrak bilgileri
+  primaryAction(item: ScanListRow): { kind: 'take' | 'continue' | 'reassign' | 'detail' | 'info'; label: string; icon: string; title: string } {
+    const fileNote = item.documentName ? '' : ' · Belge dosyası henüz yüklenmedi';
+    if (!PROCESSABLE_STATUSES.has(item.status) || isSentToPublish(item)) {
+      if (!item.documentName) {
+        return { kind: 'info', label: 'Bilgiler', icon: 'info', title: `Evrak ${DOCUMENT_STATUS_LABELS[item.status] ?? 'bu'} durumunda · Evrak bilgilerini göster` };
+      }
+      return { kind: 'detail', label: 'Detay', icon: 'open_in_new', title: 'Belge Detayına Git' };
+    }
+    if (this.isMine(item)) return { kind: 'continue', label: 'Devam Et', icon: 'motion_play', title: 'İşleme Devam Et' + fileNote };
+    if (item.currentAssignmentUserId) {
+      return { kind: 'reassign', label: 'Personel Ata', icon: 'key', title: 'Evrak başka personele atanmış · Atamayı değiştir' };
+    }
+    return { kind: 'take', label: 'İşleme Al', icon: 'expand_circle_right', title: 'İşleme Al · Evrak Kayıt ekranında aç' + fileNote };
   }
 
-  // Bağlantının üzerinde neden işleme alınamadığı yazar
-  notProcessableReason(item: IncomingDocumentModel): string {
-    if (!item.documentName) return 'Belge dosyası yüklenmemiş';
-    return `Evrak ${DOCUMENT_STATUS_LABELS[item.status] ?? 'bu'} durumunda`;
+  runPrimary(item: ScanListRow): void {
+    if (!item.id) return;
+    switch (this.primaryAction(item).kind) {
+      case 'info': this.openInfo(item); break;
+      case 'reassign': this.openPersonModal(item); break;
+      // Yayına gönderilmiş evrak işleme alınmaz: atama oluşturmadan detaya gidilir
+      case 'detail':
+        if (isSentToPublish(item)) { this.openDetailWithoutAssignment(item.id); break; }
+        this.goToDetail(item.id);
+        break;
+      default: this.goToDetail(item.id);
+    }
   }
 
   // Popup içeriği: başlıkta evrak no + konu ve durum çipleri, altında sınıflandırma
@@ -697,80 +996,9 @@ export default class Scanlist {
       'Sil',
       () => {
         this.incomingDocumentService.deleteIncomingDocument(id).subscribe(() => {
-          // ✅ silme sonrası da resource yenile
-          this.documentsResourceSig.set(
-            this.incomingDocumentService.getIncomingDocumentsByStatus(this.selectedOcrFilter, this.departmentFilterId)
-          );
+          this.loadDocuments();
         });
       }
     );
-  }
-
-  showPublished = false;
-  showPending = false;
-
-  togglePublished() {
-    this.showPublished = !this.showPublished;
-    if (this.showPublished) this.showPending = false; // Pending devre dışı
-    if (this.showPublished)
-      this.selectedOcrFilter = "all";
-    else {
-      this.selectedOcrFilter = "completed";
-      this.onOcrFilterChange();
-    }
-
-    this.incomingDocumentService.getAllIncomingDocuments(this.departmentFilterId).subscribe({
-      next: (docs) => {
-        if (!docs || !docs.length) {
-          this.scanListData.set([]);
-          return;
-        }
-
-        let mapped = docs;
-
-        if (this.showPublished) {
-          mapped = docs.filter(x => isSentToPublish(x));
-        }
-
-        this.scanListData.set(mapped);
-      },
-      error: () => {
-        this.scanListData.set([]);
-      }
-    });
-  }
-
-  togglePending() {
-    this.showPending = !this.showPending;
-    if (this.showPending) this.showPublished = false; // Yayınlanan devre dışı
-    if (this.showPending)
-      this.selectedOcrFilter = "all";
-    else {
-      this.selectedOcrFilter = "completed";
-      this.onOcrFilterChange();
-    }
-
-    this.incomingDocumentService.getAllIncomingDocuments(this.departmentFilterId).subscribe({
-      next: (docs) => {
-        if (!docs || !docs.length) {
-          this.scanListData.set([]);
-          return;
-        }
-
-        let mapped = docs;
-
-        if (this.showPending) {
-          const currentUserId = this.user()?.id;
-          mapped = docs.filter(
-            x => x.currentAssignmentUserId === currentUserId && !isSentToPublish(x)
-          );
-        }
-
-        this.scanListData.set(mapped);
-      },
-      error: () => {
-        this.scanListData.set([]);
-      }
-    });
   }
 }

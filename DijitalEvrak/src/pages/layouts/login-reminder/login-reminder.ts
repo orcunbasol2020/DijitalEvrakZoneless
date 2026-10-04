@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, OnInit, signal, untracked, ViewEncapsulation } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { catchError, forkJoin, of } from 'rxjs';
@@ -29,7 +29,8 @@ interface ReminderTabItem {
 // yalnızca içeriği olan sekme görünür, hiçbiri yoksa popup açılmaz:
 //  - Zimmet onayınızı bekleyen evraklar (her kullanıcı), evraklar tek tek listelenir
 //  - Teslim alınmayı bekleyen birim evrakları (Birim Evrak Sorumlusu)
-//  - Okunmamış bildirimler (talebiniz onaylandı, reddedildi, geri çekildi…)
+//  - Geciken zimmet onayı bildirimleri (devrettiğiniz evrak alıcıda bekliyor); diğer bildirimler
+//    popup'ta gösterilmez, zil menüsünde ve Bildirimler sekmesinde kalır
 // Popup her girişte bir kez açılır: login bayrağı bırakır, burada okunup silinir.
 @Component({
   selector: 'app-login-reminder',
@@ -66,8 +67,9 @@ export class LoginReminder implements OnInit {
     return d?.total ? Math.round((d.pending / d.total) * 100) : 0;
   });
 
-  // Okunmamış bildirimler (onaylandı, reddedildi, geri çekildi…); onay talebi bildirimleri hariç
-  readonly notifications = this.notificationService.unreadVisible;
+  // Yalnızca okunmamış geciken zimmet onayı bildirimleri. Açılıştaki hali sabitlenir: ilk
+  // görüldüklerinde okundu sayılıp ortak listeden düşseler de popup'ta kalırlar.
+  readonly notifications = signal<NotificationModel[]>([]);
   readonly notificationPreview = computed(() => this.notifications().slice(0, LoginReminder.NOTIFICATION_PREVIEW));
   readonly notificationMore = computed(() => this.notifications().length - this.notificationPreview().length);
   private static readonly NOTIFICATION_PREVIEW = 5;
@@ -84,7 +86,7 @@ export class LoginReminder implements OnInit {
     const tabs: ReminderTabItem[] = [];
     if (this.hasApprovals()) tabs.push({ key: 'onay', label: 'Zimmet Onayları', icon: 'assignment_turned_in', count: this.approvals().length });
     if (this.hasDelivery()) tabs.push({ key: 'teslim', label: 'Birim Evrakları', icon: 'pending_actions', count: this.delivery()!.pending });
-    if (this.hasNotifications()) tabs.push({ key: 'bildirim', label: 'Bildirimler', icon: 'notifications', count: this.notifications().length });
+    if (this.hasNotifications()) tabs.push({ key: 'bildirim', label: 'Geciken Onaylar', icon: 'schedule', count: this.notifications().length });
     return tabs;
   });
   private readonly selectedTab = signal<ReminderTab | null>(null);
@@ -92,6 +94,18 @@ export class LoginReminder implements OnInit {
     const tabs = this.tabs();
     const selected = this.selectedTab();
     return tabs.some(t => t.key === selected) ? selected : (tabs[0]?.key ?? null);
+  });
+
+  // Gecikme bildirimleri sekmesi ilk göründüğünde okundu işaretlenir
+  private notificationsMarked = false;
+  private readonly markNotificationsOnFirstView = effect(() => {
+    if (!this.visible() || this.activeTab() !== 'bildirim' || this.notificationsMarked) return;
+    this.notificationsMarked = true;
+    untracked(() => {
+      const userId = this.user()?.id;
+      if (!userId) return;
+      for (const n of this.notifications()) this.notificationService.markAsRead(n.id, userId);
+    });
   });
 
   selectTab(tab: ReminderTab): void {
@@ -102,7 +116,7 @@ export class LoginReminder implements OnInit {
     if (this.sectionCount() > 1) return 'Bekleyen İşleriniz';
     if (this.hasApprovals()) return 'Zimmet Onayınızı Bekleyen Evraklar';
     if (this.hasDelivery()) return 'Teslim Alınmayı Bekleyen Evraklar';
-    return 'Okunmamış Bildirimleriniz';
+    return 'Geciken Zimmet Onayları';
   });
 
   notificationIcon(n: NotificationModel): string {
@@ -131,8 +145,10 @@ export class LoginReminder implements OnInit {
       approvals: this.allocationRequests.refreshPendingForMe(userId),
       notifications: this.notificationService.refreshUnread(userId),
       delivery: delivery$
-    }).subscribe(({ approvals, delivery }) => {
+    }).subscribe(({ approvals, notifications, delivery }) => {
       this.delivery.set(delivery);
+      this.notifications.set(notifications.filter(n =>
+        !n.isRead && Number(n.type) === NotificationTypeEnum.ZimmetOnayGecikme));
       if (approvals.length > 0 || (delivery?.pending ?? 0) > 0 || this.hasNotifications()) this.visible.set(true);
     });
   }
@@ -156,9 +172,10 @@ export class LoginReminder implements OnInit {
     this.router.navigate(['/zimmet-onaylari']);
   }
 
+  // Gecikme bildirimi devredene gider; bekleyen talepleri Gönderdiklerim sekmesinde
   goToNotifications(): void {
     this.visible.set(false);
-    this.router.navigate(['/zimmet-onaylari'], { queryParams: { sekme: 'bildirimler' } });
+    this.router.navigate(['/zimmet-onaylari'], { queryParams: { sekme: 'gonderilen' } });
   }
 
   goToPendingDocuments(): void {

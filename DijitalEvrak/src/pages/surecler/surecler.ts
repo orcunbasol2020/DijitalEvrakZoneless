@@ -17,6 +17,10 @@ import { ExternalInstitution, ExternalInstitutionModel } from '../../services/ex
 import { RoleService } from '../../services/role-service';
 import { isPublished, isSentToPublish, publishStatusLabel } from '../../models/publishstatus.model';
 import { UrgencyDegreeBadgeClass, UrgencyDegreeEnum, UrgencyDegreeInitials, UrgencyDegreeLabels } from '../../models/urgencydegree.model';
+import {
+  buildProcessSteps, ProcessMilestone, processMilestoneKind, processPersonLabel, ProcessStep, ProcessTone,
+  processTypeIcon, processTypeTone, sortProcessTransactions
+} from '../../models/process-step';
 
 // Evrak Kayıt ekranındaki Dil seçenekleriyle aynı
 const LANGUAGES: Record<number, string> = { 1: 'Türkçe', 2: 'İngilizce' };
@@ -33,54 +37,6 @@ const DOC_STATUS: Record<number, { label: string; tone: 'info' | 'success' | 'wa
   6: { label: 'Kayıt Tamamlandı', tone: 'neutral' },
   10: { label: 'Kayıt Tamamlandı', tone: 'neutral' },
 };
-
-type Tone = 'info' | 'success' | 'warning' | 'neutral' | 'publish';
-
-// Sürecin kilometre taşı sayılan adımları; diğer adımlardan daha belirgin çizilir.
-type Milestone = 'publish' | 'deliver' | 'archive';
-
-// İşlem türüne göre zaman çizelgesi düğümünün ikonu ve rengi.
-// 1 Ön Kayıt, 6 Zimmet, 7 Teslim, 8 OCR, 9 Birim Arşivi, 17 Şerhli Kabul; diğerleri varsayılan.
-const TYPE_STYLE: Record<number, { icon: string; tone: Tone }> = {
-  1: { icon: 'app_registration', tone: 'info' },
-  6: { icon: 'contract_edit', tone: 'info' },
-  7: { icon: 'task_alt', tone: 'success' },
-  8: { icon: 'document_scanner', tone: 'warning' },
-  9: { icon: 'assured_workload', tone: 'neutral' },
-  17: { icon: 'rule', tone: 'warning' },
-};
-
-// Yayınlama adımının işlem türü numarası frontend'de bilinmiyor; bu yüzden kilometre
-// taşları hem bilinen tür numarasından hem de backend'in gönderdiği işlem adından
-// (transactionTypeName) tanınır. Adı "yayın" içeren her işlem yayınlama sayılır.
-const MILESTONE_BY_TYPE: Record<number, Milestone> = {
-  7: 'deliver',
-  9: 'archive',
-};
-
-const MILESTONE_BY_NAME: Array<{ pattern: RegExp; kind: Milestone }> = [
-  { pattern: /yay[ıi]n/i, kind: 'publish' },
-  { pattern: /teslim/i, kind: 'deliver' },
-  { pattern: /ar[şs]iv/i, kind: 'archive' },
-];
-
-const MILESTONE_STYLE: Record<Milestone, { icon: string; tone: Tone }> = {
-  publish: { icon: 'verified', tone: 'publish' },
-  deliver: { icon: 'task_alt', tone: 'success' },
-  archive: { icon: 'assured_workload', tone: 'neutral' },
-};
-
-const ZIMMET_TYPE = 6;
-
-// Yayınlamanın hemen ardından bu süre içinde oluşan zimmet, yayınlama ile birlikte
-// otomatik açılmış sayılır ve ayrı bir adım yerine yayınlamanın alt adımı olarak çizilir.
-const AUTO_ZIMMET_WINDOW_MS = 5 * 60 * 1000;
-
-// Zaman çizelgesindeki bir satır: ana işlem + ona bağlı alt işlemler.
-interface TimelineStep {
-  t: DocumentTransactionModel;
-  children: DocumentTransactionModel[];
-}
 
 @Component({
   imports: [
@@ -185,32 +141,9 @@ export default class Surecler implements OnInit {
   });
 
 
-  // İşlemler adımlara gruplanır: yayınlamayı kısa süre içinde izleyen zimmet
-  // (otomatik zimmet) yayınlama adımının altına alınır; diğer işlemler tek başına adımdır.
-  readonly steps = computed<TimelineStep[]>(() => {
-    const list = this.transactions();
-    const result: TimelineStep[] = [];
-
-    for (const t of list) {
-      const prev = result[result.length - 1];
-      if (prev && this.isAutoZimmetOf(prev, t)) {
-        prev.children.push(t);
-        continue;
-      }
-      result.push({ t, children: [] });
-    }
-
-    return result;
-  });
-
-  private isAutoZimmetOf(step: TimelineStep, t: DocumentTransactionModel): boolean {
-    if (t.transactionType !== ZIMMET_TYPE) return false;
-    if (this.milestoneKind(step.t) !== 'publish') return false;
-    // Yayınlama adımının altında zaten bir zimmet varsa ikinci zimmet ayrı adım olur.
-    if (step.children.length) return false;
-    const diff = new Date(t.createdDate).getTime() - new Date(step.t.createdDate).getTime();
-    return diff >= 0 && diff <= AUTO_ZIMMET_WINDOW_MS;
-  }
+  // Adım gruplama, ikon ve renk kuralları models/process-step.ts'te; Gelen Evraklar
+  // listesindeki Süreç popup'ı da aynı kuralları kullanır.
+  readonly steps = computed<ProcessStep[]>(() => buildProcessSteps(this.transactions()));
 
   ngOnInit(): void {
     this.id = this.documentService.currentIncomingDocumentId;
@@ -250,36 +183,10 @@ export default class Surecler implements OnInit {
     this.router.navigate([this.listUrl]);
   }
 
-  // Adımın kilometre taşı türü; kilometre taşı değilse null.
-  milestoneKind(t: DocumentTransactionModel): Milestone | null {
-    const byType = MILESTONE_BY_TYPE[t.transactionType];
-    if (byType) return byType;
-    const name = t.transactionTypeName ?? '';
-    return MILESTONE_BY_NAME.find(m => m.pattern.test(name))?.kind ?? null;
-  }
-
-  typeIcon(t: DocumentTransactionModel): string {
-    const kind = this.milestoneKind(t);
-    if (kind) return MILESTONE_STYLE[kind].icon;
-    return TYPE_STYLE[t.transactionType]?.icon ?? 'radio_button_checked';
-  }
-
-  typeTone(t: DocumentTransactionModel): Tone {
-    const kind = this.milestoneKind(t);
-    if (kind) return MILESTONE_STYLE[kind].tone;
-    return TYPE_STYLE[t.transactionType]?.tone ?? 'neutral';
-  }
-
-  // Kişi satırındaki küçük etiket: işlem türüne göre rolü.
-  personLabel(t: DocumentTransactionModel): string {
-    if (this.milestoneKind(t) === 'publish') return 'Yayınlayan';
-    const type = t.transactionType;
-    if (type === 1) return 'Kaydeden';
-    if (type === 6) return 'Zimmet Sahibi';
-    if (type === 9) return 'Arşivleyen';
-    if (type === 17) return 'Kabul Eden';
-    return 'Kullanıcı';
-  }
+  milestoneKind(t: DocumentTransactionModel): ProcessMilestone | null { return processMilestoneKind(t); }
+  typeIcon(t: DocumentTransactionModel): string { return processTypeIcon(t); }
+  typeTone(t: DocumentTransactionModel): ProcessTone { return processTypeTone(t); }
+  personLabel(t: DocumentTransactionModel): string { return processPersonLabel(t); }
 
   initials(fullName: string | null | undefined): string {
     const parts = (fullName ?? '').trim().split(/\s+/).filter(Boolean);
@@ -295,10 +202,7 @@ export default class Surecler implements OnInit {
     this.loading.set(true);
     this.documentTransactionService.getTransactionsByDocumentId(docId).subscribe({
       next: (res) => {
-        const list = (res ?? [])
-          .filter(t => t.transactionType !== 3)
-          .sort((a, b) => new Date(a.createdDate).getTime() - new Date(b.createdDate).getTime());
-        this.transactions.set(list);
+        this.transactions.set(sortProcessTransactions(res));
         this.loading.set(false);
       },
       error: (err) => {
