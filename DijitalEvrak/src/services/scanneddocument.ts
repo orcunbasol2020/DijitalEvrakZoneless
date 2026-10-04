@@ -1,3 +1,4 @@
+import { environment } from '../environments/environment';
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpService } from './http';
 import { ScannedDocumentModel } from '../models/scanneddocument.model';
@@ -49,7 +50,7 @@ export class ScannedDocumentService {
   // PDF URL
   getPdfUrl(fileName: string): string {
     if (!fileName) return '';
-    return `https://localhost:7056/api/ScannedDocuments/GetPdf?fileName=${encodeURIComponent(fileName)}`;
+    return `${environment.apiUrl}api/ScannedDocuments/GetPdf?fileName=${encodeURIComponent(fileName)}`;
   }
 
   // CREATE

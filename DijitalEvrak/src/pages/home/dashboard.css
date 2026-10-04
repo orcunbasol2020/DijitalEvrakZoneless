@@ -412,7 +412,7 @@ app-admin-dashboard app-currentdocument .ad-head-title,
     height: auto;
     min-height: 67px;
     padding: 12px 16px;
-    background: #f8fafc;
+    background: #f1f5f9;
     border-bottom: 1px solid #e7eaf0;
 }
 
@@ -1185,7 +1185,7 @@ app-admin-dashboard app-currentdocument .ad-head-title,
 }
 
 [data-theme="dark"] .premium-card .card-header.ad-head {
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0.07);
     border-bottom-color: var(--border-color);
 }
 
@@ -1309,6 +1309,41 @@ app-admin-dashboard app-currentdocument .ad-head-title,
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
 }
 
+/* Bayrağı olmayan ülkeler için genel ikon (bayrakla aynı boyutta daire) */
+.ad-nota-flag-generic {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.ad-nota-flag-generic .material-symbols-outlined {
+    font-size: 17px;
+}
+
+/* En Çok Evrak Gelen Birimler / Misyonlar: Raporlar "Dönem Karşılaştırması" biçiminde sütun grafiği */
+.ad-compare-chart {
+    height: 280px;
+}
+
+/* Diplomatik Nota Sayıları: yükleniyor / boş / hata */
+.ad-nota-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 160px;
+    padding: 24px 16px;
+    color: #94a3b8;
+    font-size: 13px;
+    text-align: center;
+}
+
+.ad-nota-state .material-symbols-outlined {
+    font-size: 20px;
+}
+
 .ad-nota-text {
     min-width: 0;
 }
@@ -1368,6 +1403,11 @@ app-admin-dashboard app-currentdocument .ad-head-title,
 
 [data-theme="dark"] .ad-nota-flag {
     border-color: rgba(148, 163, 184, 0.3);
+}
+
+[data-theme="dark"] .ad-nota-flag-generic {
+    background: rgba(148, 163, 184, 0.15);
+    color: #cbd5e1;
 }
 
 [data-theme="dark"] .ad-nota-country,
@@ -1635,7 +1675,7 @@ app-admin-dashboard app-currentdocument .ad-head-title,
 .ad-status-rows {
     display: flex;
     flex-direction: column;
-    gap: 26px;
+    gap: 22px;
     padding-top: 10px;
 }
 
@@ -1644,7 +1684,7 @@ app-admin-dashboard app-currentdocument .ad-head-title,
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    margin-bottom: 7px;
+    margin-bottom: 5px;
 }
 
 .ad-status-label {

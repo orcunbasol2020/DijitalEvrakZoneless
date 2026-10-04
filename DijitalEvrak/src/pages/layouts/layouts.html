@@ -18,10 +18,10 @@
     <!-- search -->
     <div class="search-container">
         <div class="position-relative">
-            <input type="text" class="form-control search-input" placeholder="Belge Ara ..."
+            <input type="text" class="form-control search-input" placeholder="Evrak no veya konu ara ..."
                 [ngModel]="search()"
                 (ngModelChange)="onSearchInput($event)"
-                (focus)="onSearchInput(search())"
+                (focus)="onSearchFocus()"
                 (blur)="onSearchBlur()"
                 (keydown)="onSearchKeydown($event)"
                 role="combobox"
@@ -38,29 +38,38 @@
                             Arama Sonuçları
                         </div>
                         <ul class="search-autocomplete-list">
-                            @for (result of searchResults(); track result.belgeNo; let i = $index) {
+                            @for (result of searchResults(); track result.direction + result.id; let i = $index) {
                                 <li>
                                     <a class="search-autocomplete-item"
                                         [class.active]="i === activeResultIndex()"
                                         href="javascript:void(0)"
                                         (mousedown)="selectSearchResult(result)"
                                         (mouseenter)="activeResultIndex.set(i)">
-                                        <span class="search-autocomplete-icon material-symbols-outlined" [ngClass]="typeIconClasses[result.tur]">{{ typeIcons[result.tur] }}</span>
+                                        <span class="search-autocomplete-icon material-symbols-outlined"
+                                            [class.search-autocomplete-icon-harici]="result.direction === 'out'"
+                                            [title]="result.direction === 'in' ? 'Gelen Evrak' : 'Giden Evrak'">{{ result.direction === 'in' ? 'move_to_inbox' : 'outbox' }}</span>
                                         <div class="search-autocomplete-main">
                                             <div class="search-autocomplete-top-row">
-                                                <span class="search-autocomplete-number">{{ result.belgeNo }}</span>
-                                                <span class="search-autocomplete-date">{{ result.tarih }}</span>
+                                                <span class="search-autocomplete-number">{{ result.no }}</span>
+                                                <span class="search-autocomplete-date">{{ result.date | date:'dd.MM.yyyy' }}</span>
                                             </div>
                                             <div class="search-autocomplete-bottom-row">
-                                                <span class="search-autocomplete-konu">{{ result.konu }}</span>
-                                                <span class="badge badge-sm" [ngClass]="statusBadgeClasses[result.durum]">{{ statusLabels[result.durum] }}</span>
+                                                <span class="search-autocomplete-konu">{{ result.subject || '-' }}</span>
+                                                <span class="badge badge-sm" [ngClass]="result.statusClass">{{ result.statusLabel }}</span>
                                             </div>
-                                            <span class="search-autocomplete-birim">{{ result.birim }}</span>
+                                            @if (result.departmentName) {
+                                                <span class="search-autocomplete-birim">{{ result.departmentName }}</span>
+                                            }
                                         </div>
                                     </a>
                                 </li>
                             }
                         </ul>
+                    } @else if (searchLoading()) {
+                        <div class="search-autocomplete-empty">
+                            <span class="material-symbols-outlined">hourglass_empty</span>
+                            <span>Evraklar yükleniyor...</span>
+                        </div>
                     } @else {
                         <div class="search-autocomplete-empty">
                             <span class="material-symbols-outlined">search_off</span>
@@ -387,3 +396,4 @@
 
 <!-- Girişte tek hatırlatma popup'ı: zimmet onayları + birim teslim bekleyenler -->
 <app-login-reminder />
+<app-session-timeout />

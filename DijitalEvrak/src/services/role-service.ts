@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { navigations, NavigationModel } from '../navigation';
+import { LIMITED_ROLES, navigations, NavigationModel } from '../navigation';
 
 /** Backend'de bozuk Türkçe karakterle kayıtlı rol adlarının uygulama içindeki karşılıkları. */
 const ROLE_NAME_FIXES: Record<string, string> = {
@@ -67,6 +67,11 @@ export class RoleService {
   /** Birim Evrak Sorumlusu ya da Birim Yöneticisi; ikisi şimdilik aynı menü ve yetkilere sahiptir. */
   hasBirimEvrakRole(): boolean {
     return this.hasAny(BIRIM_EVRAK_ROLES);
+  }
+
+  /** Havale (AI), parametre sayfaları ve Raporlar'ı açabilir mi; bkz. LIMITED_ROLES. */
+  canViewLimitedPages(): boolean {
+    return !this.hasAny(LIMITED_ROLES);
   }
 
   getMenu(): NavigationModel[] {

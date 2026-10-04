@@ -1,0 +1,20 @@
+@if (warningOpen()) {
+  <div class="modal-overlay st-overlay">
+    <div class="modal-box st-modal" role="alertdialog" aria-modal="true"
+      aria-labelledby="st-title" aria-describedby="st-text">
+      <span class="st-icon">
+        <span class="material-symbols-outlined">lock_clock</span>
+      </span>
+      <h5 id="st-title" class="st-title">Oturumunuz kapanmak üzere</h5>
+      <p id="st-text" class="st-text">
+        Bir süredir işlem yapmadınız. Oturumunuz
+        <strong class="st-count">{{ secondsLeft() }} saniye</strong>
+        içinde güvenlik için kapatılacak.
+      </p>
+      <div class="st-actions">
+        <button type="button" class="btn btn-light" (click)="logoutNow()">Çıkış Yap</button>
+        <button type="button" class="btn btn-primary" (click)="stayLoggedIn()" autofocus>Devam Et</button>
+      </div>
+    </div>
+  </div>
+}

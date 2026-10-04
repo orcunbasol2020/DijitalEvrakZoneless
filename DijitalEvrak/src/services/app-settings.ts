@@ -36,3 +36,6 @@ export class AppSettingsService {
     );
   }
 }
+
+/** Boşta kalan oturumun kapanacağı süre (dakika); 0 kapanmaz. Bkz. layouts/session-timeout. */
+export const SESSION_TIMEOUT_KEY = 'SessionTimeoutMinutes';

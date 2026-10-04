@@ -16,10 +16,12 @@
     </div>
 
     <div class="ad-hero-actions">
+        @if (canViewReports) {
         <a routerLink="/reports" class="ad-hero-btn">
             <span class="material-symbols-outlined">file_download</span>
             Rapor
         </a>
+        }
         <button type="button" class="ad-hero-btn ad-hero-btn-icon" title="Güncel Verileri Getir"
             [class.is-spinning]="isLoading" [disabled]="isLoading" (click)="loadAll()">
             <span class="material-symbols-outlined">refresh</span>

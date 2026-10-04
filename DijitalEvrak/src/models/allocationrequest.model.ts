@@ -29,6 +29,13 @@ export interface AllocationRequestModel {
   reminderCount: number;
   lastReminderDate?: string | null;
   createdDate: string;
+
+  // Devredenin beyanı: talep açılırken evrakta kayıtlı sayfa sayısı ve ek bilgisi
+  pageCount?: number | null;
+  hasAttachment?: boolean | null;
+  attachmentDescription?: string | null;
+  // true: alıcı şerh koyarak kabul etti; şerh metni responseNote alanında
+  hasDiscrepancy?: boolean | null;
 }
 
 export enum AllocationRequestStatusEnum {

@@ -14,20 +14,11 @@ import { DocumentAllocation } from '../../services/documentallocation';
 import { getUserAvatar } from '../../services/user-avatar';
 import { AllocationRequestService } from '../../services/allocationrequest';
 import { LoginReminder } from './login-reminder/login-reminder';
+import { SessionTimeout } from './session-timeout/session-timeout';
 import { NotificationService } from '../../services/notification';
 import { NotificationModel, NotificationTypeEnum, NotificationTypeIcons, NotificationTypeTones } from '../../models/notification.model';
 
-type DocumentSearchStatus = 'beklemede' | 'işlemde' | 'tamamlandı';
-type DocumentSearchType = 'dahili' | 'harici';
-
-interface DocumentSearchResult {
-  belgeNo: string;
-  tarih: string;
-  konu: string;
-  birim: string;
-  durum: DocumentSearchStatus;
-  tur: DocumentSearchType;
-}
+import { DocumentSearchResult, DocumentSearchService } from '../../services/document-search';
 
 @Component({
   imports: [
@@ -39,7 +30,8 @@ interface DocumentSearchResult {
     RouterOutlet,
     NgClass,
     DatePipe,
-    LoginReminder
+    LoginReminder,
+    SessionTimeout
   ],
   templateUrl: './layouts.html',
   encapsulation: ViewEncapsulation.None,
@@ -51,67 +43,60 @@ export default class Layouts {
   readonly activeResultIndex = signal<number>(-1);
   readonly sidebarCollapsed = signal<boolean>(false);
   private static readonly MAX_SEARCH_RESULTS = 6;
-  private static readonly TEST_DOCUMENT_ID = '51550714-6b02-4003-9ba3-f705592bfea8';
 
-  private readonly dummyDocuments: DocumentSearchResult[] = [
-    { belgeNo: '2026-001-001', tarih: '02.01.2026', konu: 'Personel izin talebi', birim: 'İnsan Kaynakları', durum: 'tamamlandı', tur: 'dahili' },
-    { belgeNo: '2026-001-002', tarih: '03.01.2026', konu: 'Bütçe revizyon yazısı', birim: 'Mali İşler', durum: 'işlemde', tur: 'dahili' },
-    { belgeNo: '2026-001-003', tarih: '05.01.2026', konu: 'Dış yazışma - protokol', birim: 'Dış İlişkiler', durum: 'beklemede', tur: 'harici' },
-    { belgeNo: '2026-001-004', tarih: '07.01.2026', konu: 'Toplantı tutanağı', birim: 'Genel Sekreterlik', durum: 'tamamlandı', tur: 'dahili' },
-    { belgeNo: '2026-002-001', tarih: '12.01.2026', konu: 'Satın alma onayı', birim: 'Mali İşler', durum: 'beklemede', tur: 'dahili' },
-    { belgeNo: '2026-002-002', tarih: '14.01.2026', konu: 'Araç tahsis talebi', birim: 'İdari İşler', durum: 'işlemde', tur: 'dahili' },
-    { belgeNo: '2026-003-001', tarih: '20.01.2026', konu: 'Basın açıklaması taslağı', birim: 'Basın Müşavirliği', durum: 'tamamlandı', tur: 'dahili' },
-    { belgeNo: '2026-003-002', tarih: '22.01.2026', konu: 'Büyükelçilik nota yazışması', birim: 'Dış İlişkiler', durum: 'işlemde', tur: 'harici' },
-  ];
+  // Üst bar evrak araması: liste ilk odaklanmada bir kez çekilir, sonra tarayıcıda süzülür
+  readonly #documentSearch = inject(DocumentSearchService);
+  readonly #searchIndex = signal<DocumentSearchResult[]>([]);
+  readonly searchLoading = signal<boolean>(false);
+  #searchIndexRequested = false;
 
-  readonly searchResults = computed<DocumentSearchResult[]>(() => {
-    const term = this.search().trim().toLocaleLowerCase('tr');
-    if (!term) {
-      return [];
-    }
-    return this.dummyDocuments
-      .filter(d => d.belgeNo.toLocaleLowerCase('tr').includes(term))
-      .slice(0, Layouts.MAX_SEARCH_RESULTS);
-  });
+  readonly searchResults = computed<DocumentSearchResult[]>(() =>
+    this.#documentSearch.search(this.#searchIndex(), this.search(), Layouts.MAX_SEARCH_RESULTS)
+  );
 
-  readonly statusLabels: Record<DocumentSearchStatus, string> = {
-    beklemede: 'Ön Kayıt',
-    işlemde: 'İşlemde',
-    tamamlandı: 'Aktarıldı',
-  };
+  #loadSearchIndex(): void {
+    if (this.#searchIndexRequested) return;
+    this.#searchIndexRequested = true;
+    this.searchLoading.set(true);
+    this.#documentSearch.index().subscribe({
+      next: items => {
+        this.#searchIndex.set(items);
+        this.searchLoading.set(false);
+      },
+      error: () => {
+        // Bir sonraki odaklanmada yeniden denenir
+        this.#searchIndexRequested = false;
+        this.searchLoading.set(false);
+      }
+    });
+  }
 
-  readonly typeIcons: Record<DocumentSearchType, string> = {
-    dahili: 'description',
-    harici: 'public',
-  };
-
-  readonly typeIconClasses: Record<DocumentSearchType, string> = {
-    dahili: '',
-    harici: 'search-autocomplete-icon-harici',
-  };
-
-  readonly statusBadgeClasses: Record<DocumentSearchStatus, string> = {
-    beklemede: 'badge-soft-warning',
-    işlemde: 'badge-soft-info',
-    tamamlandı: 'badge-soft-fume',
-  };
+  onSearchFocus(): void {
+    // Önbellek süresi dolmuşsa liste tazelenir (servis içinde kontrol edilir)
+    this.#searchIndexRequested = false;
+    this.#loadSearchIndex();
+    this.onSearchInput(this.search());
+  }
 
   onSearchInput(value: string): void {
     this.search.set(value);
     this.showSearchResults.set(value.trim().length > 0);
     this.activeResultIndex.set(-1);
+    if (value.trim()) this.#loadSearchIndex();
   }
 
+  // Gelen evrak her role açık olan Süreçler (salt okunur) ekranında, giden evrak kendi ekranında açılır
   selectSearchResult(result: DocumentSearchResult): void {
-    this.search.set(result.belgeNo);
+    this.search.set('');
     this.showSearchResults.set(false);
     this.activeResultIndex.set(-1);
 
-    // Test amaçlı: dummy arama sonuçları gerçek bir belge numarasına karşılık gelmediği için
-    // tıklandığında sabit bir test kaydı (2026 nolu evrak) evrakkayit ekranında açılır.
-    this.#incomingDocumentService.setSelectedIncomingDocument(Layouts.TEST_DOCUMENT_ID);
-    this.#incomingDocumentService.setIncomingDocumentUpdateType('1');
-    this.router.navigate(['/evrakkayit']);
+    if (result.direction === 'in') {
+      this.#incomingDocumentService.setSelectedIncomingDocument(result.id);
+      this.router.navigateByUrl('/', { skipLocationChange: true }).then(() => this.router.navigate(['/surecler']));
+    } else {
+      this.router.navigate(['/gidenevrak/outgoing/create', result.id]);
+    }
   }
 
   onSearchBlur(): void {
@@ -193,6 +178,8 @@ export default class Layouts {
 
   constructor() {
     this.restoreSidebarMode();
+    // Yeni oturumda önceki kullanıcının arama listesi kullanılmasın
+    this.#documentSearch.clear();
 
     const userId = this.user()?.id;
 

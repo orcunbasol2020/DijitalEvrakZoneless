@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, signal, viewChild, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, viewChild, ViewEncapsulation } from '@angular/core';
 import { IncomingDocumentTodayStats } from '../../../models/dashboard/IncomingDocumentTodayStats.model';
 import { IncomingDocumentService } from '../../../services/incomingdocument';
 import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
@@ -6,6 +6,7 @@ import { IncomingDocumentLast30DaysStats } from '../../../models/dashboard/Incom
 import { IncomingDocumentPendingScanStats } from '../../../models/dashboard/IncomingDocumentPendingScanStats.model';
 import { IncomingDocumentOcrQueueStats } from '../../../models/dashboard/IncomingDocumentOcrQueueStats.model';
 import { RouterLink } from '@angular/router';
+import { RoleService } from '../../../services/role-service';
 import { StatusOverview } from '../status-overview/status-overview';
 import { SmartRouting } from '../smart-routing/smart-routing';
 import { Currentdocument } from '../currentdocument/currentdocument';
@@ -33,12 +34,15 @@ export default class GelenEvrakDashboard {
   // Üst şerit
   readonly today = new Date();
   readonly lastUpdated = signal(new Date());
+  // Rapor düğmesi yalnızca Raporlar sayfasını açabilen kullanıcıya gösterilir
+  readonly canViewReports = inject(RoleService).canViewLimitedPages();
 
   statsSignal = signal<IncomingDocumentTodayStats>({ todayCount: 0, changePercent: 0 });
   last30DaysStatsSignal = signal<IncomingDocumentLast30DaysStats>({ last30DaysCount: 0, changePercent: 0 });
   private refreshInterval: any;
   private readonly recentCard = viewChild(Currentdocument);
   private readonly deliveryCard = viewChild(DeliveryPending);
+  private readonly statusCard = viewChild(StatusOverview);
 
   constructor(private incomingDocumentService: IncomingDocumentService) { }
 
@@ -107,5 +111,6 @@ export default class GelenEvrakDashboard {
     this.loadPendingScanStats();
     this.loadOcrQueueStats();
     this.deliveryCard()?.reload();
+    this.statusCard()?.reload();
   }
 }

@@ -35,6 +35,8 @@ import { AllocationRequestModel } from '../../models/allocationrequest.model';
 import { Router } from '@angular/router';
 
 type DirectionFilter = 'all' | DocumentDirectionEnum;
+// 'active': şu an üzerimdeki zimmetler, 'received': bana verilmiş tüm zimmetler (devrettiklerim dahil)
+type ListScope = 'active' | 'received';
 type SortColumn = 'qrCode' | 'subject' | 'documentDate' | 'documentDirection';
 
 // Geçmiş paneli: gelen (DocumentAllocations) ve giden (OutgoingDocumentAllocations)
@@ -45,10 +47,12 @@ interface HistoryEntry {
   isActive: boolean;
   createdDate: string;
   status: AllocationStatusEnum;
+  // Zimmet şerhli kabul edildiyse alıcının şerhi (yalnızca gelen evrak)
+  serh?: string | null;
 }
 
 // DocumentAllocationModel ve OutgoingDocumentAllocationModel'in ortak kesişimi
-type HistorySource = HistoryEntry & { isDeleted: boolean };
+type HistorySource = Omit<HistoryEntry, 'serh'> & { isDeleted: boolean };
 
 @Component({
   imports: [
@@ -94,6 +98,19 @@ export default class Zimmetlerim {
   // Backend zimmet tarihine göre yeniden eskiye sıralı döner; sayfalama, arama ve
   // sıralama istemci tarafında yapıldığı için tüm kayıtlar tek seferde çekilir.
   readonly zimmetlerim = signal<ActiveDocumentModel[]>([]);
+
+  readonly listScope = signal<ListScope>('active');
+
+  setListScope(scope: ListScope): void {
+    if (this.listScope() === scope) return;
+    this.listScope.set(scope);
+    this.loadZimmetlerim();
+  }
+
+  // Teslim Aldıklarım listesinde sonradan devredilmiş (artık üzerimde olmayan) zimmet
+  isTransferred(item: ActiveDocumentModel): boolean {
+    return item.isActive === false;
+  }
 
   readonly directionFilter = signal<DirectionFilter>('all');
   readonly searchQuery = signal('');
@@ -220,7 +237,7 @@ export default class Zimmetlerim {
   readonly pendingSent = signal<ReadonlyMap<string, AllocationRequestModel>>(new Map());
 
   pendingRequestOf(item: ActiveDocumentModel): AllocationRequestModel | null {
-    if (item.documentDirection !== DocumentDirectionEnum.Gelen) return null;
+    if (item.documentDirection !== DocumentDirectionEnum.Gelen || this.isTransferred(item)) return null;
     return this.pendingSent().get(item.documentId.toLowerCase()) ?? null;
   }
 
@@ -262,15 +279,32 @@ export default class Zimmetlerim {
     this.placeDetailPopover();
 
     // Gelen ve giden zimmet kayıtları farklı modellerdir; ortak alanlar üzerinden tek tipe indirgenir.
-    const history$: Observable<HistorySource[]> = item.documentDirection === DocumentDirectionEnum.Giden
+    const isGiden = item.documentDirection === DocumentDirectionEnum.Giden;
+    const history$: Observable<HistorySource[]> = isGiden
       ? this.outgoingAllocationService.getByDocumentId(item.documentId)
       : this.allocationService.getByDocumentId(item.documentId);
 
-    history$.subscribe({
-      next: (history) => {
+    // Gelen evrakta şerhli kabuller zimmet talebinden okunur: talebin sonucunda açılan
+    // zimmet kaydına (resultAllocationId) şerh metni (responseNote) bağlanır.
+    const serhs$: Observable<ReadonlyMap<string, string>> = isGiden
+      ? of(new Map())
+      : this.allocationRequestService.getByDocumentId(item.documentId).pipe(
+          map(list => new Map(list
+            .filter(r => r.hasDiscrepancy && r.resultAllocationId)
+            .map(r => [r.resultAllocationId!.toLowerCase(), r.responseNote?.trim() || 'Şerh açıklaması yok'] as const))),
+          catchError(err => {
+            console.error('Zimmet talepleri alınamadı:', err);
+            return of(new Map<string, string>());
+          }));
+
+    forkJoin([history$, serhs$]).subscribe({
+      next: ([history, serhs]) => {
         const sorted: HistoryEntry[] = (history ?? [])
           .filter(h => !h.isDeleted)
-          .map(h => ({ id: h.id, fullName: h.fullName, isActive: h.isActive, createdDate: h.createdDate, status: h.status }))
+          .map(h => ({
+            id: h.id, fullName: h.fullName, isActive: h.isActive, createdDate: h.createdDate, status: h.status,
+            serh: serhs.get(h.id.toLowerCase()) ?? null
+          }))
           .sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime());
         this.detailHistory.set(sorted);
         this.detailLoading.set(false);
@@ -408,14 +442,20 @@ export default class Zimmetlerim {
     this.loading.set(true);
     const loadId = ++this.loadSeq;
     this.loadPendingSent();
-    this.allocationService.getActiveDocumentsByUserId(currentUserId).subscribe({
+    const request$ = this.listScope() === 'received'
+      ? this.allocationService.getReceivedDocumentsByUserId(currentUserId)
+      : this.allocationService.getActiveDocumentsByUserId(currentUserId);
+    request$.subscribe({
       next: (res) => {
+        // Sekme hızlı değiştirilirse eski isteğin yanıtı yeni listenin üzerine yazmasın
+        if (loadId !== this.loadSeq) return;
         const items = res?.items ?? [];
         this.zimmetlerim.set(items);
         this.loading.set(false);
         this.loadDocumentDetails(items, loadId);
       },
       error: () => {
+        if (loadId !== this.loadSeq) return;
         this.zimmetlerim.set([]);
         this.loading.set(false);
       }
@@ -423,7 +463,7 @@ export default class Zimmetlerim {
   }
 
   openTransferModal(item: ActiveDocumentModel) {
-    if (this.isAtlas(item) || this.pendingRequestOf(item)) return;
+    if (this.isAtlas(item) || this.isTransferred(item) || this.pendingRequestOf(item)) return;
 
     this.transferItem.set(item);
     this.selectedPersonId.set(null);

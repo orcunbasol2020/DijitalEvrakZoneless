@@ -3,7 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
-import { Observable, finalize } from 'rxjs';
+import { Observable, finalize, forkJoin, map } from 'rxjs';
 import GenericModel from '../../../components/generic-model/generic-model';
 import { Common } from '../../services/common';
 import { AllocationRequestService } from '../../services/allocationrequest';
@@ -22,6 +22,13 @@ import { NotificationModel, NotificationTypeEnum, NotificationTypeIcons, Notific
 // Onayımı bekleyenler (alıcı) / gönderdiklerim (devreden veya işlemi yapan)
 type ApprovalTab = 'bekleyen' | 'gonderilen' | 'bildirimler';
 type NoteAction = 'reject' | 'cancel';
+
+// Devredenin beyanı: onay penceresinde gösterilir, alıcı fiziksel evrakla karşılaştırır
+interface DocInfo {
+  pageCount: number | null;
+  hasAttachment: boolean | null;
+  attachmentDescription: string | null;
+}
 
 interface FailedRow {
   label: string;
@@ -242,16 +249,134 @@ export default class ZimmetOnaylari implements OnInit {
     return row.qrCode || row.orginalNo || row.documentName || '-';
   }
 
+  // Kişi avatarı: ad-soyad baş harfleri
+  initials(fullName: string | null | undefined): string {
+    const parts = (fullName ?? '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '?';
+    const last = parts.length > 1 ? parts[parts.length - 1].charAt(0) : '';
+    return `${parts[0].charAt(0)}${last}`.toLocaleUpperCase('tr');
+  }
+
+  // Talebin ne kadar süredir beklediği (ör. "3 gün", "5 saat")
+  waitingText(date: string | Date | null | undefined): string {
+    const ms = this.waitingMs(date);
+    if (ms === null) return '';
+    const minutes = Math.floor(ms / 60000);
+    if (minutes < 1) return 'Az önce';
+    if (minutes < 60) return `${minutes} dk bekliyor`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} saat bekliyor`;
+    return `${Math.floor(hours / 24)} gün bekliyor`;
+  }
+
+  // 2 günden uzun bekleyen talep vurgulanır
+  isLongWaiting(date: string | Date | null | undefined): boolean {
+    const ms = this.waitingMs(date);
+    return ms !== null && ms >= 2 * 24 * 60 * 60 * 1000;
+  }
+
+  private waitingMs(date: string | Date | null | undefined): number | null {
+    if (!date) return null;
+    const t = new Date(date).getTime();
+    return Number.isNaN(t) ? null : Math.max(0, Date.now() - t);
+  }
+
   // Devreden: talebi açan kişi; zimmet sahibi başkaysa (ör. Yönetici adına işlem) ayrıca gösterilir
   showHolder(row: AllocationRequestModel): boolean {
     return !!row.fromUserFullName && row.fromUserFullName !== row.requestedByFullName;
   }
 
-  // ---- Onay ----
+  // ---- Onay: devredenin beyanı (sayfa sayısı, ek) gösterilir; alıcı isterse şerh koyar ----
+  readonly approveIds = signal<string[]>([]);
+  // Talep Id → şerh; yalnızca "Şerh koyarak kabul ediyorum" seçilen talepler
+  readonly discrepancies = signal<Record<string, string>>({});
+
+  readonly approveRows = computed(() => {
+    const ids = new Set(this.approveIds());
+    return this.currentList().filter(r => ids.has(r.id));
+  });
+
+  // Şerh seçilip açıklaması boş bırakılan talep varsa onay gönderilemez
+  readonly approveInvalid = computed(() =>
+    Object.values(this.discrepancies()).some(note => !note.trim()));
+
   approve(ids: string[]): void {
+    if (!this.userId || !ids.length || this.processing()) return;
+    this.discrepancies.set({});
+    this.approveIds.set(ids);
+  }
+
+  declaration(row: AllocationRequestModel): DocInfo {
+    return {
+      pageCount: row.pageCount != null && String(row.pageCount) !== '' ? Number(row.pageCount) : null,
+      hasAttachment: row.hasAttachment ?? null,
+      attachmentDescription: row.attachmentDescription?.trim() || null
+    };
+  }
+
+  attachmentLabel(info: DocInfo): string {
+    return info.hasAttachment === true ? 'Var' : info.hasAttachment === false ? 'Yok' : 'Belirtilmemiş';
+  }
+
+  hasDiscrepancy(row: AllocationRequestModel): boolean {
+    return row.id in this.discrepancies();
+  }
+
+  discrepancyNote(row: AllocationRequestModel): string {
+    return this.discrepancies()[row.id] ?? '';
+  }
+
+  toggleDiscrepancy(row: AllocationRequestModel, on: boolean): void {
+    this.discrepancies.update(m => {
+      const next = { ...m };
+      if (on) next[row.id] = next[row.id] ?? '';
+      else delete next[row.id];
+      return next;
+    });
+  }
+
+  setDiscrepancyNote(row: AllocationRequestModel, note: string): void {
+    this.discrepancies.update(m => ({ ...m, [row.id]: (note ?? '').slice(0, ZimmetOnaylari.NOTE_MAX) }));
+  }
+
+  closeApprove(): void {
+    if (this.processing()) return;
+    this.approveIds.set([]);
+    this.discrepancies.set({});
+  }
+
+  // Şerhsiz talepler tek ApproveBulk ile, şerhli talepler tek tek Approve ile gönderilir
+  // (toplu onay şerhsizdir); sonuçlar tek listede birleştirilir.
+  confirmApprove(): void {
     const userId = this.userId;
-    if (!userId || !ids.length || this.processing()) return;
-    this.run(this.requestService.approveBulk(ids, userId), ids);
+    const ids = this.approveIds();
+    if (!userId || !ids.length || this.approveInvalid()) return;
+
+    const notes = this.discrepancies();
+    const plain = ids.filter(id => !(id in notes));
+    const flagged = ids.filter(id => id in notes);
+
+    const calls: Observable<AllocationRequestActionResult[]>[] = [];
+    if (plain.length) {
+      calls.push(this.requestService.approveBulk(plain, userId).pipe(
+        map(res => Array.isArray(res?.data) ? res.data : [])));
+    }
+    for (const id of flagged) {
+      calls.push(this.requestService.approve(id, userId, true, notes[id].trim()).pipe(
+        map(res => {
+          const data = res?.data;
+          if (Array.isArray(data)) return data;
+          if (data) return [data];
+          return [{ requestId: id, result: AllocationRequestActionResultEnum.Gecersiz, message: res?.message || 'Talep işlenemedi' }];
+        })));
+    }
+
+    const request$ = forkJoin(calls).pipe(
+      map(parts => ({ message: '', data: parts.flat() } as MessageResponse<AllocationRequestActionResult[]>)));
+    this.run(request$, ids, () => {
+      this.approveIds.set([]);
+      this.discrepancies.set({});
+    });
   }
 
   approveSelected(): void {

@@ -16,29 +16,43 @@
     </div>
 
     <div class="card-body">
-        <!-- Yatay çubuklar: Kullanıcı Profili "Yetki Kapsamı" ile aynı görsel dil -->
-        <div class="ad-status">
-            <div class="ad-status-top">
-                <div class="ad-status-num">{{ statusView().total }}<small>{{ statusView().totalLabel }}</small></div>
-                <div class="ad-status-pct">%{{ pct(statusView().done, statusView().total) }} {{ statusView().doneLabel }}</div>
+        @if (loading()) {
+            <div class="ad-nota-state">
+                <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                Yükleniyor...
             </div>
+        } @else if (failed()) {
+            <div class="ad-nota-state">
+                <span class="material-symbols-outlined">error</span>
+                Durum bilgisi alınamadı.
+                <button type="button" class="btn btn-link btn-sm p-0" (click)="reload()">Tekrar dene</button>
+            </div>
+        } @else {
+            <!-- Yatay çubuklar: Kullanıcı Profili "Yetki Kapsamı" ile aynı görsel dil.
+                 Çubuklar açık evrak sayısına oranlanır; bir evrak birden çok çubukta olabilir. -->
+            <div class="ad-status">
+                <div class="ad-status-top">
+                    <div class="ad-status-num">{{ statusView().total }}<small>{{ statusView().totalLabel }}</small></div>
+                    <div class="ad-status-pct">{{ statusView().note }}</div>
+                </div>
 
-            <div class="ad-status-rows">
-                @for (bar of statusView().bars; track bar.label) {
-                    <div class="ad-status-row">
-                        <div class="ad-status-head">
-                            <span class="ad-status-label">
-                                <span class="material-symbols-outlined">{{ bar.icon }}</span>
-                                {{ bar.label }}
-                            </span>
-                            <span class="ad-status-val">{{ bar.value }}<small>/ {{ bar.total }}</small></span>
+                <div class="ad-status-rows">
+                    @for (bar of statusView().bars; track bar.label) {
+                        <div class="ad-status-row">
+                            <div class="ad-status-head">
+                                <span class="ad-status-label">
+                                    <span class="material-symbols-outlined">{{ bar.icon }}</span>
+                                    {{ bar.label }}
+                                </span>
+                                <span class="ad-status-val">{{ bar.value }}<small>/ {{ bar.total }}</small></span>
+                            </div>
+                            <div class="ad-bar">
+                                <div class="ad-bar-fill" [style.width.%]="pct(bar.value, bar.total)" [style.background]="barColor(bar)"></div>
+                            </div>
                         </div>
-                        <div class="ad-bar">
-                            <div class="ad-bar-fill is-{{ bar.tone }}" [style.width.%]="pct(bar.value, bar.total)"></div>
-                        </div>
-                    </div>
-                }
+                    }
+                </div>
             </div>
-        </div>
+        }
     </div>
 </div>

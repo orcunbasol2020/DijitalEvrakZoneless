@@ -7,6 +7,12 @@ export interface NavigationModel {
     category?: string;
 }
 
+/**
+ * Havale (AI), parametre sayfaları ve Raporlar'ı görmeyen roller. Menü ve rota
+ * koruması (app.routes.ts) aynı listeyi kullanır; sayfa adres yazılarak da açılamaz.
+ */
+export const LIMITED_ROLES = ["Birim Evrak Sorumlusu", "Birim Yöneticisi", "Ön Kayıt"];
+
 export const navigations: NavigationModel[] = [
     {
         title: "Kontrol Paneli",
@@ -82,7 +88,7 @@ export const navigations: NavigationModel[] = [
         title: "Havale (AI)",
         url: "/havale",
         icon: "neurology",
-        excludeRoles: ["Birim Evrak Sorumlusu", "Birim Yöneticisi", "Ön Kayıt"]
+        excludeRoles: LIMITED_ROLES
     },
     {
         title: "OCR Takip",
@@ -125,6 +131,12 @@ export const navigations: NavigationModel[] = [
         url: "/gidenevrak/zimmet",
         icon: "approval_delegation",
         roles: ["Gelen Evrak", "Giden Evrak", "Ön Kayıt"]
+    },
+    {
+        title: "Kargo Takip",
+        url: "/kargo-takip",
+        icon: "local_shipping",
+        roles: ["Gelen Evrak", "Giden Evrak", "Ön Kayıt", "Yönetici"]
     },
 
     {
@@ -174,25 +186,25 @@ export const navigations: NavigationModel[] = [
         title: "Birimler",
         url: "/birimler",
         icon: "apartment",
-        excludeRoles: ["Birim Evrak Sorumlusu", "Birim Yöneticisi", "Ön Kayıt"]
+        excludeRoles: LIMITED_ROLES
     },
     {
         title: "Dış Kurumlar",
         url: "/externalinstitution",
         icon: "moving_ministry",
-        excludeRoles: ["Birim Evrak Sorumlusu", "Birim Yöneticisi", "Ön Kayıt"]
+        excludeRoles: LIMITED_ROLES
     },
     {
         title: "Diller",
         url: "/parameters/languages",
         icon: "language_chinese_array",
-        excludeRoles: ["Birim Evrak Sorumlusu", "Birim Yöneticisi", "Ön Kayıt"]
+        excludeRoles: LIMITED_ROLES
     },
     {
         title: "Raporlar",
         url: "/reports",
         icon: "monitoring",
-        excludeRoles: ["Birim Evrak Sorumlusu", "Birim Yöneticisi", "Ön Kayıt"]
+        excludeRoles: LIMITED_ROLES
     },
     {
         title: "Uygulama Ayarları",

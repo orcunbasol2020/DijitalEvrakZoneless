@@ -6653,6 +6653,39 @@ flexi-grid td:has(.flexi-button-primary) {
     background: #eee;
 }
 
+/* Misyon haritası: yükleniyor / hata haritanın üstünü kaplar, boş durum notu üstte durur */
+.map-state {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 8px;
+    background: rgba(248, 250, 252, 0.82);
+    color: #64748b;
+    font-size: 13px;
+    z-index: 2;
+}
+
+.map-state.map-state-note {
+    inset: 12px auto auto 50%;
+    transform: translateX(-50%);
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12);
+    pointer-events: none;
+}
+
+[data-theme="dark"] .map-state {
+    background: rgba(15, 23, 42, 0.78);
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .map-state.map-state-note {
+    background: rgba(30, 41, 59, 0.92);
+}
+
 :host {
     display: block;
     width: 100%;

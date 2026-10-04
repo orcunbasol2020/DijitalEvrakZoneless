@@ -1,4 +1,4 @@
-import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, inject, OnInit, OnDestroy, signal, ViewChild, ViewEncapsulation, computed } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, inject, OnInit, OnDestroy, signal, ViewChild, ViewEncapsulation, computed, effect } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { firstValueFrom } from 'rxjs';
 import GenericModel from '../../../components/generic-model/generic-model';
@@ -50,7 +50,21 @@ export interface ZimmetResult {
   failed: ScannedDoc[];
   // Backend'in hata mesajı (ör. evrakın bekleyen onay talebi var), evrak Id'sine göre
   failReasons: Record<string, string>;
+  // Teslim Et'te teslim edilen / onaya gönderilen evrakların düzenlenebilir bilgileri
+  edits: ResultDocEdit[];
 }
+
+// Teslim sonrası popup'ta düzenlenen evrak bilgileri; original ile karşılaştırılıp
+// yalnızca değişen evraklar kaydedilir.
+export interface ResultDocEdit {
+  doc: ScannedDoc;
+  pageCount: number | null;
+  hasAttachment: boolean | null;
+  attachmentDescription: string;
+  original: { pageCount: number | null; hasAttachment: boolean | null; attachmentDescription: string };
+}
+
+const ATTACHMENT_DESCRIPTION_MAX = 1000;
 
 @Component({
   standalone: true,
@@ -197,6 +211,9 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
 
   // Kayıt sonrası sonuç popup'ı (toast yerine).
   readonly saveResult = signal<ZimmetResult | null>(null);
+  // Sonuç popup'ındaki evrak bilgileri kaydedilirken
+  readonly savingEdits = signal(false);
+  readonly attachmentDescriptionMax = ATTACHMENT_DESCRIPTION_MAX;
 
   id!: string | null;
   // Sol paneldeki sekme (Evrak Bilgileri / Zimmet Geçmişi) ve zimmet türü.
@@ -231,6 +248,69 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
         name: `${p.name} ${p.surname} (${p.departmentShortName})`
       }))
   );
+
+  // Personel kartından seçim: autocomplete ile aynı { id, name } biçiminde yazılır ki
+  // seçili personel kartı, özet şeridi ve kayıt akışı değişmeden çalışsın.
+  selectPerson(p: UserModel): void {
+    if (!p.id) return;
+    this.personControl.setValue({ id: p.id, name: `${p.name} ${p.surname} (${p.departmentShortName})` });
+  }
+
+  isPersonSelected(p: UserModel): boolean {
+    return !!p.id && this.selectedPerson()?.id?.toLowerCase() === p.id.toLowerCase();
+  }
+
+  // === BİRİME GÖRE PERSONEL ===
+  // Devret'te önce birim seçilir, altında o birimin personeli kart olarak listelenir.
+  // Birim, evrağın Nereye birimiyle açılır; kullanıcı başka bir birim seçebilir.
+  readonly departmentControl = new FormControl<{ id: string, name: string } | null>(null);
+  readonly selectedDepartment = toSignal(this.departmentControl.valueChanges, { initialValue: this.departmentControl.value });
+
+  readonly departmentOptions = computed(() =>
+    [...this.departments()]
+      .filter(d => !!d.id)
+      .sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '', 'tr'))
+      .map(d => ({ id: d.id, name: d.shortName ? `${d.name} (${d.shortName})` : d.name }))
+  );
+
+  readonly departmentPersons = computed(() => {
+    const deptId = this.selectedDepartment()?.id?.toLowerCase();
+    if (!deptId) return [];
+    return this.personList()
+      .filter(p => !!p.id && p.departmentId?.toLowerCase() === deptId)
+      .sort((a, b) => `${a.name} ${a.surname}`.localeCompare(`${b.name} ${b.surname}`, 'tr'));
+  });
+
+  // Devret'te personel seçim yolu: birime göre kartlardan ya da tüm personelde arama.
+  // Sekme değişse de seçili personel korunur.
+  readonly personPickMode = signal<'birim' | 'tum'>('birim');
+
+  // Seçili personel açık birim listesinde görünüyorsa ayrıca seçili kartı gösterilmez.
+  readonly selectedInDeptList = computed(() => {
+    const id = this.selectedPerson()?.id?.toLowerCase();
+    return !!id && this.departmentPersons().some(p => p.id?.toLowerCase() === id);
+  });
+
+  // Evrağın Nereye birimi: tek evrakta o evrağınki; çoklu listede tüm evraklar aynı
+  // birime gidiyorsa o birim, farklıysa boş (kullanıcı kendisi seçer).
+  readonly docsTargetDepartmentId = computed<string | null>(() => {
+    const ids = new Set(this.docs()
+      .map(d => (d.detail?.departmentId as string | null | undefined)?.toLowerCase())
+      .filter((id): id is string => !!id));
+    return ids.size === 1 ? [...ids][0] : null;
+  });
+
+  // Hedef birim yalnızca evrak listesi değişip Nereye birimi farklılaştığında yeniden
+  // atanır; kullanıcının elle seçtiği birim aynı listede korunur.
+  private appliedTargetDepartmentId: string | null | undefined = undefined;
+
+  private readonly syncTargetDepartment = effect(() => {
+    const target = this.docsTargetDepartmentId();
+    const options = this.departmentOptions();
+    if (!options.length || target === this.appliedTargetDepartmentId) return;
+    this.appliedTargetDepartmentId = target;
+    this.departmentControl.setValue(target ? options.find(o => o.id.toLowerCase() === target) ?? null : null);
+  });
 
   activeAllocationOf(doc: ScannedDoc): DocumentAllocationModel | null {
     return doc.allocations.find(a => a.isActive) ?? null;
@@ -515,10 +595,104 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     if (!this.scanCollapsed) this.focusQrInputSoon();
   }
 
-  closeResult() {
+  // force: Kapat butonu; değişiklikler atılır. Dışarı tıklama / Escape kaydedilmemiş
+  // değişiklik varken popup'ı kapatmaz.
+  closeResult(force = false) {
+    if (this.savingEdits()) return;
+    if (!force && this.hasDirtyEdits()) return;
     this.saveResult.set(null);
     this.cdr.markForCheck();
     if (!this.scanCollapsed) this.focusQrInputSoon();
+  }
+
+  // === SONUÇ POPUP'INDA EVRAK BİLGİLERİ ===
+  private buildEdit(doc: ScannedDoc): ResultDocEdit {
+    const d = doc.detail ?? {};
+    const original = {
+      pageCount: d.pageCount != null && String(d.pageCount) !== '' ? Number(d.pageCount) : null,
+      hasAttachment: d.hasAttachment ?? null,
+      attachmentDescription: d.attachmentDescription ?? ''
+    };
+    return { doc, ...original, original };
+  }
+
+  isEditDirty(e: ResultDocEdit): boolean {
+    const desc = e.hasAttachment === true ? (e.attachmentDescription ?? '').trim() : '';
+    const origDesc = e.original.hasAttachment === true ? e.original.attachmentDescription.trim() : '';
+    return this.normalizedPageCount(e) !== e.original.pageCount
+      || e.hasAttachment !== e.original.hasAttachment
+      || desc !== origDesc;
+  }
+
+  // Sayfa sayısı boş bırakılamaz (önceden boşsa boş kalabilir) ve negatif olamaz.
+  isEditInvalid(e: ResultDocEdit): boolean {
+    const pc = this.normalizedPageCount(e);
+    if (pc === null) return e.original.pageCount !== null;
+    return pc < 0 || !Number.isInteger(pc)
+      || (e.attachmentDescription ?? '').length > ATTACHMENT_DESCRIPTION_MAX;
+  }
+
+  private normalizedPageCount(e: ResultDocEdit): number | null {
+    return e.pageCount == null || String(e.pageCount) === '' ? null : Number(e.pageCount);
+  }
+
+  hasDirtyEdits(): boolean {
+    return (this.saveResult()?.edits ?? []).some(e => this.isEditDirty(e));
+  }
+
+  hasInvalidEdits(): boolean {
+    return (this.saveResult()?.edits ?? []).some(e => this.isEditInvalid(e));
+  }
+
+  // Değişen evraklar güncel hâliyle sunucudan alınır, yalnızca bu üç alan değiştirilip
+  // Update'e tam model olarak gönderilir (eksik alan Update'te boşalabilir).
+  async saveResultEdits() {
+    const userId = this.user()?.id;
+    const dirty = (this.saveResult()?.edits ?? []).filter(e => this.isEditDirty(e));
+    if (!userId || !dirty.length || this.savingEdits()) return;
+    if (this.hasInvalidEdits()) {
+      this.#toast.showToast('Uyarı', 'Sayfa sayısı ve ek açıklamasını kontrol edin.', 'warning');
+      return;
+    }
+
+    this.savingEdits.set(true);
+    this.cdr.markForCheck();
+
+    const failedNos: string[] = [];
+    for (const e of dirty) {
+      try {
+        const fresh = await firstValueFrom(this.incomingDocumentService.getIncomingDocumentByDocumentId(e.doc.id));
+        // Ek açıklaması yalnızca "Var" seçiliyken gönderilir; "Yok" seçilince sunucu siler,
+        // belirtilmemişse (null) mevcut değer korunur. (Evrak Kayıt ekranıyla aynı kural)
+        const updated = {
+          ...fresh,
+          pageCount: this.normalizedPageCount(e) as number,
+          hasAttachment: e.hasAttachment,
+          attachmentDescription: e.hasAttachment === true
+            ? (e.attachmentDescription ?? '').trim()
+            : e.hasAttachment === false ? '' : null,
+          userId
+        };
+        await firstValueFrom(this.incomingDocumentService.updateIncomingDocument(updated));
+        this.docs.update(list => list.map(d => d.id === e.doc.id ? { ...d, detail: { ...d.detail, ...updated } } : d));
+        e.original = {
+          pageCount: this.normalizedPageCount(e),
+          hasAttachment: e.hasAttachment,
+          attachmentDescription: (e.attachmentDescription ?? '').trim()
+        };
+      } catch (err) {
+        console.error(`Evrak bilgileri kaydedilemedi (${e.doc.qrCode}):`, err);
+        failedNos.push(e.doc.qrCode);
+      }
+    }
+
+    this.savingEdits.set(false);
+    if (failedNos.length) {
+      this.#toast.showToast('Kayıt Başarısız', `Evrak bilgileri kaydedilemedi: ${failedNos.join(', ')}`, 'error');
+      this.cdr.markForCheck();
+      return;
+    }
+    this.closeResult(true);
   }
 
   getir(id: string) {
@@ -551,6 +725,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     this.lookupErrorMessage.set(null);
     this.personControl.setValue(null);
     this.zimmetType.set('other');
+    this.personPickMode.set('birim');
     this.activeTab.set('bilgi');
     this.id = null;
     this.buffer = '';
@@ -611,7 +786,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     const docs = allDocs.filter(d => !skipped.includes(d) && !blocked.includes(d));
 
     if (docs.length === 0) {
-      this.saveResult.set({ targetName, actionLabel, succeeded: [], pending: [], skipped, failed, failReasons });
+      this.saveResult.set({ targetName, actionLabel, succeeded: [], pending: [], skipped, failed, failReasons, edits: [] });
       this.cdr.markForCheck();
       return;
     }
@@ -647,7 +822,12 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     this.saving.set(false);
 
     // Sonuç toast yerine popup'ta gösterilir: sayılar ve her gruptaki evraklar.
-    this.saveResult.set({ targetName, actionLabel, succeeded, pending, skipped, failed, failReasons });
+    // Teslim Et'te teslim edilen / onaya gönderilen evrakların sayfa sayısı ve ek bilgisi
+    // popup'ta düzenlenebilir.
+    const edits = status === AllocationStatusEnum.Teslim
+      ? [...succeeded, ...pending].map(d => this.buildEdit(d))
+      : [];
+    this.saveResult.set({ targetName, actionLabel, succeeded, pending, skipped, failed, failReasons, edits });
 
     if (succeeded.length + pending.length > 0) {
       this.personControl.setValue(null);

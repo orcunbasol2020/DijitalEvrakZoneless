@@ -19,7 +19,8 @@ export enum NotificationTypeEnum {
   ZimmetReddedildi = 4,
   ZimmetTalebiIptal = 5,
   ZimmetOnayGecikme = 6,
-  ZimmetTalebiGecersiz = 7
+  ZimmetTalebiGecersiz = 7,
+  ZimmetSerhliKabul = 8
 }
 
 // Tür 1 ve 2 "onayınızı bekleyen evraklar"ı haber verir. Bu evraklar zil menüsünde ve
@@ -37,10 +38,11 @@ export const NotificationTypeIcons: Record<NotificationTypeEnum, string> = {
   [NotificationTypeEnum.ZimmetReddedildi]: 'block',
   [NotificationTypeEnum.ZimmetTalebiIptal]: 'undo',
   [NotificationTypeEnum.ZimmetOnayGecikme]: 'schedule',
-  [NotificationTypeEnum.ZimmetTalebiGecersiz]: 'link_off'
+  [NotificationTypeEnum.ZimmetTalebiGecersiz]: 'link_off',
+  [NotificationTypeEnum.ZimmetSerhliKabul]: 'rule'
 };
 
-// Renk tonu (is-*): onay yeşil, red kırmızı, gecikme kehribar, diğerleri mavi / gri
+// Renk tonu (is-*): onay yeşil, red kırmızı, gecikme ve şerhli kabul kehribar, diğerleri mavi / gri
 export const NotificationTypeTones: Record<NotificationTypeEnum, string> = {
   [NotificationTypeEnum.ZimmetOnayTalebi]: 'is-info',
   [NotificationTypeEnum.ZimmetOnayHatirlatma]: 'is-info',
@@ -48,5 +50,7 @@ export const NotificationTypeTones: Record<NotificationTypeEnum, string> = {
   [NotificationTypeEnum.ZimmetReddedildi]: 'is-fail',
   [NotificationTypeEnum.ZimmetTalebiIptal]: 'is-muted',
   [NotificationTypeEnum.ZimmetOnayGecikme]: 'is-warn',
-  [NotificationTypeEnum.ZimmetTalebiGecersiz]: 'is-muted'
+  [NotificationTypeEnum.ZimmetTalebiGecersiz]: 'is-muted',
+  // Kabul edildi ama şerh var: devredenin dikkatine
+  [NotificationTypeEnum.ZimmetSerhliKabul]: 'is-warn'
 };

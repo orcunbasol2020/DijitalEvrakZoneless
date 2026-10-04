@@ -4,13 +4,13 @@ import { from, of } from 'rxjs';
 import { catchError, concatMap, map, toArray } from 'rxjs/operators';
 import { FlexiToastService } from 'flexi-toast';
 import GenericModel from '../../../components/generic-model/generic-model';
-import { AppSettingModel, AppSettingsService } from '../../services/app-settings';
+import { AppSettingModel, AppSettingsService, SESSION_TIMEOUT_KEY } from '../../services/app-settings';
 import { AtlasDocumentNumberService, AtlasNumberStock } from '../../services/atlas-document-number';
 import { Common } from '../../services/common';
 
 type FieldKind = 'text' | 'email' | 'textarea' | 'bool' | 'int';
 
-type GroupId = 'general' | 'scan' | 'zimmet' | 'atlas' | 'other';
+type GroupId = 'general' | 'scan' | 'zimmet' | 'atlas' | 'session' | 'other';
 
 interface SettingDef {
   key: string;
@@ -65,6 +65,7 @@ const GROUPS: GroupDef[] = [
     note: 'Hatırlatmalar yalnızca hafta içi ve aşağıdaki mesai saatleri arasında, sunucu saatine göre gönderilir.',
   },
   { id: 'atlas', title: 'Atlas Evrak Numarası Havuzu', sub: 'QR kod numaralarının Atlas\'tan alınması', icon: 'qr_code_2' },
+  { id: 'session', title: 'Oturum Güvenliği', sub: 'İşlem yapılmayan oturumların otomatik kapanması', icon: 'lock_clock' },
   { id: 'other', title: 'Diğer Ayarlar', sub: 'Bu ekranda henüz özel alanı olmayan ayarlar', icon: 'tune' },
 ];
 
@@ -101,6 +102,11 @@ const DEFS: SettingDef[] = [
   {
     key: 'AtlasNumberPoolEnforced', group: 'atlas', label: 'Yalnızca havuz numarasıyla evrak aç', kind: 'bool', confirmOn: true, warn: true,
     note: 'Açıkken gelen evrak yalnızca havuzdaki numarayla açılabilir. Geçiş tamamlanınca açılmalı.',
+  },
+
+  {
+    key: SESSION_TIMEOUT_KEY, group: 'session', label: 'Boşta kalma süresi', kind: 'int', min: 0, max: 480, unit: 'dk',
+    hint: 'Bu süre boyunca işlem yapılmazsa oturum kapanır; 0 girilirse kapanmaz.',
   },
 ];
 

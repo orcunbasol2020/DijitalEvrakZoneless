@@ -455,10 +455,35 @@
     font-size: 18px;
 }
 
-.zl-row:hover .zl-doc-icon,
-.zl-row.is-open .zl-doc-icon {
-    background: #e0f2fe;
-    color: #0369a1;
+/* Gelen: petrol mavisi, giden: kehribar; yön rozetiyle aynı renk ailesi */
+.zm-page .zl-doc-icon {
+    background: #ecfeff;
+    color: #0e7490;
+    box-shadow: inset 0 0 0 1px rgba(14, 116, 144, 0.14);
+}
+
+.zm-page .zl-doc-icon.is-out {
+    background: #fffbeb;
+    color: #b45309;
+    box-shadow: inset 0 0 0 1px rgba(180, 83, 9, 0.14);
+}
+
+.zm-page .zl-row:hover .zl-doc-icon,
+.zm-page .zl-row.is-open .zl-doc-icon {
+    background: #0e7490;
+    color: #fff;
+    box-shadow: none;
+}
+
+.zm-page .zl-row:hover .zl-doc-icon.is-out,
+.zm-page .zl-row.is-open .zl-doc-icon.is-out {
+    background: #b45309;
+}
+
+.zm-page .zl-row.is-transferred .zl-doc-icon {
+    background: #f1f5f9;
+    color: #94a3b8;
+    box-shadow: none;
 }
 
 .zl-doc-no {
@@ -505,6 +530,97 @@
     border-color: rgba(14, 165, 233, 0.3);
 }
 
+/* Teslim Aldıklarım: sonradan devredilen zimmet. Satır soluklaşır, belge no altında gri rozet çıkar */
+.zl-transferred {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-top: 4px;
+    padding: 2px 8px 2px 6px;
+    border-radius: 999px;
+    border: 1px solid #e2e8f0;
+    background: #f1f5f9;
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    white-space: nowrap;
+}
+
+.zl-transferred .material-symbols-outlined { font-size: 14px; }
+
+.zl-row.is-transferred td { color: #94a3b8; }
+.zm-page .zl-row.is-transferred .zl-route-to { color: #94a3b8; }
+.zm-page .zl-row.is-transferred .zl-route-to::before { background: #cbd5e1; }
+.zl-row.is-transferred .zl-doc-no,
+.zl-row.is-transferred .zl-doc-name { color: #64748b; }
+.zl-row.is-transferred .degree-badge-circle,
+.zl-row.is-transferred .zl-dir,
+.zl-row.is-transferred .zl-src { opacity: 0.6; }
+
+[data-theme="dark"] .zl-transferred {
+    color: #a0aec0;
+    background: rgba(148, 163, 184, 0.1);
+    border-color: rgba(148, 163, 184, 0.2);
+}
+
+[data-theme="dark"] .zl-row.is-transferred td,
+[data-theme="dark"] .zl-row.is-transferred .zl-doc-no,
+[data-theme="dark"] .zl-row.is-transferred .zl-doc-name { color: #718096; }
+
+/* Liste kapsamı (Üzerimdekiler / Teslim Aldıklarım): Gelen Evraklar listesindeki dl-seg ile aynı */
+.zl-seg {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    height: 34px;
+    padding: 3px;
+    border-radius: 10px;
+    background: #eef2f7;
+    border: 1px solid #e2e8f0;
+    flex: 0 0 auto;
+}
+
+.zl-seg-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 26px;
+    padding: 0 11px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.zl-seg-btn .material-symbols-outlined { font-size: 16px; }
+.zl-seg-btn:hover { color: #0f172a; }
+
+.zl-seg-btn:focus-visible {
+    outline: 2px solid #0ea5e9;
+    outline-offset: 1px;
+}
+
+/* Seçili: lacivert → petrol gradyanı, açık turkuaz yazı */
+.zl-seg-btn.is-active {
+    color: #e0f2fe;
+    background: linear-gradient(120deg, #0f172a 0%, #0c4a6e 55%, #0369a1 100%);
+    box-shadow: 0 3px 8px rgba(3, 105, 161, 0.3);
+}
+
+[data-theme="dark"] .zl-seg {
+    background: rgba(148, 163, 184, 0.1);
+    border-color: rgba(148, 163, 184, 0.2);
+}
+
+[data-theme="dark"] .zl-seg-btn { color: #a0aec0; }
+[data-theme="dark"] .zl-seg-btn:hover { color: #e2e8f0; }
+[data-theme="dark"] .zl-seg-btn.is-active { color: #e0f2fe; }
+
 .zl-doc-name {
     max-width: 340px;
     white-space: nowrap;
@@ -537,6 +653,80 @@
     font-size: 14px;
     color: #94a3b8;
     flex: 0 0 auto;
+}
+
+/* ---- Zimmetlerim'e özgü ikon dili (zm-page). zl-* sınıfları başka listelerle ortak
+   olduğundan buradaki kurallar yalnızca bu sayfaya bağlanır. ---- */
+
+/* Nereden → Nereye: boş halka (çıkış) ile dolu nokta (varış) ince bir çizgiyle bağlanır */
+.zm-page .zl-route {
+    position: relative;
+    gap: 3px;
+}
+
+.zm-page .zl-route::before {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 10px;
+    bottom: 9px;
+    width: 1px;
+    background: #cbd5e1;
+}
+
+.zm-page .zl-route-from,
+.zm-page .zl-route-to {
+    position: relative;
+    display: block;
+    min-width: 0;
+    padding-left: 15px;
+    line-height: 17px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.zm-page .zl-route-from::before,
+.zm-page .zl-route-to::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 5px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    box-sizing: border-box;
+}
+
+.zm-page .zl-route-from::before {
+    border: 1.5px solid #94a3b8;
+    background: #fff;
+}
+
+.zm-page .zl-route-to {
+    color: #334155;
+    font-weight: 600;
+}
+
+.zm-page .zl-route-to::before {
+    background: #0369a1;
+}
+
+/* Tablodaki ikonlar: ince çizgi (wght 300) ve küçük boya uygun optik boyut;
+   rozetlerdeki küçük ikonlar dolu ve biraz daha kalın, net okunsun */
+.zm-page .zl-table td .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20;
+}
+
+.zm-page .zl-table td .zl-dir .material-symbols-outlined,
+.zm-page .zl-table td .zl-src .material-symbols-outlined,
+.zm-page .zl-table td .degree-badge-circle .material-symbols-outlined {
+    font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 20;
+}
+
+.zm-page .zl-dir .material-symbols-outlined,
+.zm-page .zl-src .material-symbols-outlined {
+    font-size: 14px;
 }
 
 .zl-route-empty {
@@ -804,6 +994,37 @@
     font-size: 11.5px;
     color: #94a3b8;
     font-variant-numeric: tabular-nums;
+}
+
+/* Şerhli kabul: alıcının zimmeti şerh koyarak kabul ettiği kayıt */
+.zl-tl-serh {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 6px;
+    padding: 6px 9px;
+    border-radius: 9px;
+    font-size: 12px;
+    line-height: 1.45;
+    color: #92400e;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    white-space: pre-line;
+    word-break: break-word;
+}
+
+.zl-tl-serh .material-symbols-outlined {
+    flex: 0 0 auto;
+    font-size: 16px;
+    margin-top: 1px;
+}
+
+.zl-tl-serh b { font-weight: 700; }
+
+[data-theme="dark"] .zl-tl-serh {
+    color: #fcd34d;
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.3);
 }
 
 .zl-tl-badge {
@@ -1394,3 +1615,54 @@
 [data-theme="dark"] .zl-modal-foot {
     background: rgba(255, 255, 255, 0.02);
 }
+
+/* Zimmetlerim ikon dili: koyu tema */
+[data-theme="dark"] .zm-page .zl-doc-icon {
+    background: rgba(6, 182, 212, 0.14);
+    color: #67e8f9;
+    box-shadow: inset 0 0 0 1px rgba(6, 182, 212, 0.3);
+}
+
+[data-theme="dark"] .zm-page .zl-doc-icon.is-out {
+    background: rgba(251, 191, 36, 0.14);
+    color: #fcd34d;
+    box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.3);
+}
+
+[data-theme="dark"] .zm-page .zl-row:hover .zl-doc-icon,
+[data-theme="dark"] .zm-page .zl-row.is-open .zl-doc-icon {
+    background: #0e7490;
+    color: #ecfeff;
+    box-shadow: none;
+}
+
+[data-theme="dark"] .zm-page .zl-row:hover .zl-doc-icon.is-out,
+[data-theme="dark"] .zm-page .zl-row.is-open .zl-doc-icon.is-out {
+    background: #b45309;
+    color: #fffbeb;
+}
+
+[data-theme="dark"] .zm-page .zl-row.is-transferred .zl-doc-icon {
+    background: rgba(148, 163, 184, 0.12);
+    color: #718096;
+    box-shadow: none;
+}
+
+[data-theme="dark"] .zm-page .zl-route::before {
+    background: rgba(148, 163, 184, 0.3);
+}
+
+[data-theme="dark"] .zm-page .zl-route-from::before {
+    border-color: #718096;
+    background: #1a2030;
+}
+
+[data-theme="dark"] .zm-page .zl-route-to {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .zm-page .zl-route-to::before {
+    background: #38bdf8;
+}
+
+[data-theme="dark"] .zm-page .zl-row.is-transferred .zl-route-to { color: #718096; }

@@ -2,7 +2,7 @@
   [breadcrumbs]="[{title: 'Zimmet Onayları', url: 'zimmet-onaylari', icon: ''}]">
 </app-generic>
 
-<div class="st-page">
+<div class="st-page za-page">
   <!-- Üst kart -->
   <section class="sp-hero zl-hero zl-hero-split zl-hero-slim">
     <div class="sp-hero-top">
@@ -35,6 +35,7 @@
       <span class="zl-stat-body">
         <span class="zl-stat-label d-block">ONAYIMI BEKLEYENLER</span>
         <span class="zl-stat-value d-block">{{ incoming().length }}</span>
+        <span class="za-stat-sub d-block">Onay ya da red bekliyor</span>
       </span>
       <span class="material-symbols-outlined zl-stat-check">{{ activeTab() === 'bekleyen' ? 'check_circle' : 'radio_button_unchecked' }}</span>
     </button>
@@ -46,6 +47,7 @@
       <span class="zl-stat-body">
         <span class="zl-stat-label d-block">GÖNDERDİKLERİM</span>
         <span class="zl-stat-value d-block">{{ sent().length }}</span>
+        <span class="za-stat-sub d-block">Alıcı onayı bekliyor</span>
       </span>
       <span class="material-symbols-outlined zl-stat-check">{{ activeTab() === 'gonderilen' ? 'check_circle' : 'radio_button_unchecked' }}</span>
     </button>
@@ -57,6 +59,7 @@
       <span class="zl-stat-body">
         <span class="zl-stat-label d-block">OKUNMAMIŞ BİLDİRİM</span>
         <span class="zl-stat-value d-block">{{ unreadCount() }}</span>
+        <span class="za-stat-sub d-block">Sonuçlanan talepler</span>
       </span>
       <span class="material-symbols-outlined zl-stat-check">{{ activeTab() === 'bildirimler' ? 'check_circle' : 'radio_button_unchecked' }}</span>
     </button>
@@ -272,12 +275,12 @@
                 <th>BELGE NO</th>
                 <th>KONU</th>
                 <th>{{ activeTab() === 'bekleyen' ? 'DEVREDEN' : 'ALICI' }}</th>
-                <th class="zl-center">İŞLEM</th>
+                <th class="zl-center">TÜR</th>
                 <th>TALEP TARİHİ</th>
                 @if (activeTab() === 'gonderilen') {
                   <th class="zl-center">HATIRLATMA</th>
                 }
-                <th class="zl-center">{{ activeTab() === 'bekleyen' ? 'ONAY' : 'GERİ ÇEK' }}</th>
+                <th class="zl-center">İŞLEMLER</th>
               </tr>
             </thead>
 
@@ -307,14 +310,16 @@
                     <div class="zl-doc-name" [title]="row.subject ?? ''">{{ row.subject || '-' }}</div>
                   </td>
                   <td>
-                    @if (activeTab() === 'bekleyen') {
-                      <div class="za-person">{{ row.requestedByFullName || '-' }}</div>
-                      @if (showHolder(row)) {
-                        <div class="za-person-sub">Zimmet sahibi: {{ row.fromUserFullName }}</div>
-                      }
-                    } @else {
-                      <div class="za-person">{{ row.toUserFullName || '-' }}</div>
-                    }
+                    @let person = activeTab() === 'bekleyen' ? row.requestedByFullName : row.toUserFullName;
+                    <div class="za-who">
+                      <span class="za-avatar">{{ initials(person) }}</span>
+                      <div class="za-who-text">
+                        <div class="za-person">{{ person || '-' }}</div>
+                        @if (activeTab() === 'bekleyen' && showHolder(row)) {
+                          <div class="za-person-sub">Zimmet sahibi: {{ row.fromUserFullName }}</div>
+                        }
+                      </div>
+                    </div>
                   </td>
                   <td class="zl-center">
                     <span class="za-op" [class.is-teslim]="+row.requestedAllocationStatus === Teslim">
@@ -323,10 +328,13 @@
                     </span>
                   </td>
                   <td>
-                    <span class="zl-date">
-                      <span class="material-symbols-outlined">schedule</span>
-                      {{ row.createdDate | date:'dd.MM.yyyy HH:mm' }}
-                    </span>
+                    <div class="za-when">
+                      <span class="za-when-date">{{ row.createdDate | date:'dd.MM.yyyy HH:mm' }}</span>
+                      <span class="za-when-age" [class.is-long]="isLongWaiting(row.createdDate)">
+                        <span class="material-symbols-outlined">schedule</span>
+                        {{ waitingText(row.createdDate) }}
+                      </span>
+                    </div>
                   </td>
                   @if (activeTab() === 'gonderilen') {
                     <td class="zl-center">
@@ -350,8 +358,9 @@
                         </button>
                       </div>
                     } @else {
-                      <button type="button" class="zl-act" title="Talebi geri çek" [disabled]="processing()" (click)="openNote('cancel', [row.id])">
+                      <button type="button" class="za-btn is-reject is-sm" title="Talebi geri çek" [disabled]="processing()" (click)="openNote('cancel', [row.id])">
                         <span class="material-symbols-outlined">undo</span>
+                        Geri Çek
                       </button>
                     }
                   </td>
@@ -420,6 +429,163 @@
           {{ action === 'reject' ? 'Reddet' : 'Geri Çek' }}
         </button>
       </div>
+    </div>
+  </div>
+}
+
+<!-- Onay penceresi: kimden / ne zaman geldiği, sayfa sayısı ve ek bilgisi; alıcı fiziksel evrakla karşılaştırıp onaylar -->
+@if (approveRows().length) {
+  <div class="modal-overlay" (click)="closeApprove()">
+    <div class="modal-box za-ap" role="dialog" aria-modal="true" aria-label="Zimmeti onayla" (click)="$event.stopPropagation()">
+      <!-- Tek evrakta belge no ve işlem rozeti başlıkta; çoklu onayda her kartta -->
+      @let single = approveRows().length === 1 ? approveRows()[0] : null;
+      <header class="za-ap-head">
+        <span class="za-ap-head-icon">
+          <span class="material-symbols-outlined">inventory</span>
+        </span>
+        <div class="za-ap-head-text">
+          <h4 class="za-ap-title" [class.is-no]="single">{{ single ? docLabel(single) : approveRows().length + ' Evrakı Teslim Al' }}</h4>
+          <div class="za-ap-sub">Sayfa sayısını ve ekleri fiziksel evrakla karşılaştırarak onaylayınız.</div>
+        </div>
+        @if (single) {
+          <span class="za-op za-ap-head-op" [class.is-teslim]="+single.requestedAllocationStatus === Teslim">
+            <span class="material-symbols-outlined">{{ +single.requestedAllocationStatus === Teslim ? 'handshake' : 'swap_horiz' }}</span>
+            {{ operationLabel(single.requestedAllocationStatus) }}
+          </span>
+        }
+        <button type="button" class="za-ap-close" title="Kapat" [disabled]="processing()" (click)="closeApprove()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </header>
+
+      <div class="za-ap-body">
+        @for (r of approveRows(); track r.id) {
+          @let info = declaration(r);
+          @let serh = hasDiscrepancy(r);
+          @let isTeslim = +r.requestedAllocationStatus === Teslim;
+          <article class="za-ap-doc" [class.has-serh]="serh">
+            @if (!single) {
+              <div class="za-ap-doc-top">
+                <span class="za-ap-doc-icon">
+                  <span class="material-symbols-outlined">description</span>
+                </span>
+                <div class="za-ap-doc-id">
+                  <div class="za-ap-no">{{ docLabel(r) }}</div>
+                  @if (r.subject) {
+                    <div class="za-ap-subject" [title]="r.subject">{{ r.subject }}</div>
+                  }
+                </div>
+                <span class="za-op" [class.is-teslim]="isTeslim">
+                  <span class="material-symbols-outlined">{{ isTeslim ? 'handshake' : 'swap_horiz' }}</span>
+                  {{ operationLabel(r.requestedAllocationStatus) }}
+                </span>
+              </div>
+            } @else if (r.subject) {
+              <div class="za-ap-subject is-single" [title]="r.subject">
+                <span class="za-ap-k">Konu</span>
+                {{ r.subject }}
+              </div>
+            }
+
+            <!-- Devredenin beyanı: talep açılırken evrakta kayıtlı bilgiler -->
+            <div class="za-ap-decl">
+              <span class="material-symbols-outlined">fact_check</span>
+              Devredenin beyanı
+            </div>
+            <div class="za-ap-checks">
+              <div class="za-ap-check">
+                <span class="za-ap-check-icon">
+                  <span class="material-symbols-outlined">auto_stories</span>
+                </span>
+                <div>
+                  <div class="za-ap-k">Sayfa sayısı</div>
+                  <div class="za-ap-big">{{ info.pageCount ?? '-' }}</div>
+                </div>
+              </div>
+              <div class="za-ap-check" [class.is-yes]="info.hasAttachment === true" [class.is-unknown]="info.hasAttachment === null">
+                <span class="za-ap-check-icon">
+                  <span class="material-symbols-outlined">{{ info.hasAttachment === true ? 'attach_file' : info.hasAttachment === false ? 'link_off' : 'help' }}</span>
+                </span>
+                <div>
+                  <div class="za-ap-k">Ek</div>
+                  <div class="za-ap-big">{{ attachmentLabel(info) }}</div>
+                </div>
+              </div>
+              @if (info.hasAttachment === true) {
+                <div class="za-ap-att">
+                  <div class="za-ap-k">Ek açıklaması</div>
+                  <div class="za-ap-att-text" [class.is-empty]="!info.attachmentDescription">{{ info.attachmentDescription || 'Açıklama girilmemiş' }}</div>
+                </div>
+              }
+            </div>
+
+            <!-- Şerhli kabul: beyanla uyuşmayan durum (ör. eksik ek) açıklamayla kayda geçer -->
+            <div class="za-ap-serh">
+              <label class="za-ap-serh-toggle">
+                <input type="checkbox" class="form-check-input"
+                  [checked]="serh" [disabled]="processing()"
+                  (change)="toggleDiscrepancy(r, $any($event.target).checked)" />
+                <span>Şerh koyarak kabul ediyorum</span>
+              </label>
+              @if (serh) {
+                <textarea class="za-note za-ap-serh-note" rows="2"
+                  [class.is-invalid]="!discrepancyNote(r).trim()"
+                  [attr.maxlength]="noteMax" [disabled]="processing()"
+                  [ngModel]="discrepancyNote(r)" (ngModelChange)="setDiscrepancyNote(r, $event)"
+                  placeholder="Şerh açıklaması (zorunlu), örn. Ekte sayfa eksik"></textarea>
+                <div class="za-ap-serh-meta">
+                  <span>{{ !discrepancyNote(r).trim() ? 'Şerh açıklaması zorunludur.' : 'Şerh devredene bildirilir ve evrak geçmişine yazılır.' }}</span>
+                  <span>{{ discrepancyNote(r).length }} / {{ noteMax }}</span>
+                </div>
+              }
+            </div>
+
+            <!-- Kim, ne zaman: kartın altında bilgi notu -->
+            <div class="za-ap-info">
+              <span class="material-symbols-outlined">info</span>
+              <span>
+                {{ isTeslim ? 'Teslim eden' : 'Devreden' }}: <b>{{ r.requestedByFullName || '-' }}</b>
+                @if (showHolder(r)) {
+                  <span class="za-ap-note">(zimmet sahibi: {{ r.fromUserFullName }})</span>
+                }
+                <span class="za-ap-sep">·</span>
+                {{ isTeslim ? 'Teslim tarihi' : 'Devir tarihi' }}: <b class="is-num">{{ r.createdDate | date:'dd.MM.yyyy HH:mm' }}</b>
+                <span class="za-ap-note" [class.is-long]="isLongWaiting(r.createdDate)">({{ waitingText(r.createdDate) }})</span>
+              </span>
+            </div>
+          </article>
+        }
+
+        @if (failedRows().length) {
+          <div class="za-failed za-ap-failed">
+            <div class="za-failed-head">
+              <span class="material-symbols-outlined">warning</span>
+              {{ failedRows().length }} talep işlenemedi
+            </div>
+            <ul>
+              @for (f of failedRows(); track $index) {
+                <li><b>{{ f.label }}</b> · {{ f.reason }}</li>
+              }
+            </ul>
+          </div>
+        }
+      </div>
+
+      <footer class="za-ap-foot">
+        <span class="za-ap-foot-note">
+          <span class="material-symbols-outlined">verified_user</span>
+          Onayladığınızda zimmet üzerinize geçer.
+        </span>
+        <button type="button" class="zl-btn-ghost" [disabled]="processing()" (click)="closeApprove()">Vazgeç</button>
+        <button type="button" class="za-btn is-approve" [disabled]="processing() || approveInvalid()" (click)="confirmApprove()">
+          @if (processing()) {
+            <span class="spinner-border"></span>
+          } @else {
+            <span class="material-symbols-outlined">done_all</span>
+          }
+          {{ approveRows().length > 1 ? 'Tümünü Onayla' : 'Onayla' }}
+        </button>
+      </footer>
     </div>
   </div>
 }

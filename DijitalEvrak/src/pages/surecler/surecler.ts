@@ -16,6 +16,10 @@ import { Department, DepartmentModel } from '../../services/department';
 import { ExternalInstitution, ExternalInstitutionModel } from '../../services/external-institution';
 import { RoleService } from '../../services/role-service';
 import { isPublished, isSentToPublish, publishStatusLabel } from '../../models/publishstatus.model';
+import { UrgencyDegreeBadgeClass, UrgencyDegreeEnum, UrgencyDegreeInitials, UrgencyDegreeLabels } from '../../models/urgencydegree.model';
+
+// Evrak Kayıt ekranındaki Dil seçenekleriyle aynı
+const LANGUAGES: Record<number, string> = { 1: 'Türkçe', 2: 'İngilizce' };
 
 // Gelen evrak akış durumu (backend DocumentStatusEnum) için özet şeridindeki etiket ve ton.
 // Yayın durumu ayrı alanda (submissionStatus): yayına gönderilmiş evrakta şerit yayın
@@ -36,13 +40,14 @@ type Tone = 'info' | 'success' | 'warning' | 'neutral' | 'publish';
 type Milestone = 'publish' | 'deliver' | 'archive';
 
 // İşlem türüne göre zaman çizelgesi düğümünün ikonu ve rengi.
-// 1 Ön Kayıt, 6 Zimmet, 7 Teslim, 8 OCR, 9 Birim Arşivi; diğerleri varsayılan.
+// 1 Ön Kayıt, 6 Zimmet, 7 Teslim, 8 OCR, 9 Birim Arşivi, 17 Şerhli Kabul; diğerleri varsayılan.
 const TYPE_STYLE: Record<number, { icon: string; tone: Tone }> = {
   1: { icon: 'app_registration', tone: 'info' },
   6: { icon: 'contract_edit', tone: 'info' },
   7: { icon: 'task_alt', tone: 'success' },
   8: { icon: 'document_scanner', tone: 'warning' },
   9: { icon: 'assured_workload', tone: 'neutral' },
+  17: { icon: 'rule', tone: 'warning' },
 };
 
 // Yayınlama adımının işlem türü numarası frontend'de bilinmiyor; bu yüzden kilometre
@@ -146,6 +151,39 @@ export default class Surecler implements OnInit {
     return (type != null && this.documentTypeLabels[type]) || '-';
   });
 
+  // ---- Sağ kart sekmeleri: Evrak Bilgileri (künye) ve orada olmayan alanlar (Diğer Bilgiler) ----
+  readonly detailTab = signal<'general' | 'other'>('general');
+
+  // Diğer Bilgiler sekmesi: sayfa sayısı, ek, ivedilik, dil, elektronik kopya, dosya ve tarihler
+  readonly otherInfo = computed(() => {
+    const d = this.documentDetail();
+    if (!d) return null;
+    const dateTime = (v?: string | Date | null) => {
+      if (!v) return '-';
+      const date = new Date(v);
+      // Girilmemiş tarih backend'den 0001-01-01 olarak gelebilir
+      return isNaN(date.getTime()) || date.getFullYear() < 1900
+        ? '-'
+        : date.toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    };
+    const urgency = d.urgencyDegree != null ? d.urgencyDegree as UrgencyDegreeEnum : null;
+
+    return {
+      pageCount: d.pageCount != null && String(d.pageCount) !== '' ? String(d.pageCount) : '-',
+      hasAttachment: d.hasAttachment ?? null,
+      attachmentDescription: d.attachmentDescription?.trim() || '',
+      urgency: urgency != null && UrgencyDegreeLabels[urgency]
+        ? { label: UrgencyDegreeLabels[urgency], initial: UrgencyDegreeInitials[urgency], tier: UrgencyDegreeBadgeClass[urgency] }
+        : null,
+      language: LANGUAGES[d.languageId] || '-',
+      electronicCopy: d.electronicCopy === true ? 'Var' : d.electronicCopy === false ? 'Yok' : '-',
+      hasFile: !!d.documentName,
+      releaseDate: isPublished(d) ? dateTime(d.releaseDate) : null,
+      createdDate: dateTime(d.createdDate),
+      updateDate: dateTime(d.updateDate)
+    };
+  });
+
 
   // İşlemler adımlara gruplanır: yayınlamayı kısa süre içinde izleyen zimmet
   // (otomatik zimmet) yayınlama adımının altına alınır; diğer işlemler tek başına adımdır.
@@ -239,6 +277,7 @@ export default class Surecler implements OnInit {
     if (type === 1) return 'Kaydeden';
     if (type === 6) return 'Zimmet Sahibi';
     if (type === 9) return 'Arşivleyen';
+    if (type === 17) return 'Kabul Eden';
     return 'Kullanıcı';
   }
 
