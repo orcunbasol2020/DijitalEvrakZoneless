@@ -207,6 +207,12 @@ export const navigations: NavigationModel[] = [
         excludeRoles: LIMITED_ROLES
     },
     {
+        title: "Atlas Aktarım Hataları",
+        url: "/atlas-aktarim-hatalari",
+        icon: "cloud_off",
+        roles: ["Yönetici"]
+    },
+    {
         title: "Uygulama Ayarları",
         url: "/app-settings",
         icon: "tune",

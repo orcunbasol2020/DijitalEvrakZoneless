@@ -107,13 +107,13 @@ export default class IncomingDepartmentDocument {
   readonly sortDirection = signal<'asc' | 'desc'>('asc');
 
   // Yayın durumu akış durumundan ayrı alanda (submissionStatus; bkz. publishstatus.model).
-  // Aktarım hatalı evrak da servis yeniden deneyeceği için yayın sırasında sayılır.
+  // Aktarım hatalı evrak ayrı tutulur: servis onu yeniden denemez, müdahale gerekir.
   isPublished(doc: IncomingDocumentModel): boolean {
     return isPublished(doc);
   }
 
   isPublishing(doc: IncomingDocumentModel): boolean {
-    return isPublishing(doc) || isPublishFailed(doc);
+    return isPublishing(doc);
   }
 
   // Teslim sütunu ve üstteki teslim filtresi: evrak akış durumu 3 = Teslim Edildi.
@@ -136,11 +136,11 @@ export default class IncomingDepartmentDocument {
     return 'pending';
   }
 
-  // Aktarım hatalı evrak yayın sırasında sayılır ama servis yeniden deneyeceği için
-  // ayrı (amber) tonla gösterilir; normal aktarımda ikon yavaşça döner.
+  // Aktarım hatalı evrak kalıcı hatadır (servis yeniden denemez), hata tonuyla (kırmızı)
+  // gösterilir; normal aktarımda ikon yavaşça döner.
   statusClass(doc: IncomingDocumentModel): string {
     if (this.isPublished(doc)) return 'is-published';
-    if (isPublishFailed(doc)) return 'is-retry';
+    if (isPublishFailed(doc)) return 'is-failed';
     if (this.isPublishing(doc)) return 'is-publishing';
     return 'is-inprocess';
   }

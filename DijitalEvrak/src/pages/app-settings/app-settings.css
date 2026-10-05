@@ -37,6 +37,23 @@
     border-color: rgba(180, 83, 9, 0.25);
 }
 
+.st-count.is-failed {
+    color: #b91c1c;
+    background: #fef2f2;
+    border-color: rgba(185, 28, 28, 0.25);
+    text-decoration: none;
+}
+
+.st-count.is-failed:hover {
+    background: #fee2e2;
+}
+
+[data-theme="dark"] .st-count.is-failed {
+    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.14);
+    border-color: rgba(248, 113, 113, 0.35);
+}
+
 /* ---- Alan ---- */
 .as-fields {
     gap: 0;

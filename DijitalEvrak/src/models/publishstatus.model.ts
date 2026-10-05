@@ -48,7 +48,10 @@ export function isPublishing(doc: PublishFields): boolean {
   return legacyOnly(doc) && doc.status === LEGACY_STATUS_PUBLISHING;
 }
 
-/** Aktarım hata aldı; servis yeniden deneyecek. */
+/**
+ * Aktarım kalıcı hata aldı (EYP üretilemedi, Atlas reddetti ya da deneme sınırı doldu);
+ * servis yeniden denemez, müdahale gerekir. Geçici hatalarda evrak 2'ye döner, 5 görünmez.
+ */
 export function isPublishFailed(doc: PublishFields): boolean {
   return !isPublished(doc) && doc.submissionStatus === PublishStatusEnum.AktarimHatali;
 }

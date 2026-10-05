@@ -9,7 +9,8 @@ import { BreadcrumbModel } from '../layouts/breadcrumb/breadcrumb';
 import { IncomingDocumentService } from '../../services/incomingdocument';
 import { Department, DepartmentModel } from '../../services/department';
 import { ExternalInstitution, ExternalInstitutionModel } from '../../services/external-institution';
-import { Observable, startWith, map, switchMap } from 'rxjs';
+import { Observable, startWith, map, switchMap, tap, catchError, of } from 'rxjs';
+import { AtlasTransferService } from '../../services/atlas-transfer';
 import { SimpleAutocompleteComponent } from '../simpleautocomplete/simpleautocomplete';
 import { IncomingDocumentModel } from '../../models/incoming-document/incoming-document.model';
 import { Common } from '../../services/common';
@@ -23,7 +24,7 @@ import { DocumentAllocation } from '../../services/documentallocation';
 import { RoleService } from '../../services/role-service';
 import { UPLOAD_DOCUMENT_ROLES, UploadDocumentModal } from '../../../components/upload-document-modal/upload-document-modal';
 import { DocumentUploadFlow } from '../../services/document-upload-flow';
-import { INCOMING_STATUS_KAYIT, INCOMING_STATUS_ON_KAYIT, INCOMING_STATUS_PUBLISH_REQUEST } from '../../services/incomingdocument';
+import { INCOMING_STATUS_KAYIT, INCOMING_STATUS_ON_KAYIT, incomingErrorMessage } from '../../services/incomingdocument';
 import { PublishStatusEnum, PublishStatusLabels, publishStatusOf } from '../../models/publishstatus.model';
 
 // Varsayılanlar: Hizmete Özel, Normal ivedilik, Gereği, elektronik kopya yok, Türkçe (1)
@@ -89,16 +90,34 @@ export default class Evrakkayit implements OnInit {
 
   // Yayına gönderilen evrakın durumu okunur; Aktarım Sırasında / Aktarılıyor iken ya da
   // yayınlandıysa Kaydet ve Yayınla butonları pasiftir (aynı evrak tekrar sıraya alınmaz).
-  // Aktarım hatalıysa servis yeniden dener, butonlar açık kalır.
+  // Aktarım hatalıysa servis yeniden denemez; butonlar açık kalır, kullanıcı eksiği düzeltip
+  // Yayınla derse evrak güncel bilgilerle yeniden sıraya girer.
   private applyPublishState(doc: IncomingDocumentModel) {
     const state = publishStatusOf(doc);
     this.publishState.set(state);
+    this.loadPublishError(state === PublishStatusEnum.AktarimHatali ? doc.id : null);
     this.activeStatus.set(
       state === PublishStatusEnum.AktarimSirasinda
       || state === PublishStatusEnum.Aktariliyor
       || state === PublishStatusEnum.Yayinlandi
     );
   }
+
+  // Aktarım Hatalı evrakın nedeni: evrak modelinde yok, yalnızca GetFailed listesinden okunur
+  readonly publishError = signal<string | null>(null);
+  private atlasTransferService = inject(AtlasTransferService);
+
+  private loadPublishError(documentId: string | null | undefined) {
+    this.publishError.set(null);
+    if (!documentId) return;
+    this.atlasTransferService.getFailed().pipe(catchError(() => of([]))).subscribe(list => {
+      const failure = list.find(f => f.documentId === documentId);
+      if (failure && this.publishState() === PublishStatusEnum.AktarimHatali) {
+        this.publishError.set(failure.lastError || 'Atlas aktarımı hatalı; neden bildirilmedi.');
+      }
+    });
+  }
+
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private incomingDocumentService = inject(IncomingDocumentService);
@@ -567,17 +586,21 @@ export default class Evrakkayit implements OnInit {
     // Yayınla, Update'e status 6 gönderir: backend evrakın akış durumuna dokunmaz, yayın
     // durumunu (submissionStatus) Aktarım Sırasında yapar. Ön Kayıt'taki evrak bu yüzden
     // önce Kayıt Tamamlandı (2) olarak kaydedilir, ardından yayına gönderilir.
+    // İlk kayıtta Kaydet adımı başarılı olup yayın reddedilirse evrak yine Kayıt Tamamlandı'dır
+    let registered = false;
     let saveObs: Observable<unknown>;
     if (!formData.id) {
-      saveObs = this.incomingDocumentService.createIncomingDocument(
-        publishing ? { ...formData, status: INCOMING_STATUS_PUBLISH_REQUEST } : formData);
+      saveObs = publishing
+        ? this.incomingDocumentService.createAndPublishIncomingDocument(formData)
+        : this.incomingDocumentService.createIncomingDocument(formData);
     } else if (!publishing) {
       saveObs = this.incomingDocumentService.updateIncomingDocument(formData);
     } else {
-      const publishRequest = this.incomingDocumentService.updateIncomingDocument(
-        { ...formData, status: INCOMING_STATUS_PUBLISH_REQUEST });
+      const publishRequest = this.incomingDocumentService.publishIncomingDocument(formData);
       saveObs = isFirstRegistration
-        ? this.incomingDocumentService.updateIncomingDocument(formData).pipe(switchMap(() => publishRequest))
+        ? this.incomingDocumentService.updateIncomingDocument(formData).pipe(
+            tap(() => registered = true),
+            switchMap(() => publishRequest))
         : publishRequest;
     }
 
@@ -598,7 +621,10 @@ export default class Evrakkayit implements OnInit {
 
         this.docStatus.set(nextStatus);
         this.formDetail.patchValue({ status: nextStatus });
-        if (publishing) this.publishState.set(PublishStatusEnum.AktarimSirasinda);
+        if (publishing) {
+          this.publishState.set(PublishStatusEnum.AktarimSirasinda);
+          this.publishError.set(null);
+        }
 
         // Aynı ekranda tekrar kaydedilirse devir yeniden tetiklenmez
         this.loadedStatus.set(nextStatus);
@@ -610,6 +636,22 @@ export default class Evrakkayit implements OnInit {
       error: (err) => {
         console.error(err);
         if (publishing) this.activeStatus.set(false);
+
+        if (registered && formData.id) {
+          this.docStatus.set(INCOMING_STATUS_KAYIT);
+          this.formDetail.patchValue({ status: INCOMING_STATUS_KAYIT });
+          this.loadedStatus.set(INCOMING_STATUS_KAYIT);
+          this.transferAllocationToMe(formData.id, userId);
+        }
+
+        if (publishing) {
+          // Backend eksik bilgiyi açıklar (ör. "Evrak Atlas'a aktarılamaz: Konu girilmemiş.").
+          // Yeni evrak bu durumda hiç kaydedilmez; form açık kalır, eksik doldurulup tekrar Yayınla denir.
+          const reason = incomingErrorMessage(err, "Evrak Atlas'a aktarım sırasına alınamadı.");
+          this.toast.showToast(
+            registered ? "Kaydedildi, yayınlanamadı" : "Yayınlanamadı", reason, "error");
+          return;
+        }
         this.toast.showToast("Kayıt Başarısız", "Belge kaydedilirken bir hata oluştu.");
       }
     });
@@ -790,6 +832,8 @@ export default class Evrakkayit implements OnInit {
     7: 'task_alt',
     8: 'document_scanner',
     9: 'assured_workload',
+    18: 'verified',
+    19: 'cloud_off',
   };
 
   private readonly transactionColorMap: Record<number, string> = {
@@ -799,6 +843,8 @@ export default class Evrakkayit implements OnInit {
     7: 'transaction-dot-success',
     8: 'transaction-dot-warning',
     9: 'transaction-dot-secondary',
+    18: 'transaction-dot-success',
+    19: 'transaction-dot-danger',
   };
 
   transactionIcon(type: number): string {

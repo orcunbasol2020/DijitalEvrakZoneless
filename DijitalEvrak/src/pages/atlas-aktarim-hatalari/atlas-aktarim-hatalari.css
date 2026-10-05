@@ -1,0 +1,118 @@
+/* Atlas Aktarım Hataları: tablo Yüksek Öncelikli Evraklar ile aynı (orders-table + attention-row,
+   styles.css); burada yalnızca bu sayfaya özgü hücreler var. */
+
+/* Özet kartları bilgi amaçlı: tıklanmadığı için hover'da kalkmaz */
+.aah-page .ad-stat:hover {
+    border-color: #e7eaf0;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    transform: none;
+}
+
+.aah-doc-link {
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.aah-doc-link:hover {
+    text-decoration: underline;
+}
+
+.aah-subject {
+    max-width: 260px;
+}
+
+.aah-subject span {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.aah-error {
+    color: #b91c1c;
+    font-size: 13px;
+    line-height: 1.4;
+    min-width: 260px;
+}
+
+.aah-date {
+    white-space: nowrap;
+    color: #64748b;
+    font-size: 13px;
+}
+
+.aah-retry {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid #fecaca;
+    background: #fff;
+    color: #b91c1c;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.aah-retry .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.aah-retry:hover:not(:disabled) {
+    background: #fef2f2;
+    border-color: #f87171;
+}
+
+.aah-retry:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.aah-retry .is-spinning {
+    animation: ad-spin 0.6s linear infinite;
+}
+
+.aah-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 36px 16px;
+    color: #15803d;
+    font-weight: 600;
+}
+
+[data-theme="dark"] .aah-page .ad-stat:hover {
+    border-color: #4a5568;
+    box-shadow: none;
+}
+
+[data-theme="dark"] .aah-error {
+    color: #fca5a5;
+}
+
+[data-theme="dark"] .aah-date {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .aah-retry {
+    background: transparent;
+    border-color: rgba(248, 113, 113, 0.4);
+    color: #fca5a5;
+}
+
+[data-theme="dark"] .aah-retry:hover:not(:disabled) {
+    background: rgba(239, 68, 68, 0.12);
+}
+
+[data-theme="dark"] .aah-empty {
+    color: #86efac;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .aah-retry .is-spinning {
+        animation: none;
+    }
+}

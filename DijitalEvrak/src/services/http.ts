@@ -1,5 +1,5 @@
 import { inject, Injectable, resource, runInInjectionContext, Injector } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { lastValueFrom } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
@@ -24,12 +24,12 @@ export class HttpService {
     return this.#http.get<T>(endpoint);
   }
 
-  post<T>(endpoint: string, body: any) {
-    return this.#http.post<T>(endpoint, body);
+  post<T>(endpoint: string, body: any, options?: { context?: HttpContext }) {
+    return this.#http.post<T>(endpoint, body, options);
   }
 
-  put<T>(endpoint: string, body: any) {
-    return this.#http.put<T>(endpoint, body);
+  put<T>(endpoint: string, body: any, options?: { context?: HttpContext }) {
+    return this.#http.put<T>(endpoint, body, options);
   }
 
   delete(endpoint: string) {

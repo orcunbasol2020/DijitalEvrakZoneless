@@ -5,6 +5,8 @@ import { IncomingDocumentModel } from '../models/incoming-document/incoming-docu
 import { IncomingDocumentPreRegisterModel } from '../models/incoming-document/incomingdocument-pregister.model';
 import { IncomingDocumentTodayStats } from '../models/dashboard/IncomingDocumentTodayStats.model';
 import { firstValueFrom, map } from 'rxjs';
+import { HttpContext, HttpErrorResponse } from '@angular/common/http';
+import { SKIP_ERROR_TOAST } from '../interceptors/error-interceptor';
 import { IncomingDocumentLast30DaysStats } from '../models/dashboard/IncomingDocument30DaysStats.model';
 import { IncomingDocumentPendingScanStats } from '../models/dashboard/IncomingDocumentPendingScanStats.model';
 import { IncomingDocumentOcrQueueStats } from '../models/dashboard/IncomingDocumentOcrQueueStats.model';
@@ -17,6 +19,12 @@ import { IncomingDocumentOcrQueueStats } from '../models/dashboard/IncomingDocum
 export const INCOMING_STATUS_ON_KAYIT = 1;
 export const INCOMING_STATUS_KAYIT = 2;
 export const INCOMING_STATUS_PUBLISH_REQUEST = 6;
+
+/** Hata yanıtındaki backend mesajı ({ Message, StatusCode }); yoksa fallback. */
+export function incomingErrorMessage(err: unknown, fallback: string): string {
+  const body = (err as HttpErrorResponse)?.error;
+  return body?.Message || body?.message || fallback;
+}
 
 @Injectable({ providedIn: 'root' })
 export class IncomingDocumentService {
@@ -101,6 +109,16 @@ export class IncomingDocumentService {
     );
   }
 
+  // İLK KAYITTA YAYINLA: Create'e status 6 gönderir. Backend evrakı Kayıt (2) olarak açıp
+  // kuyruğa alır; eksik bilgide evrak HİÇ kaydedilmez ve nedeni Message alanında döner.
+  createAndPublishIncomingDocument(model: IncomingDocumentModel) {
+    return this.httpService.post<any>(
+      `${this.baseUrl}Create`,
+      { ...model, status: INCOMING_STATUS_PUBLISH_REQUEST },
+      { context: new HttpContext().set(SKIP_ERROR_TOAST, true) }
+    );
+  }
+
   createIncomingDocumentPreRegister(model: IncomingDocumentPreRegisterModel) {
     return this.httpService.post<PreRegisterResponse>(
       `${this.baseUrl}PreRegister`,
@@ -113,6 +131,17 @@ export class IncomingDocumentService {
     return this.httpService.put<any>(
       `${this.baseUrl}Update`,
       model
+    );
+  }
+
+  // YAYINLA: Update'e status 6 gönderir. Backend evrakı Atlas kuyruğuna almadan önce doğrular
+  // (konu, evrak tarihi, gizlilik, gönderen kurum ve DETSİS kodu); eksik bilgide nedeni
+  // Message alanında döner. Mesajı ekran gösterdiği için genel "Sunucu Hatası" toast'ı atlanır.
+  publishIncomingDocument(model: IncomingDocumentModel) {
+    return this.httpService.put<any>(
+      `${this.baseUrl}Update`,
+      { ...model, status: INCOMING_STATUS_PUBLISH_REQUEST },
+      { context: new HttpContext().set(SKIP_ERROR_TOAST, true) }
     );
   }
 

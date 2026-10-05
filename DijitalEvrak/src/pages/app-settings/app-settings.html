@@ -66,6 +66,20 @@
                 Boşta: {{ s.available }} / En az: {{ s.minStock }}
               </span>
             }
+            @if (group.id === 'atlasTransfer' && transferStats(); as t) {
+              @if (t.failed > 0) {
+                <a class="st-card-head-end st-count is-failed" routerLink="/atlas-aktarim-hatalari"
+                  title="Aktarımı hatalı evrakların listesi">
+                  <span class="material-symbols-outlined">cloud_off</span>
+                  Hatalı: {{ t.failed }}
+                </a>
+              } @else {
+                <span class="st-card-head-end st-count" title="Atlas aktarım sırasında bekleyen evrak">
+                  <span class="material-symbols-outlined">hourglass_top</span>
+                  Kuyrukta: {{ t.queued + t.transferring }}
+                </span>
+              }
+            }
           </div>
 
           <div class="st-card-body as-fields">

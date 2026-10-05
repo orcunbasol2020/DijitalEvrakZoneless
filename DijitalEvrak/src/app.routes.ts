@@ -216,6 +216,13 @@ export const routes: Routes = [
                 data: { roles: ["Yönetici"] }
             },
             {
+                // Atlas'a aktarımı kalıcı hata alan gelen evraklar ve Yeniden Dene
+                path: 'atlas-aktarim-hatalari',
+                loadComponent: () => import('./pages/atlas-aktarim-hatalari/atlas-aktarim-hatalari'),
+                canActivate: [roleGuard],
+                data: { roles: ["Yönetici"] }
+            },
+            {
                 path: 'support',
                 loadComponent: () => import('./pages/support/support')
             },

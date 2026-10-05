@@ -3,7 +3,7 @@ import { DocumentTransactionModel } from './documenttransaction.model';
 // Gelen evrak süreç akışı (işlem geçmişi) kuralları: Süreçler sayfası ve Gelen Evraklar
 // listesindeki Süreç popup'ı aynı adım gruplamasını, ikonları ve renkleri kullanır.
 
-export type ProcessTone = 'info' | 'success' | 'warning' | 'neutral' | 'publish';
+export type ProcessTone = 'info' | 'success' | 'warning' | 'neutral' | 'publish' | 'danger';
 
 // Sürecin kilometre taşı sayılan adımları; diğer adımlardan daha belirgin çizilir.
 export type ProcessMilestone = 'publish' | 'deliver' | 'archive';
@@ -15,7 +15,8 @@ export interface ProcessStep {
 }
 
 // İşlem türüne göre zaman çizelgesi düğümünün ikonu ve rengi.
-// 1 Ön Kayıt, 6 Zimmet, 7 Teslim, 8 OCR, 9 Birim Arşivi, 17 Şerhli Kabul; diğerleri varsayılan.
+// 1 Ön Kayıt, 6 Zimmet, 7 Teslim, 8 OCR, 9 Birim Arşivi, 17 Şerhli Kabul,
+// 19 Atlas Aktarımı Hatalı; diğerleri varsayılan.
 const TYPE_STYLE: Record<number, { icon: string; tone: ProcessTone }> = {
   1: { icon: 'app_registration', tone: 'info' },
   6: { icon: 'contract_edit', tone: 'info' },
@@ -23,14 +24,16 @@ const TYPE_STYLE: Record<number, { icon: string; tone: ProcessTone }> = {
   8: { icon: 'document_scanner', tone: 'warning' },
   9: { icon: 'assured_workload', tone: 'neutral' },
   17: { icon: 'rule', tone: 'warning' },
+  19: { icon: 'cloud_off', tone: 'danger' },
 };
 
-// Yayınlama adımının işlem türü numarası frontend'de bilinmiyor; bu yüzden kilometre
-// taşları hem bilinen tür numarasından hem de backend'in gönderdiği işlem adından
-// (transactionTypeName) tanınır. Adı "yayın" içeren her işlem yayınlama sayılır.
+// Kilometre taşları hem bilinen tür numarasından hem de backend'in gönderdiği işlem
+// adından (transactionTypeName) tanınır. Adı "yayın" içeren her işlem (10 Yayınla)
+// yayınlama sayılır; 18 Atlas'a Aktarıldı adında "yayın" geçmediği için numarasıyla tanınır.
 const MILESTONE_BY_TYPE: Record<number, ProcessMilestone> = {
   7: 'deliver',
   9: 'archive',
+  18: 'publish',
 };
 
 const MILESTONE_BY_NAME: Array<{ pattern: RegExp; kind: ProcessMilestone }> = [
@@ -74,7 +77,8 @@ export function processTypeTone(t: DocumentTransactionModel): ProcessTone {
 
 // Kişi satırındaki küçük etiket: işlem türüne göre rolü.
 export function processPersonLabel(t: DocumentTransactionModel): string {
-  if (processMilestoneKind(t) === 'publish') return 'Yayınlayan';
+  // 18/19 (Atlas aktarımı) kayıtlarının kullanıcısı evrakı en son yayınlayan kişidir
+  if (processMilestoneKind(t) === 'publish' || t.transactionType === 19) return 'Yayınlayan';
   const type = t.transactionType;
   if (type === 1) return 'Kaydeden';
   if (type === 6) return 'Zimmet Sahibi';

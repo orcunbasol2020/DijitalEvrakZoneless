@@ -982,6 +982,7 @@
 .zh-dot.sp-tone-success { background: linear-gradient(135deg, #34d399, #059669); }
 .zh-dot.sp-tone-warning { background: linear-gradient(135deg, #fbbf24, #d97706); }
 .zh-dot.sp-tone-neutral { background: linear-gradient(135deg, #94a3b8, #475569); }
+.zh-dot.sp-tone-danger { background: linear-gradient(135deg, #f87171, #dc2626); }
 /* Yayınlama: lacivert -> petrol (premium palet) */
 .zh-dot.sp-tone-publish { background: linear-gradient(135deg, #0369a1, #0f172a); color: #e0f2fe; }
 
