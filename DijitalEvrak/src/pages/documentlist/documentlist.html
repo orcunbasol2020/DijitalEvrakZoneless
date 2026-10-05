@@ -219,17 +219,20 @@
               <th scope="col" class="dl-col-unit" [attr.aria-sort]="sortAria('to')">
                 <ng-container *ngTemplateOutlet="sortHead; context: { key: 'to', label: 'NEREYE' }" />
               </th>
-              <th scope="col" class="dl-col-date" [attr.aria-sort]="sortAria('documentDate')">
-                <ng-container *ngTemplateOutlet="sortHead; context: { key: 'documentDate', label: 'BELGE TARİHİ' }" />
-              </th>
               <th scope="col" class="dl-col-urgency" [attr.aria-sort]="sortAria('urgency')">
                 <ng-container *ngTemplateOutlet="sortHead; context: { key: 'urgency', label: 'İVEDİLİK' }" />
+              </th>
+              <th scope="col" class="dl-col-date" [attr.aria-sort]="sortAria('documentDate')">
+                <ng-container *ngTemplateOutlet="sortHead; context: { key: 'documentDate', label: 'BELGE TARİHİ' }" />
               </th>
               <th scope="col" class="dl-col-urgency" [attr.aria-sort]="sortAria('security')">
                 <ng-container *ngTemplateOutlet="sortHead; context: { key: 'security', label: 'GİZLİLİK' }" />
               </th>
               <th scope="col" class="dl-col-status" [attr.aria-sort]="sortAria('status')">
                 <ng-container *ngTemplateOutlet="sortHead; context: { key: 'status', label: 'DURUM' }" />
+              </th>
+              <th scope="col" class="dl-col-delivery" [attr.aria-sort]="sortAria('delivery')">
+                <ng-container *ngTemplateOutlet="sortHead; context: { key: 'delivery', label: 'TESLİM' }" />
               </th>
               @if (showPersonColumn()) {
                 <th scope="col" class="dl-col-person" [attr.aria-sort]="sortAria('person')">
@@ -264,9 +267,6 @@
                 <td class="dl-col-unit">
                   <span class="dl-text dl-to" [class.is-empty]="!toName(item)" [title]="toName(item, false)">{{ toName(item) || '—' }}</span>
                 </td>
-                <td class="dl-col-date">
-                  <span class="dl-text dl-num">{{ item.documentDate ? (item.documentDate | date:'dd.MM.yyyy') : '—' }}</span>
-                </td>
                 <td class="dl-col-urgency">
                   <!-- İvedilik: baş harfli renkli rozet (Gelen Evraklar listesindekiyle aynı);
                        adı üzerine gelince görünür -->
@@ -274,6 +274,9 @@
                     [title]="urgencyDegreeMap[item.urgencyDegree!] || 'İvedilik belirtilmemiş'">
                     {{ urgencyDegreeInitialMap[item.urgencyDegree!] || '-' }}
                   </span>
+                </td>
+                <td class="dl-col-date">
+                  <span class="dl-text dl-num">{{ item.documentDate ? (item.documentDate | date:'dd.MM.yyyy') : '—' }}</span>
                 </td>
                 <td class="dl-col-urgency">
                   <!-- Gizlilik: ikonlu renkli rozet (Gelen Evraklar listesindekiyle aynı);
@@ -291,9 +294,12 @@
                     </span>
                     <span class="envelope-status-text">{{ st.label }}</span>
                   </span>
-                  @if (st.note) {
-                    <div class="dl-sub">{{ st.note }}</div>
-                  }
+                </td>
+                <td class="dl-col-delivery">
+                  @let dv = deliveryView(item);
+                  <span class="dl-delivery" [attr.data-tone]="dv.tone">
+                    <i class="dl-delivery-dot"></i>{{ dv.label }}
+                  </span>
                 </td>
                 @if (showPersonColumn()) {
                   <td class="dl-col-person">

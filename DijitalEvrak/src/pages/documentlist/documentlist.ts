@@ -81,7 +81,7 @@ const STAGES: readonly StageDef[] = [
 
 type PublishView = 'all' | 'done' | 'progress' | 'failed';
 type DeliveryView = 'all' | 'delivered' | 'undelivered';
-type SortKey = 'created' | 'no' | 'from' | 'to' | 'documentDate' | 'urgency' | 'security' | 'status' | 'person';
+type SortKey = 'created' | 'no' | 'from' | 'to' | 'documentDate' | 'urgency' | 'security' | 'status' | 'delivery' | 'person';
 type SortDir = 'asc' | 'desc';
 
 // "Sırala" seçimindeki hazır sıralamalar (değer: "anahtar:yön")
@@ -342,6 +342,7 @@ export default class Documentlist {
       urgency: { empty: d => d.urgencyDegree == null, cmp: (a, b) => this.urgencyRank(a) - this.urgencyRank(b) },
       security: { empty: d => d.securityDegree == null, cmp: (a, b) => (b.securityDegree ?? 0) - (a.securityDegree ?? 0) },
       status: { empty: () => false, cmp: (a, b) => this.statusRank(a) - this.statusRank(b) },
+      delivery: { empty: () => false, cmp: (a, b) => this.deliveryRank(a) - this.deliveryRank(b) },
       person: {
         empty: d => !d.currentAssignmentUser?.trim() || this.stageOf(d) === 'published',
         cmp: (a, b) => text(a.currentAssignmentUser ?? '', b.currentAssignmentUser ?? '')
@@ -429,16 +430,28 @@ export default class Documentlist {
   // Durum sütunu tek etiket gösterir: yayına gönderilmiş evrakta yayın durumu (altında teslim
   // bilgisi), diğerlerinde akış durumu. Rozet Zarflar sayfasındaki durum rozetiyle aynıdır
   // (envelope-status-pill, styles.css); cls rengini, icon ikon çipini belirler.
-  statusView(d: IncomingDocumentModel): { label: string; cls: string; icon: string; note: string } {
+  statusView(d: IncomingDocumentModel): { label: string; cls: string; icon: string } {
     if (isSentToPublish(d)) {
-      const note = this.isDelivered(d) ? 'Teslim edildi' : 'Teslim bekliyor';
-      if (isPublished(d)) return { label: 'Yayınlandı', cls: 'envelope-status-teslim', icon: 'cloud_done', note };
-      if (isPublishFailed(d)) return { label: 'Aktarım Hatalı', cls: 'envelope-status-iade', icon: 'cloud_off', note };
-      return { label: 'Aktarımda', cls: 'envelope-status-birimde', icon: 'cloud_sync', note };
+      if (isPublished(d)) return { label: 'Yayınlandı', cls: 'envelope-status-teslim', icon: 'cloud_done' };
+      if (isPublishFailed(d)) return { label: 'Aktarım Hatalı', cls: 'envelope-status-iade', icon: 'cloud_off' };
+      return { label: 'Aktarımda', cls: 'envelope-status-birimde', icon: 'cloud_sync' };
     }
-    if (d.status === STATUS_PRE_REGISTER) return { label: 'Ön Kayıt', cls: 'dl-status-onkayit', icon: 'app_registration', note: '' };
-    if (this.isDelivered(d)) return { label: 'Teslim Edildi', cls: 'envelope-status-teslim', icon: 'task_alt', note: '' };
-    return { label: 'Kayıt Tamamlandı', cls: 'dl-status-kayit', icon: 'fact_check', note: '' };
+    if (d.status === STATUS_PRE_REGISTER) return { label: 'Ön Kayıt', cls: 'dl-status-onkayit', icon: 'app_registration' };
+    return { label: 'Kayıt Tamamlandı', cls: 'dl-status-kayit', icon: 'fact_check' };
+  }
+
+  // Teslim sütunu: evrak birime teslim edildi mi (akış durumu 3). Yayına gönderilmiş ama
+  // teslim edilmemiş evrak "Teslim bekliyor"dur; kaydı süren evrak henüz teslim aşamasında değildir.
+  deliveryView(d: IncomingDocumentModel): { label: string; tone: 'ok' | 'wait' | 'none' } {
+    if (this.isDelivered(d)) return { label: 'Teslim edildi', tone: 'ok' };
+    if (isSentToPublish(d)) return { label: 'Teslim bekliyor', tone: 'wait' };
+    return { label: 'Teslim edilmedi', tone: 'none' };
+  }
+
+  // Teslim sütununun sırası: teslim edildi, teslim bekliyor, teslim edilmedi
+  private deliveryRank(d: IncomingDocumentModel): number {
+    const tone = this.deliveryView(d).tone;
+    return tone === 'ok' ? 0 : tone === 'wait' ? 1 : 2;
   }
 
   // Atanan personel yayına gönderilmiş evrakta anlamsız: Yayınlanan aşamasında sütun yok
@@ -583,7 +596,7 @@ export default class Documentlist {
     const rows = this.filteredRows();
     if (!rows.length) return;
     const header = ['Evrak No', 'Türü', 'Konu', 'Nereden', 'Nereye', 'Belge Tarihi', 'Orijinal No',
-      'İvedilik', 'Gizlilik', 'Durum', 'Yayın Durumu', 'Atanan Personel', 'Kayıt Tarihi'];
+      'İvedilik', 'Gizlilik', 'Durum', 'Yayın Durumu', 'Teslim', 'Atanan Personel', 'Kayıt Tarihi'];
     const cell = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const lines = rows.map(d => [
       d.qrCode,
@@ -597,6 +610,7 @@ export default class Documentlist {
       this.securityDegreeMap[d.securityDegree] ?? '',
       DOCUMENT_STATUS_LABELS[d.status] ?? '',
       publishStatusLabel(d),
+      this.deliveryView(d).label,
       d.currentAssignmentUser ?? '',
       d.createdDate ? new Date(d.createdDate).toLocaleDateString('tr-TR') : ''
     ].map(cell).join(';'));
