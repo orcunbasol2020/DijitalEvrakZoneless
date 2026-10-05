@@ -228,11 +228,11 @@
               <th scope="col" class="dl-col-urgency" [attr.aria-sort]="sortAria('security')">
                 <ng-container *ngTemplateOutlet="sortHead; context: { key: 'security', label: 'GİZLİLİK' }" />
               </th>
-              <th scope="col" class="dl-col-status" [attr.aria-sort]="sortAria('status')">
-                <ng-container *ngTemplateOutlet="sortHead; context: { key: 'status', label: 'DURUM' }" />
-              </th>
               <th scope="col" class="dl-col-delivery" [attr.aria-sort]="sortAria('delivery')">
                 <ng-container *ngTemplateOutlet="sortHead; context: { key: 'delivery', label: 'TESLİM' }" />
+              </th>
+              <th scope="col" class="dl-col-status" [attr.aria-sort]="sortAria('status')">
+                <ng-container *ngTemplateOutlet="sortHead; context: { key: 'status', label: 'DURUM' }" />
               </th>
               @if (showPersonColumn()) {
                 <th scope="col" class="dl-col-person" [attr.aria-sort]="sortAria('person')">
@@ -251,10 +251,10 @@
               <tr [class.is-attention]="isAttention(item)" [attr.data-tier]="urgencyTier" (click)="openInfo(item)">
                 <td class="dl-col-no">
                   <div class="dl-no">{{ item.qrCode || '—' }}</div>
-                  <!-- Tür ve varsa orijinal belge no: "Yazı / 2026-123" -->
+                  <!-- Tür ve varsa orijinal belge no: "Yazı - 2026-123" -->
                   @if (documentTypeLabels[item.documentTypeId] || item.orginalNo) {
                     <div class="dl-sub" [title]="item.orginalNo ? 'Orijinal belge no: ' + item.orginalNo : ''">
-                      {{ documentTypeLabels[item.documentTypeId] || '' }}{{ documentTypeLabels[item.documentTypeId] && item.orginalNo ? ' / ' : '' }}<span class="dl-num">{{ item.orginalNo || '' }}</span>
+                      <span class="dl-type">{{ documentTypeLabels[item.documentTypeId] || '' }}</span>{{ documentTypeLabels[item.documentTypeId] && item.orginalNo ? ' - ' : '' }}<span class="dl-num dl-orig">{{ item.orginalNo || '' }}</span>
                     </div>
                   }
                 </td>
@@ -286,6 +286,12 @@
                     <span class="material-symbols-outlined">{{ securityDegreeIconMap[item.securityDegree] || 'help' }}</span>
                   </span>
                 </td>
+                <td class="dl-col-delivery">
+                  @let dv = deliveryView(item);
+                  <span class="dl-delivery" [attr.data-tone]="dv.tone">
+                    <i class="dl-delivery-dot"></i>{{ dv.label }}
+                  </span>
+                </td>
                 <td class="dl-col-status">
                   <!-- Zarflar sayfasındaki durum rozetiyle aynı -->
                   <span class="envelope-status-pill dl-status-pill {{ st.cls }}">
@@ -293,12 +299,6 @@
                       <span class="material-symbols-outlined">{{ st.icon }}</span>
                     </span>
                     <span class="envelope-status-text">{{ st.label }}</span>
-                  </span>
-                </td>
-                <td class="dl-col-delivery">
-                  @let dv = deliveryView(item);
-                  <span class="dl-delivery" [attr.data-tone]="dv.tone">
-                    <i class="dl-delivery-dot"></i>{{ dv.label }}
                   </span>
                 </td>
                 @if (showPersonColumn()) {

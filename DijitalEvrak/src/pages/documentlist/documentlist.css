@@ -253,24 +253,126 @@
     background: #cbd5e1;
 }
 
-/* İvedilik rozeti: tablo satırına uygun küçük boy */
-.degree-badge-circle.urgency-badge.dl-urgency-badge {
-    width: 28px;
-    height: 28px;
-    min-width: 28px;
-    font-size: 12px;
+/* İvedilik rozeti (bu sayfaya özel düz görünüm, gizlilik rozetiyle aynı dil): yumuşak
+   köşeli kare, baş harf; gradyan / gölge / nabız animasyonu yok. Normal yalnızca ince
+   çerçeve; Günlüdür ve Acele açık zemin, Çok Acele / Yıldırım / İvedi Süreli dolu zemin.
+   Renk ailesi global rozetle aynı (mavi → amber → turuncu → kırmızı). Adı üzerine gelince görünür. */
+.dl-table .degree-badge-circle.urgency-badge.dl-urgency-badge {
+    width: 28.6px;
+    height: 28.6px;
+    min-width: 28.6px;
+    border-radius: 7.7px;
+    border: 1px solid transparent;
+    font-size: 12.65px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    box-shadow: none;
+    animation: none;
+    transition: none;
     cursor: help;
 }
 
-/* Gizlilik rozeti: Gelen Evraklar listesindekiyle aynı boy, ad üzerine gelince */
-.degree-badge-circle.security-badge.dl-security-badge {
+.dl-table .degree-badge-circle.urgency-badge.dl-urgency-badge:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.dl-table .urgency-badge.dl-urgency-badge.degree-tier-1 { background: transparent; border-color: #e2e8f0; color: #94a3b8; font-weight: 600; }
+.dl-table .urgency-badge.dl-urgency-badge.degree-tier-2 { background: #e0f2fe; border-color: #bae0fb; color: #075985; }
+.dl-table .urgency-badge.dl-urgency-badge.degree-tier-3 { background: #fef3c7; border-color: #fbe3a0; color: #92400e; }
+.dl-table .urgency-badge.dl-urgency-badge.degree-tier-4 { background: #ea580c; color: #ffffff; }
+.dl-table .urgency-badge.dl-urgency-badge.degree-tier-5 { background: #dc2626; color: #ffffff; }
+.dl-table .urgency-badge.dl-urgency-badge.degree-tier-6 { background: #9f1239; color: #ffffff; }
+
+[data-theme="dark"] .dl-table .urgency-badge.dl-urgency-badge.degree-tier-1 { border-color: #4a5568; }
+[data-theme="dark"] .dl-table .urgency-badge.dl-urgency-badge.degree-tier-2 { background: rgba(14, 165, 233, 0.18); border-color: transparent; color: #7dd3fc; }
+[data-theme="dark"] .dl-table .urgency-badge.dl-urgency-badge.degree-tier-3 { background: rgba(245, 158, 11, 0.18); border-color: transparent; color: #fcd34d; }
+[data-theme="dark"] .dl-table .urgency-badge.dl-urgency-badge.degree-tier-4 { background: #c2410c; }
+[data-theme="dark"] .dl-table .urgency-badge.dl-urgency-badge.degree-tier-5 { background: #b91c1c; }
+[data-theme="dark"] .dl-table .urgency-badge.dl-urgency-badge.degree-tier-6 { background: #881337; }
+
+/* Gizlilik rozeti (bu sayfaya özel düz görünüm): yumuşak köşeli kare, gradyan / gölge /
+   mühür halkası yok. Derece yükseldikçe zemin tonu koyulaşır; en gizli üç derece dolu
+   zemin ve dolu ikon taşır. Renk ailesi global rozetle aynı (gri → turkuaz → lacivert → mor).
+   Adı üzerine gelince görünür. */
+.dl-table .degree-badge-circle.security-badge.dl-security-badge {
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+    border-radius: 7px;
+    border: 1px solid transparent;
+    background: #f1f5f9;
+    color: #64748b;
+    box-shadow: none;
+    transition: none;
     cursor: help;
 }
 
-.urgency-badge.dl-urgency-badge.degree-tier-5,
-.urgency-badge.dl-urgency-badge.degree-tier-6 {
-    border-radius: 9px;
+.dl-table .degree-badge-circle.security-badge.dl-security-badge:hover {
+    transform: none;
+    box-shadow: none;
 }
+
+.dl-table .degree-badge-circle.security-badge.dl-security-badge .material-symbols-outlined {
+    font-size: 16px !important;
+    font-variation-settings: "FILL" 0, "wght" 500;
+}
+
+/* Tasnif Dışı: yalnızca ince çerçeve */
+.dl-table .security-badge.dl-security-badge.degree-tier-1 {
+    background: transparent;
+    border-color: #e2e8f0;
+    color: #94a3b8;
+}
+
+/* Özel */
+.dl-table .security-badge.dl-security-badge.degree-tier-2 {
+    background: #ecfdf5;
+    border-color: #c7f0e4;
+    color: #0f766e;
+}
+
+/* Hizmete Özel */
+.dl-table .security-badge.dl-security-badge.degree-tier-3 {
+    background: #e0f7fa;
+    border-color: #b6e9f1;
+    color: #0e7490;
+}
+
+/* Kişiye Özel */
+.dl-table .security-badge.dl-security-badge.degree-tier-4 {
+    background: #e0f2fe;
+    border-color: #bae0fb;
+    color: #0369a1;
+}
+
+/* Gizli, Çok Gizli, Kripto: dolu zemin, dolu ikon */
+.dl-table .security-badge.dl-security-badge.degree-tier-5,
+.dl-table .security-badge.dl-security-badge.degree-tier-6,
+.dl-table .security-badge.dl-security-badge.degree-tier-7 {
+    border-color: transparent;
+    color: #ffffff;
+}
+
+.dl-table .security-badge.dl-security-badge.degree-tier-5 .material-symbols-outlined,
+.dl-table .security-badge.dl-security-badge.degree-tier-6 .material-symbols-outlined,
+.dl-table .security-badge.dl-security-badge.degree-tier-7 .material-symbols-outlined {
+    font-variation-settings: "FILL" 1, "wght" 500;
+}
+
+.dl-table .security-badge.dl-security-badge.degree-tier-5 { background: #0c4a6e; }
+.dl-table .security-badge.dl-security-badge.degree-tier-6 { background: #0f172a; color: #5eead4; }
+.dl-table .security-badge.dl-security-badge.degree-tier-7 { background: #4c1d95; color: #ddd6fe; }
+
+[data-theme="dark"] .dl-table .degree-badge-circle.security-badge.dl-security-badge { background: rgba(148, 163, 184, 0.12); color: #94a3b8; }
+[data-theme="dark"] .dl-table .security-badge.dl-security-badge.degree-tier-1 { background: transparent; border-color: #4a5568; }
+[data-theme="dark"] .dl-table .security-badge.dl-security-badge.degree-tier-2 { background: rgba(20, 184, 166, 0.14); border-color: transparent; color: #5eead4; }
+[data-theme="dark"] .dl-table .security-badge.dl-security-badge.degree-tier-3 { background: rgba(6, 182, 212, 0.16); border-color: transparent; color: #67e8f9; }
+[data-theme="dark"] .dl-table .security-badge.dl-security-badge.degree-tier-4 { background: rgba(14, 165, 233, 0.18); border-color: transparent; color: #7dd3fc; }
+[data-theme="dark"] .dl-table .security-badge.dl-security-badge.degree-tier-5 { background: #0369a1; color: #ffffff; }
+[data-theme="dark"] .dl-table .security-badge.dl-security-badge.degree-tier-6 { background: #134e4a; color: #5eead4; }
+[data-theme="dark"] .dl-table .security-badge.dl-security-badge.degree-tier-7 { background: #5b21b6; color: #ede9fe; }
+
 
 .dl-level[data-tier="degree-tier-2"] .dl-level-dot { background: #3b82f6; }
 .dl-level[data-tier="degree-tier-3"] .dl-level-dot { background: #f2c94c; }
@@ -517,4 +619,15 @@
 @media (max-width: 768px) {
     .dl-field-wide,
     .dl-field-dates { grid-column: auto; }
+}
+
+/* Evrak No altındaki belge türü kalın; orijinal belge no normal kalınlıkta */
+.dl-type {
+    font-weight: 700;
+    color: var(--sq-text-2);
+}
+
+/* Orijinal belge no italik */
+.dl-orig {
+    font-style: italic;
 }
