@@ -9,7 +9,8 @@ import { BreadcrumbModel } from '../layouts/breadcrumb/breadcrumb';
 import { IncomingDocumentService } from '../../services/incomingdocument';
 import { Department, DepartmentModel } from '../../services/department';
 import { ExternalInstitution, ExternalInstitutionModel } from '../../services/external-institution';
-import { Observable, startWith, map, switchMap } from 'rxjs';
+import { Observable, startWith, map, switchMap, tap, catchError, of } from 'rxjs';
+import { AtlasTransferService } from '../../services/atlas-transfer';
 import { SimpleAutocompleteComponent } from '../simpleautocomplete/simpleautocomplete';
 import { IncomingDocumentModel } from '../../models/incoming-document/incoming-document.model';
 import { Common } from '../../services/common';
@@ -23,7 +24,7 @@ import { DocumentAllocation } from '../../services/documentallocation';
 import { RoleService } from '../../services/role-service';
 import { UPLOAD_DOCUMENT_ROLES, UploadDocumentModal } from '../../../components/upload-document-modal/upload-document-modal';
 import { DocumentUploadFlow } from '../../services/document-upload-flow';
-import { INCOMING_STATUS_KAYIT, INCOMING_STATUS_ON_KAYIT, INCOMING_STATUS_PUBLISH_REQUEST } from '../../services/incomingdocument';
+import { INCOMING_STATUS_KAYIT, INCOMING_STATUS_ON_KAYIT, incomingErrorMessage } from '../../services/incomingdocument';
 import { PublishStatusEnum, PublishStatusLabels, publishStatusOf } from '../../models/publishstatus.model';
 
 // Varsayılanlar: Hizmete Özel, Normal ivedilik, Gereği, elektronik kopya yok, Türkçe (1)
@@ -34,6 +35,9 @@ const DETAIL_DEFAULTS = {
   electronicCopy: false,
   languageId: 1,
 } as const;
+
+// Ek açıklaması için sunucunun kabul ettiği en fazla karakter
+const ATTACHMENT_DESCRIPTION_MAX = 1000;
 
 @Component({
   standalone: true,
@@ -86,16 +90,34 @@ export default class Evrakkayit implements OnInit {
 
   // Yayına gönderilen evrakın durumu okunur; Aktarım Sırasında / Aktarılıyor iken ya da
   // yayınlandıysa Kaydet ve Yayınla butonları pasiftir (aynı evrak tekrar sıraya alınmaz).
-  // Aktarım hatalıysa servis yeniden dener, butonlar açık kalır.
+  // Aktarım hatalıysa servis yeniden denemez; butonlar açık kalır, kullanıcı eksiği düzeltip
+  // Yayınla derse evrak güncel bilgilerle yeniden sıraya girer.
   private applyPublishState(doc: IncomingDocumentModel) {
     const state = publishStatusOf(doc);
     this.publishState.set(state);
+    this.loadPublishError(state === PublishStatusEnum.AktarimHatali ? doc.id : null);
     this.activeStatus.set(
       state === PublishStatusEnum.AktarimSirasinda
       || state === PublishStatusEnum.Aktariliyor
       || state === PublishStatusEnum.Yayinlandi
     );
   }
+
+  // Aktarım Hatalı evrakın nedeni: evrak modelinde yok, yalnızca GetFailed listesinden okunur
+  readonly publishError = signal<string | null>(null);
+  private atlasTransferService = inject(AtlasTransferService);
+
+  private loadPublishError(documentId: string | null | undefined) {
+    this.publishError.set(null);
+    if (!documentId) return;
+    this.atlasTransferService.getFailed().pipe(catchError(() => of([]))).subscribe(list => {
+      const failure = list.find(f => f.documentId === documentId);
+      if (failure && this.publishState() === PublishStatusEnum.AktarimHatali) {
+        this.publishError.set(failure.lastError || 'Atlas aktarımı hatalı; neden bildirilmedi.');
+      }
+    });
+  }
+
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private incomingDocumentService = inject(IncomingDocumentService);
@@ -289,6 +311,11 @@ export default class Evrakkayit implements OnInit {
     .map(([value, label]) => ({ value: Number(value) as DocumentTypeEnum, label }))
     .filter(opt => !Evrakkayit.hiddenDocumentTypes.has(opt.value));
 
+  // "Diğer Bilgiler" sekmesindeki ek bilgisi: Var / Yok / belirtilmemiş (null)
+  readonly hasAttachment = signal<boolean | null>(null);
+  readonly attachmentDescriptionLength = signal(0);
+  readonly attachmentDescriptionMax = ATTACHMENT_DESCRIPTION_MAX;
+
   private documentTransactionService = inject(DocumentTransaction);
   transactionData = signal<DocumentTransactionModel[]>([]);
   transactionLoading = signal(false);
@@ -320,9 +347,16 @@ export default class Evrakkayit implements OnInit {
       electronicCopy: [DETAIL_DEFAULTS.electronicCopy],
       languageId: [DETAIL_DEFAULTS.languageId],
       pageCount: [''],
+      hasAttachment: [null as boolean | null],
+      attachmentDescription: ['', Validators.maxLength(ATTACHMENT_DESCRIPTION_MAX)],
       ocrStatus: [{ value: '', disabled: true }],
       release: [{ value: '', disabled: true }]
     });
+
+    // Açıklama kutusu yalnızca "Var" seçiliyken görünür (zoneless: şablon sinyalden okur)
+    this.formDetail.controls['hasAttachment'].valueChanges.subscribe(v => this.hasAttachment.set(v ?? null));
+    this.formDetail.controls['attachmentDescription'].valueChanges.subscribe(v =>
+      this.attachmentDescriptionLength.set((v ?? '').length));
 
     // Zoneless CD: şablondaki evrak sayısı metni ham form değeri yerine bu sinyalden okunur,
     // böylece patchValue sonrası görünüm güncellenir.
@@ -469,6 +503,10 @@ export default class Evrakkayit implements OnInit {
   }
 
   saveDetail() {
+    if (this.formDetail.controls['attachmentDescription'].hasError('maxlength')) {
+      this.toast.showToast("Ek açıklaması çok uzun", `Ek açıklaması en fazla ${ATTACHMENT_DESCRIPTION_MAX} karakter olabilir.`, "warning");
+      return;
+    }
     if (!this.formDetail.valid) {
       this.toast.showToast("Eksik bilgi var", "Lütfen gerekli alanları doldurun");
       return;
@@ -481,8 +519,17 @@ export default class Evrakkayit implements OnInit {
     }
     const raw = this.formDetail.value;
 
+    // Ek açıklaması yalnızca "Var" seçiliyken gönderilir. "Yok" seçilince sunucu açıklamayı
+    // kendisi siler; belirtilmemişse (null) alan gönderilmez ve mevcut değer korunur.
+    const hasAttachment: boolean | null = raw.hasAttachment ?? null;
+    const attachmentDescription = hasAttachment === true
+      ? (raw.attachmentDescription ?? '').trim()
+      : hasAttachment === false ? '' : null;
+
     const formData: IncomingDocumentModel = {
       ...raw,
+      hasAttachment,
+      attachmentDescription,
       // Evrak Kayıt sekmesine taşınan alanlar detay güncellemesinde de gönderilir;
       // aksi halde Update bu alanları boşaltabilir.
       securityDegree: this.form.value.securityDegree,
@@ -539,17 +586,21 @@ export default class Evrakkayit implements OnInit {
     // Yayınla, Update'e status 6 gönderir: backend evrakın akış durumuna dokunmaz, yayın
     // durumunu (submissionStatus) Aktarım Sırasında yapar. Ön Kayıt'taki evrak bu yüzden
     // önce Kayıt Tamamlandı (2) olarak kaydedilir, ardından yayına gönderilir.
+    // İlk kayıtta Kaydet adımı başarılı olup yayın reddedilirse evrak yine Kayıt Tamamlandı'dır
+    let registered = false;
     let saveObs: Observable<unknown>;
     if (!formData.id) {
-      saveObs = this.incomingDocumentService.createIncomingDocument(
-        publishing ? { ...formData, status: INCOMING_STATUS_PUBLISH_REQUEST } : formData);
+      saveObs = publishing
+        ? this.incomingDocumentService.createAndPublishIncomingDocument(formData)
+        : this.incomingDocumentService.createIncomingDocument(formData);
     } else if (!publishing) {
       saveObs = this.incomingDocumentService.updateIncomingDocument(formData);
     } else {
-      const publishRequest = this.incomingDocumentService.updateIncomingDocument(
-        { ...formData, status: INCOMING_STATUS_PUBLISH_REQUEST });
+      const publishRequest = this.incomingDocumentService.publishIncomingDocument(formData);
       saveObs = isFirstRegistration
-        ? this.incomingDocumentService.updateIncomingDocument(formData).pipe(switchMap(() => publishRequest))
+        ? this.incomingDocumentService.updateIncomingDocument(formData).pipe(
+            tap(() => registered = true),
+            switchMap(() => publishRequest))
         : publishRequest;
     }
 
@@ -570,7 +621,10 @@ export default class Evrakkayit implements OnInit {
 
         this.docStatus.set(nextStatus);
         this.formDetail.patchValue({ status: nextStatus });
-        if (publishing) this.publishState.set(PublishStatusEnum.AktarimSirasinda);
+        if (publishing) {
+          this.publishState.set(PublishStatusEnum.AktarimSirasinda);
+          this.publishError.set(null);
+        }
 
         // Aynı ekranda tekrar kaydedilirse devir yeniden tetiklenmez
         this.loadedStatus.set(nextStatus);
@@ -582,6 +636,22 @@ export default class Evrakkayit implements OnInit {
       error: (err) => {
         console.error(err);
         if (publishing) this.activeStatus.set(false);
+
+        if (registered && formData.id) {
+          this.docStatus.set(INCOMING_STATUS_KAYIT);
+          this.formDetail.patchValue({ status: INCOMING_STATUS_KAYIT });
+          this.loadedStatus.set(INCOMING_STATUS_KAYIT);
+          this.transferAllocationToMe(formData.id, userId);
+        }
+
+        if (publishing) {
+          // Backend eksik bilgiyi açıklar (ör. "Evrak Atlas'a aktarılamaz: Konu girilmemiş.").
+          // Yeni evrak bu durumda hiç kaydedilmez; form açık kalır, eksik doldurulup tekrar Yayınla denir.
+          const reason = incomingErrorMessage(err, "Evrak Atlas'a aktarım sırasına alınamadı.");
+          this.toast.showToast(
+            registered ? "Kaydedildi, yayınlanamadı" : "Yayınlanamadı", reason, "error");
+          return;
+        }
         this.toast.showToast("Kayıt Başarısız", "Belge kaydedilirken bir hata oluştu.");
       }
     });
@@ -643,6 +713,8 @@ export default class Evrakkayit implements OnInit {
       languageId: doc.languageId ?? DETAIL_DEFAULTS.languageId,
       electronicCopy: doc.electronicCopy ?? DETAIL_DEFAULTS.electronicCopy,
       pageCount: doc.pageCount,
+      hasAttachment: doc.hasAttachment ?? null,
+      attachmentDescription: doc.attachmentDescription ?? '',
       ocrStatus: doc.ocrStatus,
       release: doc.release,
       status: doc.status,
@@ -760,6 +832,8 @@ export default class Evrakkayit implements OnInit {
     7: 'task_alt',
     8: 'document_scanner',
     9: 'assured_workload',
+    18: 'verified',
+    19: 'cloud_off',
   };
 
   private readonly transactionColorMap: Record<number, string> = {
@@ -769,6 +843,8 @@ export default class Evrakkayit implements OnInit {
     7: 'transaction-dot-success',
     8: 'transaction-dot-warning',
     9: 'transaction-dot-secondary',
+    18: 'transaction-dot-success',
+    19: 'transaction-dot-danger',
   };
 
   transactionIcon(type: number): string {

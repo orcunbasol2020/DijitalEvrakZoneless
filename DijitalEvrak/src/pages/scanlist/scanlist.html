@@ -2,258 +2,349 @@
   [breadcrumbs]="[{title: 'Gelen Evraklar', url: 'scanlist', icon: ''}]">
 </app-generic>
 
-<div class="scanlist-grid" [class.show-filters]="showFilters">
-  <flexi-grid
-    [data]="gridRows()"
-    [loading]="loading()"
-    [showCaption]="true"
-    captionTitle="Gelen Evraklar"
-    [showExportExcelBtn]="true"
-    exportExcelFileName="TaranmisEvrakListesi"
-    [filterable]="true"
-    language="tr"
-    (onRefresh)="onOcrFilterChange()">
+<div class="sq-page">
+  <!-- Kuyruklar: her evrak tek bir kuyruktadır; kart sayıları tüm listeye göredir -->
+  <nav class="sq-queues" aria-label="Evrak kuyrukları">
+    @for (q of queues; track q.key) {
+      <button type="button" class="sq-queue" [class.is-active]="activeQueue() === q.key"
+        [class.is-all]="q.key === 'all'" [attr.data-queue]="q.key"
+        [attr.aria-pressed]="activeQueue() === q.key" (click)="setQueue(q.key)">
+        <span class="sq-queue-icon"><span class="material-symbols-outlined">{{ q.icon }}</span></span>
+        <span class="sq-queue-text">
+          <span class="sq-queue-label">{{ q.label }}</span>
+          @if (q.hint) {
+            <span class="sq-queue-hint">{{ q.hint }}</span>
+          }
+        </span>
+        <span class="sq-queue-count">
+          {{ loading() && !scanListData().length ? '–' : queueCounts()[q.key] }}
+          @if (queueUrgentCounts()[q.key] && q.key !== 'all') {
+            <span class="sq-queue-urgent" [title]="queueUrgentCounts()[q.key] + ' evrak acil (Yıldırım, Günlüdür, Çok Acele, Acele)'">
+              <span class="material-symbols-outlined">bolt</span>{{ queueUrgentCounts()[q.key] }}
+            </span>
+          }
+        </span>
+      </button>
+    }
+  </nav>
 
-    <ng-template flexiGridCaptionCommandTemplate>
-      <span class="ocr-title">OCR :</span>
-      <div class="ocr-tab-container">
-        <button
-          class="ocr-tab"
-          [class.active]="selectedOcrFilter === 'all'"
-          (click)="setOcrFilter('all')">
-          Tümü
+  <section class="sq-panel">
+    <!-- Araç çubuğu: arama ve süzgeçler solda, işlemler sağda -->
+    <div class="sq-toolbar">
+      <label class="sq-search">
+        <span class="material-symbols-outlined">search</span>
+        <input type="search" placeholder="Evrak no, kurum, orijinal no ya da personel ara"
+          [ngModel]="search()" (ngModelChange)="setFilter(search, $event)" aria-label="Ara" />
+      </label>
+
+      <div class="sq-filters" id="sq-filters">
+        <!-- İvedilik / Gizlilik / Personel / Dosya kriterleri bu düğmeyle açılıp kapanır;
+             kapalıyken seçili kriter sayısı rozette görünür -->
+        <button type="button" class="sq-toggle sq-filter-btn" [class.is-on]="filtersOpen()"
+          [attr.aria-expanded]="filtersOpen()" aria-controls="sq-filters"
+          title="Kriterleri göster/gizle" (click)="filtersOpen.set(!filtersOpen())">
+          <span class="material-symbols-outlined">tune</span>
+          Filtre
+          @if (selectFilterCount()) {
+            <span class="sq-filter-count">{{ selectFilterCount() }}</span>
+          }
         </button>
-        <button
-          class="ocr-tab"
-          [class.active]="selectedOcrFilter === 'completed'"
-          (click)="setOcrFilter('completed')">
-          Tamamlanan
+        @if (filtersOpen()) {
+          <select class="sq-select" [ngModel]="urgencyFilter()" (ngModelChange)="setFilter(urgencyFilter, $event)"
+            aria-label="İvedilik" [class.is-set]="urgencyFilter() != null">
+            <option [ngValue]="null">İvedilik: Tümü</option>
+            @for (o of urgencyOptions; track o.value) {
+              <option [ngValue]="o.value">{{ o.label }}</option>
+            }
+          </select>
+          <select class="sq-select" [ngModel]="securityFilter()" (ngModelChange)="setFilter(securityFilter, $event)"
+            aria-label="Gizlilik" [class.is-set]="securityFilter() != null">
+            <option [ngValue]="null">Gizlilik: Tümü</option>
+            @for (o of securityOptions; track o.value) {
+              <option [ngValue]="o.value">{{ o.label }}</option>
+            }
+          </select>
+          @if (showPersonFilter()) {
+            <select class="sq-select" [ngModel]="personFilter()" (ngModelChange)="setFilter(personFilter, $event)"
+              aria-label="Personel" [class.is-set]="!!personFilter()">
+              <option [ngValue]="null">Personel: Tümü</option>
+              @for (p of personOptions(); track p) {
+                <option [ngValue]="p">{{ p }}</option>
+              }
+            </select>
+          }
+          <select class="sq-select" [ngModel]="fileFilter()" (ngModelChange)="setFilter(fileFilter, $event)"
+            aria-label="Belge dosyası" [class.is-set]="fileFilter() !== 'all'">
+            <option ngValue="all">Dosya: Tümü</option>
+            <option ngValue="with">Taranmış (dosyalı)</option>
+            <option ngValue="without">Dosyası yok</option>
+          </select>
+        }
+        <button type="button" class="sq-toggle" [class.is-on]="ocrReadyOnly()"
+          [attr.aria-pressed]="ocrReadyOnly()"
+          title="Yalnızca OCR verisi hazır olanlar: Evrak Kayıt'ta alanlar dolu gelir"
+          (click)="setFilter(ocrReadyOnly, !ocrReadyOnly())">
+          <span class="material-symbols-outlined">auto_awesome</span>
+          OCR verisi hazır
         </button>
-        <button
-          class="ocr-tab"
-          [class.active]="selectedOcrFilter === 'pending'"
-          (click)="setOcrFilter('pending')">
-          Bekleyen
-        </button>
-        <button
-          class="ocr-tab"
-          [class.active]="selectedOcrFilter === 'error'"
-          (click)="setOcrFilter('error')">
-          Hatalı
-        </button>
+        @if (hasActiveFilters()) {
+          <button type="button" class="sq-link" (click)="clearFilters()">
+            <span class="material-symbols-outlined">filter_alt_off</span>
+            Temizle
+          </button>
+        }
       </div>
-      <div class="publish-toggle">
-        <span class="publish-label ms-2">İşlem Bekleyenlerim : </span>
-        <button
-          class="publish-chip"
-          [class.active]="showPending"
-          (click)="togglePending()">
-          <span class="material-symbols-outlined">
-            {{ showPending ? 'person_shield' : 'person_shield' }}
-          </span>
+
+      <div class="sq-tools">
+        @if (ocrErrorRows().length) {
+          <button type="button" class="sq-tool sq-tool-ocr" (click)="ocrErrorsVisible.set(true)"
+            title="OCR'ı hata veren evraklar (kayıt OCR olmadan da yapılabilir)">
+            <span class="material-symbols-outlined">document_scanner</span>
+            OCR Hataları
+            <span class="sq-tool-badge">{{ ocrErrorRows().length }}</span>
+          </button>
+        }
+        <button type="button" class="sq-tool sq-icon-only" title="Yenile" [disabled]="loading()" (click)="loadDocuments()">
+          <span class="material-symbols-outlined" [class.sq-spin]="loading()">refresh</span>
         </button>
-        <div class="toggle-separator"></div>
-        <span class="publish-label">Yayınlananlar : </span>
-        <button
-          class="publish-chip"
-          [class.active]="showPublished"
-          (click)="togglePublished()">
-          <span class="material-symbols-outlined">
-            {{ showPublished ? 'visibility' : 'visibility_off' }}
-          </span>
+        <button type="button" class="sq-tool sq-icon-only" title="Listeyi Excel'e aktar"
+          [disabled]="!filteredRows().length" (click)="exportCsv()">
+          <span class="material-symbols-outlined">download</span>
         </button>
+        @if (canUploadDocument()) {
+          <button type="button" class="sq-tool sq-tool-primary" (click)="openNewUpload()">
+            <span class="material-symbols-outlined">upload_file</span>
+            Evrak Yükle
+          </button>
+        }
       </div>
-      <flexi-button
-        btnIcon="filter_alt"
-        btnColor="light"
-        title="Filtre Aç/Kapat"
-        flexiTooltip
-        (click)="showFilters = !showFilters">
-      </flexi-button>
-      @if (canUploadDocument()) {
-        <flexi-button
-          btnIcon="upload_file"
-          btnColor="dark"
-          title="Evrak Yükle"
-          flexiTooltip
-          (click)="openNewUpload()">
-        </flexi-button>
+    </div>
+
+    <div class="sq-listhead">
+      <span class="sq-listhead-count">
+        @if (hasActiveFilters()) {
+          <strong>{{ filteredRows().length }}</strong> sonuç
+        } @else {
+          <strong>{{ filteredRows().length }}</strong> evrak
+        }
+      </span>
+      <!-- Yayınlanan kuyruğunda yayın durumuna göre ikinci düzey süzgeç: Sırala'nın solunda -->
+      @if (activeQueue() === 'published') {
+        <div class="sq-subtabs" role="tablist" aria-label="Yayın durumu">
+          <button type="button" role="tab" [class.is-active]="publishFilter() === 'all'" (click)="setFilter(publishFilter, 'all')">Tümü</button>
+          <button type="button" role="tab" [class.is-active]="publishFilter() === 'done'" (click)="setFilter(publishFilter, 'done')">
+            <i class="sq-dot is-ok"></i>Yayınlandı
+          </button>
+          <button type="button" role="tab" [class.is-active]="publishFilter() === 'progress'" (click)="setFilter(publishFilter, 'progress')">
+            <i class="sq-dot is-wait"></i>Aktarımda
+          </button>
+          <button type="button" role="tab" [class.is-active]="publishFilter() === 'failed'" (click)="setFilter(publishFilter, 'failed')">
+            <i class="sq-dot is-err"></i>Aktarım Hatalı
+          </button>
+        </div>
       }
-    </ng-template>
-    <flexi-grid-column field="qrCode" title="Belge No" width="120px" />
-    <flexi-grid-column field="securityDegreeLabel" title="Gizlilik Der." textAlign="center" width="110px"
-      filterType="select" [filterData]="securityDegreeFilterData">
-      <ng-template flexiGridCellTemplate let-item>
-        <span class="degree-badge-circle security-badge {{ securityDegreeBadgeClassMap[item.securityDegree] || 'degree-tier-1' }}"
-          [title]="securityDegreeMap[item.securityDegree] || '-'">
-          <span class="material-symbols-outlined">{{ securityDegreeIconMap[item.securityDegree] || 'help' }}</span>
-        </span>
-      </ng-template>
-    </flexi-grid-column>
-    <flexi-grid-column title="Belge Tarihi" width="100px">
-      <ng-template flexiGridCellTemplate let-item>
-        {{ item.documentDate | date:'dd.MM.yyyy' }}
-      </ng-template>
-    </flexi-grid-column>
-    <flexi-grid-column field="urgencyDegreeLabel" title="İvedilik" textAlign="center" width="90px"
-      filterType="select" [filterData]="urgencyDegreeFilterData">
-      <ng-template flexiGridCellTemplate let-item>
-        <span class="degree-badge-circle urgency-badge {{ urgencyDegreeBadgeClassMap[item.urgencyDegree] || 'degree-tier-1' }}"
-          [title]="urgencyDegreeMap[item.urgencyDegree] || '-'">
-          {{ urgencyDegreeInitialMap[item.urgencyDegree] || '-' }}
-        </span>
-      </ng-template>
-    </flexi-grid-column>
-    <flexi-grid-column
-      field="currentAssignmentUser"
-      width="120px"
-      title="Atanan Personel"
-      filterType="select"
-      [filterData]="personFilter()">
-    </flexi-grid-column>
-    <flexi-grid-column field="hasFileLabel" title="Dosya" textAlign="center" width="70px"
-      filterType="select" [filterData]="hasFileFilterData">
-      <ng-template flexiGridCellTemplate let-item>
-        @if (item.documentName) {
-          <span class="sl-file is-on" [title]="item.documentName">
-            <span class="material-symbols-outlined">check</span>
-          </span>
-        } @else {
-          <span class="sl-file" title="Dosya yok"></span>
+      <label class="sq-sort">
+        <span>Sırala</span>
+        <select [ngModel]="sortBy()" (ngModelChange)="setFilter(sortBy, $event)" aria-label="Sıralama">
+          <option ngValue="priority">Önceliğe göre</option>
+          <option ngValue="newest">En yeni</option>
+          <option ngValue="oldest">En eski</option>
+          <option ngValue="number">Evrak numarası</option>
+        </select>
+      </label>
+    </div>
+
+    <!-- Liste -->
+    <!-- Yayın etiketi sütunu yalnızca yayınlanan evrak içerebilen kuyruklarda açılır -->
+    <div class="sq-list" [class.is-busy]="loading() && scanListData().length"
+      [class.has-publish]="activeQueue() === 'published' || activeQueue() === 'all'">
+      @if (loading() && !scanListData().length) {
+        @for (s of [1, 2, 3, 4, 5]; track s) {
+          <div class="sq-row is-skeleton"><span></span><span></span><span></span></div>
         }
-      </ng-template>
-    </flexi-grid-column>
-    <flexi-grid-column
-      field="durum"
-      title="Yayınlanma"
-      width="100px"
-      textAlign="center">
-      <ng-template flexiGridCellTemplate let-item>
-        <!-- Yayın durumu submissionStatus'tan okunur (akış durumu status'tan ayrı) -->
-        @if (isPublished(item)) {
-          <span class="sl-file is-on is-smoke" [title]="publishStatusLabel(item)">
-            <span class="material-symbols-outlined">check</span>
-          </span>
-        } @else if (isPublishFailed(item)) {
-          <span class="sl-file is-on is-error" [title]="publishStatusLabel(item)">
-            <span class="material-symbols-outlined">priority_high</span>
-          </span>
-        } @else if (isPublishing(item)) {
-          <span class="sl-file is-wait" [title]="publishStatusLabel(item)">
-            <span class="material-symbols-outlined">hourglass_bottom</span>
-          </span>
-        } @else {
-          <span class="sl-file" [title]="publishStatusLabel(item)"></span>
+      } @else if (loadFailed() && !scanListData().length) {
+        <div class="sq-empty is-error">
+          <span class="sq-empty-icon"><span class="material-symbols-outlined">cloud_off</span></span>
+          <div class="sq-empty-title">Gelen evraklar alınamadı</div>
+          <div class="sq-empty-desc">Bağlantıyı kontrol edip yeniden deneyin.</div>
+          <button type="button" class="sq-tool" (click)="loadDocuments()">
+            <span class="material-symbols-outlined">refresh</span>Yeniden dene
+          </button>
+        </div>
+      } @else if (!filteredRows().length) {
+        <div class="sq-empty">
+          <span class="sq-empty-icon"><span class="material-symbols-outlined">inbox</span></span>
+          <div class="sq-empty-title">{{ emptyText().title }}</div>
+          <div class="sq-empty-desc">{{ emptyText().desc }}</div>
+          @if (hasActiveFilters()) {
+            <button type="button" class="sq-tool" (click)="clearFilters()">
+              <span class="material-symbols-outlined">filter_alt_off</span>Kriterleri temizle
+            </button>
+          }
+        </div>
+      } @else {
+        @for (item of pagedRows(); track item.id) {
+          <ng-container *ngTemplateOutlet="docRow; context: { $implicit: item }" />
         }
-      </ng-template>
-    </flexi-grid-column>
-    <!-- OCR DURUM İKONU -->
-    <flexi-grid-column
-      field="durum"
-      title="OCR"
-      width="80px"
-      textAlign="center">
-      <ng-template flexiGridCellTemplate let-item>
-        @if (item.ocrStatus === 1) {
-          <span class="sl-file is-on is-smoke" title="OCR tamamlandı">
-            <span class="material-symbols-outlined">check</span>
-          </span>
-        } @else if (item.ocrStatus === 2) {
-          <span class="sl-file is-on is-error" title="OCR hatası">
-            <span class="material-symbols-outlined">priority_high</span>
-          </span>
-        } @else {
-          <span class="sl-file is-wait" title="OCR bekliyor">
-            <span class="material-symbols-outlined">hourglass_bottom</span>
-          </span>
-        }
-      </ng-template>
-    </flexi-grid-column>
-    <flexi-grid-column title="İşleme Al" textAlign="center" width="90px"
-      field="assignmentStatus">
-      <ng-template flexiGridCellTemplate let-item>
-        <flexi-button
-          *ngIf="item.documentName"
-          [btnIcon]="
-        item.currentAssignmentUserId === currentUserId
-          ? 'motion_play'
-          : item.currentAssignmentUserId
-            ? 'key'
-            : 'expand_circle_right'
-      "
-          [title]="
-  item.status === 1 || item.status === 2 || item.status === 4
-    ? (item.currentAssignmentUserId === currentUserId
-        ? 'İşleme Devam Et'
-        : item.currentAssignmentUserId
-          ? 'Atama Yapılmış'
-          : 'İşleme Al')
-    : 'Belge Detayına Git'
-"
-          [btnColor]="
-  item.status === 1 || item.status === 2 || item.status === 4
-    ? (item.currentAssignmentUserId === currentUserId
-        ? 'secondary'
-        : item.currentAssignmentUserId
-          ? 'light'
-          : 'primary')
-    : 'dark'
-"
-          (click)="
-  item.status === 1 || item.status === 2 || item.status === 4
-    ? (item.currentAssignmentUserId === currentUserId
-        ? goToDetail(item.id)
-        : item.currentAssignmentUserId
-          ? openPersonModal(item)
-          : goToDetail(item.id))
-    : goToDetail(item.id)
-">
-        </flexi-button>
-      </ng-template>
-    </flexi-grid-column>
-    <flexi-grid-column title="Takip" textAlign="center" width="70px">
-      <ng-template flexiGridCellTemplate let-item>
-        <flexi-button
-          btnIcon="conversion_path"
-          title="Süreçler"
-          btnColor="info"
-          (click)="goToProcess(item.id)">
-        </flexi-button>
-      </ng-template>
-    </flexi-grid-column>
-    <flexi-grid-column title="Zimmet" textAlign="center" width="80px">
-      <ng-template flexiGridCellTemplate let-item>
-        <flexi-button
-          btnIcon="article_person"
-          title="Zimmetleme"
-          btnColor="light"
-          (click)="goToZimmet(item.id)">
-        </flexi-button>
-      </ng-template>
-    </flexi-grid-column>
-    <!-- Zimmet geçmişi: Giden Evraklar listesindeki popup'ın aynısı, tüm roller için görünür. -->
-    <flexi-grid-column title="Geçmiş" textAlign="center" width="70px" [filterable]="false" [sortable]="false">
-      <ng-template flexiGridCellTemplate let-item>
-        <flexi-button
-          btnIcon="history"
-          title="Zimmet Geçmişi"
-          btnColor="light"
-          (click)="openZimmetHistory(item)">
-        </flexi-button>
-      </ng-template>
-    </flexi-grid-column>
-    <flexi-grid-column textAlign="center" width="50px">
-      <ng-template flexiGridCellTemplate let-item>
-        <flexi-button
-          btnIcon="delete"
-          title="Taranmış Evrakı Sil"
-          btnColor="warning"
-          (click)="delete(item.id)">
-        </flexi-button>
-      </ng-template>
-    </flexi-grid-column>
-  </flexi-grid>
+      }
+    </div>
+
+    @if (pageCount() > 1) {
+      <div class="sq-pager">
+        <span class="sq-pager-range">{{ rangeLabel() }}</span>
+        <div class="sq-pager-btns">
+          <button type="button" title="Önceki sayfa" [disabled]="currentPage() === 1" (click)="goToPage(currentPage() - 1)">
+            <span class="material-symbols-outlined">chevron_left</span>
+          </button>
+          <span class="sq-pager-page">{{ currentPage() }} / {{ pageCount() }}</span>
+          <button type="button" title="Sonraki sayfa" [disabled]="currentPage() === pageCount()" (click)="goToPage(currentPage() + 1)">
+            <span class="material-symbols-outlined">chevron_right</span>
+          </button>
+        </div>
+      </div>
+    }
+  </section>
 </div>
+
+<!-- Evrak satırı: ana liste ve OCR Hataları penceresi aynı satırı kullanır -->
+<ng-template #docRow let-item>
+  @let act = primaryAction(item);
+  @let mine = isMine(item);
+  @let from = institutionName(item);
+  @let published = queueOf(item) === 'published';
+  <article class="sq-row" [class.is-attention]="isAttention(item)" [class.is-mine]="mine"
+    [attr.data-tier]="urgencyDegreeBadgeClassMap[item.urgencyDegree] || 'degree-tier-1'">
+    <div class="sq-degrees">
+      <span class="degree-badge-circle urgency-badge {{ urgencyDegreeBadgeClassMap[item.urgencyDegree] || 'degree-tier-1' }}"
+        [title]="'İvedilik: ' + (urgencyDegreeMap[item.urgencyDegree] || '-')">
+        {{ urgencyDegreeInitialMap[item.urgencyDegree] || '-' }}
+      </span>
+      <span class="degree-badge-circle security-badge {{ securityDegreeBadgeClassMap[item.securityDegree] || 'degree-tier-1' }}"
+        [title]="'Gizlilik: ' + (securityDegreeMap[item.securityDegree] || '-')">
+        <span class="material-symbols-outlined">{{ securityDegreeIconMap[item.securityDegree] || 'help' }}</span>
+      </span>
+    </div>
+
+    <!-- Sol: üstte evrak no + tür, altta tek satır künye (kurum · belge tarihi · orijinal no) -->
+    <div class="sq-main">
+      <div class="sq-head">
+        <span class="sq-no">{{ item.qrCode || '-' }}</span>
+        @if (item.documentTypeId && documentTypeLabels[item.documentTypeId]) {
+          <span class="sq-type">{{ documentTypeLabels[item.documentTypeId] }}</span>
+        }
+      </div>
+      <div class="sq-sub">
+        <span class="sq-from" [class.is-empty]="!from" [title]="from ? 'Nereden: ' + from : 'Gönderen kurum girilmemiş'">{{ from || 'Kurum belirtilmemiş' }}</span>
+        @if (item.documentDate) {
+          <span title="Belge tarihi">{{ item.documentDate | date:'dd.MM.yyyy' }}</span>
+        }
+        @if (item.orginalNo) {
+          <span class="sq-orig" [title]="'Orijinal belge no: ' + item.orginalNo">{{ item.orginalNo }}</span>
+        }
+      </div>
+    </div>
+
+    <!-- Dosya ve OCR sabit genişlikli yuvalarda: satırlar arasında aynı hizada durur -->
+    <div class="sq-state">
+      <!-- Dosya ve OCR var/yok işaretleri; yayınlanan evraklarda gösterilmez (yuvalar boş kalır, hiza korunur) -->
+      @if (!published) {
+        <div class="sq-checks">
+          <span class="sq-check" [class.is-on]="!!item.documentName"
+            [title]="item.documentName ? 'Dosya var: ' + item.documentName : 'Dosya yok'">
+            <i class="sq-check-box"><span class="material-symbols-outlined">{{ item.documentName ? 'check' : 'close' }}</span></i>Dosya
+          </span>
+          <span class="sq-check" [class.is-on]="item.ocrStatus === 1" [class.is-err]="item.ocrStatus === 2"
+            [title]="item.ocrStatus === 1 ? 'OCR var: Evrak Kayıt\'ta alanlar dolu gelir' : item.ocrStatus === 2 ? 'OCR hatası (kayıt OCR olmadan yapılabilir)' : 'OCR yok'">
+            <i class="sq-check-box"><span class="material-symbols-outlined">{{ item.ocrStatus === 1 ? 'check' : item.ocrStatus === 2 ? 'priority_high' : 'close' }}</span></i>OCR
+          </span>
+        </div>
+      }
+    </div>
+
+    <!-- Atama bilgisi yayınlanan evraklarda gösterilmez; yuva boş kalır, hiza korunur -->
+    <div class="sq-owner" [attr.title]="published ? null : (item.currentAssignmentUser ? 'İşleme alan: ' + item.currentAssignmentUser : 'Kimse işleme almadı')">
+      @if (published) {
+      } @else if (item.currentAssignmentUserId) {
+        <span class="sq-avatar" [class.is-me]="mine">{{ initials(item.currentAssignmentUser) }}</span>
+        <span class="sq-owner-name">{{ mine ? 'Bende' : (item.currentAssignmentUser || 'Atanmış') }}</span>
+      } @else {
+        <span class="sq-avatar is-empty"><span class="material-symbols-outlined">person_off</span></span>
+        <span class="sq-owner-name is-muted">Atanmamış</span>
+      }
+    </div>
+
+    <div class="sq-actions">
+      <!-- Evrak Bilgileri yazılı düğme olarak çıkmaz; her durumda ikon çubuğundaki "i" ile açılır -->
+      @if (act.kind !== 'info') {
+        <button type="button" class="sq-primary is-{{ act.kind }}" [title]="act.title" (click)="runPrimary(item)">
+          <span class="material-symbols-outlined">{{ act.icon }}</span>
+          <span>{{ act.label }}</span>
+        </button>
+      }
+      <div class="sq-iconbar">
+        <button type="button" title="Evrak Bilgileri" (click)="openInfo(item)">
+          <span class="material-symbols-outlined">info</span>
+        </button>
+        <button type="button" title="Süreçler" (click)="openProcess(item)">
+          <span class="material-symbols-outlined">conversion_path</span>
+        </button>
+        <button type="button" title="Zimmetleme" (click)="goToZimmet(item.id)">
+          <span class="material-symbols-outlined">article_person</span>
+        </button>
+        <button type="button" title="Zimmet Geçmişi" (click)="openZimmetHistory(item)">
+          <span class="material-symbols-outlined">history</span>
+        </button>
+        <!-- Yayına gönderilmiş evrak silinemez -->
+        @if (!published) {
+          <button type="button" class="is-danger" title="Taranmış Evrakı Sil" (click)="delete(item.id)">
+            <span class="material-symbols-outlined">delete</span>
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Yayın etiketi: satırın en sağında, sabit genişlikli yuvada -->
+    <div class="sq-publish">
+      @if (isPublished(item)) {
+        <span class="sq-tag is-ok" title="Atlas'ta yayınlandı"><span class="material-symbols-outlined">cloud_done</span>Yayınlandı</span>
+      } @else if (isPublishFailed(item)) {
+        <span class="sq-tag is-err" title="Atlas'a aktarım hatalı"><span class="material-symbols-outlined">cloud_off</span>Aktarım hatalı</span>
+      } @else if (isPublishing(item)) {
+        <span class="sq-tag is-wait" [title]="publishStatusLabel(item)"><span class="material-symbols-outlined">cloud_sync</span>Aktarımda</span>
+      }
+    </div>
+  </article>
+</ng-template>
+
+<!-- OCR Hataları: OCR zorunlu olmadığından ana listede gösterilmez; bu evraklar kuyruklarında
+     normal şekilde kayda alınabilir, yalnızca alanlar elle doldurulur. -->
+@if (ocrErrorsVisible()) {
+  <div class="modal-overlay" (click)="ocrErrorsVisible.set(false)">
+    <div class="modal-box sq-ocr-modal" (click)="$event.stopPropagation()" role="dialog" aria-label="OCR Hataları">
+      <header class="sq-ocr-head">
+        <span class="sq-ocr-icon"><span class="material-symbols-outlined">document_scanner</span></span>
+        <div class="sq-ocr-text">
+          <div class="sq-ocr-title">OCR Hataları <span class="sq-tool-badge">{{ ocrErrorRows().length }}</span></div>
+          <div class="sq-ocr-desc">Bu evraklarda metin okunamadı. Kayıt OCR olmadan yapılabilir; alanlar Evrak Kayıt'ta elle doldurulur.</div>
+        </div>
+        <button type="button" class="sq-ocr-close" title="Kapat" (click)="ocrErrorsVisible.set(false)">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </header>
+      <div class="sq-ocr-body">
+        @for (item of ocrErrorRows(); track item.id) {
+          <ng-container *ngTemplateOutlet="docRow; context: { $implicit: item }" />
+        } @empty {
+          <div class="sq-empty">
+            <span class="sq-empty-icon"><span class="material-symbols-outlined">task_alt</span></span>
+            <div class="sq-empty-title">OCR hatası olan evrak kalmadı</div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}
+
 
 <!-- Personel Atama Popup: başka personele atanmış evrakı yeni bir personele aktarır -->
 @if (assignModalVisible()) {
@@ -381,6 +472,108 @@
 }
 
 <!-- Zimmet Geçmişi Popup (tüm roller: evrakın mevcut ve geçmiş zimmetleri) -->
+<!-- Süreç popup'ı: yalnızca işlem geçmişi (eskiden yeniye). Görünüm Zimmet Geçmişi popup'ıyla ortak (zh-);
+     yayınlamayla açılan otomatik zimmet, yayınlama adımının altında alt adım olarak gösterilir. -->
+@if (processVisible()) {
+  <div class="modal-overlay" (click)="closeProcess()">
+    <div class="modal-box zh-modal sp-modal" (click)="$event.stopPropagation()" role="dialog" aria-label="Süreç">
+      <div class="zh-header">
+        <div class="zh-header-top">
+          <div class="zh-title">Süreç</div>
+          <div class="sp-header-tools">
+            <button type="button" class="zh-close" title="Süreçler sayfasında aç" (click)="openProcessPage()">
+              <span class="material-symbols-outlined">open_in_new</span>
+            </button>
+            <button type="button" class="zh-close" title="Kapat" (click)="closeProcess()">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+        </div>
+        <div class="zh-header-main">
+          <div class="zh-header-icon">
+            <span class="material-symbols-outlined">conversion_path</span>
+          </div>
+          <div class="zh-header-text">
+            <div class="zh-doc-no">{{ processDoc()?.qrCode }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="zh-body">
+        @if (processLoading()) {
+          <div class="zh-state">
+            <div class="spinner-border spinner-border-sm text-primary"></div>
+            <span>Süreç bilgileri yükleniyor</span>
+          </div>
+        } @else if (processFailed()) {
+          <div class="zh-state is-empty">
+            <span class="zh-state-icon"><span class="material-symbols-outlined">cloud_off</span></span>
+            <div class="zh-state-title">Süreç bilgileri alınamadı</div>
+            <div class="zh-state-desc">Bağlantıyı kontrol edip yeniden deneyin.</div>
+          </div>
+        } @else if (processSteps().length) {
+          <div class="zh-timeline sp-timeline">
+            @for (step of processSteps(); track $index; let last = $last) {
+              @let t = step.t;
+              <div class="zh-row sp-row" [class.is-active]="last" [attr.data-milestone]="processMilestoneKind(t)">
+                <span class="zh-dot sp-tone-{{ processTypeTone(t) }}" [class.is-past]="!last">
+                  <span class="material-symbols-outlined">{{ processTypeIcon(t) }}</span>
+                </span>
+                <div class="zh-card">
+                  <div class="zh-card-main">
+                    <div class="zh-name" [title]="t.transactionTypeName">{{ t.transactionTypeName || '-' }}</div>
+                    <div class="zh-meta">
+                      @if (t.transactionType === 7) {
+                        <span class="material-symbols-outlined">person</span>
+                        <span class="zh-meta-by">Teslim Alan: <strong>{{ t.userFullName || '-' }}</strong></span>
+                        <span class="sp-meta-sep">·</span>
+                        <span class="zh-meta-by">Teslim Eden: <strong>{{ t.createdUserFullName || '-' }}</strong></span>
+                      } @else if (t.transactionType === 8) {
+                        <span class="material-symbols-outlined">smart_toy</span>
+                        <span class="zh-meta-by">Sistem</span>
+                      } @else {
+                        <span class="material-symbols-outlined">person</span>
+                        <span class="zh-meta-by">{{ processPersonLabel(t) }}: <strong>{{ t.userFullName || '-' }}</strong></span>
+                      }
+                    </div>
+                  </div>
+                  <div class="zh-card-side">
+                    @if (last) {
+                      <span class="sp-latest">Güncel</span>
+                    }
+                    <span class="zh-date">
+                      <span class="material-symbols-outlined">schedule</span>
+                      {{ t.createdDate | date:'dd.MM.yyyy HH:mm' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              @for (c of step.children; track $index) {
+                <div class="sp-sub">
+                  <span class="material-symbols-outlined sp-sub-arrow">subdirectory_arrow_right</span>
+                  <span class="material-symbols-outlined sp-sub-icon">{{ processTypeIcon(c) }}</span>
+                  <span class="sp-sub-title">{{ c.transactionTypeName || '-' }}</span>
+                  <span class="sp-sub-by">{{ processPersonLabel(c) }}: <strong>{{ c.userFullName || '-' }}</strong></span>
+                  <span class="zh-date">
+                    <span class="material-symbols-outlined">schedule</span>
+                    {{ c.createdDate | date:'dd.MM.yyyy HH:mm' }}
+                  </span>
+                </div>
+              }
+            }
+          </div>
+        } @else {
+          <div class="zh-state is-empty">
+            <span class="zh-state-icon"><span class="material-symbols-outlined">history_toggle_off</span></span>
+            <div class="zh-state-title">Henüz işlem kaydı yok</div>
+            <div class="zh-state-desc">Bu evrak için sistemde kayıtlı bir süreç hareketi bulunmuyor.</div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}
+
 @if (zimmetHistoryVisible()) {
   <div class="modal-overlay" (click)="closeZimmetHistory()">
     <div class="modal-box zh-modal" (click)="$event.stopPropagation()">
@@ -497,6 +690,167 @@
           </div>
         }
       </div>
+    </div>
+  </div>
+}
+
+<!-- Evrak Bilgileri Popup: işleme alınamayan evrakın tüm bilgileri (salt okunur) -->
+@if (infoVisible()) {
+  <div class="modal-overlay" (click)="closeInfo()">
+    <div class="modal-box ei-modal" (click)="$event.stopPropagation()" role="dialog" aria-label="Evrak Bilgileri">
+      @if (infoView(); as v) {
+        <!-- Başlık: evrak no + konu, sağda durum çipleri -->
+        <header class="ei-head">
+          <div class="ei-head-icon">
+            <span class="material-symbols-outlined">description</span>
+          </div>
+          <div class="ei-head-text">
+            <div class="ei-overline">
+              Evrak Bilgileri
+              @if (infoLoading()) {
+                <span class="spinner-border ei-spinner" title="Güncel bilgiler getiriliyor"></span>
+              }
+            </div>
+            <div class="ei-doc-no">{{ v.qrCode }}</div>
+            <div class="ei-subject" [class.is-empty]="!v.subject" [title]="v.subject">
+              {{ v.subject || 'Konu girilmemiş' }}
+            </div>
+          </div>
+          <div class="ei-states">
+            @for (s of v.status; track s.label) {
+              <div class="ei-state" [attr.data-tone]="s.tone">
+                <span class="ei-state-label">{{ s.label }}</span>
+                <span class="ei-state-value"><i class="ei-state-dot"></i>{{ s.value }}</span>
+              </div>
+            }
+          </div>
+          <button type="button" class="ei-close" title="Kapat" (click)="closeInfo()">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </header>
+
+        <!-- Sınıflandırma şeridi -->
+        <div class="ei-tags">
+          <span class="ei-tag">
+            <span class="material-symbols-outlined">category</span>
+            {{ v.documentType }}
+          </span>
+          <span class="ei-tag">
+            <span class="degree-badge-circle security-badge ei-tag-badge {{ v.security.tier }}">
+              <span class="material-symbols-outlined">{{ v.security.icon }}</span>
+            </span>
+            {{ v.security.label }}
+          </span>
+          <span class="ei-tag">
+            <span class="degree-badge-circle urgency-badge ei-tag-badge {{ v.urgency.tier }}">{{ v.urgency.initial }}</span>
+            {{ v.urgency.label }}
+          </span>
+          <span class="badge rounded-pill ei-action {{ v.action.cls }}">
+            <span class="material-symbols-outlined">{{ v.action.icon }}</span>
+            {{ v.action.label }}
+          </span>
+        </div>
+
+        <div class="ei-body">
+          <!-- Sol: yazışma yönü ve künye -->
+          <div class="ei-main">
+            <div class="ei-route">
+              <div class="ei-route-card">
+                <span class="ei-route-icon"><span class="material-symbols-outlined">call_made</span></span>
+                <div class="ei-route-text">
+                  <span class="ei-label">Nereden</span>
+                  <span class="ei-route-name" [class.is-empty]="v.from === '-'" [title]="v.from">{{ v.from }}</span>
+                </div>
+              </div>
+              <span class="material-symbols-outlined ei-route-arrow">arrow_forward</span>
+              <div class="ei-route-card is-target">
+                <span class="ei-route-icon"><span class="material-symbols-outlined">call_received</span></span>
+                <div class="ei-route-text">
+                  <span class="ei-label">Nereye</span>
+                  <span class="ei-route-name" [class.is-empty]="v.to === '-'" [title]="v.to">{{ v.to }}</span>
+                </div>
+              </div>
+            </div>
+
+            <dl class="ei-facts">
+              <div class="ei-fact">
+                <dt class="ei-label">Evrak Tarihi</dt>
+                <dd [class.is-empty]="v.documentDate === '-'">{{ v.documentDate }}</dd>
+              </div>
+              <div class="ei-fact">
+                <dt class="ei-label">Orjinal Belge No</dt>
+                <dd [class.is-empty]="v.orginalNo === '-'">{{ v.orginalNo }}</dd>
+              </div>
+            </dl>
+
+            @if (v.notes) {
+              <div class="ei-note">
+                <span class="ei-label">Notlar</span>
+                <p>{{ v.notes }}</p>
+              </div>
+            }
+          </div>
+
+          <!-- Sağ: Belge Özellikleri paneli -->
+          <aside class="ei-side">
+            <div class="ei-side-title">Belge Özellikleri</div>
+
+            <div class="ei-pages">
+              <span class="ei-pages-num" [class.is-empty]="v.pageCount === '-'">{{ v.pageCount }}</span>
+              <span class="ei-label">Sayfa</span>
+            </div>
+
+            <dl class="ei-specs">
+              <div class="ei-spec">
+                <dt>Ek</dt>
+                <dd>
+                  @if (v.hasAttachment === true) {
+                    <span class="ei-pill is-on"><span class="material-symbols-outlined">attach_file</span>Var</span>
+                  } @else if (v.hasAttachment === false) {
+                    <span class="ei-pill">Yok</span>
+                  } @else {
+                    <span class="ei-muted">Belirtilmemiş</span>
+                  }
+                </dd>
+              </div>
+              @if (v.hasAttachment === true) {
+                <div class="ei-attach" [class.is-empty]="!v.attachmentDescription">
+                  {{ v.attachmentDescription || 'Açıklama girilmemiş' }}
+                </div>
+              }
+              <div class="ei-spec">
+                <dt>Elektronik Kopya</dt>
+                <dd [class.ei-muted]="v.electronicCopy === '-'">{{ v.electronicCopy }}</dd>
+              </div>
+              <div class="ei-spec">
+                <dt>Dil</dt>
+                <dd [class.ei-muted]="v.language === '-'">{{ v.language }}</dd>
+              </div>
+              <div class="ei-spec">
+                <dt>Belge Dosyası</dt>
+                <dd>
+                  @if (v.hasFile) {
+                    <span class="ei-pill is-ok"><span class="material-symbols-outlined">check</span>Yüklendi</span>
+                  } @else {
+                    <span class="ei-pill is-warn"><span class="material-symbols-outlined">close</span>Yüklenmedi</span>
+                  }
+                </dd>
+              </div>
+            </dl>
+          </aside>
+        </div>
+
+        <!-- Alt bilgi satırı: atanan personel ve tarihler -->
+        <footer class="ei-meta">
+          @for (m of v.meta; track m.label) {
+            <span class="ei-meta-item" [title]="m.label">
+              <span class="material-symbols-outlined">{{ m.icon }}</span>
+              {{ m.label }}
+              <strong>{{ m.value }}</strong>
+            </span>
+          }
+        </footer>
+      }
     </div>
   </div>
 }

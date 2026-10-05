@@ -2,7 +2,7 @@
   [breadcrumbs]="[{title: 'Zimmetlerim', url: 'zimmetlerim', icon: ''}]">
 </app-generic>
 
-<div class="st-page">
+<div class="st-page zm-page">
   <!-- Üst kart: başlık (arama liste kartının başlığında) -->
   <section class="sp-hero zl-hero zl-hero-split zl-hero-slim">
     <div class="sp-hero-top">
@@ -72,9 +72,22 @@
         <span class="material-symbols-outlined">list_alt</span>
       </span>
       <div>
-        <h4 class="st-card-title">Zimmet Listesi</h4>
+        <h4 class="st-card-title">{{ listScope() === 'received' ? 'Teslim Aldığım Evraklar' : 'Zimmet Listesi' }}</h4>
       </div>
       <div class="zl-head-tools">
+        <!-- Liste kapsamı: Gelen Evraklar listesindeki sekme grubuyla aynı dil -->
+        <div class="zl-seg" role="group" aria-label="Liste kapsamı">
+          <button type="button" class="zl-seg-btn" title="Şu an üzerimde olan evraklar"
+            [class.is-active]="listScope() === 'active'" (click)="setListScope('active')">
+            <span class="material-symbols-outlined">inventory_2</span>
+            Üzerimdekiler
+          </button>
+          <button type="button" class="zl-seg-btn" title="Bana zimmetlenen tüm evraklar (devrettiklerim dahil)"
+            [class.is-active]="listScope() === 'received'" (click)="setListScope('received')">
+            <span class="material-symbols-outlined">history</span>
+            Teslim Aldıklarım
+          </button>
+        </div>
         <div class="sp-search zl-head-search">
           <span class="material-symbols-outlined sp-search-icon">search</span>
           <input
@@ -128,8 +141,13 @@
                 Filtreleri temizle
               </button>
             } @else {
-              <div class="sp-empty-title">Zimmetiniz bulunmuyor</div>
-              <div class="sp-empty-text">Üzerinizde görünen bir zimmet yok. Yeni bir zimmet geldiğinde burada listelenir.</div>
+              @if (listScope() === 'received') {
+                <div class="sp-empty-title">Teslim aldığınız evrak bulunmuyor</div>
+                <div class="sp-empty-text">Size zimmetlenen evraklar, sonradan devretmiş olsanız da burada listelenir.</div>
+              } @else {
+                <div class="sp-empty-title">Zimmetiniz bulunmuyor</div>
+                <div class="sp-empty-text">Üzerinizde görünen bir zimmet yok. Yeni bir zimmet geldiğinde burada listelenir.</div>
+              }
             }
           </div>
         </div>
@@ -161,16 +179,22 @@
 
             <tbody>
               @for (item of pagedZimmetlerim(); track item.allocationId) {
-                <tr class="zl-row" [class.is-open]="isExpanded(item)" (click)="toggleDetail(item); $event.stopPropagation()">
+                <tr class="zl-row" [class.is-open]="isExpanded(item)" [class.is-transferred]="isTransferred(item)" (click)="toggleDetail(item); $event.stopPropagation()">
                   <td>
                     <span class="zl-doc">
-                      <span class="zl-doc-icon">
-                        <span class="material-symbols-outlined">{{ item.documentDirection === Direction.Giden ? 'outgoing_mail' : 'description' }}</span>
+                      <span class="zl-doc-icon" [class.is-out]="item.documentDirection === Direction.Giden">
+                        <span class="material-symbols-outlined">{{ item.documentDirection === Direction.Giden ? 'forward_to_inbox' : 'mail' }}</span>
                       </span>
                       <span>
                         <span class="zl-doc-no d-block">{{ item.qrCode || '-' }}</span>
                         @if (item.documentNo) {
                           <span class="zl-doc-sub">{{ item.documentNo }}</span>
+                        }
+                        @if (isTransferred(item)) {
+                          <span class="zl-transferred" title="Evrak artık üzerinizde değil; güncel sahibi geçmişte görünür">
+                            <span class="material-symbols-outlined">swap_horiz</span>
+                            Devredildi
+                          </span>
                         }
                         @if (pendingRequestOf(item); as req) {
                           <button type="button" class="zl-pending"
@@ -184,13 +208,12 @@
                     </span>
                   </td>
                   <td>
+                    <!-- Güzergâh: boş halka çıkış, dolu nokta varış; aralarında ince çizgi -->
                     <div class="zl-route">
-                      <span [title]="item.fromName ?? ''">
-                        <span class="material-symbols-outlined">north_east</span>
+                      <span class="zl-route-from" [title]="item.fromName ? 'Nereden: ' + item.fromName : ''">
                         @if (item.fromName) { {{ item.fromName }} } @else { <span class="zl-route-empty">-</span> }
                       </span>
-                      <span [title]="item.toName ?? ''">
-                        <span class="material-symbols-outlined">south_east</span>
+                      <span class="zl-route-to" [title]="item.toName ? 'Nereye: ' + item.toName : ''">
                         @if (item.toName) { {{ item.toName }} } @else { <span class="zl-route-empty">-</span> }
                       </span>
                     </div>
@@ -210,7 +233,7 @@
                   </td>
                   <td>
                     <span class="zl-date">
-                      <span class="material-symbols-outlined">calendar_today</span>
+                      <span class="material-symbols-outlined">event</span>
                       {{ item.documentDate ? (item.documentDate | date:'dd.MM.yyyy') : '-' }}
                     </span>
                   </td>
@@ -228,7 +251,7 @@
                     <span class="zl-dir"
                       [class.is-in]="item.documentDirection === Direction.Gelen"
                       [class.is-out]="item.documentDirection === Direction.Giden">
-                      <span class="material-symbols-outlined">{{ item.documentDirection === Direction.Giden ? 'outbox' : 'move_to_inbox' }}</span>
+                      <span class="material-symbols-outlined">{{ item.documentDirection === Direction.Giden ? 'arrow_upward' : 'arrow_downward' }}</span>
                       {{ item.documentDirection === Direction.Giden ? 'Giden' : 'Gelen' }}
                     </span>
                   </td>
@@ -237,18 +260,19 @@
                       [class.is-atlas]="isAtlas(item)"
                       [class.is-evrak]="!isAtlas(item)"
                       [title]="isAtlas(item) ? 'Atlas EBYS\'de zimmetlenmiştir' : 'Evrak Takip sisteminde zimmetlenmiştir'">
-                      <span class="material-symbols-outlined">{{ isAtlas(item) ? 'travel_explore' : 'description' }}</span>
+                      <span class="material-symbols-outlined">{{ isAtlas(item) ? 'hub' : 'inventory_2' }}</span>
                       {{ sourceLabels[item.source] }}
                     </span>
                   </td>
                   <td class="zl-center">
                     <button type="button" class="zl-act"
-                      [disabled]="isAtlas(item) || !!pendingRequestOf(item)"
+                      [disabled]="isAtlas(item) || isTransferred(item) || !!pendingRequestOf(item)"
                       [title]="isAtlas(item) ? 'Atlas zimmetleri için devir desteklenmiyor'
+                        : isTransferred(item) ? 'Evrak artık üzerinizde değil'
                         : pendingRequestOf(item) ? (pendingRequestOf(item)!.toUserFullName + ' kişisinin onayı bekleniyor')
                         : 'Zimmeti Devret'"
                       (click)="openTransferModal(item); $event.stopPropagation()">
-                      <span class="material-symbols-outlined" style="transform: scaleX(-1);">assignment_return</span>
+                      <span class="material-symbols-outlined">swap_horiz</span>
                     </button>
                   </td>
                   <td class="zl-center zl-act-cell">
@@ -289,6 +313,12 @@
                                   <div class="zl-tl-body">
                                     <div class="zl-tl-name">{{ h.fullName }}</div>
                                     <div class="zl-tl-date">{{ h.createdDate | date:'dd.MM.yyyy HH:mm' }} · {{ statusLabels[h.status] }}</div>
+                                    @if (h.serh; as serh) {
+                                      <div class="zl-tl-serh">
+                                        <span class="material-symbols-outlined">rule</span>
+                                        <span><b>Şerhli kabul:</b> {{ serh }}</span>
+                                      </div>
+                                    }
                                   </div>
                                   <span class="zl-tl-badge">{{ h.isActive ? 'AKTİF' : 'GEÇMİŞ' }}</span>
                                 </li>
@@ -360,7 +390,7 @@
     <div class="modal-box zl-modal" (click)="$event.stopPropagation()">
       <div class="zl-modal-head">
         <span class="st-card-icon">
-          <span class="material-symbols-outlined">assignment_return</span>
+          <span class="material-symbols-outlined">swap_horiz</span>
         </span>
         <div>
           <h4 class="st-card-title">Zimmet Devri</h4>
@@ -413,7 +443,7 @@
           @if (transferLoading()) {
             <span class="spinner-border"></span>
           } @else {
-            <span class="material-symbols-outlined">assignment_return</span>
+            <span class="material-symbols-outlined">swap_horiz</span>
           }
           Devret
         </button>

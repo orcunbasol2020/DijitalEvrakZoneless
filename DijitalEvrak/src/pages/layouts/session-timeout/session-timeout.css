@@ -1,0 +1,63 @@
+/* Oturum zaman aşımı uyarısı (st-*); kaplama ve kutu iskeleti styles.css'teki modal-overlay / modal-box */
+
+.st-overlay {
+  /* Giriş hatırlatma popup'ı dahil her şeyin üstünde */
+  z-index: 2000;
+}
+
+.modal-box.st-modal {
+  max-width: 400px;
+  padding: 28px 28px 22px;
+  text-align: center;
+}
+
+.st-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 12px;
+  border-radius: 50%;
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.st-icon .material-symbols-outlined {
+  font-size: 30px;
+}
+
+.st-title {
+  margin: 0 0 8px;
+  font-weight: 700;
+}
+
+.st-text {
+  margin: 0 0 20px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.st-count {
+  color: #b45309;
+  font-variant-numeric: tabular-nums;
+}
+
+.st-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.st-actions .btn {
+  min-width: 120px;
+}
+
+:host-context([data-theme="dark"]) .st-icon {
+  background: rgba(245, 158, 11, 0.16);
+  color: #fbbf24;
+}
+
+:host-context([data-theme="dark"]) .st-count {
+  color: #fbbf24;
+}

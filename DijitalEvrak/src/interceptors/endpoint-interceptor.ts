@@ -1,8 +1,10 @@
 import { HttpInterceptorFn } from '@angular/common/http';
+import { environment } from '../environments/environment';
 
+// "api/..." ile başlayan istekler backend kök adresine yönlendirilir (bkz. environments)
 export const endpointInterceptor: HttpInterceptorFn = (req, next) => {
-  const clone = req.clone({
-    url: req.url.replace("api/", "https://localhost:7056/api/")
-  });
-  return next(clone);
+  if (!req.url.startsWith('api/')) {
+    return next(req);
+  }
+  return next(req.clone({ url: environment.apiUrl + req.url }));
 };

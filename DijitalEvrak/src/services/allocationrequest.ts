@@ -41,6 +41,14 @@ export class AllocationRequestService {
     ).pipe(map(list => list ?? []));
   }
 
+  // Tekil onay; şerhli kabul yalnızca bununla yapılır (ApproveBulk şerhsizdir).
+  // hasDiscrepancy = true ise note zorunlu (en fazla 1000 karakter).
+  approve(requestId: string, userId: string, hasDiscrepancy = false, note: string | null = null) {
+    return this.http.post<MessageResponse<AllocationRequestActionResult | AllocationRequestActionResult[]>>(
+      `${this.baseUrl}/Approve`, { requestId, userId, hasDiscrepancy, note }
+    );
+  }
+
   approveBulk(requestIds: string[], userId: string) {
     return this.http.post<MessageResponse<AllocationRequestActionResult[]>>(
       `${this.baseUrl}/ApproveBulk`, { requestIds, userId }

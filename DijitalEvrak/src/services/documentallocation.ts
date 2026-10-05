@@ -61,6 +61,23 @@ export class DocumentAllocation {
     );
   }
 
+  // Kullanıcıya verilmiş tüm zimmetleri getirir (Zimmetlerim > Teslim Aldıklarım); sonradan
+  // devredilenler de listede kalır (isActive=false). Parametreler ve sıralama
+  // GetActiveDocumentsByUserId ile aynıdır.
+  getReceivedDocumentsByUserId(
+    userId: string,
+    options: { documentDirection?: DocumentDirectionEnum; page?: number; pageSize?: number } = {}
+  ) {
+    const params = new URLSearchParams({ userId });
+    if (options.documentDirection) params.set('documentDirection', String(options.documentDirection));
+    if (options.page) params.set('page', String(options.page));
+    if (options.pageSize) params.set('pageSize', String(options.pageSize));
+
+    return this.httpService.get<ActiveDocumentsResponse>(
+      `${this.baseUrl}/GetReceivedDocumentsByUserId?${params.toString()}`
+    );
+  }
+
   // Kullanıcının başkasına devrettiği (zimmet devri yaptığı) evrak sayısı
   getTransferCountByUserId(userId: string) {
     return this.httpService.get<number>(

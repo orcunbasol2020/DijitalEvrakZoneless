@@ -1,9 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit, signal, ViewEncapsulation } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, OnInit, signal, untracked, ViewEncapsulation } from '@angular/core';
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
-import { Observable, finalize } from 'rxjs';
+import { Observable, catchError, debounceTime, distinctUntilChanged, finalize, forkJoin, map, of, switchMap } from 'rxjs';
 import GenericModel from '../../../components/generic-model/generic-model';
 import { Common } from '../../services/common';
 import { AllocationRequestService } from '../../services/allocationrequest';
@@ -17,11 +17,25 @@ import {
 } from '../../models/allocationrequest.model';
 import { AllocationStatusEnum } from '../../models/allocationstatus.model';
 import { NotificationService } from '../../services/notification';
-import { NotificationModel, NotificationTypeEnum, NotificationTypeIcons, NotificationTypeTones } from '../../models/notification.model';
+import {
+  APPROVAL_REQUEST_NOTIFICATION_TYPES,
+  NotificationModel,
+  NotificationPageModel,
+  NotificationTypeEnum,
+  NotificationTypeIcons,
+  NotificationTypeTones
+} from '../../models/notification.model';
 
 // Onayımı bekleyenler (alıcı) / gönderdiklerim (devreden veya işlemi yapan)
 type ApprovalTab = 'bekleyen' | 'gonderilen' | 'bildirimler';
 type NoteAction = 'reject' | 'cancel';
+
+// Devredenin beyanı: onay penceresinde gösterilir, alıcı fiziksel evrakla karşılaştırır
+interface DocInfo {
+  pageCount: number | null;
+  hasAttachment: boolean | null;
+  attachmentDescription: string | null;
+}
 
 interface FailedRow {
   label: string;
@@ -86,23 +100,68 @@ export default class ZimmetOnaylari implements OnInit {
     return [];
   });
 
-  // ---- Bildirimler sekmesi: tüm bildirimler, okunmamışlar vurgulu ----
+  // ---- Bildirimler sekmesi: sunucuda sayfalanır ve aranır, okunmamışlar vurgulu ----
+  // Onay talebi / hatırlatma (tür 1, 2) bekleyen evrak listesinde olduğu için burada gösterilmez
+  private static readonly NOTIFICATION_PAGE_SIZE = 20;
   readonly notifications = signal<NotificationModel[]>([]);
   readonly notificationsLoading = signal(false);
+  readonly notificationPage = signal(1);
+  readonly notificationTotal = signal(0);
+  private readonly notificationReload = signal(0);
+  // Arama her tuşta değil, yazma bitince sunucuya gider
+  private readonly notificationSearch = toSignal(
+    toObservable(this.searchQuery).pipe(debounceTime(300), map(v => v.trim()), distinctUntilChanged()),
+    { initialValue: '' });
   // Zil rozetiyle aynı okunmamış sayısı (onay talebi / hatırlatma hariç)
-  readonly unreadCount = computed(() => this.notificationService.unreadVisible().length);
-  // Okundu bilgisi ortak listeden okunur; böylece zilde okunan burada da okunmuş görünür
-  private readonly unreadIds = computed(() => new Set(this.notificationService.unread().map(n => n.id)));
+  readonly unreadCount = computed(() => this.notificationService.unreadCount());
+  // Sekmeye girilince okunmamışların tümü okundu sayılır; bu ziyarette hangilerinin yeni
+  // olduğu görünsün diye okundu sayılanlar sayfa açık kaldıkça (sayfa değişse de) vurgulu kalır
+  private readonly freshIds = signal<ReadonlySet<string>>(new Set());
+  private readonly markReadOnView = effect(() => {
+    if (this.activeTab() !== 'bildirimler') return;
+    if (!this.unreadCount() && !this.notifications().some(n => !n.isRead)) return;
+    untracked(() => this.markAllRead());
+  });
 
-  readonly filteredNotifications = computed(() => {
-    const term = this.searchQuery().trim().toLocaleLowerCase('tr');
-    const list = this.notifications();
-    if (!term) return list;
-    return list.filter(n => [n.title, n.message].some(v => (v ?? '').toLocaleLowerCase('tr').includes(term)));
+  readonly notificationTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.notificationTotal() / ZimmetOnaylari.NOTIFICATION_PAGE_SIZE)));
+
+  readonly notificationPageNumbers = computed(() => {
+    const total = this.notificationTotalPages();
+    const current = Math.min(this.notificationPage(), total);
+    const delta = 2;
+    const range: number[] = [];
+    for (let i = Math.max(1, current - delta); i <= Math.min(total, current + delta); i++) range.push(i);
+    return range;
+  });
+
+  readonly notificationRangeStart = computed(() =>
+    this.notificationTotal() === 0 ? 0 : (this.notificationPage() - 1) * ZimmetOnaylari.NOTIFICATION_PAGE_SIZE + 1);
+
+  readonly notificationRangeEnd = computed(() =>
+    Math.min(this.notificationPage() * ZimmetOnaylari.NOTIFICATION_PAGE_SIZE, this.notificationTotal()));
+
+  goToNotificationPage(page: number): void {
+    const clamped = Math.min(Math.max(page, 1), this.notificationTotalPages());
+    if (clamped !== this.notificationPage()) this.notificationPage.set(clamped);
+  }
+
+  // Sayfa, arama ya da yenileme değişince istek atılır; yenisi gelince eski istek iptal olur
+  private readonly notificationLoader = toObservable(computed(() => ({
+    page: this.notificationPage(),
+    search: this.notificationSearch(),
+    reload: this.notificationReload()
+  }))).pipe(
+    switchMap(q => this.fetchNotifications(q.page, q.search)),
+    takeUntilDestroyed()
+  ).subscribe(result => {
+    if (!result) return;
+    this.notifications.set(result.items ?? []);
+    this.notificationTotal.set(result.totalCount ?? 0);
   });
 
   isUnread(n: NotificationModel): boolean {
-    return !n.isRead && this.unreadIds().has(n.id);
+    return this.freshIds().has(n.id);
   }
 
   notificationIcon(n: NotificationModel): string {
@@ -118,30 +177,44 @@ export default class ZimmetOnaylari implements OnInit {
     if (!userId) return;
     // Bildirimler sekmesine yönlendiren türlerde yalnızca okundu işaretlenir
     this.notificationService.open(n, userId);
-    this.notifications.update(list => list.map(x => x.id === n.id ? { ...x, isRead: true } : x));
   }
 
-  markAllRead(): void {
+  private markAllRead(): void {
     const userId = this.userId;
     if (!userId) return;
+    // Diğer sayfalardaki okunmamışlar ortak okunmamış listesinden (zil) alınır
+    const unreadIds = [
+      ...this.notificationService.unread().map(n => n.id),
+      ...this.notifications().filter(n => !n.isRead).map(n => n.id)
+    ];
+    this.freshIds.update(ids => new Set([...ids, ...unreadIds]));
     this.notificationService.markAllAsRead(userId).subscribe();
     this.notifications.update(list => list.map(x => ({ ...x, isRead: true })));
   }
 
-  private loadNotifications(): void {
+  // Okunmamış listesi sayfayla birlikte gelir; böylece sekmede okundu sayma geç gelen
+  // eski sayımla ezilmez
+  private fetchNotifications(page: number, search: string): Observable<NotificationPageModel | null> {
     const userId = this.userId;
-    if (!userId) return;
+    if (!userId) return of(null);
     this.notificationsLoading.set(true);
-    this.notificationService.refreshUnread(userId).subscribe();
-    this.notificationService.getByUserId(userId, false, ZimmetOnaylari.NOTIFICATION_TAKE)
-      .pipe(finalize(() => this.notificationsLoading.set(false)))
-      .subscribe({
-        next: list => this.notifications.set(list),
-        error: err => console.error('Bildirimler alınamadı:', err)
-      });
+    return forkJoin({
+      page: this.notificationService.getPage(userId, {
+        page,
+        pageSize: ZimmetOnaylari.NOTIFICATION_PAGE_SIZE,
+        search: search || undefined,
+        excludeTypes: APPROVAL_REQUEST_NOTIFICATION_TYPES
+      }),
+      unread: this.notificationService.refreshUnread(userId)
+    }).pipe(
+      map(r => r.page),
+      catchError(err => {
+        console.error('Bildirimler alınamadı:', err);
+        return of(null);
+      }),
+      finalize(() => this.notificationsLoading.set(false))
+    );
   }
-
-  private static readonly NOTIFICATION_TAKE = 100;
 
   readonly filteredList = computed(() => {
     const term = this.searchQuery().trim().toLocaleLowerCase('tr');
@@ -178,7 +251,7 @@ export default class ZimmetOnaylari implements OnInit {
   reload(): void {
     this.loadIncoming();
     this.loadSent();
-    this.loadNotifications();
+    this.notificationReload.update(v => v + 1);
   }
 
   private loadIncoming(): void {
@@ -211,6 +284,7 @@ export default class ZimmetOnaylari implements OnInit {
 
   setSearchQuery(value: string): void {
     this.searchQuery.set(value ?? '');
+    this.notificationPage.set(1);
   }
 
   isSelected(row: AllocationRequestModel): boolean {
@@ -242,16 +316,134 @@ export default class ZimmetOnaylari implements OnInit {
     return row.qrCode || row.orginalNo || row.documentName || '-';
   }
 
+  // Kişi avatarı: ad-soyad baş harfleri
+  initials(fullName: string | null | undefined): string {
+    const parts = (fullName ?? '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '?';
+    const last = parts.length > 1 ? parts[parts.length - 1].charAt(0) : '';
+    return `${parts[0].charAt(0)}${last}`.toLocaleUpperCase('tr');
+  }
+
+  // Talebin ne kadar süredir beklediği (ör. "3 gün", "5 saat")
+  waitingText(date: string | Date | null | undefined): string {
+    const ms = this.waitingMs(date);
+    if (ms === null) return '';
+    const minutes = Math.floor(ms / 60000);
+    if (minutes < 1) return 'Az önce';
+    if (minutes < 60) return `${minutes} dk bekliyor`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} saat bekliyor`;
+    return `${Math.floor(hours / 24)} gün bekliyor`;
+  }
+
+  // 2 günden uzun bekleyen talep vurgulanır
+  isLongWaiting(date: string | Date | null | undefined): boolean {
+    const ms = this.waitingMs(date);
+    return ms !== null && ms >= 2 * 24 * 60 * 60 * 1000;
+  }
+
+  private waitingMs(date: string | Date | null | undefined): number | null {
+    if (!date) return null;
+    const t = new Date(date).getTime();
+    return Number.isNaN(t) ? null : Math.max(0, Date.now() - t);
+  }
+
   // Devreden: talebi açan kişi; zimmet sahibi başkaysa (ör. Yönetici adına işlem) ayrıca gösterilir
   showHolder(row: AllocationRequestModel): boolean {
     return !!row.fromUserFullName && row.fromUserFullName !== row.requestedByFullName;
   }
 
-  // ---- Onay ----
+  // ---- Onay: devredenin beyanı (sayfa sayısı, ek) gösterilir; alıcı isterse şerh koyar ----
+  readonly approveIds = signal<string[]>([]);
+  // Talep Id → şerh; yalnızca "Şerh koyarak kabul ediyorum" seçilen talepler
+  readonly discrepancies = signal<Record<string, string>>({});
+
+  readonly approveRows = computed(() => {
+    const ids = new Set(this.approveIds());
+    return this.currentList().filter(r => ids.has(r.id));
+  });
+
+  // Şerh seçilip açıklaması boş bırakılan talep varsa onay gönderilemez
+  readonly approveInvalid = computed(() =>
+    Object.values(this.discrepancies()).some(note => !note.trim()));
+
   approve(ids: string[]): void {
+    if (!this.userId || !ids.length || this.processing()) return;
+    this.discrepancies.set({});
+    this.approveIds.set(ids);
+  }
+
+  declaration(row: AllocationRequestModel): DocInfo {
+    return {
+      pageCount: row.pageCount != null && String(row.pageCount) !== '' ? Number(row.pageCount) : null,
+      hasAttachment: row.hasAttachment ?? null,
+      attachmentDescription: row.attachmentDescription?.trim() || null
+    };
+  }
+
+  attachmentLabel(info: DocInfo): string {
+    return info.hasAttachment === true ? 'Var' : info.hasAttachment === false ? 'Yok' : 'Belirtilmemiş';
+  }
+
+  hasDiscrepancy(row: AllocationRequestModel): boolean {
+    return row.id in this.discrepancies();
+  }
+
+  discrepancyNote(row: AllocationRequestModel): string {
+    return this.discrepancies()[row.id] ?? '';
+  }
+
+  toggleDiscrepancy(row: AllocationRequestModel, on: boolean): void {
+    this.discrepancies.update(m => {
+      const next = { ...m };
+      if (on) next[row.id] = next[row.id] ?? '';
+      else delete next[row.id];
+      return next;
+    });
+  }
+
+  setDiscrepancyNote(row: AllocationRequestModel, note: string): void {
+    this.discrepancies.update(m => ({ ...m, [row.id]: (note ?? '').slice(0, ZimmetOnaylari.NOTE_MAX) }));
+  }
+
+  closeApprove(): void {
+    if (this.processing()) return;
+    this.approveIds.set([]);
+    this.discrepancies.set({});
+  }
+
+  // Şerhsiz talepler tek ApproveBulk ile, şerhli talepler tek tek Approve ile gönderilir
+  // (toplu onay şerhsizdir); sonuçlar tek listede birleştirilir.
+  confirmApprove(): void {
     const userId = this.userId;
-    if (!userId || !ids.length || this.processing()) return;
-    this.run(this.requestService.approveBulk(ids, userId), ids);
+    const ids = this.approveIds();
+    if (!userId || !ids.length || this.approveInvalid()) return;
+
+    const notes = this.discrepancies();
+    const plain = ids.filter(id => !(id in notes));
+    const flagged = ids.filter(id => id in notes);
+
+    const calls: Observable<AllocationRequestActionResult[]>[] = [];
+    if (plain.length) {
+      calls.push(this.requestService.approveBulk(plain, userId).pipe(
+        map(res => Array.isArray(res?.data) ? res.data : [])));
+    }
+    for (const id of flagged) {
+      calls.push(this.requestService.approve(id, userId, true, notes[id].trim()).pipe(
+        map(res => {
+          const data = res?.data;
+          if (Array.isArray(data)) return data;
+          if (data) return [data];
+          return [{ requestId: id, result: AllocationRequestActionResultEnum.Gecersiz, message: res?.message || 'Talep işlenemedi' }];
+        })));
+    }
+
+    const request$ = forkJoin(calls).pipe(
+      map(parts => ({ message: '', data: parts.flat() } as MessageResponse<AllocationRequestActionResult[]>)));
+    this.run(request$, ids, () => {
+      this.approveIds.set([]);
+      this.discrepancies.set({});
+    });
   }
 
   approveSelected(): void {

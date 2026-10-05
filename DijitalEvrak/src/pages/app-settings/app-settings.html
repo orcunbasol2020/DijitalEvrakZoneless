@@ -1,0 +1,214 @@
+<app-generic pageTitle="Uygulama Ayarları" [breadcrumbs]="[
+  {title: 'Uygulama Ayarları', url: 'app-settings', icon: 'tune'}
+  ]">
+</app-generic>
+
+<div class="st-page as-page">
+  <!-- Üst kart: sayfa kimliği ve kaydedilmemiş değişiklik durumu -->
+  <section class="sp-hero st-hero-page as-hero">
+    <div class="sp-hero-top">
+      <span class="sp-hero-icon">
+        <span class="material-symbols-outlined">tune</span>
+      </span>
+      <div>
+        <h4 class="sp-hero-title">Uygulama Ayarları</h4>
+        <div class="sp-hero-text">
+          Değişiklikler kaydedildiği an geçerli olur; uygulamayı yeniden başlatmak gerekmez.
+        </div>
+      </div>
+    </div>
+
+    <div class="st-hero-side">
+      @if (dirtyCount()) {
+        <span class="st-chip">
+          <span class="material-symbols-outlined">edit</span>
+          {{ dirtyCount() }} kaydedilmemiş değişiklik
+        </span>
+      } @else if (!loading() && !failed()) {
+        <span class="st-chip">
+          <span class="material-symbols-outlined">check_circle</span>
+          Tüm ayarlar kayıtlı
+        </span>
+      }
+    </div>
+  </section>
+
+  @if (loading()) {
+    <section class="st-card as-state">
+      <span class="material-symbols-outlined">hourglass_top</span>
+      Ayarlar yükleniyor…
+    </section>
+  } @else if (failed()) {
+    <section class="st-card as-state">
+      <span class="material-symbols-outlined">cloud_off</span>
+      Ayarlar alınamadı.
+      <button type="button" class="as-btn as-btn-ghost" (click)="reload()">
+        <span class="material-symbols-outlined">refresh</span>
+        Tekrar dene
+      </button>
+    </section>
+  } @else {
+    <div class="as-grid">
+      @for (group of groups(); track group.id) {
+        <section class="st-card">
+          <div class="st-card-head">
+            <span class="st-card-icon">
+              <span class="material-symbols-outlined">{{ group.icon }}</span>
+            </span>
+            <div>
+              <h4 class="st-card-title">{{ group.title }}</h4>
+              <div class="st-card-sub">{{ group.sub }}</div>
+            </div>
+            @if (group.id === 'atlas' && stock(); as s) {
+              <span class="st-card-head-end st-count" [class.is-low]="s.available < s.minStock"
+                title="Havuzda boşta bekleyen numara / en az stok">
+                <span class="material-symbols-outlined">inventory_2</span>
+                Boşta: {{ s.available }} / En az: {{ s.minStock }}
+              </span>
+            }
+            @if (group.id === 'atlasTransfer' && transferStats(); as t) {
+              @if (t.failed > 0) {
+                <a class="st-card-head-end st-count is-failed" routerLink="/atlas-aktarim-hatalari"
+                  title="Aktarımı hatalı evrakların listesi">
+                  <span class="material-symbols-outlined">cloud_off</span>
+                  Hatalı: {{ t.failed }}
+                </a>
+              } @else {
+                <span class="st-card-head-end st-count" title="Atlas aktarım sırasında bekleyen evrak">
+                  <span class="material-symbols-outlined">hourglass_top</span>
+                  Kuyrukta: {{ t.queued + t.transferring }}
+                </span>
+              }
+            }
+          </div>
+
+          <div class="st-card-body as-fields">
+            @if (group.note) {
+              <div class="st-note">
+                <span class="material-symbols-outlined">schedule</span>
+                <span>{{ group.note }}</span>
+              </div>
+            }
+
+            @for (field of group.fields; track field.def.key) {
+              <div class="as-field" [class.is-dirty]="field.dirty" [class.is-invalid]="field.error || field.saveError"
+                [class.is-bool]="field.def.kind === 'bool'">
+                <div class="as-field-head">
+                  <label class="as-label" [for]="'as-' + field.def.key">
+                    {{ field.def.label }}
+                    @if (field.dirty) {
+                      <span class="as-dirty-dot" title="Kaydedilmedi"></span>
+                    }
+                  </label>
+
+                  @if (field.def.kind === 'bool') {
+                    <div class="form-check form-switch mb-0 as-switch">
+                      <input class="form-check-input" type="checkbox" role="switch" [id]="'as-' + field.def.key"
+                        [checked]="isOn(field)" [disabled]="saving()" (change)="onToggle(field, $event)">
+                    </div>
+                  }
+                </div>
+
+                @if (helpText(field); as help) {
+                  <div class="as-help">{{ help }}</div>
+                }
+
+                @switch (field.def.kind) {
+                  @case ('bool') { }
+                  @case ('textarea') {
+                    <textarea class="form-control as-input" rows="3" [id]="'as-' + field.def.key" [value]="field.value"
+                      [disabled]="saving()" (input)="onInput(field, $event)"></textarea>
+                  }
+                  @case ('int') {
+                    <div class="as-number">
+                      <input class="form-control as-input" type="number" step="1" [id]="'as-' + field.def.key"
+                        [attr.min]="field.def.min" [attr.max]="field.def.max" [value]="field.value"
+                        [disabled]="saving()" (input)="onInput(field, $event)">
+                      @if (field.def.unit) {
+                        <span class="as-unit">{{ field.def.unit }}</span>
+                      }
+                    </div>
+                  }
+                  @default {
+                    <input class="form-control as-input" [type]="field.def.kind === 'email' ? 'email' : 'text'"
+                      [id]="'as-' + field.def.key" [value]="field.value" [disabled]="saving()"
+                      (input)="onInput(field, $event)">
+                  }
+                }
+
+                @if (field.def.note) {
+                  <div class="as-note" [class.is-warn]="field.def.warn">
+                    <span class="material-symbols-outlined">{{ field.def.warn ? 'warning' : 'info' }}</span>
+                    <span>{{ field.def.note }}</span>
+                  </div>
+                }
+
+                @if (field.error) {
+                  <div class="as-error">
+                    <span class="material-symbols-outlined">error</span>
+                    {{ field.error }}
+                  </div>
+                } @else if (field.saveError) {
+                  <div class="as-error">
+                    <span class="material-symbols-outlined">cloud_off</span>
+                    {{ field.saveError }}
+                  </div>
+                }
+
+                @if (field.updatedAt) {
+                  <div class="as-meta">Son güncelleme: {{ formatDate(field.updatedAt) }}</div>
+                }
+              </div>
+            }
+          </div>
+        </section>
+      }
+    </div>
+
+    <!-- Kaydet çubuğu: sayfa uzun olduğu için altta sabit -->
+    <div class="as-actions" [class.is-active]="dirtyCount() > 0">
+      <div class="as-actions-text">
+        @if (invalidCount()) {
+          <span class="material-symbols-outlined is-error">error</span>
+          {{ invalidCount() }} alanda hata var, düzeltmeden kaydedilemez.
+        } @else if (dirtyCount()) {
+          <span class="material-symbols-outlined">edit</span>
+          {{ dirtyCount() }} ayar değişti.
+        } @else {
+          <span class="material-symbols-outlined">check_circle</span>
+          Kaydedilmemiş değişiklik yok.
+        }
+      </div>
+      <button type="button" class="as-btn as-btn-ghost" [disabled]="saving() || !dirtyCount()" (click)="discard()">
+        Vazgeç
+      </button>
+      <button type="button" class="as-btn as-btn-primary" [disabled]="!canSave()" (click)="save()">
+        <span class="material-symbols-outlined">{{ saving() ? 'progress_activity' : 'save' }}</span>
+        {{ saving() ? 'Kaydediliyor…' : 'Kaydet' }}
+      </button>
+    </div>
+  }
+</div>
+
+<!-- Havuz zorunluluğunu açmadan önce onay -->
+@if (confirmField(); as field) {
+  <div class="modal-overlay" (click)="cancelConfirm()">
+    <div class="modal-box as-confirm" role="dialog" aria-modal="true" aria-labelledby="as-confirm-title"
+      (click)="$event.stopPropagation()">
+      <div class="as-confirm-head">
+        <span class="as-confirm-icon">
+          <span class="material-symbols-outlined">warning</span>
+        </span>
+        <h5 id="as-confirm-title">{{ field.def.label }} açılsın mı?</h5>
+      </div>
+      <p class="as-confirm-text">
+        Açıldığında gelen evrak yalnızca Atlas havuzundaki numarayla açılabilir. Havuza geçiş tamamlanmadıysa
+        evrak kaydı durabilir. Değişiklik "Kaydet" ile geçerli olur.
+      </p>
+      <div class="as-confirm-actions">
+        <button type="button" class="as-btn as-btn-ghost" (click)="cancelConfirm()">Vazgeç</button>
+        <button type="button" class="as-btn as-btn-danger" (click)="confirmEnable()">Aç</button>
+      </div>
+    </div>
+  </div>
+}

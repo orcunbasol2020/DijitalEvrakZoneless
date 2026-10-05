@@ -796,6 +796,90 @@
 .iz-result-single.is-skip { --tone: #b45309; }
 .iz-result-single.is-fail { --tone: #b91c1c; }
 
+/* Teslim Et sonrası düzenlenebilir evrak bilgileri */
+.iz-edit {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px dashed #e2e8f0;
+}
+
+.iz-edit-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.iz-edit-title .material-symbols-outlined {
+    font-size: 20px;
+    color: #0e7490;
+}
+
+.iz-edit-card {
+    padding: 12px;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid #e7eaf0;
+    transition: border-color 0.15s ease;
+}
+
+.iz-edit-card + .iz-edit-card {
+    margin-top: 10px;
+}
+
+.iz-edit-card.is-dirty {
+    border-color: #67e8f9;
+}
+
+.iz-edit-no {
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #334155;
+}
+
+.iz-edit-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 12px;
+}
+
+.iz-edit-span-2 {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 575.98px) {
+    .iz-edit-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+[data-theme="dark"] .iz-edit {
+    border-color: rgba(148, 163, 184, 0.2);
+}
+
+[data-theme="dark"] .iz-edit-title,
+[data-theme="dark"] .iz-edit-no {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .iz-edit-title .material-symbols-outlined {
+    color: #67e8f9;
+}
+
+[data-theme="dark"] .iz-edit-card {
+    background: #0f172a;
+    border-color: rgba(148, 163, 184, 0.18);
+}
+
+[data-theme="dark"] .iz-edit-card.is-dirty {
+    border-color: rgba(103, 232, 249, 0.55);
+}
+
 @media (max-width: 575.98px) {
     .iz-result-stats {
         gap: 6px;
@@ -936,78 +1020,347 @@
     border: 1px solid #bae6fd;
 }
 
-.iz-pending-banner {
+/* Onay bekleyen talep kartı: başlık şeridi, onayı beklenen kişi, talep ayrıntıları ve geri çekme */
+.iz-req {
+    margin-bottom: 16px;
+    border-radius: 16px;
+    background: #fff;
+    border: 1px solid #dbe4ee;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -16px rgba(15, 23, 42, 0.18);
+    overflow: hidden;
+}
+
+.iz-req-head {
     display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    margin-bottom: 12px;
-    padding: 12px 14px;
-    border-radius: 14px;
-    font-size: 12.5px;
-    line-height: 1.45;
-    color: #075985;
-    background: #f0f9ff;
-    border: 1px solid #bae6fd;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, #f0f9ff 0%, #ecfeff 100%);
+    border-bottom: 1px solid #e0f2fe;
 }
 
-.iz-pending-icon {
+.iz-req-head-icon {
     flex: 0 0 auto;
-    font-size: 22px;
-    color: #0369a1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    color: #fff;
+    background: linear-gradient(135deg, #0f2a44, #0e7490);
+    box-shadow: 0 4px 10px -4px rgba(14, 116, 144, 0.6);
 }
 
-.iz-pending-text {
+.iz-req-head-icon .material-symbols-outlined { font-size: 21px; }
+
+.iz-req-head-text { min-width: 0; }
+
+.iz-req-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.iz-req-sub {
+    margin-top: 2px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #64748b;
+}
+
+.iz-req-person,
+.iz-req-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.iz-req-person {
+    padding: 14px 16px 12px;
+}
+
+.iz-req-avatar.zm-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 13px;
+    color: #0e7490;
+    background: #ecfeff;
+    border: 1px solid #a5f3fc;
+}
+
+.iz-req-avatar.zm-avatar.is-sm {
+    width: 32px;
+    height: 32px;
+    font-size: 11px;
+}
+
+.iz-req-person-info {
     flex: 1;
     min-width: 0;
 }
 
-.iz-pending-title {
-    font-size: 13.5px;
-    font-weight: 700;
-    color: #0c4a6e;
-}
-
-.iz-pending-hint {
-    margin-top: 4px;
+.iz-req-person-label {
     font-size: 11.5px;
+    font-weight: 600;
     color: #64748b;
 }
 
-.iz-pending-btn {
+.iz-req-person-name {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: #0f172a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.iz-req-status {
     flex: 0 0 auto;
-    align-self: center;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #b45309;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+}
+
+.iz-req-status::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.iz-req-meta {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1px;
+    margin: 0 16px 14px;
+    border-radius: 12px;
+    background: #e7eaf0;
+    border: 1px solid #e7eaf0;
+    overflow: hidden;
+}
+
+.iz-req-meta > div {
+    padding: 9px 12px;
+    background: #f8fafc;
+}
+
+.iz-req-meta dt {
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.iz-req-meta dd {
+    margin: 2px 0 0;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #0f172a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.iz-req-list {
+    margin: 0;
+    padding: 6px 16px;
+    list-style: none;
+}
+
+.iz-req-item {
+    padding: 9px 0;
+}
+
+.iz-req-item + .iz-req-item {
+    border-top: 1px solid #eef2f7;
+}
+
+.iz-req-date {
+    flex: 0 0 auto;
+    font-size: 11.5px;
+    color: #64748b;
+    font-variant-numeric: tabular-nums;
+}
+
+.iz-req-foot {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #fbfcfe;
+    border-top: 1px solid #eef2f7;
+}
+
+.iz-req-note {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.iz-req-note .material-symbols-outlined {
+    font-size: 17px;
+    color: #94a3b8;
+}
+
+.iz-req-btn {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    font-size: 13px;
     font-weight: 700;
     white-space: nowrap;
     color: #b91c1c;
     background: #fff;
     border: 1px solid #fecaca;
     border-radius: 10px;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-.iz-pending-btn .material-symbols-outlined { font-size: 17px; }
-.iz-pending-btn:hover:not(:disabled) { color: #991b1b; background: #fef2f2; border-color: #fca5a5; }
+.iz-req-btn .material-symbols-outlined { font-size: 18px; }
+
+.iz-req-btn:hover:not(:disabled) {
+    color: #fff;
+    background: #dc2626;
+    border-color: #dc2626;
+}
 
 @media (max-width: 575.98px) {
-    .iz-pending-banner { flex-wrap: wrap; }
-    .iz-pending-btn { width: 100%; justify-content: center; }
+    .iz-req-meta { grid-template-columns: 1fr; }
+    .iz-req-foot { flex-wrap: wrap; }
+    .iz-req-btn { width: 100%; justify-content: center; }
 }
 
-[data-theme="dark"] .iz-doc-pending,
-[data-theme="dark"] .iz-pending-banner {
+[data-theme="dark"] .iz-doc-pending {
     color: #bae6fd;
     background: rgba(14, 165, 233, 0.12);
     border-color: rgba(14, 165, 233, 0.3);
 }
 
-[data-theme="dark"] .iz-pending-icon { color: #7dd3fc; }
-[data-theme="dark"] .iz-pending-title { color: #e0f2fe; }
-[data-theme="dark"] .iz-pending-hint { color: #94a3b8; }
+[data-theme="dark"] .iz-req {
+    background: #0f172a;
+    border-color: rgba(148, 163, 184, 0.2);
+    box-shadow: none;
+}
 
-[data-theme="dark"] .iz-pending-btn {
+[data-theme="dark"] .iz-req-head {
+    background: linear-gradient(135deg, rgba(14, 116, 144, 0.22), rgba(15, 42, 68, 0.4));
+    border-color: rgba(148, 163, 184, 0.16);
+}
+
+[data-theme="dark"] .iz-req-title,
+[data-theme="dark"] .iz-req-person-name,
+[data-theme="dark"] .iz-req-meta dd { color: #e2e8f0; }
+
+[data-theme="dark"] .iz-req-sub,
+[data-theme="dark"] .iz-req-person-label,
+[data-theme="dark"] .iz-req-meta dt,
+[data-theme="dark"] .iz-req-date,
+[data-theme="dark"] .iz-req-note { color: #94a3b8; }
+
+[data-theme="dark"] .iz-req-avatar.zm-avatar {
+    color: #67e8f9;
+    background: rgba(103, 232, 249, 0.1);
+    border-color: rgba(103, 232, 249, 0.3);
+}
+
+[data-theme="dark"] .iz-req-status {
+    color: #fbbf24;
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+[data-theme="dark"] .iz-req-meta {
+    background: rgba(148, 163, 184, 0.16);
+    border-color: rgba(148, 163, 184, 0.16);
+}
+
+[data-theme="dark"] .iz-req-meta > div,
+[data-theme="dark"] .iz-req-foot { background: #111a2e; }
+
+[data-theme="dark"] .iz-req-foot,
+[data-theme="dark"] .iz-req-item + .iz-req-item { border-color: rgba(148, 163, 184, 0.16); }
+
+[data-theme="dark"] .iz-req-btn {
     color: #f87171;
     background: #1a2436;
     border-color: rgba(239, 68, 68, 0.35);
+}
+
+[data-theme="dark"] .iz-req-btn:hover:not(:disabled) {
+    color: #fff;
+    background: #dc2626;
+    border-color: #dc2626;
+}
+
+/* ---- Devret: seçilen birimin personeli ----
+   Kartlar iki sütunlu ızgarada; liste uzasa da iç kaydırma yok, sayfa uzar. */
+.zm-dept-persons {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.zm-person.zm-person-compact {
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 10px;
+}
+
+.zm-person-compact .zm-avatar {
+    width: 30px;
+    height: 30px;
+    font-size: 11px;
+}
+
+.zm-person-compact .zm-person-name {
+    font-size: 13px;
+}
+
+.zm-person-compact .zm-person-meta {
+    font-size: 11px;
+}
+
+.zm-person-compact .zm-person-check {
+    font-size: 18px;
+}
+
+.zm-dept-none {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px dashed #e2e8f0;
+}
+
+.zm-dept-none .material-symbols-outlined {
+    font-size: 18px;
+}
+
+@media (max-width: 575.98px) {
+    .zm-dept-persons {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+[data-theme="dark"] .zm-dept-none {
+    border-color: rgba(148, 163, 184, 0.25);
+}
+
+/* Devret'teki personel seçim sekmeleri: zimmet türü kartlarının hemen altında, üst boşluk body gap'ten */
+.zm-pick-tabs {
+    margin-top: 0;
 }

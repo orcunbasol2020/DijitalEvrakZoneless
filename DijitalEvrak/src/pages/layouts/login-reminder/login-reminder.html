@@ -114,7 +114,7 @@
                 }
             }
 
-            <!-- Okunmamış bildirimler -->
+            <!-- Geciken zimmet onayı bildirimleri -->
             @if (activeTab() === 'bildirim') {
                 <div class="lr-section">
                     <ul class="lr-approvals lr-notifs">
@@ -157,8 +157,8 @@
                     }
                     @case ('bildirim') {
                         <button type="button" class="qr-manual-btn d-flex align-items-center gap-1" (click)="goToNotifications()">
-                            <span class="material-symbols-outlined" style="font-size: 18px;">notifications</span>
-                            Bildirimleri Gör
+                            <span class="material-symbols-outlined" style="font-size: 18px;">schedule</span>
+                            Gönderdiklerime Git
                         </button>
                     }
                 }

@@ -5,25 +5,12 @@ import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import { IncomingDocumentLast30DaysStats } from '../../../models/dashboard/IncomingDocument30DaysStats.model';
 import { IncomingDocumentPendingScanStats } from '../../../models/dashboard/IncomingDocumentPendingScanStats.model';
 import { IncomingDocumentOcrQueueStats } from '../../../models/dashboard/IncomingDocumentOcrQueueStats.model';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
+import { RoleService } from '../../../services/role-service';
 import { StatusOverview } from '../status-overview/status-overview';
 import { SmartRouting } from '../smart-routing/smart-routing';
 import { Currentdocument } from '../currentdocument/currentdocument';
-
-interface ReminderPerson {
-  name: string;
-  ext: string;
-}
-
-interface ReminderRow {
-  code: string;
-  fullName: string;
-  people: ReminderPerson[];
-  incoming: number;
-  pending: number;
-  mailSent: boolean;
-  loading: boolean;
-}
+import { DeliveryPending } from '../delivery-pending/delivery-pending';
 
 @Component({
   imports: [
@@ -33,7 +20,8 @@ interface ReminderRow {
     RouterLink,
     StatusOverview,
     SmartRouting,
-    Currentdocument
+    Currentdocument,
+    DeliveryPending
   ],
   selector: 'app-gelen-evrak-dashboard',
   standalone: true,
@@ -43,16 +31,18 @@ interface ReminderRow {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class GelenEvrakDashboard {
-  private router = inject(Router);
-
   // Üst şerit
   readonly today = new Date();
   readonly lastUpdated = signal(new Date());
+  // Rapor düğmesi yalnızca Raporlar sayfasını açabilen kullanıcıya gösterilir
+  readonly canViewReports = inject(RoleService).canViewLimitedPages();
 
   statsSignal = signal<IncomingDocumentTodayStats>({ todayCount: 0, changePercent: 0 });
   last30DaysStatsSignal = signal<IncomingDocumentLast30DaysStats>({ last30DaysCount: 0, changePercent: 0 });
   private refreshInterval: any;
   private readonly recentCard = viewChild(Currentdocument);
+  private readonly deliveryCard = viewChild(DeliveryPending);
+  private readonly statusCard = viewChild(StatusOverview);
 
   constructor(private incomingDocumentService: IncomingDocumentService) { }
 
@@ -120,34 +110,7 @@ export default class GelenEvrakDashboard {
     this.loadLast30DaysStats();
     this.loadPendingScanStats();
     this.loadOcrQueueStats();
+    this.deliveryCard()?.reload();
+    this.statusCard()?.reload();
   }
-
-  goToIncoming() {
-    this.router.navigate(['/evrakkayit']);
-  }
-
-  // Teslim edilmeyi bekleyenler (veri bağlanana kadar örnek satırlar)
-  readonly reminderRows: ReminderRow[] = [
-    { code: 'EÇGM', fullName: 'Enerji, Çevre ve Sınıraşan Sular Genel Müdürlüğü', people: [{ name: 'Banu Gültekin', ext: '3420' }], incoming: 217, pending: 18, mailSent: false, loading: false },
-    { code: 'DSGM', fullName: 'Destek Hizmetleri Genel Müdürlüğü', people: [{ name: 'Aytül Özcan', ext: '1323' }, { name: 'Zeynep Büşra Tatar', ext: '1323' }], incoming: 376, pending: 15, mailSent: true, loading: false },
-    { code: 'KOGM', fullName: 'Konsolosluk Hizmetleri ve Yurtdışında Yaşayan Vatandaşlar Genel Müdürlüğü', people: [{ name: 'Didem Pekzorlu', ext: '2025' }], incoming: 450, pending: 12, mailSent: false, loading: false },
-    { code: 'TPGM', fullName: 'Bilim ve Teknoloji Politikaları Genel Müdürlüğü', people: [{ name: 'Cevşen Büşra Bahçecik', ext: '1116' }], incoming: 78, pending: 9, mailSent: false, loading: false },
-  ];
-
-  sendReminder(row: ReminderRow) {
-    if (row.mailSent || row.loading) return;
-
-    row.loading = true;
-    this.reminderTick.update(v => v + 1);
-
-    // Sahte e-posta gönderim süresi
-    setTimeout(() => {
-      row.loading = false;
-      row.mailSent = true;
-      this.reminderTick.update(v => v + 1);
-    }, 400);
-  }
-
-  /** Zoneless değişiklik algılama için: satır nesneleri değişince görünümü tetikler */
-  readonly reminderTick = signal(0);
 }

@@ -191,46 +191,6 @@
                     </div>
                 </div>
 
-                <!-- Onay bekleyen zimmet talebi: evrak alıcı onaylayana kadar yeniden zimmetlenemez -->
-                @if (pendingDocs().length) {
-                    <div class="iz-pending-banner">
-                        <span class="material-symbols-outlined iz-pending-icon">hourglass_top</span>
-                        <div class="iz-pending-text">
-                            @if (singleDoc()?.pendingRequest; as req) {
-                                <div class="iz-pending-title">{{ req.toUserFullName }} kişisinin zimmet onayı bekleniyor</div>
-                                <div>
-                                    {{ req.requestedByFullName }} · {{ operationLabel(req.requestedAllocationStatus) }} ·
-                                    {{ req.createdDate | date:'dd.MM.yyyy HH:mm' }}.
-                                    Onaylanana kadar evrak mevcut zimmet sahibinde kalır; yeni zimmet için önce talep geri çekilmeli.
-                                </div>
-                            } @else {
-                                <div class="iz-pending-title">{{ pendingDocs().length }} evrakta onay bekleyen zimmet talebi var</div>
-                                <div>
-                                    @for (d of pendingDocs(); track d.id; let last = $last) {
-                                        <b>{{ d.qrCode }}</b> ({{ d.pendingRequest!.toUserFullName }}){{ last ? '' : ', ' }}
-                                    }
-                                    — bu evraklar talep geri çekilene kadar zimmetlenmez.
-                                </div>
-                            }
-                            @if (cancellablePendingDocs().length < pendingDocs().length) {
-                                <div class="iz-pending-hint">Talebi yalnızca devreden ya da işlemi yapan kişi geri çekebilir.</div>
-                            }
-                        </div>
-                        @if (cancellablePendingDocs().length) {
-                            <button type="button" class="btn btn-sm iz-pending-btn"
-                                [disabled]="cancellingRequests() || saving()"
-                                (click)="cancelPendingRequests()">
-                                @if (cancellingRequests()) {
-                                    <span class="spinner-border spinner-border-sm"></span>
-                                } @else {
-                                    <span class="material-symbols-outlined">undo</span>
-                                }
-                                {{ cancellablePendingDocs().length > 1 ? 'Talepleri Geri Çek' : 'Talebi Geri Çek' }}
-                            </button>
-                        }
-                    </div>
-                }
-
                 <!-- TEK EVRAK: bilgiler ve zimmet geçmişi açık gelir -->
                 <ng-container *ngIf="singleDoc() as single">
                     <ng-container *ngTemplateOutlet="docPanel; context: { $implicit: single, tab: activeTab }"></ng-container>
@@ -391,8 +351,89 @@
 
             <ng-container *ngIf="detailsVisible()">
                 <div class="card-body zm-body">
-                    <!-- İŞLEM -->
-                    <ng-container>
+                    <!-- Onay bekleyen zimmet talebi: evrak alıcı onaylayana kadar yeniden zimmetlenemez -->
+                    @if (pendingDocs().length) {
+                        <section class="iz-req" aria-label="Onay bekleyen zimmet talebi">
+                            <header class="iz-req-head">
+                                <span class="iz-req-head-icon">
+                                    <span class="material-symbols-outlined">hourglass_top</span>
+                                </span>
+                                <div class="iz-req-head-text">
+                                    <div class="iz-req-title">Zimmet Onayı Bekleniyor</div>
+                                    <div class="iz-req-sub">
+                                        {{ singleDoc() ? 'Alıcı onaylayana kadar evrak mevcut zimmet sahibinde kalır.' : pendingDocs().length + ' evrak alıcı onayı bekliyor; bu evraklar talep geri çekilene kadar zimmetlenmez.' }}
+                                    </div>
+                                </div>
+                            </header>
+
+                            @if (singleDoc()?.pendingRequest; as req) {
+                                <!-- Talebin gönderildiği kişi -->
+                                <div class="iz-req-person">
+                                    <span class="zm-avatar iz-req-avatar">{{ initials(req.toUserFullName) }}</span>
+                                    <div class="iz-req-person-info">
+                                        <div class="iz-req-person-label">Onayı beklenen kişi</div>
+                                        <div class="iz-req-person-name">{{ req.toUserFullName }}</div>
+                                    </div>
+                                    <span class="iz-req-status">Beklemede</span>
+                                </div>
+
+                                <dl class="iz-req-meta">
+                                    <div>
+                                        <dt>Talep eden</dt>
+                                        <dd>{{ req.requestedByFullName || '-' }}</dd>
+                                    </div>
+                                    <div>
+                                        <dt>İşlem</dt>
+                                        <dd>{{ operationLabel(req.requestedAllocationStatus) }}</dd>
+                                    </div>
+                                    <div>
+                                        <dt>Talep tarihi</dt>
+                                        <dd>{{ req.createdDate ? (req.createdDate | date:'dd.MM.yyyy HH:mm') : '-' }}</dd>
+                                    </div>
+                                </dl>
+                            } @else {
+                                <!-- Çoklu liste: her evrak ve talebin gönderildiği kişi -->
+                                <ul class="iz-req-list">
+                                    @for (d of pendingDocs(); track d.id) {
+                                        <li class="iz-req-item">
+                                            <span class="zm-avatar iz-req-avatar is-sm">{{ initials(d.pendingRequest!.toUserFullName) }}</span>
+                                            <div class="iz-req-person-info">
+                                                <div class="iz-req-person-name">{{ d.pendingRequest!.toUserFullName }}</div>
+                                                <div class="iz-req-person-label">{{ d.qrCode }} · {{ operationLabel(d.pendingRequest!.requestedAllocationStatus) }}</div>
+                                            </div>
+                                            <span class="iz-req-date">{{ d.pendingRequest!.createdDate | date:'dd.MM.yyyy HH:mm' }}</span>
+                                        </li>
+                                    }
+                                </ul>
+                            }
+
+                            <footer class="iz-req-foot">
+                                <div class="iz-req-note">
+                                    <span class="material-symbols-outlined">info</span>
+                                    @if (cancellablePendingDocs().length < pendingDocs().length) {
+                                        Talebi yalnızca devreden ya da işlemi yapan kişi geri çekebilir.
+                                    } @else {
+                                        Yeni zimmet için önce talep geri çekilmelidir.
+                                    }
+                                </div>
+                                @if (cancellablePendingDocs().length) {
+                                    <button type="button" class="btn iz-req-btn"
+                                        [disabled]="cancellingRequests() || saving()"
+                                        (click)="cancelPendingRequests()">
+                                        @if (cancellingRequests()) {
+                                            <span class="spinner-border spinner-border-sm"></span>
+                                        } @else {
+                                            <span class="material-symbols-outlined">undo</span>
+                                        }
+                                        {{ cancellablePendingDocs().length > 1 ? 'Talepleri Geri Çek' : 'Talebi Geri Çek' }}
+                                    </button>
+                                }
+                            </footer>
+                        </section>
+                    }
+
+                    <!-- İŞLEM: tüm evrakların onay bekleyen talebi varsa zimmet yapılamaz; yalnızca yukarıdaki bilgi alanı görünür -->
+                    <ng-container *ngIf="!allDocsPending()">
                         <!-- Zimmet türü -->
                         <div class="zm-modes iz-tabs" role="group" aria-label="Zimmet türü" *ngIf="!isActiveOnCurrentUser()">
                             <button type="button" class="zm-mode" [class.is-active]="zimmetType() === 'self'" (click)="setZimmetType('self')">
@@ -427,6 +468,63 @@
 
                         <!-- Devret: personel seçimi -->
                         <ng-container *ngIf="zimmetType() === 'other'">
+                            <!-- Personel seçim yolu: birimden kartla ya da tüm personelde arama -->
+                            <div class="iz-tabbar zm-pick-tabs" role="tablist" aria-label="Personel seçimi">
+                                <button type="button" class="iz-tab" role="tab"
+                                    [class.is-active]="personPickMode() === 'birim'"
+                                    [attr.aria-selected]="personPickMode() === 'birim'"
+                                    (click)="personPickMode.set('birim')">
+                                    <span class="material-symbols-outlined">apartment</span>
+                                    Birimden Seç
+                                </button>
+                                <button type="button" class="iz-tab" role="tab"
+                                    [class.is-active]="personPickMode() === 'tum'"
+                                    [attr.aria-selected]="personPickMode() === 'tum'"
+                                    (click)="personPickMode.set('tum')">
+                                    <span class="material-symbols-outlined">person_search</span>
+                                    Tüm Personelde Ara
+                                </button>
+                            </div>
+
+                            @if (personPickMode() === 'birim') {
+                            <!-- Birim: evrağın Nereye birimiyle açılır; altında o birimin personeli listelenir -->
+                            <div class="zm-field">
+                                <label class="zm-field-label">Birim</label>
+                                <app-simple-autocomplete
+                                    [control]="departmentControl"
+                                    [options]="departmentOptions()"
+                                    placeholder="Birim adıyla arayın...">
+                                </app-simple-autocomplete>
+                            </div>
+
+                            @if (selectedDepartment()) {
+                                @if (departmentPersons().length) {
+                                    <div class="zm-dept-persons" role="listbox" aria-label="Birim personeli">
+                                        @for (p of departmentPersons(); track p.id) {
+                                            <button type="button" class="zm-person zm-person-compact" role="option"
+                                                [class.is-selected]="isPersonSelected(p)"
+                                                [attr.aria-selected]="isPersonSelected(p)"
+                                                (click)="selectPerson(p)">
+                                                <span class="zm-avatar">{{ initials(p.name + ' ' + p.surname) }}</span>
+                                                <span class="zm-person-info">
+                                                    <span class="zm-person-name d-block">{{ p.name }} {{ p.surname }}</span>
+                                                    <span class="zm-person-meta d-block">{{ p.userName }}</span>
+                                                </span>
+                                                <span class="material-symbols-outlined zm-person-check">
+                                                    {{ isPersonSelected(p) ? 'check_circle' : 'radio_button_unchecked' }}
+                                                </span>
+                                            </button>
+                                        }
+                                    </div>
+                                } @else {
+                                    <div class="zm-field-hint zm-dept-none">
+                                        <span class="material-symbols-outlined">group_off</span>
+                                        Bu birimde aktif personel bulunmuyor.
+                                    </div>
+                                }
+                            }
+
+                            } @else {
                             <div class="zm-field">
                                 <label class="zm-field-label">Personel</label>
                                 <app-simple-autocomplete
@@ -434,11 +532,11 @@
                                     [options]="personOptions()"
                                     placeholder="Personel adıyla arayın...">
                                 </app-simple-autocomplete>
-                                <div class="zm-field-hint" *ngIf="!selectedPerson()">
-                                    Devam etmek için bir personel seçmelisiniz.
-                                </div>
                             </div>
+                            }
 
+                            <!-- Seçili personel: birim listesinde zaten işaretliyse tekrar gösterilmez -->
+                            <ng-container *ngIf="!(personPickMode() === 'birim' && selectedInDeptList())">
                             <div class="zm-person zm-person-self is-selected" *ngIf="selectedPerson() as p; else personEmpty">
                                 <span class="zm-avatar">{{ initials(p.name) }}</span>
                                 <div class="zm-person-info">
@@ -452,7 +550,8 @@
                                 </button>
                             </div>
                             <ng-template #personEmpty>
-                                <div class="zm-empty zm-empty-sm">
+                                <!-- Birim sekmesinde seçim kartlardan yapılır; boş durum kartı yalnızca aramada -->
+                                <div class="zm-empty zm-empty-sm" *ngIf="personPickMode() === 'tum'">
                                     <div class="zm-empty-icon">
                                         <span class="material-symbols-outlined">person_search</span>
                                     </div>
@@ -460,12 +559,13 @@
                                     <div class="zm-empty-text">Yukarıdaki alana ad yazarak personeli bulun ve seçin.</div>
                                 </div>
                             </ng-template>
+                            </ng-container>
                         </ng-container>
                     </ng-container>
                 </div>
 
                 <!-- Özet + aksiyonlar -->
-                <div class="card-footer zm-footer mt-auto">
+                <div class="card-footer zm-footer mt-auto" *ngIf="!allDocsPending()">
                     <div class="zm-summary" [class.is-ready]="targetLabel()">
                         <span class="zm-summary-docs">
                             <span class="material-symbols-outlined">{{ isMulti() ? 'stacks' : 'description' }}</span>
@@ -504,7 +604,7 @@
                 </div>
 
                 <!-- Alt butonların zimmet durumuna etkisi; kartın en altına yapışık şerit -->
-                <div class="zm-action-note">
+                <div class="zm-action-note" *ngIf="!allDocsPending()">
                     <span class="material-symbols-outlined">info</span>
                     <span>
                         <ng-container *ngIf="zimmetType() === 'other'">
@@ -639,12 +739,68 @@
           </div>
         </div>
       }
+
+      <!-- Teslim Et: teslim edilen evrakların sayfa sayısı ve ek bilgisi düzenlenebilir -->
+      @if (r.edits.length) {
+        <div class="iz-edit">
+          <div class="iz-edit-title">
+            <span class="material-symbols-outlined">edit_note</span>
+            Evrak Bilgileri
+          </div>
+          @for (e of r.edits; track e.doc.id) {
+            <div class="iz-edit-card" [class.is-dirty]="isEditDirty(e)">
+              @if (r.edits.length > 1) {
+                <div class="iz-edit-no">{{ e.doc.qrCode }}</div>
+              }
+              <div class="iz-edit-grid">
+                <div class="zm-field">
+                  <label class="zm-field-label" [for]="'pc-' + e.doc.id">Sayfa Sayısı</label>
+                  <input type="number" min="0" step="1" class="form-control ok-input" [id]="'pc-' + e.doc.id"
+                    [class.is-invalid]="isEditInvalid(e) && (e.pageCount == null || e.pageCount < 0)"
+                    [(ngModel)]="e.pageCount" [disabled]="savingEdits()">
+                </div>
+                <div class="zm-field">
+                  <label class="zm-field-label" [for]="'ek-' + e.doc.id">Ek Var mı?</label>
+                  <select class="form-select ok-input" [id]="'ek-' + e.doc.id"
+                    [(ngModel)]="e.hasAttachment" [disabled]="savingEdits()">
+                    <option [ngValue]="null">Belirtilmemiş</option>
+                    <option [ngValue]="true">Var</option>
+                    <option [ngValue]="false">Yok</option>
+                  </select>
+                </div>
+                <!-- Ek açıklaması yalnızca "Var" seçilince açılır -->
+                @if (e.hasAttachment === true) {
+                  <div class="zm-field iz-edit-span-2">
+                    <label class="zm-field-label" [for]="'ekd-' + e.doc.id">Ek Açıklaması</label>
+                    <textarea class="form-control ok-input" rows="2" [id]="'ekd-' + e.doc.id"
+                      [(ngModel)]="e.attachmentDescription" [attr.maxlength]="attachmentDescriptionMax"
+                      [disabled]="savingEdits()" placeholder="Örn. 1 dergi, 1 flash disk"></textarea>
+                    <span class="zm-field-hint text-end">{{ (e.attachmentDescription || '').length }} / {{ attachmentDescriptionMax }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
       </div>
 
       <div class="iz-modal-footer">
-        <button type="button" class="btn btn-primary" (click)="closeResult()">
-          Tamam
-        </button>
+        @if (hasDirtyEdits()) {
+          <button type="button" class="btn btn-light" [disabled]="savingEdits()" (click)="closeResult(true)">
+            Kaydetmeden Kapat
+          </button>
+          <button type="button" class="btn btn-primary" [disabled]="savingEdits() || hasInvalidEdits()" (click)="saveResultEdits()">
+            @if (savingEdits()) {
+              <span class="spinner-border spinner-border-sm me-1"></span>
+            }
+            Kaydet
+          </button>
+        } @else {
+          <button type="button" class="btn btn-primary" (click)="closeResult(true)">
+            Tamam
+          </button>
+        }
       </div>
     </div>
   </div>

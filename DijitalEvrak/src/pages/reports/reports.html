@@ -1,182 +1,680 @@
-<app-generic pageTitle="Raporlar" [breadcrumbs]="[
-  {title: 'Raporlar', url: 'reports', icon: 'monitoring'}
-  ]">
-</app-generic>
+<app-generic pageTitle="Raporlar" [breadcrumbs]="[{title: 'Raporlar', url: 'reports', icon: 'monitoring'}]" />
 
-<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-  <div class="modern-tabs mb-0">
-    <div class="tab-item" [class.active]="selectedPeriod() === '7g'" (click)="setPeriod('7g')">Son 7 Gün</div>
-    <div class="tab-item" [class.active]="selectedPeriod() === '30g'" (click)="setPeriod('30g')">Son 30 Gün</div>
-    <div class="tab-item" [class.active]="selectedPeriod() === '90g'" (click)="setPeriod('90g')">Son 90 Gün</div>
-  </div>
-  <div class="d-flex header-actions">
-    <button class="btn btn-sm btn-outline-secondary me-2">
-      <span class="material-symbols-outlined">file_download</span> Dışa Aktar
-    </button>
-    <button class="btn btn-sm btn-outline-secondary">
-      <span class="material-symbols-outlined" title="Verileri Yenile">refresh</span>
-    </button>
-  </div>
-</div>
+<div class="rp-page">
 
-<!-- Stat Cards -->
-<div class="row g-3 mb-4">
-  <div class="col-md-6 col-lg-3">
-    <div class="card stat-card h-100">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-start">
-          <div>
-            <h6 class="card-subtitle text-muted">Toplam Evrak</h6>
-            <h4 class="card-title mt-2">39.900</h4>
-            <div class="stat-change positive">
-              <span class="material-symbols-outlined">trending_up</span>
-              <span>+9.4%</span>
-            </div>
-          </div>
-          <div class="stat-icon bg-primary-light">
-            <span class="material-symbols-outlined text-primary" style="font-size:21px">folder_open</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-6 col-lg-3">
-    <div class="card stat-card h-100">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-start">
-          <div>
-            <h6 class="card-subtitle text-muted">Ortalama İşlem Süresi</h6>
-            <h4 class="card-title mt-2">1g 4s</h4>
-            <div class="stat-change positive">
-              <span class="material-symbols-outlined">trending_down</span>
-              <span>-11.2%</span>
-            </div>
-          </div>
-          <div class="stat-icon bg-success-light">
-            <span class="material-symbols-outlined text-success" style="font-size:21px">schedule</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-6 col-lg-3">
-    <div class="card stat-card h-100">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-start">
-          <div>
-            <h6 class="card-subtitle text-muted">Bekleyen Evrak</h6>
-            <h4 class="card-title mt-2">105</h4>
-            <div class="stat-change negative">
-              <span class="material-symbols-outlined">trending_up</span>
-              <span>+3.8%</span>
-            </div>
-          </div>
-          <div class="stat-icon bg-warning-light">
-            <span class="material-symbols-outlined text-warning" style="font-size:21px">hourglass</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-6 col-lg-3">
-    <div class="card stat-card h-100">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-start">
-          <div>
-            <h6 class="card-subtitle text-muted">Oluşturulan Rapor</h6>
-            <h4 class="card-title mt-2">128</h4>
-            <div class="stat-change positive">
-              <span class="material-symbols-outlined">trending_up</span>
-              <span>+15.7%</span>
-            </div>
-          </div>
-          <div class="stat-icon bg-info-light">
-            <span class="material-symbols-outlined text-info" style="font-size:21px">summarize</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+<!-- ===================== Üst şerit ===================== -->
+<section class="ad-hero">
+    <div class="ad-hero-glow ad-hero-glow-a"></div>
+    <div class="ad-hero-glow ad-hero-glow-b"></div>
 
-<!-- Charts Row -->
-<div class="row g-3 mb-4">
-  <div class="col-lg-6">
-    <div class="card h-100">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="card-title mb-0">Evrak Trendi (Gelen / Giden)</h5>
-      </div>
-      <div class="card-body">
-        <div #trendChart style="width: 100%; height: 320px;"></div>
-      </div>
+    <div class="ad-hero-text">
+        <div class="ad-hero-kicker">
+            <span class="material-symbols-outlined">monitoring</span>
+            Raporlar ve Analiz
+        </div>
+        <div class="ad-hero-sub">
+            <span>{{ rangeLabel() }}</span>
+            <span class="ad-hero-dot"></span>
+            <span>{{ dateFieldLabel() }}</span>
+            @if (data(); as d) {
+                <span class="ad-hero-dot"></span>
+                <span>Veri {{ d.loadedAt | date:'HH:mm' }}</span>
+            }
+        </div>
     </div>
-  </div>
-  <div class="col-lg-3">
-    <div class="card h-100">
-      <div class="card-header">
-        <h5 class="card-title mb-0">Evrak Durum Dağılımı</h5>
-      </div>
-      <div class="card-body">
-        <div #statusChart style="width: 100%; height: 320px;"></div>
-      </div>
-    </div>
-  </div>
-  <div class="col-lg-3">
-    <div class="card h-100">
-      <div class="card-header">
-        <h5 class="card-title mb-0">En Çok Bekleyen Birimler</h5>
-      </div>
-      <div class="card-body">
-        <div #departmentChart style="width: 100%; height: 320px;"></div>
-      </div>
-    </div>
-  </div>
-</div>
 
-<!-- Recent Reports Table -->
-<div class="row g-3 mb-4">
-  <div class="col-12">
-    <div class="card h-100">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="card-title mb-0">Son Oluşturulan Raporlar</h5>
-        <a href="#" class="btn btn-sm btn-link">Tümü</a>
-      </div>
-      <div class="card-body p-0">
-        <div class="table-responsive">
-          <table class="table customers-table mb-0">
-            <thead>
-              <tr>
-                <td scope="col" class="grid-header">Rapor Adı</td>
-                <td scope="col" class="grid-header">Kategori</td>
-                <td scope="col" class="grid-header">Oluşturan</td>
-                <td scope="col" class="grid-header">Tarih</td>
-                <td scope="col" class="grid-header">Format</td>
-                <td scope="col" class="grid-header">Durum</td>
-                <td scope="col" class="grid-header" style="width: 60px;"></td>
-              </tr>
-            </thead>
-            <tbody>
-              @for (report of recentReports; track report.name) {
-                <tr>
-                  <td>{{ report.name }}</td>
-                  <td>{{ report.type }}</td>
-                  <td>{{ report.createdBy }}</td>
-                  <td>{{ report.date }}</td>
-                  <td>{{ report.format }}</td>
-                  <td>
-                    <span class="badge" [ngClass]="statusBadgeClass[report.status]">{{ report.status }}</span>
-                  </td>
-                  <td>
-                    <button class="btn btn-sm btn-outline-secondary" title="İndir">
-                      <span class="material-symbols-outlined" style="font-size:16px;">download</span>
+    <div class="ad-hero-actions">
+        <button type="button" class="ad-hero-btn" title="Sayfayı yazdır / PDF olarak kaydet" (click)="print()">
+            <span class="material-symbols-outlined">print</span>
+            Yazdır
+        </button>
+        <button type="button" class="ad-hero-btn ad-hero-btn-icon" title="Güncel Verileri Getir"
+            [class.is-spinning]="loading()" [disabled]="loading()" (click)="reload()">
+            <span class="material-symbols-outlined">refresh</span>
+        </button>
+    </div>
+</section>
+
+<!-- ===================== Süzgeç çubuğu ===================== -->
+@if (tab() !== 'query') {
+    <section class="rp-filters">
+        <div class="rp-filter">
+            <span class="rp-filter-label">DÖNEM</span>
+            <div class="ad-tabs rp-presets">
+                @for (p of presets; track p.id) {
+                    <button type="button" class="ad-tab" [class.is-active]="preset() === p.id" (click)="setPreset(p.id)">{{ p.label }}</button>
+                }
+            </div>
+        </div>
+
+        @if (preset() === 'custom') {
+            <div class="rp-filter">
+                <span class="rp-filter-label">ARALIK</span>
+                <div class="rp-date-range">
+                    <input type="date" class="rp-input" [value]="customFrom()" (change)="customFrom.set($any($event.target).value)" />
+                    <span class="material-symbols-outlined">arrow_forward</span>
+                    <input type="date" class="rp-input" [value]="customTo()" (change)="customTo.set($any($event.target).value)" />
+                </div>
+            </div>
+        }
+
+        <div class="rp-filter">
+            <span class="rp-filter-label">TARİH ALANI</span>
+            <div class="ad-tabs">
+                <button type="button" class="ad-tab" [class.is-active]="dateField() === 'created'" (click)="dateField.set('created')">Kayıt</button>
+                <button type="button" class="ad-tab" [class.is-active]="dateField() === 'document'" (click)="dateField.set('document')">Belge</button>
+            </div>
+        </div>
+
+        <div class="rp-filter rp-filter-grow">
+            <span class="rp-filter-label">BİRİM</span>
+            <select class="rp-input" [value]="unitFilter()" (change)="unitFilter.set($any($event.target).value)">
+                <option value="">Tüm birimler</option>
+                @for (d of data()?.departments ?? []; track d.id) {
+                    <option [value]="d.id">{{ d.name }}</option>
+                }
+            </select>
+        </div>
+    </section>
+}
+
+<!-- ===================== Sekmeler ===================== -->
+<nav class="rp-tabs" role="tablist">
+    @for (t of tabs; track t.id) {
+        <button type="button" role="tab" class="rp-tab" [class.is-active]="tab() === t.id" [attr.aria-selected]="tab() === t.id"
+            (click)="tab.set(t.id)">
+            <span class="material-symbols-outlined">{{ t.icon }}</span>
+            {{ t.label }}
+        </button>
+    }
+</nav>
+
+@if (loading() && !data()) {
+    <div class="rp-state">
+        <span class="material-symbols-outlined rp-spin">progress_activity</span>
+        Rapor verileri yükleniyor…
+    </div>
+} @else if (failed() && !data()) {
+    <div class="rp-state">
+        <span class="material-symbols-outlined">cloud_off</span>
+        Rapor verileri alınamadı.
+        <button type="button" class="rp-btn" (click)="reload()">Tekrar dene</button>
+    </div>
+} @else {
+    @switch (tab()) {
+
+        <!-- ===================== Genel Bakış ===================== -->
+        @case ('overview') {
+            @let k = kpis();
+            <div class="ad-stats">
+                <ng-container *ngTemplateOutlet="kpi; context: { label: 'GELEN EVRAK', value: k.incoming, icon: 'move_to_inbox', change: k.incomingChange, foot: 'Önceki döneme göre' }"></ng-container>
+                <ng-container *ngTemplateOutlet="kpi; context: { label: 'GİDEN EVRAK', value: k.outgoing, icon: 'outbox', change: k.outgoingChange, foot: 'Önceki döneme göre' }"></ng-container>
+                <ng-container *ngTemplateOutlet="kpi; context: { label: 'TESLİM BEKLEYEN', value: k.pending, icon: 'pending_actions', foot: '%' + k.deliveredRate + ' teslim alındı' }"></ng-container>
+                <ng-container *ngTemplateOutlet="kpi; context: { label: 'İVEDİ EVRAK', value: k.urgent, icon: 'bolt', foot: 'Gelen evrakta oran %' + k.urgentRate }"></ng-container>
+                <ng-container *ngTemplateOutlet="kpi; context: { label: 'TESLİM ORANI', value: '%' + k.deliveredRate, icon: 'inventory_2', foot: 'Gelen evrakta' }"></ng-container>
+                <ng-container *ngTemplateOutlet="kpi; context: { label: 'ATLAS YAYIN ORANI', value: '%' + k.publishedRate, icon: 'cloud_done', foot: 'Gelen evrakta' }"></ng-container>
+                <ng-container *ngTemplateOutlet="kpi; context: { label: 'ORT. YAYIN SÜRESİ', value: k.avgPublish, icon: 'timer', foot: k.publishedCount + ' yayınlanmış evrak' }"></ng-container>
+                <ng-container *ngTemplateOutlet="kpi; context: { label: 'ZARF', value: k.envelopes, icon: 'mail', foot: k.envelopeDocs + ' evrak içeriyor' }"></ng-container>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-xl-8">
+                    <ng-container *ngTemplateOutlet="chartCard; context: { title: 'Evrak Trendi', sub: 'Gelen ve giden evrak sayısı', icon: 'show_chart', option: trendOption(), height: 320, granularity: true }"></ng-container>
+                </div>
+                <div class="col-xl-4">
+                    <ng-container *ngTemplateOutlet="chartCard; context: { title: 'Dönem Karşılaştırması', sub: k.hasPrev ? 'Aynı uzunluktaki önceki dönemle' : 'Önceki dönem için bir aralık seçin', icon: 'compare_arrows', option: compareOption(), height: 320 }"></ng-container>
+                </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-xl-6">
+                    <ng-container *ngTemplateOutlet="chartCard; context: { title: 'Kayıt Yoğunluğu', sub: 'Haftanın günü ve saate göre (kayıt saati)', icon: 'calendar_view_week', option: heatmapOption(), height: 300 }"></ng-container>
+                </div>
+                @for (b of overviewBreakdowns(); track b.id) {
+                    <div class="col-xl-3 col-md-6">
+                        <ng-container *ngTemplateOutlet="breakdown; context: { $implicit: b }"></ng-container>
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- ===================== Gelen Evrak ===================== -->
+        @case ('incoming') {
+            <div class="mb-3">
+                <ng-container *ngTemplateOutlet="chartCard; context: { title: 'Gelen Evrak Trendi', sub: incoming().length + ' evrak', icon: 'bar_chart', option: incomingTrendOption(), height: 260, granularity: true }"></ng-container>
+            </div>
+            <div class="rp-grid">
+                @for (b of incomingBreakdowns(); track b.id) {
+                    <ng-container *ngTemplateOutlet="breakdown; context: { $implicit: b }"></ng-container>
+                }
+            </div>
+        }
+
+        <!-- ===================== Giden Evrak ===================== -->
+        @case ('outgoing') {
+            <div class="mb-3">
+                <ng-container *ngTemplateOutlet="chartCard; context: { title: 'Giden Evrak Trendi', sub: outgoing().length + ' evrak', icon: 'bar_chart', option: outgoingTrendOption(), height: 260, granularity: true }"></ng-container>
+            </div>
+            <div class="rp-grid">
+                @for (b of outgoingBreakdowns(); track b.id) {
+                    <ng-container *ngTemplateOutlet="breakdown; context: { $implicit: b }"></ng-container>
+                }
+            </div>
+        }
+
+        <!-- ===================== Birim Karşılaştırma ===================== -->
+        @case ('units') {
+            <div class="row g-3 mb-3">
+                <div class="col-xl-5">
+                    <ng-container *ngTemplateOutlet="chartCard; context: { title: 'Birimlerin Teslim Durumu', sub: 'En yoğun 12 birim', icon: 'stacked_bar_chart', option: unitStackOption(), height: unitStackHeight() }"></ng-container>
+                </div>
+                <div class="col-xl-7">
+                    <div class="card premium-card rp-card h-100">
+                        <div class="card-header dashboard-header ad-head">
+                            <span class="ad-head-icon"><span class="material-symbols-outlined">compare</span></span>
+                            <div class="ad-head-text">
+                                <h5 class="ad-head-title">Birim Karşılaştırması</h5>
+                                <div class="ad-head-sub">En çok 6 birim seçin; seçim yoksa en yoğun 3 birim</div>
+                            </div>
+                            <report-multiselect class="rp-head-select" [options]="departmentOptions()" placeholder="Birim seçin"
+                                [selected]="compareUnits()" (selectedChange)="compareUnits.set($event.slice(0, 6))" />
+                        </div>
+                        <div class="card-body">
+                            <div [reportChart]="unitCompareOption()" style="height: 280px;"></div>
+                            <div class="rp-subtitle">Gelen evrak trendi</div>
+                            <div [reportChart]="unitCompareTrendOption()" style="height: 240px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card premium-card rp-card mb-4">
+                <div class="card-header dashboard-header ad-head">
+                    <span class="ad-head-icon"><span class="material-symbols-outlined">table_chart</span></span>
+                    <div class="ad-head-text">
+                        <h5 class="ad-head-title">Birim Tablosu</h5>
+                        <div class="ad-head-sub">{{ unitRows().length }} birim · sütun başlığına tıklayarak sıralayın</div>
+                    </div>
+                    <button type="button" class="rp-btn" (click)="exportUnits()">
+                        <span class="material-symbols-outlined">download</span>
+                        Excel
                     </button>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table orders-table rp-table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="rp-th" (click)="sortUnits('name')">BİRİM <span class="material-symbols-outlined">{{ unitSortIcon('name') }}</span></th>
+                                    <th class="rp-th text-end" (click)="sortUnits('incoming')">GELEN <span class="material-symbols-outlined">{{ unitSortIcon('incoming') }}</span></th>
+                                    <th class="rp-th text-end" (click)="sortUnits('delivered')">TESLİM ALINAN <span class="material-symbols-outlined">{{ unitSortIcon('delivered') }}</span></th>
+                                    <th class="rp-th text-end" (click)="sortUnits('pending')">BEKLEYEN <span class="material-symbols-outlined">{{ unitSortIcon('pending') }}</span></th>
+                                    <th class="rp-th" (click)="sortUnits('rate')">TESLİM ORANI <span class="material-symbols-outlined">{{ unitSortIcon('rate') }}</span></th>
+                                    <th class="rp-th text-end" (click)="sortUnits('urgent')">İVEDİ <span class="material-symbols-outlined">{{ unitSortIcon('urgent') }}</span></th>
+                                    <th class="rp-th text-end" (click)="sortUnits('published')">YAYINLANAN <span class="material-symbols-outlined">{{ unitSortIcon('published') }}</span></th>
+                                    <th class="rp-th text-end" (click)="sortUnits('outgoing')">GİDEN <span class="material-symbols-outlined">{{ unitSortIcon('outgoing') }}</span></th>
+                                    <th class="rp-th text-end" (click)="sortUnits('total')">TOPLAM <span class="material-symbols-outlined">{{ unitSortIcon('total') }}</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (r of sortedUnits(); track r.id) {
+                                    <tr>
+                                        <td class="rp-name">{{ r.name }}</td>
+                                        <td class="text-end rp-num">{{ r.incoming }}</td>
+                                        <td class="text-end rp-num">{{ r.delivered }}</td>
+                                        <td class="text-end rp-num" [class.is-warn]="r.pending">{{ r.pending }}</td>
+                                        <td>
+                                            @if (r.incoming) {
+                                                <div class="rp-meter" [title]="'%' + r.rate">
+                                                    <div class="rp-meter-bar"><span [style.width.%]="r.rate"></span></div>
+                                                    <span class="rp-meter-val">%{{ r.rate }}</span>
+                                                </div>
+                                            } @else {
+                                                <span class="text-muted">—</span>
+                                            }
+                                        </td>
+                                        <td class="text-end rp-num" [class.is-alert]="r.urgent">{{ r.urgent }}</td>
+                                        <td class="text-end rp-num">{{ r.published }}</td>
+                                        <td class="text-end rp-num">{{ r.outgoing }}</td>
+                                        <td class="text-end rp-num rp-strong">{{ r.total }}</td>
+                                    </tr>
+                                } @empty {
+                                    <tr><td colspan="9"><ng-container *ngTemplateOutlet="empty"></ng-container></td></tr>
+                                }
+                            </tbody>
+                            @if (unitRows().length) {
+                                @let t = unitTotals();
+                                <tfoot>
+                                    <tr>
+                                        <td class="rp-name">Toplam</td>
+                                        <td class="text-end rp-num">{{ t.incoming }}</td>
+                                        <td class="text-end rp-num">{{ t.delivered }}</td>
+                                        <td class="text-end rp-num">{{ t.pending }}</td>
+                                        <td class="rp-num">%{{ t.incoming ? ((t.delivered / t.incoming) * 100 | number:'1.0-1') : 0 }}</td>
+                                        <td class="text-end rp-num">{{ t.urgent }}</td>
+                                        <td class="text-end rp-num">{{ t.published }}</td>
+                                        <td class="text-end rp-num">{{ t.outgoing }}</td>
+                                        <td class="text-end rp-num">{{ t.total }}</td>
+                                    </tr>
+                                </tfoot>
+                            }
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- ===================== Personel ===================== -->
+        @case ('staff') {
+            <div class="row g-3 mb-4">
+                <div class="col-xl-5">
+                    <ng-container *ngTemplateOutlet="chartCard; context: { title: 'Kayıt Yapan Personel', sub: 'En çok kayıt yapan 12 kişi', icon: 'badge', option: staffOption(), height: staffHeight() }"></ng-container>
+                </div>
+                <div class="col-xl-7">
+                    <div class="card premium-card rp-card h-100">
+                        <div class="card-header dashboard-header ad-head">
+                            <span class="ad-head-icon"><span class="material-symbols-outlined">groups</span></span>
+                            <div class="ad-head-text">
+                                <h5 class="ad-head-title">Personel Tablosu</h5>
+                                <div class="ad-head-sub">Kayıt sayıları ve üzerindeki açık gelen evrak</div>
+                            </div>
+                            <button type="button" class="rp-btn" (click)="exportStaff()">
+                                <span class="material-symbols-outlined">download</span>
+                                Excel
+                            </button>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table orders-table rp-table align-middle mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th class="rp-th" (click)="sortStaff('name')">PERSONEL <span class="material-symbols-outlined">{{ staffSortIcon('name') }}</span></th>
+                                            <th class="rp-th text-end" (click)="sortStaff('incoming')">GELEN KAYIT <span class="material-symbols-outlined">{{ staffSortIcon('incoming') }}</span></th>
+                                            <th class="rp-th text-end" (click)="sortStaff('outgoing')">GİDEN KAYIT <span class="material-symbols-outlined">{{ staffSortIcon('outgoing') }}</span></th>
+                                            <th class="rp-th text-end" (click)="sortStaff('total')">TOPLAM <span class="material-symbols-outlined">{{ staffSortIcon('total') }}</span></th>
+                                            <th class="rp-th text-end" (click)="sortStaff('assignedOpen')" title="Teslim alınmamış, üzerine atanmış gelen evrak">AÇIK EVRAK <span class="material-symbols-outlined">{{ staffSortIcon('assignedOpen') }}</span></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @for (r of sortedStaff(); track r.id) {
+                                            <tr>
+                                                <td class="rp-name">{{ r.name }}</td>
+                                                <td class="text-end rp-num">{{ r.incoming }}</td>
+                                                <td class="text-end rp-num">{{ r.outgoing }}</td>
+                                                <td class="text-end rp-num rp-strong">{{ r.total }}</td>
+                                                <td class="text-end rp-num" [class.is-warn]="r.assignedOpen">{{ r.assignedOpen }}</td>
+                                            </tr>
+                                        } @empty {
+                                            <tr><td colspan="5"><ng-container *ngTemplateOutlet="empty"></ng-container></td></tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- ===================== Zarf ===================== -->
+        @case ('envelopes') {
+            <div class="mb-3">
+                <ng-container *ngTemplateOutlet="chartCard; context: { title: 'Hazırlanan Zarflar', sub: envelopes().length + ' zarf · ' + kpis().envelopeDocs + ' evrak', icon: 'mail', option: envelopeTrendOption(), height: 240, granularity: true }"></ng-container>
+            </div>
+            <div class="rp-grid">
+                @for (b of envelopeBreakdowns(); track b.id) {
+                    <ng-container *ngTemplateOutlet="breakdown; context: { $implicit: b }"></ng-container>
+                }
+            </div>
+        }
+
+        <!-- ===================== Detaylı Sorgu ===================== -->
+        @case ('query') {
+            @let o = qOptions();
+            <section class="card premium-card rp-card mb-3">
+                <div class="card-header dashboard-header ad-head">
+                    <span class="ad-head-icon"><span class="material-symbols-outlined">tune</span></span>
+                    <div class="ad-head-text">
+                        <h5 class="ad-head-title">Sorgu Ölçütleri</h5>
+                        <div class="ad-head-sub">Tüm kayıtlarda arar; üstteki dönem ve birim süzgeçleri bu sekmeye uygulanmaz</div>
+                    </div>
+                    @if (qActiveCount()) {
+                        <span class="ad-pending-count" title="Etkin ölçüt sayısı">{{ qActiveCount() }}</span>
+                        <button type="button" class="rp-btn rp-btn-ghost" (click)="resetQuery()">
+                            <span class="material-symbols-outlined">filter_alt_off</span>
+                            Temizle
+                        </button>
+                    }
+                </div>
+                <div class="card-body">
+                    <div class="rp-q-grid">
+                        <label class="rp-field rp-field-wide">
+                            <span class="rp-filter-label">METİN</span>
+                            <span class="rp-search">
+                                <span class="material-symbols-outlined">search</span>
+                                <input type="text" class="rp-input" placeholder="Evrak no, konu, not veya OCR metni"
+                                    [value]="qText()" (input)="qText.set($any($event.target).value); qPage.set(1)" />
+                            </span>
+                        </label>
+
+                        <div class="rp-field">
+                            <span class="rp-filter-label">YÖN</span>
+                            <div class="ad-tabs">
+                                <button type="button" class="ad-tab" [class.is-active]="qDirection() === 'all'" (click)="qDirection.set('all')">Tümü</button>
+                                <button type="button" class="ad-tab" [class.is-active]="qDirection() === 'in'" (click)="qDirection.set('in')">Gelen</button>
+                                <button type="button" class="ad-tab" [class.is-active]="qDirection() === 'out'" (click)="qDirection.set('out')">Giden</button>
+                            </div>
+                        </div>
+
+                        <div class="rp-field">
+                            <span class="rp-filter-label">TESLİM</span>
+                            <div class="ad-tabs">
+                                <button type="button" class="ad-tab" [class.is-active]="qDelivered() === 'all'" (click)="qDelivered.set('all')">Tümü</button>
+                                <button type="button" class="ad-tab" [class.is-active]="qDelivered() === 'yes'" (click)="qDelivered.set('yes')">Teslim edildi</button>
+                                <button type="button" class="ad-tab" [class.is-active]="qDelivered() === 'no'" (click)="qDelivered.set('no')">Bekliyor</button>
+                            </div>
+                        </div>
+
+                        <div class="rp-field rp-field-wide">
+                            <span class="rp-filter-label">TARİH</span>
+                            <div class="rp-date-range">
+                                <select class="rp-input rp-input-sm" [value]="qDateField()" (change)="qDateField.set($any($event.target).value)">
+                                    <option value="created">Kayıt</option>
+                                    <option value="document">Belge</option>
+                                </select>
+                                <input type="date" class="rp-input" [value]="qFrom()" (change)="qFrom.set($any($event.target).value)" />
+                                <span class="material-symbols-outlined">arrow_forward</span>
+                                <input type="date" class="rp-input" [value]="qTo()" (change)="qTo.set($any($event.target).value)" />
+                            </div>
+                        </div>
+
+                        <div class="rp-field">
+                            <span class="rp-filter-label">BİRİM</span>
+                            <report-multiselect [options]="departmentOptions()" [selected]="qUnits()" (selectedChange)="qUnits.set($event)" />
+                        </div>
+                        <div class="rp-field">
+                            <span class="rp-filter-label">KURUM</span>
+                            <report-multiselect [options]="o.institutions" [selected]="qInstitutions()" (selectedChange)="qInstitutions.set($event)" />
+                        </div>
+                        <div class="rp-field">
+                            <span class="rp-filter-label">KURUM TÜRÜ</span>
+                            <report-multiselect [options]="o.instTypes" [selected]="qInstTypes()" (selectedChange)="qInstTypes.set($event)" />
+                        </div>
+                        <div class="rp-field">
+                            <span class="rp-filter-label">EVRAK TÜRÜ</span>
+                            <report-multiselect [options]="o.types" [selected]="qTypes()" (selectedChange)="qTypes.set($event)" />
+                        </div>
+                        <div class="rp-field">
+                            <span class="rp-filter-label">DURUM</span>
+                            <report-multiselect [options]="o.statuses" [selected]="qStatuses()" (selectedChange)="qStatuses.set($event)" />
+                        </div>
+                        <div class="rp-field">
+                            <span class="rp-filter-label">YAYIN DURUMU</span>
+                            <report-multiselect [options]="o.publish" [selected]="qPublish()" (selectedChange)="qPublish.set($event)" />
+                        </div>
+                        <div class="rp-field">
+                            <span class="rp-filter-label">DİL</span>
+                            <report-multiselect [options]="o.languages" [selected]="qLanguages()" (selectedChange)="qLanguages.set($event)" />
+                        </div>
+                        <div class="rp-field">
+                            <span class="rp-filter-label">KAYDI YAPAN</span>
+                            <report-multiselect [options]="o.creators" [selected]="qCreators()" (selectedChange)="qCreators.set($event)" />
+                        </div>
+                        <div class="rp-field">
+                            <span class="rp-filter-label">GEREĞİ / BİLGİ</span>
+                            <report-multiselect [options]="o.actions" [selected]="qActions()" (selectedChange)="qActions.set($event)" />
+                        </div>
+
+                        <div class="rp-field rp-field-wide">
+                            <span class="rp-filter-label">İVEDİLİK</span>
+                            <div class="rp-pills">
+                                @for (u of o.urgencies; track u.value) {
+                                    <button type="button" class="rp-pill" [class.is-active]="qUrgencies().includes(u.value)" (click)="toggleIn(qUrgencies, u.value)">{{ u.label }}</button>
+                                }
+                            </div>
+                        </div>
+                        <div class="rp-field rp-field-wide">
+                            <span class="rp-filter-label">GİZLİLİK</span>
+                            <div class="rp-pills">
+                                @for (s of o.securities; track s.value) {
+                                    <button type="button" class="rp-pill" [class.is-active]="qSecurities().includes(s.value)" (click)="toggleIn(qSecurities, s.value)">{{ s.label }}</button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            @let s = querySummary();
+            <div class="rp-summary">
+                <div class="rp-summary-item is-main"><b>{{ s.total }}</b> sonuç</div>
+                <div class="rp-summary-item"><b>{{ s.incoming }}</b> gelen</div>
+                <div class="rp-summary-item"><b>{{ s.outgoing }}</b> giden</div>
+                <div class="rp-summary-item"><b>{{ s.delivered }}</b> teslim edildi</div>
+                <div class="rp-summary-item"><b>{{ s.urgent }}</b> ivedi</div>
+                <div class="rp-summary-item"><b>{{ s.units }}</b> birim</div>
+                <div class="rp-summary-item"><b>{{ s.institutions }}</b> kurum</div>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-12">
+                    @let gb = queryGroupBreakdown();
+                    <div class="card premium-card rp-card h-100">
+                        <div class="card-header dashboard-header ad-head">
+                            <span class="ad-head-icon"><span class="material-symbols-outlined">bar_chart</span></span>
+                            <div class="ad-head-text">
+                                <h5 class="ad-head-title">Sonuç Dağılımı</h5>
+                            </div>
+                            <select class="rp-input rp-input-sm" [value]="qGroup()" (change)="qGroup.set($any($event.target).value)" title="Gruplama">
+                                @for (g of groupOptions; track g.id) {
+                                    <option [value]="g.id">{{ g.label }}</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="card-body">
+                            @if (gb.items.length) {
+                                <div [reportChart]="breakdownOption(gb)" [style.height.px]="chartHeight(gb)"></div>
+                            } @else {
+                                <ng-container *ngTemplateOutlet="empty"></ng-container>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="card premium-card rp-card h-100">
+                        <div class="card-header dashboard-header ad-head">
+                            <span class="ad-head-icon"><span class="material-symbols-outlined">list_alt</span></span>
+                            <div class="ad-head-text">
+                                <h5 class="ad-head-title">Sonuçlar</h5>
+                            </div>
+                            <button type="button" class="rp-btn" [disabled]="!s.total" (click)="exportQuery()">
+                                <span class="material-symbols-outlined">download</span>
+                                Excel
+                            </button>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table orders-table rp-table align-middle mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th class="rp-th" (click)="sortQuery('no')">EVRAK NO <span class="material-symbols-outlined">{{ querySortIcon('no') }}</span></th>
+                                            <th class="rp-th" (click)="sortQuery('direction')">YÖN <span class="material-symbols-outlined">{{ querySortIcon('direction') }}</span></th>
+                                            <th class="rp-th" (click)="sortQuery('date')">{{ qDateField() === 'created' ? 'KAYIT' : 'BELGE' }} TARİHİ <span class="material-symbols-outlined">{{ querySortIcon('date') }}</span></th>
+                                            <th class="rp-th" (click)="sortQuery('department')">BİRİM <span class="material-symbols-outlined">{{ querySortIcon('department') }}</span></th>
+                                            <th class="rp-th" (click)="sortQuery('institution')">KURUM <span class="material-symbols-outlined">{{ querySortIcon('institution') }}</span></th>
+                                            <th class="rp-th" (click)="sortQuery('urgency')">İVEDİLİK <span class="material-symbols-outlined">{{ querySortIcon('urgency') }}</span></th>
+                                            <th class="rp-th" (click)="sortQuery('security')">GİZLİLİK <span class="material-symbols-outlined">{{ querySortIcon('security') }}</span></th>
+                                            <th class="rp-th" (click)="sortQuery('status')">DURUM <span class="material-symbols-outlined">{{ querySortIcon('status') }}</span></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @for (d of pagedResults(); track d.direction + d.id) {
+                                            <tr>
+                                                <td>
+                                                    <span class="document-no">{{ d.no }}</span>
+                                                    @if (d.subject) {
+                                                        <div class="rp-cell-sub" [title]="d.subject">{{ d.subject }}</div>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <span class="rp-dir" [class.is-out]="d.direction === 'out'">{{ d.direction === 'in' ? 'Gelen' : 'Giden' }}</span>
+                                                </td>
+                                                <td class="rp-num">{{ queryDate(d) ? (queryDate(d) | date:'dd.MM.yyyy') : '—' }}</td>
+                                                <td class="rp-wrap">{{ d.departmentName }}</td>
+                                                <td class="rp-wrap">{{ d.institutionName }}</td>
+                                                <td>
+                                                    <span class="rp-urgency" [style.--rp-tone]="urgencyColor(d)">{{ d.urgencyLabel }}</span>
+                                                </td>
+                                                <td>{{ d.securityLabel }}</td>
+                                                <td>
+                                                    <span class="attention-state" [class.is-done]="d.delivered" [class.is-idle]="!d.delivered">{{ d.statusLabel }}</span>
+                                                </td>
+                                            </tr>
+                                        } @empty {
+                                            <tr><td colspan="8"><ng-container *ngTemplateOutlet="empty"></ng-container></td></tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            @if (s.total) {
+                                <div class="rp-footer">
+                                    <div class="rp-range">
+                                        Toplam <b>{{ s.total }}</b> kayıttan
+                                        <b>{{ (qCurrentPage() - 1) * qPageSize + 1 }}-{{ qCurrentPage() * qPageSize > s.total ? s.total : qCurrentPage() * qPageSize }}</b>
+                                        arası gösteriliyor
+                                    </div>
+                                    @if (qTotalPages() > 1) {
+                                        <div class="rp-pager">
+                                            <button type="button" class="rp-pg" [disabled]="qCurrentPage() === 1" (click)="goToPage(qCurrentPage() - 1)">
+                                                <span class="material-symbols-outlined">chevron_left</span>
+                                            </button>
+                                            @if (qPageNumbers()[0] > 1) {
+                                                <button type="button" class="rp-pg" (click)="goToPage(1)">1</button>
+                                                @if (qPageNumbers()[0] > 2) { <span class="rp-pg-gap">…</span> }
+                                            }
+                                            @for (p of qPageNumbers(); track p) {
+                                                <button type="button" class="rp-pg" [class.is-active]="p === qCurrentPage()" (click)="goToPage(p)">{{ p }}</button>
+                                            }
+                                            @if (qPageNumbers()[qPageNumbers().length - 1] < qTotalPages()) {
+                                                @if (qPageNumbers()[qPageNumbers().length - 1] < qTotalPages() - 1) { <span class="rp-pg-gap">…</span> }
+                                                <button type="button" class="rp-pg" (click)="goToPage(qTotalPages())">{{ qTotalPages() }}</button>
+                                            }
+                                            <button type="button" class="rp-pg" [disabled]="qCurrentPage() === qTotalPages()" (click)="goToPage(qCurrentPage() + 1)">
+                                                <span class="material-symbols-outlined">chevron_right</span>
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+}
+
 </div>
+
+<!-- ===================== Şablonlar ===================== -->
+
+<!-- Özet kartı: değişim yüzdesi verilirse yükseliş / düşüş gösterilir -->
+<ng-template #kpi let-label="label" let-value="value" let-icon="icon" let-change="change" let-foot="foot">
+    <div class="ad-stat rp-stat">
+        <div class="ad-stat-body">
+            <div class="ad-stat-label">{{ label }}</div>
+            <div class="ad-stat-value">{{ value }}</div>
+            <div class="ad-stat-foot">
+                @if (change != null) {
+                    <span class="ad-trend" [class.is-up]="change >= 0" [class.is-down]="change < 0">
+                        <span class="material-symbols-outlined">{{ change >= 0 ? 'trending_up' : 'trending_down' }}</span>
+                        {{ change >= 0 ? '+' : '' }}{{ change | number:'1.0-1' }}%
+                    </span>
+                }
+                <span class="ad-stat-period">{{ foot }}</span>
+            </div>
+        </div>
+        <span class="ad-stat-icon"><span class="material-symbols-outlined">{{ icon }}</span></span>
+    </div>
+</ng-template>
+
+<!-- Tek grafikli kart; granularity: Gün / Hafta / Ay seçimi başlıkta -->
+<ng-template #chartCard let-title="title" let-sub="sub" let-icon="icon" let-option="option" let-height="height" let-granularity="granularity">
+    <div class="card premium-card rp-card h-100">
+        <div class="card-header dashboard-header ad-head">
+            <span class="ad-head-icon"><span class="material-symbols-outlined">{{ icon }}</span></span>
+            <div class="ad-head-text">
+                <h5 class="ad-head-title">{{ title }}</h5>
+                @if (sub) { <div class="ad-head-sub">{{ sub }}</div> }
+            </div>
+            @if (granularity) {
+                <div class="ad-tabs">
+                    <button type="button" class="ad-tab" [class.is-active]="granularityChoice() === 'auto'" (click)="granularityChoice.set('auto')" title="Döneme göre otomatik">Oto</button>
+                    <button type="button" class="ad-tab" [class.is-active]="granularityChoice() === 'day'" (click)="granularityChoice.set('day')">Gün</button>
+                    <button type="button" class="ad-tab" [class.is-active]="granularityChoice() === 'week'" (click)="granularityChoice.set('week')">Hafta</button>
+                    <button type="button" class="ad-tab" [class.is-active]="granularityChoice() === 'month'" (click)="granularityChoice.set('month')">Ay</button>
+                </div>
+            }
+        </div>
+        <div class="card-body">
+            <div [reportChart]="option" [style.height.px]="height"></div>
+        </div>
+    </div>
+</ng-template>
+
+<!-- Kırılım kartı: grafik ya da tablo, Excel'e aktarılabilir -->
+<ng-template #breakdown let-b>
+    <div class="card premium-card rp-card h-100">
+        <div class="card-header dashboard-header ad-head">
+            <span class="ad-head-icon"><span class="material-symbols-outlined">{{ b.icon }}</span></span>
+            <div class="ad-head-text">
+                <h5 class="ad-head-title">{{ b.title }}</h5>
+                <div class="ad-head-sub">{{ totalOf(b.items) }} kayıt</div>
+            </div>
+            <div class="rp-view">
+                <button type="button" [class.is-active]="!isTable(b.id)" (click)="setView(b.id, false)" title="Grafik">
+                    <span class="material-symbols-outlined">bar_chart</span>
+                </button>
+                <button type="button" [class.is-active]="isTable(b.id)" (click)="setView(b.id, true)" title="Tablo">
+                    <span class="material-symbols-outlined">table_rows</span>
+                </button>
+                <button type="button" (click)="exportBreakdown(b)" [disabled]="!b.items.length" title="Excel'e aktar">
+                    <span class="material-symbols-outlined">download</span>
+                </button>
+            </div>
+        </div>
+        <div class="card-body" [class.p-0]="isTable(b.id) && b.items.length">
+            @if (!b.items.length) {
+                <ng-container *ngTemplateOutlet="empty"></ng-container>
+            } @else if (isTable(b.id)) {
+                <table class="table rp-mini-table mb-0">
+                    <tbody>
+                        @for (i of b.items; track i.name) {
+                            <tr>
+                                <td class="rp-wrap">{{ i.name }}</td>
+                                <td class="text-end rp-num rp-strong">{{ i.value }}</td>
+                                <td class="rp-mini-share">
+                                    <div class="rp-meter">
+                                        <div class="rp-meter-bar"><span [style.width.%]="pctOf(i.value, b.items)"></span></div>
+                                        <span class="rp-meter-val">%{{ pctOf(i.value, b.items) }}</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            } @else {
+                <div [reportChart]="breakdownOption(b)" [style.height.px]="chartHeight(b)"></div>
+            }
+        </div>
+    </div>
+</ng-template>
+
+<ng-template #empty>
+    <div class="rp-empty">
+        <span class="material-symbols-outlined">search_off</span>
+        Bu ölçütlerle kayıt yok
+    </div>
+</ng-template>

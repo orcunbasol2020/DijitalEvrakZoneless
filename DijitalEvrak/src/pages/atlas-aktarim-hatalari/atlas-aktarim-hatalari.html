@@ -1,0 +1,148 @@
+<app-generic pageTitle="Atlas Aktarım Hataları"
+    [breadcrumbs]="[{title: 'Atlas Aktarım Hataları', url: 'atlas-aktarim-hatalari', icon:''}]" />
+
+<div class="aah-page">
+
+<!-- Üst şerit: Kontrol Paneli ile aynı mavi gradyan -->
+<section class="ad-hero">
+    <div class="ad-hero-glow ad-hero-glow-a"></div>
+    <div class="ad-hero-glow ad-hero-glow-b"></div>
+
+    <div class="ad-hero-text">
+        <div class="ad-hero-kicker">
+            <span class="material-symbols-outlined">cloud_off</span>
+            Atlas Aktarım Hataları
+        </div>
+        <div class="ad-hero-sub">
+            <span>Atlas'a aktarılamayan ve yeniden denenmeyecek evraklar</span>
+            @if (lastUpdated(); as updated) {
+                <span class="ad-hero-dot"></span>
+                <span>Son güncelleme {{ updated | date:'HH:mm' }}</span>
+            }
+        </div>
+    </div>
+
+    <div class="ad-hero-actions">
+        <button type="button" class="ad-hero-btn ad-hero-btn-icon" title="Güncel Verileri Getir"
+            [class.is-spinning]="loading()" [disabled]="loading()" (click)="reload()">
+            <span class="material-symbols-outlined">refresh</span>
+        </button>
+    </div>
+</section>
+
+<!-- Kuyruk özeti -->
+<div class="ad-stats">
+    <div class="ad-stat">
+        <div class="ad-stat-body">
+            <div class="ad-stat-label">HATALI</div>
+            <div class="ad-stat-value">{{ stats()?.failed ?? rows().length }}</div>
+            <div class="ad-stat-foot">
+                <span class="ad-stat-period">Müdahale bekliyor</span>
+            </div>
+        </div>
+        <span class="ad-stat-icon"><span class="material-symbols-outlined">cloud_off</span></span>
+    </div>
+
+    <div class="ad-stat">
+        <div class="ad-stat-body">
+            <div class="ad-stat-label">KUYRUKTA</div>
+            <div class="ad-stat-value">{{ inQueue() ?? '—' }}</div>
+            <div class="ad-stat-foot">
+                <span class="ad-stat-period">Aktarım Sırasında ve Aktarılıyor</span>
+            </div>
+        </div>
+        <span class="ad-stat-icon"><span class="material-symbols-outlined">hourglass_top</span></span>
+    </div>
+
+    <div class="ad-stat">
+        <div class="ad-stat-body">
+            <div class="ad-stat-label">AKTARILAN</div>
+            <div class="ad-stat-value">{{ stats()?.succeeded ?? '—' }}</div>
+            <div class="ad-stat-foot">
+                <span class="ad-stat-period">Atlas'ta yayınlandı</span>
+            </div>
+        </div>
+        <span class="ad-stat-icon"><span class="material-symbols-outlined">verified</span></span>
+    </div>
+
+    <div class="ad-stat">
+        <div class="ad-stat-body">
+            <div class="ad-stat-label">YAYINLANMADI</div>
+            <div class="ad-stat-value">{{ stats()?.notPublished ?? '—' }}</div>
+            <div class="ad-stat-foot">
+                <span class="ad-stat-period">Henüz Yayınla denmedi</span>
+            </div>
+        </div>
+        <span class="ad-stat-icon"><span class="material-symbols-outlined">unpublished</span></span>
+    </div>
+</div>
+
+<div class="card premium-card orders-card mb-4">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table orders-table aah-table align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col">EVRAK NO</th>
+                        <th scope="col">KONU</th>
+                        <th scope="col">HATA NEDENİ</th>
+                        <th scope="col" class="text-end">DENEME</th>
+                        <th scope="col">SON DENEME</th>
+                        <th scope="col" class="text-end"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (loading() && !rows().length) {
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-5">Yükleniyor…</td>
+                        </tr>
+                    } @else if (failed()) {
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-5">
+                                <span class="material-symbols-outlined d-block mb-2" style="font-size: 28px;">cloud_off</span>
+                                Liste alınamadı.
+                            </td>
+                        </tr>
+                    } @else {
+                        @for (row of rows(); track row.documentId) {
+                            <tr class="attention-row tone-critical">
+                                <td>
+                                    <a class="document-no aah-doc-link" [routerLink]="['/evrakkayit', row.documentId]"
+                                        title="Evrak Kayıt ekranında aç">{{ row.qrCode || '—' }}</a>
+                                </td>
+                                <td class="aah-subject">
+                                    @if (row.subject) {
+                                        <span [title]="row.subject">{{ row.subject }}</span>
+                                    } @else {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td class="aah-error">{{ row.lastError || 'Neden bildirilmedi.' }}</td>
+                                <td class="text-end">{{ row.tryCount }}</td>
+                                <td class="aah-date">{{ row.lastAttemptAt ? (row.lastAttemptAt | date:'dd.MM.yyyy HH:mm') : '—' }}</td>
+                                <td class="text-end">
+                                    <button type="button" class="aah-retry" [disabled]="isRetrying(row)" (click)="retry(row)"
+                                        title="Evrak bilgilerini değiştirmeden yeniden Atlas aktarım sırasına al">
+                                        <span class="material-symbols-outlined" [class.is-spinning]="isRetrying(row)">replay</span>
+                                        Yeniden Dene
+                                    </button>
+                                </td>
+                            </tr>
+                        } @empty {
+                            <tr>
+                                <td colspan="6">
+                                    <div class="aah-empty">
+                                        <span class="material-symbols-outlined">task_alt</span>
+                                        Aktarımı hatalı evrak yok.
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+</div>

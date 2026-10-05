@@ -1,0 +1,80 @@
+<div class="card premium-card h-100">
+    <div class="card-header dashboard-header ad-head">
+        <span class="ad-head-icon">
+            <span class="material-symbols-outlined">history_edu</span>
+        </span>
+        <div class="ad-head-text">
+            <h5 class="ad-head-title ad-head-title-low">Diplomatik Nota Sayıları</h5>
+        </div>
+        <div class="ad-tabs" role="tablist" aria-label="Dönem">
+            <button type="button" class="ad-tab" role="tab" [class.is-active]="period() === 7"
+                [attr.aria-selected]="period() === 7" (click)="period.set(7)">7 Gün</button>
+            <button type="button" class="ad-tab" role="tab" [class.is-active]="period() === 30"
+                [attr.aria-selected]="period() === 30" (click)="period.set(30)">30 Gün</button>
+        </div>
+        <a routerLink="/reports" class="ad-link">
+            Tümü
+            <span class="material-symbols-outlined">chevron_right</span>
+        </a>
+    </div>
+    <div class="card-body p-0">
+        @if (loading()) {
+            <div class="ad-nota-state">
+                <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                Notalar yükleniyor...
+            </div>
+        } @else if (failed()) {
+            <div class="ad-nota-state">
+                <span class="material-symbols-outlined">error</span>
+                Nota sayıları alınamadı.
+                <button type="button" class="btn btn-link btn-sm p-0" (click)="reload()">Tekrar dene</button>
+            </div>
+        } @else if (rows().length === 0) {
+            <div class="ad-nota-state">
+                <span class="material-symbols-outlined">inbox</span>
+                Son {{ period() }} günde misyonlarla nota alışverişi yok.
+            </div>
+        } @else {
+            <div class="table-responsive">
+                <!-- Bayrak temsilcilik hücresinde, sayılar düz ve sağa hizalı, sağda gelen/gönderilen dağılım çubuğu -->
+                <table class="table customers-table ad-list-table mb-3">
+                    <thead>
+                        <tr>
+                            <th scope="col">TEMSİLCİLİK</th>
+                            <th scope="col" class="ad-num-col">GELEN</th>
+                            <th scope="col" class="ad-num-col">GÖNDERİLEN</th>
+                            <th scope="col" class="ad-share-col" title="Gelen ve gönderilen notaların payı">DAĞILIM</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (row of rows(); track row.id) {
+                            <tr>
+                                <td>
+                                    <div class="ad-nota-mission">
+                                        @if (row.flag) {
+                                            <img class="ad-nota-flag" [src]="'assets/images/bayraklar/' + row.flag + '.png'" alt="" />
+                                        } @else {
+                                            <span class="ad-nota-flag ad-nota-flag-generic" aria-hidden="true">
+                                                <span class="material-symbols-outlined">public</span>
+                                            </span>
+                                        }
+                                        <div class="ad-nota-text">
+                                            <div class="ad-nota-country" [title]="row.name">{{ row.name }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="ad-num-col"><span class="ad-num">{{ row.incoming }}</span></td>
+                                <td class="ad-num-col"><span class="ad-num">{{ row.outgoing }}</span></td>
+                                <td class="ad-share-col">
+                                    <div class="ad-share" [title]="'%' + incomingShare(row) + ' gelen, %' + (100 - incomingShare(row)) + ' gönderilen'">
+                                        <span class="ad-share-in" [style.width.%]="incomingShare(row)"></span>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth-guard';
 import { roleGuard } from './guards/role-guard';
+import { LIMITED_ROLES } from './navigation';
 
 export const routes: Routes = [
     {
@@ -89,6 +90,13 @@ export const routes: Routes = [
                 data: { roles: ["Gelen Evrak", "Yönetici"] }
             },
             {
+                // Gelen Evrak panelindeki "Teslim Alınmayı Bekleyen Evraklar" kartının tüm birimleri
+                path: "teslim-bekleyenler",
+                loadComponent: () => import("./pages/teslim-bekleyenler/teslim-bekleyenler"),
+                canActivate: [roleGuard],
+                data: { roles: ["Gelen Evrak", "Yönetici"] }
+            },
+            {
                 path: "dijitallestirme-takip",
                 loadComponent: () => import("./pages/dijitallestirme-takip/dijitallestirme-takip"),
                 canActivate: [roleGuard],
@@ -118,7 +126,9 @@ export const routes: Routes = [
             },
             {
                 path: 'havale',
-                loadComponent: () => import('./pages/havale/havale')
+                loadComponent: () => import('./pages/havale/havale'),
+                canActivate: [roleGuard],
+                data: { excludeRoles: LIMITED_ROLES }
             },
             {
                 path: 'surecler',
@@ -126,15 +136,21 @@ export const routes: Routes = [
             },
             {
                 path: 'birimler',
-                loadComponent: () => import('./pages/parameters/departments/departments')
+                loadComponent: () => import('./pages/parameters/departments/departments'),
+                canActivate: [roleGuard],
+                data: { excludeRoles: LIMITED_ROLES }
             },
             {
                 path: 'parameters/languages',
-                loadComponent: () => import('./pages/parameters/languages/languages')
+                loadComponent: () => import('./pages/parameters/languages/languages'),
+                canActivate: [roleGuard],
+                data: { excludeRoles: LIMITED_ROLES }
             },
                         {
                 path: 'externalinstitution',
-                loadComponent: () => import('./pages/parameters/external-institutions/external-institutions')
+                loadComponent: () => import('./pages/parameters/external-institutions/external-institutions'),
+                canActivate: [roleGuard],
+                data: { excludeRoles: LIMITED_ROLES }
             },
             {
                 path: 'gidenevrak/outgoing',
@@ -170,7 +186,17 @@ export const routes: Routes = [
             },
                         {
                 path: 'gidenzimmet',
-                loadComponent: () => import('./pages/gidenevrak/gidenzimmet/gidenzimmet')
+                loadComponent: () => import('./pages/gidenevrak/gidenzimmet/gidenzimmet'),
+                // Zarflar ve Teslim Al / Zimmetle ekranlarından açılır; onların rolleri
+                canActivate: [roleGuard],
+                data: { roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Birim Yöneticisi", "Giden Evrak", "Ön Kayıt", "Yönetici"] }
+            },
+            {
+                // Kargoya verilmiş paketlerin listesi ve durum güncellemesi (Yolda / Teslim Edildi / İade)
+                path: 'kargo-takip',
+                loadComponent: () => import('./pages/kargo-takip/kargo-takip'),
+                canActivate: [roleGuard],
+                data: { roles: ["Gelen Evrak", "Giden Evrak", "Ön Kayıt", "Yönetici"] }
             },
             {
                 path: 'ticket',
@@ -183,6 +209,20 @@ export const routes: Routes = [
                 loadComponent: () => import('./pages/settings/settings')
             },
             {
+                // Uygulama ayarları (AppSettings): yalnızca yönetici görür ve değiştirir
+                path: 'app-settings',
+                loadComponent: () => import('./pages/app-settings/app-settings'),
+                canActivate: [roleGuard],
+                data: { roles: ["Yönetici"] }
+            },
+            {
+                // Atlas'a aktarımı kalıcı hata alan gelen evraklar ve Yeniden Dene
+                path: 'atlas-aktarim-hatalari',
+                loadComponent: () => import('./pages/atlas-aktarim-hatalari/atlas-aktarim-hatalari'),
+                canActivate: [roleGuard],
+                data: { roles: ["Yönetici"] }
+            },
+            {
                 path: 'support',
                 loadComponent: () => import('./pages/support/support')
             },
@@ -192,7 +232,9 @@ export const routes: Routes = [
             },
             {
                 path: 'reports',
-                loadComponent: () => import('./pages/reports/reports')
+                loadComponent: () => import('./pages/reports/reports'),
+                canActivate: [roleGuard],
+                data: { excludeRoles: LIMITED_ROLES }
             }
             /*
             {

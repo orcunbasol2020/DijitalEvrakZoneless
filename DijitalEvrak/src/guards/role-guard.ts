@@ -5,10 +5,15 @@ import { RoleService } from '../services/role-service';
 
 export const roleGuard: CanActivateFn = (route) => {
   const requiredRoles = route.data['roles'] as string[] | undefined;
+  // Menüdeki excludeRoles ile aynı anlam: bu rollerden biri olan kullanıcı sayfayı açamaz
+  const excludeRoles = route.data['excludeRoles'] as string[] | undefined;
 
   const roleService = inject(RoleService);
 
-  if (!requiredRoles?.length || roleService.hasAny(requiredRoles)) {
+  const allowed = (!requiredRoles?.length || roleService.hasAny(requiredRoles))
+    && !(excludeRoles?.length && roleService.hasAny(excludeRoles));
+
+  if (allowed) {
     return true;
   }
 

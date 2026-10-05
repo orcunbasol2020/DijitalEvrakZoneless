@@ -1,11 +1,23 @@
 <div class="map-wrapper">
     <div #chartContainer class="world-map-container"></div>
 
-<div class="zoom-controls">
-    <button (click)="zoomIn()" title="Yaklaştır">+</button>
-    <button (click)="zoomOut()" title="Uzaklaştır">−</button>
-    <button (click)="resetZoom()" title="Resetle">⟳</button>
-    <button (click)="centerMap()" title="Ortala">◎</button>
-</div>
+    @if (loading()) {
+        <div class="map-state">
+            <span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Yükleniyor...
+        </div>
+    } @else if (failed()) {
+        <div class="map-state">
+            <span class="material-symbols-outlined">error</span> Veriler alınamadı.
+        </div>
+    } @else if (!countries().length && emptyText()) {
+        <div class="map-state map-state-note">
+            <span class="material-symbols-outlined">inbox</span> {{ emptyText() }}
+        </div>
+    }
 
+    <div class="zoom-controls">
+        <button type="button" (click)="zoomIn()" title="Yaklaştır">+</button>
+        <button type="button" (click)="zoomOut()" title="Uzaklaştır">−</button>
+        <button type="button" (click)="resetZoom()" title="Başlangıç görünümü">⟳</button>
+    </div>
 </div>

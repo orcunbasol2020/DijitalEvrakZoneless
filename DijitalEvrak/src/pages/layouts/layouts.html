@@ -15,137 +15,208 @@
         <!-- Search Bar -->
 <div class="ms-auto d-flex align-items-center gap-3">
 
-    <!-- search -->
-    <div class="search-container">
-        <div class="position-relative">
-            <input type="text" class="form-control search-input" placeholder="Belge Ara ..."
+    <!-- search: geniş ekranda kutu, 1200px altında ikon; ikona basınca kutu başlığın altında açılır -->
+    <button type="button" class="hs-toggle" [class.is-open]="searchOpen()" title="Evrak ara (Ctrl+K)"
+        aria-label="Evrak ara" (mousedown)="$event.preventDefault()" (click)="toggleSearch()">
+        <span class="material-symbols-outlined">{{ searchOpen() ? 'close' : 'search' }}</span>
+    </button>
+    <div class="search-container hs" [class.is-open]="searchOpen()">
+        <div class="hs-field">
+            <span class="material-symbols-outlined hs-icon" aria-hidden="true">search</span>
+            <input #searchInput type="text" class="hs-input" placeholder="Evrak no veya konu ara…"
                 [ngModel]="search()"
                 (ngModelChange)="onSearchInput($event)"
-                (focus)="onSearchInput(search())"
+                (focus)="onSearchFocus()"
                 (blur)="onSearchBlur()"
                 (keydown)="onSearchKeydown($event)"
                 role="combobox"
+                aria-label="Evrak ara"
                 aria-autocomplete="list"
                 [attr.aria-expanded]="showSearchResults()"
                 autocomplete="off">
-            <span class="material-symbols-outlined search-icon">search</span>
-
-            @if (showSearchResults() && search().trim().length > 0) {
-                <div class="search-autocomplete">
-                    @if (searchResults().length > 0) {
-                        <div class="search-autocomplete-header">
-                            <span class="material-symbols-outlined">description</span>
-                            Arama Sonuçları
-                        </div>
-                        <ul class="search-autocomplete-list">
-                            @for (result of searchResults(); track result.belgeNo; let i = $index) {
-                                <li>
-                                    <a class="search-autocomplete-item"
-                                        [class.active]="i === activeResultIndex()"
-                                        href="javascript:void(0)"
-                                        (mousedown)="selectSearchResult(result)"
-                                        (mouseenter)="activeResultIndex.set(i)">
-                                        <span class="search-autocomplete-icon material-symbols-outlined" [ngClass]="typeIconClasses[result.tur]">{{ typeIcons[result.tur] }}</span>
-                                        <div class="search-autocomplete-main">
-                                            <div class="search-autocomplete-top-row">
-                                                <span class="search-autocomplete-number">{{ result.belgeNo }}</span>
-                                                <span class="search-autocomplete-date">{{ result.tarih }}</span>
-                                            </div>
-                                            <div class="search-autocomplete-bottom-row">
-                                                <span class="search-autocomplete-konu">{{ result.konu }}</span>
-                                                <span class="badge badge-sm" [ngClass]="statusBadgeClasses[result.durum]">{{ statusLabels[result.durum] }}</span>
-                                            </div>
-                                            <span class="search-autocomplete-birim">{{ result.birim }}</span>
-                                        </div>
-                                    </a>
-                                </li>
-                            }
-                        </ul>
-                    } @else {
-                        <div class="search-autocomplete-empty">
-                            <span class="material-symbols-outlined">search_off</span>
-                            <span>"{{ search() }}" ile eşleşen belge bulunamadı</span>
-                        </div>
-                    }
-                </div>
-            }
+            <span class="hs-end">
+                @if (searchLoading()) {
+                    <span class="spinner-border hs-spinner" role="status" aria-label="Yükleniyor"></span>
+                }
+                @if (search()) {
+                    <button type="button" class="hs-clear" title="Temizle" aria-label="Aramayı temizle"
+                        (mousedown)="$event.preventDefault()" (click)="clearSearch()">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                } @else {
+                    <kbd class="hs-kbd" aria-hidden="true">Ctrl K</kbd>
+                }
+            </span>
         </div>
+
+        @if (showSearchResults() && search().trim().length > 0) {
+            <div class="hs-panel">
+                @if (searchResultViews().length > 0) {
+                    <div class="hs-panel-head">ARAMA SONUÇLARI</div>
+                    <ul class="hs-list" role="listbox">
+                        @for (result of searchResultViews(); track result.direction + result.id; let i = $index) {
+                            <li>
+                                <a class="hs-item" [class.is-out]="result.direction === 'out'"
+                                    [class.active]="i === activeResultIndex()"
+                                    role="option" [attr.aria-selected]="i === activeResultIndex()"
+                                    href="javascript:void(0)"
+                                    (mousedown)="selectSearchResult(result)"
+                                    (mouseenter)="activeResultIndex.set(i)">
+                                    <span class="hs-item-icon material-symbols-outlined" aria-hidden="true">{{ result.direction === 'in' ? 'move_to_inbox' : 'outbox' }}</span>
+                                    <span class="hs-item-main">
+                                        <span class="hs-item-top">
+                                            <span class="hs-item-no">
+                                                @for (part of result.noParts; track $index) {
+                                                    @if (part.match) { <mark>{{ part.text }}</mark> } @else { {{ part.text }} }
+                                                }
+                                            </span>
+                                            <span class="hs-item-dir">{{ result.direction === 'in' ? 'Gelen' : 'Giden' }}</span>
+                                            <span class="hs-item-date">{{ result.date | date:'dd.MM.yyyy' }}</span>
+                                        </span>
+                                        <span class="hs-item-bottom">
+                                            <span class="hs-item-subject">
+                                                @for (part of result.subjectParts; track $index) {
+                                                    @if (part.match) { <mark>{{ part.text }}</mark> } @else { {{ part.text }} }
+                                                }
+                                                @if (!result.subject) { - }
+                                            </span>
+                                            <span class="badge badge-sm" [ngClass]="result.statusClass">{{ result.statusLabel }}</span>
+                                        </span>
+                                        @if (result.departmentName) {
+                                            <span class="hs-item-dept">{{ result.departmentName }}</span>
+                                        }
+                                    </span>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                    <div class="hs-panel-foot">
+                        <span>
+                            @if (searchMatchCount() > searchResultViews().length) {
+                                <b>{{ searchMatchCount() }}</b> sonuçtan ilk <b>{{ searchResultViews().length }}</b> tanesi gösteriliyor
+                            } @else {
+                                <b>{{ searchMatchCount() }}</b> sonuç
+                            }
+                        </span>
+                        <span class="hs-keys"><kbd>↑</kbd><kbd>↓</kbd> seç · <kbd>Enter</kbd> aç</span>
+                    </div>
+                } @else if (searchLoading()) {
+                    <div class="hs-empty">
+                        <span class="spinner-border hs-spinner" role="status"></span>
+                        <span>Evraklar yükleniyor…</span>
+                    </div>
+                } @else {
+                    <div class="hs-empty">
+                        <span class="material-symbols-outlined">search_off</span>
+                        <span>"{{ search() }}" ile eşleşen evrak bulunamadı</span>
+                    </div>
+                }
+            </div>
+        }
     </div>
+
 
             <!-- Notification -->
             <div class="dropdown me-3 notification-container">
                 <!-- Notification Button -->
                 <button
-                    class="btn btn-link p-0 notification-btn position-relative"
+                    class="nt-bell"
                     type="button"
                     id="notificationDropdown"
                     data-bs-toggle="dropdown"
                     aria-expanded="false"
-                    [title]="'Bekleyen : ' + totalNotificationCount()">
-
-                    <!-- Bell Icon -->
-                    <span class="material-symbols-outlined notification-icon"
-                        [class.notification-icon-active]="totalNotificationCount() > 0">
-                        notifications
-                    </span>
-
-                    <!-- Red Dot -->
-                    <span class="notification-dot"
-                        [class.hidden]="totalNotificationCount() === 0"></span>
+                    [class.has-items]="totalNotificationCount() > 0"
+                    [title]="bellLabel()"
+                    [attr.aria-label]="'Bildirimler: ' + bellLabel()">
+                    <span class="material-symbols-outlined nt-bell-icon" [class.is-ringing]="bellRinging()">notifications</span>
+                    @if (totalNotificationCount() > 0) {
+                        <span class="nt-bell-badge" aria-hidden="true">{{ bellBadge() }}</span>
+                    }
                 </button>
 
                 <!-- Dropdown Menu -->
                 <ul
                     class="dropdown-menu dropdown-menu-end shadow notification-dropdown"
                     aria-labelledby="notificationDropdown">
-                    <li class="dropdown-header">
-                        <span>Bekleyen İşlemleriniz</span>
+                    <li class="nt-head">
+                        <span class="nt-head-title">Bekleyen İşlemleriniz</span>
                         @if (totalNotificationCount() > 0) {
-                            <span class="notification-header-count">{{ totalNotificationCount() }}</span>
+                            <span class="nt-head-count">{{ totalNotificationCount() }}</span>
                         }
                     </li>
-                    <li><hr class="dropdown-divider"></li>
 
-                    <!-- Özet kartları: yalnız sayılar; evrakların listesi ilgili ekranlardadır -->
-                    @if (approvals().length > 0 || isDepartmentOfficer()) {
-                        <li class="notification-stats">
-                            @if (approvals().length > 0) {
-                                <a class="notification-stat is-approval is-link" routerLink="/zimmet-onaylari">
-                                    <span class="notification-stat-title">Zimmet Onayı Bekleyen</span>
-                                    <span class="notification-stat-row">
-                                        <span class="notification-stat-icon">
-                                            <span class="material-symbols-outlined">assignment_turned_in</span>
-                                        </span>
-                                        <span class="notification-stat-value">{{ approvals().length }} <small>evrak</small></span>
+                    <!-- Bekleyen işler: yalnız sayılar; evrakların listesi ilgili ekranlardadır.
+                         Her satır aynı düzende: ikon, başlık + açıklama, sayı, ok. -->
+                    @if (hasPendingTasks()) {
+                        <li class="nt-section-head"><span>Bekleyen İşler</span></li>
+
+                        @if (approvals().length > 0) {
+                            <li>
+                                <a class="dropdown-item nt-task is-approval" routerLink="/zimmet-onaylari">
+                                    <span class="nt-task-icon"><span class="material-symbols-outlined">assignment_turned_in</span></span>
+                                    <span class="nt-task-body">
+                                        <span class="nt-task-title">Zimmet Onayı Bekleyenler</span>
+                                        <span class="nt-task-text">Size devredilen, onayınızı bekleyen evraklar</span>
                                     </span>
+                                    <span class="nt-task-count">{{ approvals().length }}</span>
+                                    <span class="material-symbols-outlined nt-task-arrow">chevron_right</span>
                                 </a>
-                            }
+                            </li>
+                        }
 
-                            <!-- Birim Evrak Sorumlusu: biriminde teslim alınmayı bekleyen evrak sayısı -->
-                            @if (isDepartmentOfficer()) {
-                                <a class="notification-stat is-delivery is-link" [class.is-clear]="departmentPendingCount() === 0"
+                        <!-- Birim Evrak Sorumlusu: biriminde teslim alınmayı bekleyen evrak sayısı (sıfırken sönük) -->
+                        @if (isDepartmentOfficer()) {
+                            <li>
+                                <a class="dropdown-item nt-task is-delivery" [class.is-clear]="departmentPendingCount() === 0"
                                     routerLink="/incomingDepartmentDocument" [queryParams]="{ filtre: 'teslim-bekleyen' }">
-                                    <span class="notification-stat-title">Biriminizde Teslim Alınmayı Bekleyen</span>
-                                    <span class="notification-stat-row">
-                                        <span class="notification-stat-icon">
-                                            <span class="material-symbols-outlined">hourglass_top</span>
+                                    <span class="nt-task-icon"><span class="material-symbols-outlined">hourglass_top</span></span>
+                                    <span class="nt-task-body">
+                                        <span class="nt-task-title">Birimde Teslim Bekleyenler</span>
+                                        <span class="nt-task-text">
+                                            {{ departmentPendingCount() > 0 ? 'Biriminize gelen, henüz teslim alınmamış evraklar' : 'Teslim alınmayı bekleyen evrak yok' }}
                                         </span>
-                                        <span class="notification-stat-value">{{ departmentPendingCount() }} <small>evrak</small></span>
                                     </span>
+                                    <span class="nt-task-count">{{ departmentPendingCount() }}</span>
+                                    <span class="material-symbols-outlined nt-task-arrow">chevron_right</span>
                                 </a>
-                            }
-                        </li>
-                    }
+                            </li>
+                        }
 
-                    @if (approvals().length > 0 || isDepartmentOfficer()) {
-                        <li><hr class="dropdown-divider"></li>
+                        @if (pendingCount() > 0) {
+                            <li>
+                                <a class="dropdown-item nt-task is-record" href="javascript:void(0)" (click)="goToPendingAssigned()">
+                                    <span class="nt-task-icon"><span class="material-symbols-outlined">edit_document</span></span>
+                                    <span class="nt-task-body">
+                                        <span class="nt-task-title">Kaydı Tamamlanmayan Evraklar</span>
+                                        <span class="nt-task-text">Üzerinizde, kaydı tamamlanıp yayına gönderilmeyi bekleyen gelen evraklar</span>
+                                    </span>
+                                    <span class="nt-task-count">{{ pendingCount() }}</span>
+                                    <span class="material-symbols-outlined nt-task-arrow">chevron_right</span>
+                                </a>
+                            </li>
+                        }
+
+                        @if (transferCount() > 0) {
+                            <li>
+                                <a class="dropdown-item nt-task is-transfer" routerLink="/zimmetlerim">
+                                    <span class="nt-task-icon"><span class="material-symbols-outlined">outbound</span></span>
+                                    <span class="nt-task-body">
+                                        <span class="nt-task-title">Devrettiğiniz Zimmetler</span>
+                                        <span class="nt-task-text">Başka personele devrettiğiniz evraklar</span>
+                                    </span>
+                                    <span class="nt-task-count">{{ transferCount() }}</span>
+                                    <span class="material-symbols-outlined nt-task-arrow">chevron_right</span>
+                                </a>
+                            </li>
+                        }
                     }
 
                     <!-- Okunmamış bildirimler: onaylandı / reddedildi / geri çekildi / gecikme / geçersiz -->
                     @if (notifications().length > 0) {
-                        <li class="notification-section-head">
+                        <li class="nt-section-head">
                             <span>Bildirimler</span>
-                            <button type="button" class="notification-read-all" (click)="markAllNotificationsRead($event)">
+                            <button type="button" class="nt-read-all" (click)="markAllNotificationsRead($event)">
+                                <span class="material-symbols-outlined">done_all</span>
                                 Tümünü okundu say
                             </button>
                         </li>
@@ -164,79 +235,26 @@
                                 </a>
                             </li>
                         }
-                        <li>
-                            <a class="dropdown-item notification-approval-more is-neutral" routerLink="/zimmet-onaylari"
-                                [queryParams]="{ sekme: 'bildirimler' }">
-                                @if (notifications().length > notificationPreview().length) {
-                                    +{{ notifications().length - notificationPreview().length }} bildirim daha ·
-                                }
-                                Tüm bildirimler
-                                <span class="material-symbols-outlined">arrow_forward</span>
-                            </a>
-                        </li>
-                        <li><hr class="dropdown-divider"></li>
                     }
 
-                    @if (pendingCount() > 0) {
-                        <li>
-                            <a class="dropdown-item notification-item" href="javascript:void(0)"
-                                (click)="goToPendingScanList()">
-                                <div class="notification-icon bg-warning">
-                                    <span class="material-symbols-outlined"
-                                        style="font-size:18px;">hourglass_bottom</span>
-                                </div>
-                                <div class="notification-content">
-                                    <p class="notification-text">Atananlar</p>
-                                    <p class="notification-time"><b>{{
-                                            pendingCount() }}</b> Evrak
-                                        Beklemede</p>
-                                </div>
-                            </a>
-                        </li>
-                    } @else if (!isDepartmentOfficer()) {
-                        <li class="notification-empty">
-                            <span class="material-symbols-outlined">task_alt</span>
-                            <p>Bekleyen atanmış evrakınız bulunmuyor</p>
+                    @if (!hasPendingTasks() && notifications().length === 0) {
+                        <li class="nt-empty">
+                            <span class="nt-empty-icon"><span class="material-symbols-outlined">task_alt</span></span>
+                            <p class="nt-empty-title">Bekleyen işiniz yok</p>
+                            <p class="nt-empty-text">Yeni bir iş ya da bildirim geldiğinde burada görünür.</p>
                         </li>
                     }
 
-                    @if (isAdmin() && transferCount() > 0) {
-                        <li>
-                            <a class="dropdown-item notification-item"
-                                routerLink="/zimmetlerim">
-                                <div class="notification-icon bg-primary">
-                                    <span class="material-symbols-outlined"
-                                        style="font-size:18px;">sync_alt</span>
-                                </div>
-                                <div class="notification-content">
-                                    <p class="notification-text">Zimmet Devri
-                                        Yaptıklarım</p>
-                                    <p class="notification-time"><b>{{
-                                            transferCount() }}</b> Evrak
-                                        Devredildi</p>
-                                </div>
-                            </a>
-                        </li>
-                    }
-
-                    @if (transferCount() > 0) {
-                        <li>
-                            <a class="dropdown-item notification-item"
-                                routerLink="/zimmetlerim">
-                                <div class="notification-icon bg-secondary">
-                                    <span class="material-symbols-outlined"
-                                        style="font-size:18px;">outbound</span>
-                                </div>
-                                <div class="notification-content">
-                                    <p class="notification-text">Devrettiğiniz
-                                        Zimmetler</p>
-                                    <p class="notification-time"><b>{{
-                                            transferCount() }}</b> Evrak
-                                        Devredildi</p>
-                                </div>
-                            </a>
-                        </li>
-                    }
+                    <!-- Alt şerit: tüm bildirimler -->
+                    <li class="nt-foot">
+                        <a class="nt-foot-link" routerLink="/zimmet-onaylari" [queryParams]="{ sekme: 'bildirimler' }">
+                            Tüm bildirimler
+                            @if (notificationCount() > notificationPreview().length) {
+                                <span class="nt-foot-more">+{{ notificationCount() - notificationPreview().length }}</span>
+                            }
+                            <span class="material-symbols-outlined">arrow_forward</span>
+                        </a>
+                    </li>
                 </ul>
             </div>
 
@@ -387,3 +405,4 @@
 
 <!-- Girişte tek hatırlatma popup'ı: zimmet onayları + birim teslim bekleyenler -->
 <app-login-reminder />
+<app-session-timeout />

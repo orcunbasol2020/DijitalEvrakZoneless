@@ -1,3 +1,4 @@
+import { environment } from '../environments/environment';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { HttpService } from './http';
@@ -112,6 +113,6 @@ export class OutgoingDocumentAllocation {
 
   // Islak imzalı belgeyi indirmek için backend URL'i (anchor/window.open ile kullanılır)
   getWetSignedDownloadUrl(allocationId: string): string {
-    return `https://localhost:7056/${this.baseUrl}/DownloadWetSignedDocument?allocationId=${encodeURIComponent(allocationId)}`;
+    return `${environment.apiUrl}${this.baseUrl}/DownloadWetSignedDocument?allocationId=${encodeURIComponent(allocationId)}`;
   }
 }
