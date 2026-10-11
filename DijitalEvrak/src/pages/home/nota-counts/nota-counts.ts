@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal, ViewEncapsulation } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ExternalInstitutionModel, ExternalInstitutionType } from '../../../services/external-institution';
-import { AdminDashboardData, INCOMING_NOTA_TYPES, OUTGOING_NOTA_TYPE } from '../admin-dashboard/admin-dashboard-data';
+import { AdminDashboardData, incomingNotaMission, outgoingNotaMissions } from '../admin-dashboard/admin-dashboard-data';
 
 type Period = 7 | 30;
 
@@ -31,14 +31,11 @@ function flagOf(name: string): string | null {
   return FLAGS.find(f => lower.startsWith(f.prefix))?.file ?? null;
 }
 
-const key = (id: string | null | undefined) => (id ? id.toLowerCase() : null);
-
 /**
  * Yönetici paneli "Diplomatik Nota Sayıları": seçilen dönemde (kayıt tarihine göre) misyonlardan
  * gelen ve misyonlara gönderilen notalar, toplamı en yüksek ilk beş misyon.
- * Gelen nota: türü Nota / E-Nota olan ve gönderen kurumu Misyon türündeki gelen evrak.
- * Giden nota: türü Nota olan giden evrak; alıcı misyonlar dağıtım listesinden (eski
- * kayıtlarda tek alıcı alanından) okunur, aynı evrak bir misyona bir kez sayılır.
+ * Türü ne olursa olsun misyondan gelen ve misyona giden her evrak notadır (bkz. admin-dashboard-data);
+ * giden evrak her alıcı misyona bir kez sayılır.
  */
 @Component({
   selector: 'app-nota-counts',
@@ -75,22 +72,16 @@ export class NotaCounts {
       counts.set(id, row);
     };
 
+    const missionIds = this.#data.missionIds();
+
     for (const d of this.#data.incoming()) {
-      const id = key(d.externalInstitutionId);
-      if (!id || !missions.has(id) || !INCOMING_NOTA_TYPES.has(d.documentTypeId)) continue;
-      if (inPeriod(d.createdDate)) bump(id, 'incoming');
+      const id = incomingNotaMission(d, missionIds);
+      if (id && inPeriod(d.createdDate)) bump(id, 'incoming');
     }
 
     for (const d of this.#data.outgoing()) {
-      if (d.type !== OUTGOING_NOTA_TYPE || !inPeriod(d.createdDate)) continue;
-      const recipients = new Set<string>();
-      for (const dist of d.distributions ?? []) {
-        const id = key(dist.externalInstitutionId);
-        if (id && !(dist as { isDeleted?: boolean }).isDeleted) recipients.add(id);
-      }
-      const legacy = key(d.externalInstitutonId);
-      if (legacy) recipients.add(legacy);
-      for (const id of recipients) if (missions.has(id)) bump(id, 'outgoing');
+      if (!inPeriod(d.createdDate)) continue;
+      for (const id of outgoingNotaMissions(d, missionIds)) bump(id, 'outgoing');
     }
 
     return [...counts.entries()]

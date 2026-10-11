@@ -10,7 +10,7 @@ import { SmartRouting } from '../smart-routing/smart-routing';
 import { NotaCounts } from '../nota-counts/nota-counts';
 import { ReportChart } from '../../reports/report-chart';
 import { ExternalInstitutionType } from '../../../services/external-institution';
-import { AdminDashboardData, INCOMING_NOTA_TYPES, OUTGOING_NOTA_TYPE } from './admin-dashboard-data';
+import { AdminDashboardData, incomingNotaMission, outgoingNotaMissions } from './admin-dashboard-data';
 
 type Direction = 'incoming' | 'outgoing';
 
@@ -117,8 +117,9 @@ export class AdminDashboard {
 
     const inT = times(incoming);
     const outT = times(outgoing);
-    const notaInT = times(incoming.filter(d => INCOMING_NOTA_TYPES.has(d.documentTypeId)));
-    const notaOutT = times(outgoing.filter(d => d.type === OUTGOING_NOTA_TYPE));
+    const missionIds = this.#data.missionIds();
+    const notaInT = times(incoming.filter(d => incomingNotaMission(d, missionIds)));
+    const notaOutT = times(outgoing.filter(d => outgoingNotaMissions(d, missionIds).size > 0));
 
     // Bugün: gece yarısından şimdiye; karşılaştırma dün aynı saate kadar
     const todayPair = (a: number[], b: number[]) => ({

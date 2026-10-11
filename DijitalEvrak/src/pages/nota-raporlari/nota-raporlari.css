@@ -1,0 +1,320 @@
+/* ============================================================
+   Nota Raporları
+   Kart, süzgeç, özet kutusu, tablo ve grafik dili Raporlar sayfasından
+   (home/dashboard.css + reports/reports.css) gelir; burada yalnızca bu
+   sayfaya özgü "nr-" ekleri var.
+   ============================================================ */
+
+/* ---- Misyon arama kutusu ve öneri listesi (rp-ms-panel dilinde) ---- */
+.nr-filter-mission {
+    max-width: 440px;
+}
+
+.nr-picker {
+    position: relative;
+}
+
+.nr-suggest {
+    width: 100%;
+    max-width: none;
+}
+
+.nr-suggest .rp-ms-list {
+    max-height: 320px;
+}
+
+.nr-suggest-item {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    text-align: left;
+}
+
+.nr-suggest-item.is-active {
+    background: #f0f9ff;
+}
+
+.nr-suggest-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.nr-suggest-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+    color: var(--rp-text);
+}
+
+.nr-suggest-sub {
+    font-size: 11px;
+    color: var(--rp-muted);
+}
+
+.nr-suggest-count {
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: #0369a1;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---- Tablolar: tıklanabilir satırlar ---- */
+.nr-row {
+    cursor: pointer;
+}
+
+.nr-row:hover > td {
+    background: #f8fbfd;
+}
+
+.nr-col-rank {
+    width: 44px;
+    color: #94a3b8;
+}
+
+.nr-footnote {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin: -8px 0 16px;
+    padding: 0 4px;
+    font-size: 12px;
+    color: var(--rp-muted);
+}
+
+.nr-footnote .material-symbols-outlined {
+    font-size: 16px;
+    margin-top: 1px;
+}
+
+/* ---- Üst şerit: seçili misyon büyük başlıkla ---- */
+.nr-hero {
+    padding: 22px 26px;
+}
+
+.nr-hero-id {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    min-width: 0;
+    animation: ad-hero-item-in 0.8s cubic-bezier(0.22, 0.61, 0.36, 1) 0.08s both;
+}
+
+.nr-hero-avatar {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.32);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.nr-hero-text {
+    min-width: 0;
+}
+
+.nr-hero-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: rgba(255, 255, 255, 0.82);
+}
+
+.nr-hero-eyebrow .material-symbols-outlined {
+    font-size: 16px;
+}
+
+.nr-hero-name {
+    margin: 2px 0 10px;
+    font-size: 26px;
+    font-weight: 800;
+    line-height: 1.15;
+    color: #fff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nr-hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.nr-hero-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 26px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.nr-hero-chip .material-symbols-outlined {
+    font-size: 16px;
+}
+
+/* ---- Süzgeç paneli: başlık + açılır gövde ---- */
+.nr-filters {
+    display: block;
+}
+
+.nr-filters.is-collapsed {
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+.nr-filters-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+}
+
+.nr-filters:not(.is-collapsed) .nr-filters-head {
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--rp-border);
+}
+
+.nr-filters-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 10px 0 12px;
+    border: 1px solid var(--rp-border);
+    border-radius: 10px;
+    background: var(--rp-soft);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--rp-text);
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.nr-filters-toggle:hover {
+    border-color: #7dd3fc;
+}
+
+.nr-filters-toggle .material-symbols-outlined {
+    font-size: 18px;
+    color: #0369a1;
+}
+
+.nr-filters-chevron {
+    transition: transform 0.2s ease;
+}
+
+.nr-filters-toggle[aria-expanded="true"] .nr-filters-chevron {
+    transform: rotate(180deg);
+}
+
+.nr-filters-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-width: 0;
+}
+
+.nr-filters-pill {
+    max-width: 280px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #0369a1;
+    background: #e0f2fe;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nr-filters-body {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 14px 20px;
+}
+
+.nr-filters-body[hidden] {
+    display: none;
+}
+
+@media (max-width: 575.98px) {
+    .nr-filter-mission {
+        max-width: none;
+    }
+
+    .nr-hero-id {
+        gap: 14px;
+    }
+
+    .nr-hero-avatar {
+        width: 52px;
+        height: 52px;
+        border-radius: 15px;
+        font-size: 18px;
+    }
+
+    .nr-hero-name {
+        font-size: 21px;
+        white-space: normal;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nr-hero-id {
+        animation: none;
+    }
+
+    .nr-filters-chevron,
+    .nr-filters-toggle {
+        transition: none;
+    }
+}
+
+/* ---- Koyu tema ---- */
+[data-theme="dark"] .nr-suggest-item.is-active,
+[data-theme="dark"] .nr-row:hover > td {
+    background: rgba(14, 165, 233, 0.08);
+}
+
+[data-theme="dark"] .nr-suggest-count {
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .nr-filters-toggle {
+    background: rgba(148, 163, 184, 0.06);
+}
+
+[data-theme="dark"] .nr-filters-toggle .material-symbols-outlined {
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .nr-filters-pill {
+    background: rgba(14, 165, 233, 0.18);
+    color: #7dd3fc;
+}

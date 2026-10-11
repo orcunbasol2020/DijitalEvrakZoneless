@@ -20,8 +20,8 @@ export class HttpService {
     );
   }
 
-  get<T>(endpoint: string) {
-    return this.#http.get<T>(endpoint);
+  get<T>(endpoint: string, options?: { context?: HttpContext }) {
+    return this.#http.get<T>(endpoint, options);
   }
 
   post<T>(endpoint: string, body: any, options?: { context?: HttpContext }) {

@@ -201,12 +201,6 @@ export const navigations: NavigationModel[] = [
         excludeRoles: LIMITED_ROLES
     },
     {
-        title: "Raporlar",
-        url: "/reports",
-        icon: "monitoring",
-        excludeRoles: LIMITED_ROLES
-    },
-    {
         title: "Atlas Aktarım Hataları",
         url: "/atlas-aktarim-hatalari",
         icon: "cloud_off",
@@ -217,5 +211,24 @@ export const navigations: NavigationModel[] = [
         url: "/app-settings",
         icon: "tune",
         roles: ["Yönetici"]
+    },
+
+    {
+        category: "Raporlar",
+        title: undefined,
+        url: undefined,
+        icon: undefined
+    },
+    {
+        title: "Raporlar",
+        url: "/reports",
+        icon: "monitoring",
+        excludeRoles: LIMITED_ROLES
+    },
+    {
+        title: "Nota Raporları",
+        url: "/nota-raporlari",
+        icon: "public",
+        excludeRoles: LIMITED_ROLES
     }
 ];

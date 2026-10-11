@@ -1,0 +1,350 @@
+<app-generic pageTitle="Nota Raporları" [breadcrumbs]="[{title: 'Nota Raporları', url: 'nota-raporlari', icon: 'public'}]" />
+
+<!-- Raporlar sayfasıyla aynı görsel dil: ad-hero şeridi, rp-filters süzgeç çubuğu,
+     premium-card kartlar, ad-stat özet kutuları ve rp-table tablolar -->
+<div class="rp-page nr-page">
+
+<!-- ===================== Üst şerit ===================== -->
+@if (selected(); as s) {
+    <!-- Seçili misyon: raporun konusu büyük başlıkla, dönem ve tarih alanı etiketlerle -->
+    <section class="ad-hero nr-hero">
+        <div class="ad-hero-glow ad-hero-glow-a"></div>
+        <div class="ad-hero-glow ad-hero-glow-b"></div>
+
+        <div class="nr-hero-id">
+            <span class="nr-hero-avatar" aria-hidden="true">{{ selectedInitials() }}</span>
+            <div class="nr-hero-text">
+                <div class="nr-hero-eyebrow">
+                    <span class="material-symbols-outlined">public</span>
+                    Gelen Nota Raporu
+                </div>
+                <h2 class="nr-hero-name" [title]="s.name">{{ s.name || 'Misyon' }}</h2>
+                <div class="nr-hero-meta">
+                    @if (selectedCountry()) {
+                        <span class="nr-hero-chip"><span class="material-symbols-outlined">flag</span>{{ selectedCountry() }}</span>
+                    }
+                    <span class="nr-hero-chip"><span class="material-symbols-outlined">calendar_month</span>{{ periodLabel() }}</span>
+                    <span class="nr-hero-chip"><span class="material-symbols-outlined">event</span>{{ dateFieldLabel() }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="ad-hero-actions">
+            <button type="button" class="ad-hero-btn" (click)="changeMission()">
+                <span class="material-symbols-outlined">swap_horiz</span>
+                Misyon Değiştir
+            </button>
+            <button type="button" class="ad-hero-btn ad-hero-btn-icon" title="Misyon seçimini kaldır" aria-label="Misyon seçimini kaldır" (click)="clearSelection()">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+            <button type="button" class="ad-hero-btn ad-hero-btn-icon" title="Güncel Verileri Getir" aria-label="Güncel Verileri Getir"
+                [class.is-spinning]="summaryState() === 'loading'" [disabled]="summaryState() === 'loading'" (click)="loadSummary()">
+                <span class="material-symbols-outlined">refresh</span>
+            </button>
+        </div>
+    </section>
+} @else {
+    <section class="ad-hero">
+        <div class="ad-hero-glow ad-hero-glow-a"></div>
+        <div class="ad-hero-glow ad-hero-glow-b"></div>
+
+        <div class="ad-hero-text">
+            <div class="ad-hero-kicker">
+                <span class="material-symbols-outlined">public</span>
+                Gelen Nota Raporları
+            </div>
+            <div class="ad-hero-sub">
+                <span>Bir yabancı misyon seçin; gönderdiği notaların birimlere dağılımını görün</span>
+            </div>
+        </div>
+
+        <div class="ad-hero-actions">
+            <button type="button" class="ad-hero-btn ad-hero-btn-icon" title="Güncel Verileri Getir" aria-label="Güncel Verileri Getir"
+                [class.is-spinning]="missionsState() === 'loading'" [disabled]="missionsState() === 'loading'" (click)="loadMissions()">
+                <span class="material-symbols-outlined">refresh</span>
+            </button>
+        </div>
+    </section>
+}
+
+<!-- ===================== Süzgeç paneli (misyon seçildikten sonra kapatılabilir) ===================== -->
+<section class="rp-filters nr-filters" [class.is-collapsed]="!filtersVisible()">
+    @if (selected()) {
+        <div class="nr-filters-head">
+            <button type="button" class="nr-filters-toggle" (click)="toggleFilters()"
+                [attr.aria-expanded]="filtersVisible()" aria-controls="nr-filters-body">
+                <span class="material-symbols-outlined">tune</span>
+                Süzgeçler
+                <span class="material-symbols-outlined nr-filters-chevron">expand_more</span>
+            </button>
+            @if (!filtersVisible()) {
+                <!-- Kapalıyken etkin süzgeçler özet olarak görünür -->
+                <div class="nr-filters-summary">
+                    <span class="nr-filters-pill">{{ selected()?.name }}</span>
+                    <span class="nr-filters-pill">{{ periodLabel() }}</span>
+                    <span class="nr-filters-pill">{{ dateFieldLabel() }}</span>
+                </div>
+            }
+        </div>
+    }
+
+    <div class="nr-filters-body" id="nr-filters-body" [hidden]="!filtersVisible()">
+        <div class="rp-filter rp-filter-grow nr-filter-mission">
+            <span class="rp-filter-label">{{ selected() ? 'MİSYON DEĞİŞTİR' : 'MİSYON' }}</span>
+            <div class="nr-picker">
+                <span class="rp-search">
+                    <span class="material-symbols-outlined">search</span>
+                    <input #searchInput type="text" class="rp-input" autocomplete="off"
+                        [placeholder]="missionsState() === 'loading' ? 'Misyonlar yükleniyor…' : 'Misyon ya da ülke arayın (ör. Amerika)'"
+                        [disabled]="missionsState() === 'loading'"
+                        [value]="query()" (input)="onQuery($any($event.target).value)" (focus)="pickerOpen.set(true)" (keydown)="onKeydown($event)"
+                        role="combobox" [attr.aria-expanded]="pickerOpen()" aria-label="Misyon ara">
+                </span>
+
+                @if (pickerOpen() && missionsState() === 'ready') {
+                    <div class="rp-ms-panel nr-suggest" role="listbox">
+                        <div class="rp-ms-list">
+                            @for (m of suggestions(); track m.id; let i = $index) {
+                                <button type="button" class="rp-ms-item nr-suggest-item" role="option"
+                                    [class.is-active]="i === activeIndex()" [attr.aria-selected]="i === activeIndex()"
+                                    (mouseenter)="activeIndex.set(i)" (click)="pick(m)">
+                                    <span class="nr-suggest-text">
+                                        <span class="nr-suggest-name">{{ m.name }}</span>
+                                        @if (m.country) { <span class="nr-suggest-sub">{{ m.country }}</span> }
+                                    </span>
+                                    <span class="nr-suggest-count">{{ m.notaCount }}</span>
+                                </button>
+                            } @empty {
+                                <div class="rp-ms-empty">Bu aramaya uyan misyon yok</div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        @if (selected()) {
+            <div class="rp-filter">
+                <span class="rp-filter-label">YIL</span>
+                <div class="ad-tabs rp-presets">
+                    <button type="button" class="ad-tab" [class.is-active]="year() === null" (click)="setYear(null)">Tümü</button>
+                    @for (y of years(); track y.year) {
+                        <button type="button" class="ad-tab" [class.is-active]="year() === y.year" (click)="setYear(y.year)">{{ y.year }}</button>
+                    }
+                </div>
+            </div>
+
+            <div class="rp-filter">
+                <span class="rp-filter-label">AY</span>
+                <select class="rp-input" [value]="month() ?? ''" (change)="setMonth($any($event.target).value)">
+                    <option value="">Tüm aylar</option>
+                    @for (m of monthsLong; track $index) {
+                        <option [value]="$index + 1">{{ m }}</option>
+                    }
+                </select>
+            </div>
+
+            <div class="rp-filter">
+                <span class="rp-filter-label">TARİH ALANI</span>
+                <div class="ad-tabs">
+                    <button type="button" class="ad-tab" [class.is-active]="dateField() === 'created'" (click)="setDateField('created')">Kayıt</button>
+                    <button type="button" class="ad-tab" [class.is-active]="dateField() === 'document'" (click)="setDateField('document')">Belge</button>
+                </div>
+            </div>
+        }
+    </div>
+</section>
+
+@if (!selected()) {
+    <!-- ===================== Misyon seçilmeden: en çok nota gönderenler ===================== -->
+    @switch (missionsState()) {
+        @case ('loading') {
+            <div class="rp-state">
+                <span class="material-symbols-outlined rp-spin">progress_activity</span>
+                Misyonlar yükleniyor…
+            </div>
+        }
+        @case ('error') {
+            <div class="rp-state">
+                <span class="material-symbols-outlined">cloud_off</span>
+                Misyon listesi alınamadı.
+                <button type="button" class="rp-btn" (click)="loadMissions()">Tekrar dene</button>
+            </div>
+        }
+        @default {
+            <div class="card premium-card rp-card mb-4">
+                <div class="card-header dashboard-header ad-head">
+                    <span class="ad-head-icon"><span class="material-symbols-outlined">leaderboard</span></span>
+                    <div class="ad-head-text">
+                        <h5 class="ad-head-title">En Çok Nota Gönderen Misyonlar</h5>
+                        <div class="ad-head-sub">Bir satıra tıklayarak ya da yukarıdan arayarak misyon seçin</div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table orders-table rp-table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="nr-col-rank">#</th>
+                                    <th>MİSYON</th>
+                                    <th>ÜLKE</th>
+                                    <th class="text-end">NOTA</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (m of popular(); track m.id; let i = $index) {
+                                    <tr class="nr-row" (click)="pick(m)">
+                                        <td class="rp-num nr-col-rank">{{ i + 1 }}</td>
+                                        <td class="rp-name">{{ m.name }}</td>
+                                        <td class="rp-num">{{ m.country || '—' }}</td>
+                                        <td class="text-end rp-num rp-strong">{{ m.notaCount }}</td>
+                                    </tr>
+                                } @empty {
+                                    <tr><td colspan="4"><ng-container *ngTemplateOutlet="empty; context: { text: 'Henüz nota kaydı yok' }"></ng-container></td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+} @else {
+    @switch (summaryState()) {
+        @case ('loading') {
+            <div class="rp-state">
+                <span class="material-symbols-outlined rp-spin">progress_activity</span>
+                Nota özeti yükleniyor…
+            </div>
+        }
+        @case ('error') {
+            <div class="rp-state">
+                <span class="material-symbols-outlined">cloud_off</span>
+                {{ summaryError() }}
+                <button type="button" class="rp-btn" (click)="loadSummary()">Tekrar dene</button>
+            </div>
+        }
+        @case ('ready') {
+            @let sum = summary()!;
+
+            <!-- ===================== Özet ===================== -->
+            <div class="ad-stats">
+                <ng-container *ngTemplateOutlet="kpi; context: { label: 'GELEN NOTA', value: sum.notaCount, icon: 'mark_email_unread', foot: periodLabel() }"></ng-container>
+                <ng-container *ngTemplateOutlet="kpi; context: { label: 'ALICI BİRİM', value: sum.departments.length, icon: 'apartment', foot: 'Nota gönderilen birim' }"></ng-container>
+                <ng-container *ngTemplateOutlet="kpi; context: { label: 'E-NOTA', value: sum.eNotaCount, icon: 'alternate_email', foot: (sum.notaCount - sum.eNotaCount) + ' Nota' }"></ng-container>
+                <ng-container *ngTemplateOutlet="kpi; context: { label: 'SON NOTA', value: sum.lastNotaDate ? (sum.lastNotaDate | date:'dd.MM.yyyy') : '—', icon: 'event', foot: 'Kayıt tarihi' }"></ng-container>
+            </div>
+
+            @if (!sum.notaCount) {
+                <div class="rp-state">
+                    <span class="material-symbols-outlined">inbox</span>
+                    Bu dönemde nota yok. Başka bir yıl seçin ya da "Tümü"ne dönün.
+                </div>
+            } @else {
+                <div class="row g-3 mb-4">
+                    <!-- ===================== Birimlere göre ===================== -->
+                    <div class="col-xl-8">
+                        <div class="card premium-card rp-card h-100">
+                            <div class="card-header dashboard-header ad-head">
+                                <span class="ad-head-icon"><span class="material-symbols-outlined">account_tree</span></span>
+                                <div class="ad-head-text">
+                                    <h5 class="ad-head-title">Birimlere Göre</h5>
+                                    <div class="ad-head-sub">{{ sum.departments.length }} birim</div>
+                                </div>
+                                <button type="button" class="rp-btn" (click)="exportDepartments()">
+                                    <span class="material-symbols-outlined">download</span>
+                                    Excel
+                                </button>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table orders-table rp-table align-middle mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>BİRİM</th>
+                                                <th>NOTA</th>
+                                                <th class="text-end">GEREĞİ</th>
+                                                <th class="text-end">BİLGİ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @for (d of sum.departments; track d.departmentId) {
+                                                <tr>
+                                                    <td class="rp-name" [title]="fullName(d)">
+                                                        {{ shortName(d) }}
+                                                        @if (shortName(d) !== fullName(d)) { <div class="rp-cell-sub">{{ fullName(d) }}</div> }
+                                                    </td>
+                                                    <td>
+                                                        <div class="rp-meter" [title]="d.notaCount + ' nota'">
+                                                            <div class="rp-meter-bar"><span [style.width.%]="barWidth(d)"></span></div>
+                                                            <span class="rp-meter-val rp-strong">{{ d.notaCount }}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-end rp-num">{{ d.geregiCount }}</td>
+                                                    <td class="text-end rp-num">{{ d.bilgiCount }}</td>
+                                                </tr>
+
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ===================== Aylık seyir ===================== -->
+                    <div class="col-xl-4">
+                        <div class="card premium-card rp-card h-100">
+                            <div class="card-header dashboard-header ad-head">
+                                <span class="ad-head-icon"><span class="material-symbols-outlined">bar_chart</span></span>
+                                <div class="ad-head-text">
+                                    <h5 class="ad-head-title">Aylık Seyir</h5>
+                                    <div class="ad-head-sub">{{ periodLabel() }}</div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                @if (sum.months.length) {
+                                    <div [reportChart]="monthOption()" style="height: 280px;"></div>
+                                } @else {
+                                    <ng-container *ngTemplateOutlet="empty; context: { text: 'Gösterilecek ay yok' }"></ng-container>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sayfanın en altında açıklama -->
+                <div class="nr-footnote">
+                    <span class="material-symbols-outlined">info</span>
+                    <span>
+                        @if (sum.noRecipientCount) { {{ sum.noRecipientCount }} notada alıcı birim belirtilmemiş. }
+                        Bir nota birden fazla birime gidebildiğinden birim sayılarının toplamı nota sayısından büyük olabilir.
+                    </span>
+                </div>
+            }
+        }
+    }
+}
+
+</div>
+
+<!-- ===================== Şablonlar ===================== -->
+<ng-template #kpi let-label="label" let-value="value" let-icon="icon" let-foot="foot">
+    <div class="ad-stat rp-stat">
+        <div class="ad-stat-body">
+            <div class="ad-stat-label">{{ label }}</div>
+            <div class="ad-stat-value">{{ value }}</div>
+            <div class="ad-stat-foot">
+                <span class="ad-stat-period">{{ foot }}</span>
+            </div>
+        </div>
+        <span class="ad-stat-icon"><span class="material-symbols-outlined">{{ icon }}</span></span>
+    </div>
+</ng-template>
+
+<ng-template #empty let-text="text">
+    <div class="rp-empty">
+        <span class="material-symbols-outlined">search_off</span>
+        {{ text }}
+    </div>
+</ng-template>

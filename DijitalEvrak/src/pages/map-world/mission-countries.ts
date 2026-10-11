@@ -172,6 +172,6 @@ const PREFIXES = ENTRIES
 
 /** Misyon adından ülkeyi bulur; ad bir ülkeyle başlamıyorsa null */
 export function countryOfMission(name: string): MissionCountry | null {
-  const n = lower(name.trim());
+  const n = lower((name ?? '').trim());
   return PREFIXES.find(p => n === p.prefix || n.startsWith(p.prefix + ' '))?.country ?? null;
 }

@@ -1,17 +1,38 @@
-import { inject, Injectable, signal } from '@angular/core';
+import { computed, inject, Injectable, signal } from '@angular/core';
 import { forkJoin, Observable, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { HttpService } from '../../../services/http';
-import { ExternalInstitution, ExternalInstitutionModel } from '../../../services/external-institution';
+import { ExternalInstitution, ExternalInstitutionModel, ExternalInstitutionType } from '../../../services/external-institution';
 import { Department, DepartmentModel } from '../../../services/department';
 import { IncomingDocumentModel } from '../../../models/incoming-document/incoming-document.model';
 import { OutgoingDocumentModel } from '../../../models/outgoingdocument.model';
-import { DocumentTypeEnum } from '../../../models/documenttype.model';
 
-/** Gelen evrakta nota sayılan türler */
-export const INCOMING_NOTA_TYPES = new Set<number>([DocumentTypeEnum.Nota, DocumentTypeEnum.ENota]);
-/** Giden evrak türü (API alanı "type"): 1 Nota, 2 Evrak */
-export const OUTGOING_NOTA_TYPE = 1;
+// Nota kuralı (Nota Raporları backend'iyle aynı): yabancı misyondan gelen ve yabancı misyona giden her
+// evrak, türü ne olursa olsun notadır. Misyon = dış kurum türü 1; Kurum ve Şahıs nota sayılmaz.
+// Kimlikler küçük harfle karşılaştırılır (missionIds küçük harf tutar).
+
+const key = (id: string | null | undefined) => (id ? id.toLowerCase() : null);
+
+/** Gelen evrak nota ise gönderen misyonun kimliği (küçük harf), değilse null */
+export function incomingNotaMission(d: IncomingDocumentModel, missionIds: ReadonlySet<string>): string | null {
+  const id = key(d.externalInstitutionId);
+  return id && missionIds.has(id) ? id : null;
+}
+
+/**
+ * Giden evrakın alıcı misyonları (küçük harf); boşsa evrak nota değildir. Alıcılar dağıtım listesinden,
+ * eski kayıtlarda tek alıcı alanından okunur; aynı misyon bir kez sayılır.
+ */
+export function outgoingNotaMissions(d: OutgoingDocumentModel, missionIds: ReadonlySet<string>): Set<string> {
+  const recipients = new Set<string>();
+  for (const dist of d.distributions ?? []) {
+    const id = key(dist.externalInstitutionId);
+    if (id && !(dist as { isDeleted?: boolean }).isDeleted && missionIds.has(id)) recipients.add(id);
+  }
+  const legacy = key(d.externalInstitutonId);
+  if (legacy && missionIds.has(legacy)) recipients.add(legacy);
+  return recipients;
+}
 
 /**
  * Yönetici panelindeki kartların ortak verisi: gelen / giden evrak, dış kurum ve birim listeleri
@@ -31,6 +52,9 @@ export class AdminDashboardData {
   readonly outgoing = signal<OutgoingDocumentModel[]>([]);
   readonly institutions = signal<ExternalInstitutionModel[]>([]);
   readonly departments = signal<DepartmentModel[]>([]);
+  /** Misyon türündeki dış kurumların kimlikleri, küçük harf */
+  readonly missionIds = computed(() => new Set(
+    this.institutions().filter(i => i.type === ExternalInstitutionType.Misyon).map(i => i.id.toLowerCase())));
 
   constructor() {
     this.load();

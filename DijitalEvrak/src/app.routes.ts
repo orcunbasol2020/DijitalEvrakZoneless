@@ -235,6 +235,12 @@ export const routes: Routes = [
                 loadComponent: () => import('./pages/reports/reports'),
                 canActivate: [roleGuard],
                 data: { excludeRoles: LIMITED_ROLES }
+            },
+            {
+                path: 'nota-raporlari',
+                loadComponent: () => import('./pages/nota-raporlari/nota-raporlari'),
+                canActivate: [roleGuard],
+                data: { excludeRoles: LIMITED_ROLES }
             }
             /*
             {
