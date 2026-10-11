@@ -1,3 +1,5 @@
+import { idKey } from '../../models/ids';
+import { IncomingAttachmentsView } from '../../../components/incoming-attachments-view/incoming-attachments-view';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -16,7 +18,7 @@ import { FlexiToastService } from 'flexi-toast';
 import { FormsModule } from '@angular/forms';
 import { httpResource } from '@angular/common/http';
 import { IncomingDocumentService } from '../../services/incomingdocument';
-import { IncomingDocumentModel } from '../../models/incoming-document/incoming-document.model';
+import { IncomingDocumentModel, incomingRecipientNames, incomingRecipientsOf, summarizeRecipientNames } from '../../models/incoming-document/incoming-document.model';
 import { Common } from '../../services/common';
 import { SecurityDegreeLabels, SecurityDegreeIcons, SecurityDegreeBadgeClass } from '../../models/securitydegree.model';
 import { UrgencyDegreeEnum, UrgencyDegreeLabels, UrgencyDegreeInitials, UrgencyDegreeBadgeClass } from '../../models/urgencydegree.model';
@@ -121,6 +123,7 @@ type DocumentRow = IncomingDocumentModel & { currentAssignmentUser?: string | nu
  *  ekranıyla (scanlist) ortak sq- stillerini kullanır. */
 @Component({
   imports: [
+    IncomingAttachmentsView,
     GenericModel,
     FormsModule,
     CommonModule,
@@ -174,21 +177,39 @@ export default class Documentlist {
   // ---- Nereden / Nereye adları ----
   // Bakanlık birimi satırda kısa adıyla (yoksa tam adıyla), dış kurum tam adıyla yazılır
   private readonly departmentNames = signal<Record<string, { name: string; short: string }>>({});
-  private readonly institutionNames = signal<Record<string, string>>({});
 
   readonly departmentOptions = computed(() =>
     Object.entries(this.departmentNames())
       .map(([id, d]) => ({ id, label: d.short && d.short !== d.name ? `${d.short} · ${d.name}` : d.name }))
       .sort((a, b) => a.label.localeCompare(b.label, 'tr')));
 
+  // Kurum adı cevapta gelir (externalInstitutionName); ~160.000 kurumluk liste ad için çekilmez
   fromName(d: IncomingDocumentModel): string {
-    return (d.externalInstitutionId && this.institutionNames()[d.externalInstitutionId.toLowerCase()]) || '';
+    return d.externalInstitutionName || '';
   }
 
+  // Nereye: evrak birden fazla birime gidebilir (distributions); adlar birim listesinden çözülür.
+  // Kısa biçimde kısa ad + "(B)", tam biçimde (tooltip, CSV, arama) tam ad + "(Bilgi)"
+  private toNames(d: IncomingDocumentModel, compact: boolean): string[] {
+    const names = this.departmentNames();
+    return incomingRecipientNames(d, id => {
+      const dept = names[idKey(id)!];
+      return dept && (compact ? (dept.short || dept.name) : dept.name);
+    }, compact ? 'B' : 'Bilgi');
+  }
+
+  // Tüm alıcılar virgülle (sıralama, arama, CSV ve önizleme için)
   toName(d: IncomingDocumentModel, compact = true): string {
-    const dept = d.departmentId ? this.departmentNames()[d.departmentId.toLowerCase()] : undefined;
-    if (!dept) return '';
-    return compact ? (dept.short || dept.name) : dept.name;
+    return this.toNames(d, compact).join(', ');
+  }
+
+  // Satır hücresi: çok alıcıda "X ve N birim daha"; tam liste title'da alt alta
+  toCell(d: IncomingDocumentModel): string {
+    return summarizeRecipientNames(this.toNames(d, true));
+  }
+
+  toTitle(d: IncomingDocumentModel): string {
+    return this.toNames(d, false).join('\n');
   }
 
   // ---- Aşamalar ve süzgeçler ----
@@ -255,7 +276,8 @@ export default class Documentlist {
       if (urgency != null && d.urgencyDegree !== urgency) return false;
       if (security != null && d.securityDegree !== security) return false;
       if (type != null && d.documentTypeId !== type) return false;
-      if (department && (d.departmentId ?? '').toLowerCase() !== department) return false;
+      // Birim süzgeci backend'deki gibi: birim evrakın alıcılarından biri mi
+      if (department && !incomingRecipientsOf(d).some(r => idKey(r.departmentId) === department)) return false;
       if (person && (d.currentAssignmentUser?.trim() ?? '') !== person) return false;
       if (delivery === 'delivered' && d.status !== STATUS_DELIVERED) return false;
       if (delivery === 'undelivered' && d.status === STATUS_DELIVERED) return false;
@@ -581,13 +603,8 @@ export default class Documentlist {
   private loadLookups(): void {
     this.departmentService.getDepartments().subscribe({
       next: (list) => this.departmentNames.set(Object.fromEntries((list ?? []).filter(x => x.id)
-        .map(x => [x.id!.toLowerCase(), { name: x.name, short: x.shortName?.trim() || '' }]))),
+        .map(x => [idKey(x.id)!, { name: x.name, short: x.shortName?.trim() || '' }]))),
       error: (err) => console.error('Birimler alınamadı:', err)
-    });
-    this.externalInstitutionService.getExternalInstitutions().subscribe({
-      next: (list) => this.institutionNames.set(
-        Object.fromEntries((list ?? []).filter(x => x.id).map(x => [x.id!.toLowerCase(), x.name]))),
-      error: (err) => console.error('Dış kurumlar alınamadı:', err)
     });
   }
 
@@ -698,7 +715,9 @@ export default class Documentlist {
       },
 
       from: text(this.fromName(d)),
-      to: text(this.toName(d, false)),
+      // Nereye: kısa adlar; üzerine gelince tam adlar alt alta
+      to: text(this.toName(d)),
+      toTitle: this.toTitle(d),
 
       pageCount: d.pageCount != null && String(d.pageCount) !== '' ? String(d.pageCount) : '-',
       hasAttachment: d.hasAttachment ?? null,
@@ -730,10 +749,16 @@ export default class Documentlist {
     this.infoVisible.set(true);
     this.infoLoading.set(true);
 
-    this.incomingDocumentService.getIncomingDocumentByDocumentId(item.id).subscribe({
+    // GetById alıcıları döndürmez; "Nereye" listesi GetDistributions'tan eklenir
+    this.incomingDocumentService.getIncomingDocumentWithDistributions(item.id).subscribe({
       next: (fresh) => {
-        // Atanan personelin adı yalnızca liste satırında gelir; tazelenen kayda taşınır
-        if (fresh) this.infoDoc.set({ ...fresh, currentAssignmentUser: fresh.currentAssignmentUser ?? item.currentAssignmentUser });
+        // Atanan personelin adı yalnızca liste satırında gelir; tazelenen kayda taşınır.
+        // Alıcılar okunamadıysa liste satırındaki distributions kullanılır.
+        if (fresh) this.infoDoc.set({
+          ...fresh,
+          distributions: fresh.distributions ?? item.distributions,
+          currentAssignmentUser: fresh.currentAssignmentUser ?? item.currentAssignmentUser
+        });
         this.infoLoading.set(false);
       },
       error: (err) => {
@@ -811,7 +836,7 @@ export default class Documentlist {
 
   // Kişi adının yanında çalıştığı birimin kısa adı; kullanıcı listesi popup ilk açıldığında yüklenir
   private readonly usersRequested = signal(false);
-  readonly usersResult = httpResource<UserModel[]>(() => this.usersRequested() ? 'api/Users/GetAll' : undefined);
+  readonly usersResult = httpResource<UserModel[]>(() => this.usersRequested() ? 'api/Users/GetAll?onlyWithRoles=true' : undefined);
   readonly userDepartmentShortMap = computed(() => {
     const map: Record<string, string> = {};
     for (const u of this.usersResult.value() ?? []) {

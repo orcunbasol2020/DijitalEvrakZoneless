@@ -1,13 +1,14 @@
+import { ExternalInstitutionId, idKey } from '../../models/ids';
 import { Injectable, inject } from '@angular/core';
 import { forkJoin, Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { IncomingDocumentService } from '../../services/incomingdocument';
 import { Department } from '../../services/department';
-import { ExternalInstitution, ExternalInstitutionType } from '../../services/external-institution';
+import { EXTERNAL_INSTITUTION_TYPE_LABELS, ExternalInstitution, ExternalInstitutionType } from '../../services/external-institution';
 import { Language } from '../../services/language';
 import { UserService } from '../../services/user';
 import { HttpService } from '../../services/http';
-import { IncomingDocumentModel } from '../../models/incoming-document/incoming-document.model';
+import { IncomingDocumentModel, incomingRecipientsOf } from '../../models/incoming-document/incoming-document.model';
 import { OutgoingDocumentModel, OutgoingDocumentStatus } from '../../models/outgoingdocument.model';
 import { EnvelopeModel, EnvelopeStatus, EnvelopeStatusLabels } from '../../models/envelope.model';
 import { UrgencyDegreeEnum, UrgencyDegreeLabels } from '../../models/urgencydegree.model';
@@ -32,6 +33,10 @@ export interface ReportDoc {
   documentDate: Date | null;
   departmentId: string | null;
   departmentName: string;
+  /** Birim bazlı süzgeç ve sayımlar için: gelen evrakta tüm alıcı birimler ("Nereye" listesi),
+   *  giden evrakta gönderen birim. Hiç birim yoksa tek "Belirtilmemiş" kaydı. departmentId ilk
+   *  birim, departmentName adların virgülle birleşimidir (tablo, sıralama ve CSV için). */
+  units: { id: string | null; name: string }[];
   institutionId: string | null;
   institutionName: string;
   institutionType: string;
@@ -79,6 +84,8 @@ export interface ReportDataset {
 }
 
 const UNKNOWN = 'Belirtilmemiş';
+/** "Dilekçe / Talep" göndereninin sabit kimliği */
+const DILEKCE_ID = -1;
 
 export const INCOMING_STATUS_LABELS: Record<number, string> = {
   1: 'Ön Kayıt',
@@ -95,11 +102,6 @@ export const OUTGOING_STATUS_LABELS: Record<number, string> = {
   [OutgoingDocumentStatus.Iade]: 'İade',
 };
 
-const INSTITUTION_TYPE_LABELS: Record<number, string> = {
-  [ExternalInstitutionType.Misyon]: 'Misyon',
-  [ExternalInstitutionType.Kurum]: 'Kurum',
-  [ExternalInstitutionType.Sahis]: 'Şahıs',
-};
 
 /** Giden evrak türü (API alanı "type"): 1 Nota, 2 Evrak */
 const OUTGOING_TYPE_LABELS: Record<number, string> = { 1: 'Nota', 2: 'Evrak' };
@@ -113,8 +115,19 @@ export function toDate(value: string | Date | null | undefined): Date | null {
   return isNaN(date.getTime()) || date.getFullYear() < 1900 ? null : date;
 }
 
-function key(id: string | null | undefined): string | null {
-  return id ? id.toLowerCase() : null;
+// Birim kimliği sayı, diğerleri Guid: tüm eşlemeler idKey biçimindeki metin anahtarla yapılır
+function key(id: string | number | null | undefined): string | null {
+  return idKey(id);
+}
+
+/** Birim id'lerini adlarıyla (tekrarsız) döndürür; hiç birim yoksa tek "Belirtilmemiş" kaydı. */
+function unitsOf(ids: (string | number | null | undefined)[], departments: Map<string, string>): { id: string | null; name: string }[] {
+  const units = new Map<string, { id: string | null; name: string }>();
+  for (const id of ids) {
+    const k = key(id);
+    if (k && !units.has(k)) units.set(k, { id: k, name: departments.get(k) ?? UNKNOWN });
+  }
+  return units.size ? [...units.values()] : [{ id: null, name: UNKNOWN }];
 }
 
 function actionLabel(value: boolean | null | undefined): string {
@@ -138,17 +151,22 @@ export class ReportDataService {
       incoming: this.incoming.getAllIncomingDocuments(),
       outgoing: safe(this.http.get<OutgoingDocumentModel[]>('api/OutgoingDocuments/GetAll')),
       departments: safe(this.departmentService.getDepartments()),
-      institutions: safe(this.institutionService.getExternalInstitutions()),
+      // Kurum adı evrak cevaplarında gelir (~160.000 kurum çekilmez); tür için yalnızca küçük listeler alınır,
+      // bunlarda olmayan kurum DETSİS kurumudur
+      institutions: safe(forkJoin([
+        this.institutionService.getMissions(),
+        this.institutionService.getExternalInstitutions({ type: ExternalInstitutionType.UluslararasiKurulus }),
+      ]).pipe(map(([missions, international]) => [...(missions ?? []), ...(international ?? [])]))),
       languages: safe(this.languageService.getLanguages()),
-      users: safe(this.userService.getAll()),
+      users: safe(this.userService.getAll({ onlyWithRoles: true })),
       envelopes: safe(this.http.get<EnvelopeModel[]>('api/Envelopes/GetAll')),
     }).pipe(map(raw => {
       const departments = new Map<string, string>();
-      for (const d of raw.departments) if (d.id) departments.set(d.id.toLowerCase(), d.name);
+      for (const d of raw.departments) if (d.id) departments.set(key(d.id)!, d.name);
 
-      const institutions = new Map<string, { name: string; type: string }>();
+      const institutionTypes = new Map<string, string>();
       for (const i of raw.institutions) {
-        if (i.id) institutions.set(i.id.toLowerCase(), { name: i.name, type: INSTITUTION_TYPE_LABELS[i.type] ?? UNKNOWN });
+        if (i.id) institutionTypes.set(key(i.id)!, EXTERNAL_INSTITUTION_TYPE_LABELS[i.type] ?? UNKNOWN);
       }
 
       const languages = new Map<string, string>();
@@ -157,11 +175,15 @@ export class ReportDataService {
       const users = new Map<string, string>();
       for (const u of raw.users) if (u.id) users.set(u.id.toLowerCase(), `${u.name} ${u.surname}`.trim());
 
-      // Gönderen / alıcı kurum dış kurumda yoksa kurum içi birim olabilir
-      const place = (id: string | null | undefined) => {
+      // Gönderen / alıcı kurum: ad cevaptan; tür misyon / uluslararası kuruluş listesinden, dilekçe -1,
+      // diğerleri DETSİS kurumu
+      const place = (id: ExternalInstitutionId | null | undefined, name: string | null | undefined) => {
         const k = key(id);
         if (!k) return { name: UNKNOWN, type: UNKNOWN };
-        return institutions.get(k) ?? (departments.has(k) ? { name: departments.get(k)!, type: 'Kurum İçi' } : { name: UNKNOWN, type: UNKNOWN });
+        const type = id === DILEKCE_ID
+          ? EXTERNAL_INSTITUTION_TYPE_LABELS[ExternalInstitutionType.Dilekce]
+          : institutionTypes.get(k) ?? EXTERNAL_INSTITUTION_TYPE_LABELS[ExternalInstitutionType.Kurum];
+        return { name: name || UNKNOWN, type };
       };
 
       const docs: ReportDoc[] = [];
@@ -171,7 +193,9 @@ export class ReportDataService {
         const created = toDate(d.createdDate);
         const release = toDate(d.releaseDate);
         const published = isPublished(d);
-        const inst = place(d.externalInstitutionId);
+        const inst = place(d.externalInstitutionId, d.externalInstitutionName);
+        // Gelen evrak birden fazla birime gidebilir: her alıcı birim ayrı sayılır
+        const units = unitsOf(incomingRecipientsOf(d).map(r => r.departmentId), departments);
         docs.push({
           id: d.id ?? '',
           direction: 'in',
@@ -180,8 +204,9 @@ export class ReportDataService {
           searchText: [d.qrCode, d.orginalNo, d.subject, d.notes, d.content_Ocr].filter(Boolean).join(' ').toLocaleLowerCase('tr'),
           createdDate: created,
           documentDate: toDate(d.documentDate),
-          departmentId: key(d.departmentId),
-          departmentName: departments.get(key(d.departmentId) ?? '') ?? UNKNOWN,
+          departmentId: units[0].id,
+          departmentName: units.map(u => u.name).join(', '),
+          units,
           institutionId: key(d.externalInstitutionId),
           institutionName: inst.name,
           institutionType: inst.type,
@@ -208,7 +233,7 @@ export class ReportDataService {
 
       for (const d of raw.outgoing ?? []) {
         if (d.isDeleted) continue;
-        const inst = place(d.externalInstitutonId);
+        const inst = place(d.externalInstitutonId, d.externalInstitutionName);
         docs.push({
           id: d.id,
           direction: 'out',
@@ -219,6 +244,7 @@ export class ReportDataService {
           documentDate: toDate(d.documentDate),
           departmentId: key(d.departmentId),
           departmentName: departments.get(key(d.departmentId) ?? '') ?? UNKNOWN,
+          units: unitsOf([d.departmentId], departments),
           institutionId: key(d.externalInstitutonId),
           institutionName: inst.name,
           institutionType: inst.type,
@@ -248,7 +274,6 @@ export class ReportDataService {
         statusLabel: EnvelopeStatusLabels[e.status as EnvelopeStatus] ?? UNKNOWN,
         // Gideceği yer: dış kurum / misyon ya da kurum içi birim (ikisi birlikte dolu olmaz)
         institutionName: e.externalInstitutionName || e.targetDepartmentName
-          || (e.externalInstitutionId ? place(e.externalInstitutionId).name : null)
           || departments.get(key(e.targetDepartmentId) ?? '') || UNKNOWN,
         departmentId: key(e.departmentId),
         departmentName: departments.get(key(e.departmentId) ?? '') ?? UNKNOWN,
@@ -261,7 +286,9 @@ export class ReportDataService {
         docs,
         envelopes,
         departments: [...departments].map(([id, name]) => ({ id, name })).sort(byName),
-        institutions: [...institutions].map(([id, v]) => ({ id, name: v.name })).sort(byName),
+        // Kurum seçenekleri evraklardaki kurumlardan (ad cevaptan gelir)
+        institutions: [...new Map(docs.filter(d => d.institutionId).map(d => [d.institutionId!, d.institutionName])).entries()]
+          .map(([id, name]) => ({ id, name })).sort(byName),
         users: [...users].map(([id, name]) => ({ id, name })).sort(byName),
         languages: [...new Set(languages.values())].sort((a, b) => a.localeCompare(b, 'tr')),
         loadedAt: new Date(),

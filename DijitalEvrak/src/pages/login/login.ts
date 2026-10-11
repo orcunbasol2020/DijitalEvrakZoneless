@@ -48,8 +48,6 @@ export default class Login {
   readonly isLoading = signal(false);
   readonly windowsLoading = signal(false);
   readonly submitted = signal(false);
-  readonly showPassword = signal(false);
-  readonly capsLockOn = signal(false);
   readonly errorMessage = signal<string | null>(null);
 
   readonly version = 'v1.0.0';
@@ -131,19 +129,10 @@ export default class Login {
   }
 
   // ---- Kullanıcı adı / şifre ----
-  /** "ad.soyad@mfa.gov.tr" girildiyse alan adını atıp sadece kullanıcı adını döndürür. */
+  /** "ad.soyad@mfa.gov.tr" girildiyse alan adını atıp sadece kullanıcı adını döndürür ("HITIT\" önekini sunucu atar). */
   private normalizeUserName(raw: string): string {
     const value = (raw ?? '').trim();
     return value.replace(/@mfa\.gov\.tr$/i, '');
-  }
-
-  togglePassword() {
-    this.showPassword.update(v => !v);
-  }
-
-  /** Şifre alanında Caps Lock açık mı diye bakar (keydown/keyup üzerinden). */
-  checkCapsLock(event: KeyboardEvent) {
-    this.capsLockOn.set(event.getModifierState?.('CapsLock') ?? false);
   }
 
   clearError() {
@@ -157,17 +146,16 @@ export default class Login {
     if (!form.valid) return;
 
     const userName = this.normalizeUserName(form.value['userName']);
-    const password = form.value['password'];
     const rememberMe = !!form.value['rememberMe'];
 
     this.isLoading.set(true);
 
-    this.#userService.getUserByUsername(userName, password).subscribe({
+    this.#userService.getUserByUsername(userName).subscribe({
       next: (res) => {
         this.isLoading.set(false);
 
         if (!res) {
-          this.errorMessage.set('Kullanıcı adı ya da şifre hatalı. Lütfen tekrar deneyin.');
+          this.errorMessage.set('Kullanıcı bulunamadı. Kurumsal kullanıcı adınızı kontrol edin.');
           return;
         }
 
@@ -181,10 +169,10 @@ export default class Login {
       error: (err: HttpErrorResponse) => {
         this.isLoading.set(false);
         if (err.status === 401) {
-          this.errorMessage.set('Kullanıcı adı ya da şifre hatalı. Lütfen tekrar deneyin.');
+          this.errorMessage.set('Kullanıcı bulunamadı ya da hesap pasif. Kurumsal kullanıcı adınızı kontrol edin.');
         } else if (err.status === 404) {
           // Sunucuda form girişi kapatılmış (canlı)
-          this.errorMessage.set('Kullanıcı adı ve şifreyle giriş kapalı. Windows hesabınızla giriş yapın.');
+          this.errorMessage.set('Kullanıcı adıyla giriş kapalı. Windows hesabınızla giriş yapın.');
         } else {
           this.errorMessage.set('Sunucuya ulaşılamadı. Lütfen daha sonra tekrar deneyin.');
         }

@@ -152,12 +152,13 @@
 
         <div class="mb-3">
           <label class="form-label">Kurum</label>
-          <select class="form-select" [(ngModel)]="form.externalInstitutionId">
-            <option [ngValue]="null">Seçiniz</option>
-            <option *ngFor="let institution of institutions()" [ngValue]="institution.id">
-              {{ institution.name }}
-            </option>
-          </select>
+          <!-- ~160.000 kurum: liste sunucuda aranır -->
+          <app-simple-autocomplete [control]="institutionControl"
+            [options]="institutionOptions()"
+            [remote]="true" [minChars]="institutionMinSearch"
+            [searching]="institutionSearch.loading()"
+            (search)="institutionSearch.search($event)"
+            placeholder="Kurum, misyon ya da DETSİS no arayın"></app-simple-autocomplete>
         </div>
 
         <div class="mb-3">

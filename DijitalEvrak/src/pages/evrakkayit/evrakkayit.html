@@ -19,6 +19,12 @@
             <span>Diğer Bilgiler</span>
           </button>
           <button type="button" class="ek-tab" role="tab"
+            [class.is-active]="activeTab() === 'attachments'" (click)="setTab('attachments')">
+            <span class="material-symbols-outlined">attach_file</span>
+            <span>Ekler</span>
+            <span class="ek-tab-count" *ngIf="attachments().length">{{ attachments().length }}</span>
+          </button>
+          <button type="button" class="ek-tab" role="tab"
             [class.is-active]="activeTab() === 'transaction'" (click)="setTab('transaction')">
             <span class="material-symbols-outlined">history</span>
             <span>İşlem Takip</span>
@@ -68,12 +74,6 @@
                 </select>
               </div>
               <div class="zm-field">
-                <label for="geregiBilgi" class="zm-field-label">Gereği / Bilgi</label>
-                <select id="geregiBilgi" class="form-select ok-input" formControlName="actionRequired">
-                  <option *ngFor="let opt of actionRequiredOptions" [ngValue]="opt.value">{{ opt.label }}</option>
-                </select>
-              </div>
-              <div class="zm-field ek-span-2">
                 <label for="orjBelge" class="zm-field-label">Orjinal Belge No</label>
                 <input type="text" id="orjBelge" class="form-control ok-input" formControlName="orginalNo">
               </div>
@@ -92,18 +92,102 @@
                   <span class="material-symbols-outlined ek-label-icon">call_made</span>
                   Nereden
                 </label>
+                <!-- ~160.000 kurum: liste sunucuda aranır -->
                 <app-simple-autocomplete [control]="externalInstitutionControl"
-                  [options]="externalInstitutions"
-                  placeholder="Kurum seçiniz"></app-simple-autocomplete>
+                  [options]="institutionSearch.options()"
+                  [remote]="true" [minChars]="institutionMinSearch"
+                  [searching]="institutionSearch.loading()"
+                  (search)="institutionSearch.search($event)"
+                  placeholder="Kurum, misyon ya da DETSİS no arayın"></app-simple-autocomplete>
               </div>
-              <div class="zm-field ek-span-2">
-                <label class="zm-field-label">
-                  <span class="material-symbols-outlined ek-label-icon">call_received</span>
-                  Nereye
-                </label>
-                <app-simple-autocomplete [control]="departmentControl"
-                  [options]="departments"
-                  placeholder="Birim seçiniz"></app-simple-autocomplete>
+              <!-- Nereye: birden fazla iç birim; Gereği/Bilgi ve not alıcı bazında -->
+              <div class="zm-field ek-span-2 ek-recipients">
+                <div class="ek-recipients-head">
+                  <span class="zm-field-label">
+                    <span class="material-symbols-outlined ek-label-icon">call_received</span>
+                    Nereye
+                    <span class="ek-count" *ngIf="recipientRows().length">{{ recipientRows().length }}</span>
+                  </span>
+                  <button type="button" class="ek-recipients-add" *ngIf="!recipientsReadOnly()"
+                    [disabled]="recipientsLoading() || recipientsLoadFailed()" (click)="addRecipientRow()">
+                    <span class="material-symbols-outlined">add</span>
+                    Birim ekle
+                  </button>
+                </div>
+
+                <div class="ek-recipients-note" *ngIf="recipientsReadOnly()">
+                  <span class="material-symbols-outlined">lock</span>
+                  Evrak Atlas aktarımında olduğu için alıcı listesi değiştirilemez.
+                </div>
+
+                <div class="ek-recipients-empty" *ngIf="recipientsLoading()">
+                  <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                  Alıcılar yükleniyor...
+                </div>
+
+                <div class="ek-recipients-empty is-error" *ngIf="!recipientsLoading() && recipientsLoadFailed()">
+                  <span class="material-symbols-outlined">error</span>
+                  Alıcılar yüklenemedi; liste değiştirilmeden kaydedilir.
+                  <button type="button" class="ek-recipients-retry" (click)="loadRecipients()">Tekrar dene</button>
+                </div>
+
+                <button type="button" class="ek-recipients-empty is-action"
+                  *ngIf="!recipientsLoading() && !recipientsLoadFailed() && !recipientRows().length && !recipientsReadOnly()"
+                  (click)="addRecipientRow()">
+                  <span class="material-symbols-outlined">group_add</span>
+                  Henüz birim eklenmedi. Evrak birden fazla birime gönderilebilir.
+                </button>
+
+                <div class="ek-recipients-empty"
+                  *ngIf="!recipientsLoading() && !recipientsLoadFailed() && !recipientRows().length && recipientsReadOnly()">
+                  <span class="material-symbols-outlined">group_off</span>
+                  Alıcı birim yok.
+                </div>
+
+                <ng-container *ngIf="!recipientsLoading() && !recipientsLoadFailed()">
+                  <!-- Salt okunur: Atlas'a aktarılmış evrak -->
+                  <ng-container *ngIf="recipientsReadOnly(); else editableRecipients">
+                    <div class="ek-recipient is-readonly" *ngFor="let row of recipientRows(); trackBy: trackRecipient">
+                      <div class="ek-recipient-main">
+                        <span class="ek-recipient-icon">
+                          <span class="material-symbols-outlined">apartment</span>
+                        </span>
+                        <span class="ek-recipient-name" [title]="row.control.value?.name || ''">{{ row.control.value?.name || '-' }}</span>
+                        <span class="badge ek-recipient-badge" [ngClass]="actionRequiredBadgeClass(row.actionRequired)">
+                          {{ actionRequiredLabel(row.actionRequired) }}
+                        </span>
+                      </div>
+                    </div>
+                  </ng-container>
+
+                  <ng-template #editableRecipients>
+                    <div class="ek-recipient" *ngFor="let row of recipientRows(); let i = index; trackBy: trackRecipient"
+                      [class.is-invalid]="duplicateRecipientKeys().has(row.key)">
+                      <div class="ek-recipient-main">
+                        <div class="ek-recipient-target">
+                          <app-simple-autocomplete [control]="row.control"
+                            [options]="recipientOptions().get(row.key) ?? []"
+                            [loading]="departmentsLoading()"
+                            loadingText="Birimler yükleniyor..."
+                            placeholder="Birim seçiniz"></app-simple-autocomplete>
+                        </div>
+                        <select class="form-select ok-input ek-recipient-action" title="Gereği / Bilgi"
+                          [attr.aria-label]="(i + 1) + '. alıcı Gereği / Bilgi'"
+                          [ngModel]="row.actionRequired" [ngModelOptions]="{ standalone: true }"
+                          (ngModelChange)="setRecipientAction(row, $event)">
+                          <option *ngFor="let opt of actionRequiredOptions" [ngValue]="opt.value">{{ opt.label }}</option>
+                        </select>
+                        <button type="button" class="ek-recipient-btn is-remove" title="Alıcıyı kaldır"
+                          (click)="removeRecipientRow(row)">
+                          <span class="material-symbols-outlined">close</span>
+                        </button>
+                      </div>
+                      <div class="ek-recipient-dup" *ngIf="duplicateRecipientKeys().has(row.key)">
+                        Bu birim listede zaten var.
+                      </div>
+                    </div>
+                  </ng-template>
+                </ng-container>
               </div>
             </div>
           </div>
@@ -167,6 +251,131 @@
           </div>
 
         </form>
+
+        <!-- ===== Ekler: elektronik ekler (PDF) ===== -->
+        <!-- Yükleme, ad / açıklama, sıra ve silme anında sunucuya gider; Kaydet gerekmez.
+             Atlas kilidindeyken (Aktarım Sırasında / Aktarılıyor / Yayınlandı) liste salt okunurdur. -->
+        <div class="ek-pane" [hidden]="activeTab() !== 'attachments'">
+          <div class="ek-section">
+            <div class="ek-section-title">
+              <span class="material-symbols-outlined">attach_file</span>
+              Elektronik Ekler
+              <span class="ek-count" *ngIf="attachments().length">{{ attachments().length }}</span>
+              <span class="ek-att-saving ms-auto" *ngIf="reorderingAttachments()">
+                <span class="spinner-border spinner-border-sm"></span> Sıra kaydediliyor
+              </span>
+            </div>
+
+            <div class="ek-recipients-note" *ngIf="atlasLocked()">
+              <span class="material-symbols-outlined">lock</span>
+              Evrak Atlas aktarımında olduğu için ekler değiştirilemez; görüntülenebilir.
+            </div>
+
+            <!-- Dosya seçme / bırakma alanı -->
+            <label class="ek-att-drop" *ngIf="!attachmentsReadOnly()"
+              [class.is-active]="attachmentDropActive()"
+              (dragover)="onAttachmentDragOver($event)" (dragleave)="attachmentDropActive.set(false)"
+              (drop)="onAttachmentDrop($event)">
+              <input type="file" accept="application/pdf,.pdf" multiple hidden (change)="onAttachmentFilesSelected($event)">
+              <span class="material-symbols-outlined">upload_file</span>
+              <span class="ek-att-drop-text">
+                <b>PDF ek seçin</b> ya da buraya bırakın
+                <small>Yalnızca PDF, dosya başına en fazla 10 MB. Ekler Atlas'a bu sırayla gider.</small>
+              </span>
+            </label>
+
+            <!-- Yükleme kuyruğu: sırayla tek tek yüklenir -->
+            <ul class="ek-att-queue" *ngIf="uploadQueue().length">
+              <li *ngFor="let u of uploadQueue()" class="ek-att-q" [class.is-failed]="u.status === 'failed'">
+                <span class="material-symbols-outlined" *ngIf="u.status === 'failed'">error</span>
+                <span class="spinner-border spinner-border-sm" *ngIf="u.status === 'uploading'"></span>
+                <span class="material-symbols-outlined" *ngIf="u.status === 'pending'">schedule</span>
+                <span class="ek-att-q-body">
+                  <span class="ek-att-q-name" [title]="u.file.name">{{ u.file.name }}</span>
+                  <small>{{ u.status === 'failed' ? u.error : u.status === 'uploading' ? 'Yükleniyor…' : 'Sırada' }} · {{ fileSize(u.file.size) }}</small>
+                </span>
+                <ng-container *ngIf="u.status === 'failed'">
+                  <button type="button" class="ek-recipient-btn" title="Tekrar dene" *ngIf="canRetryUpload(u) && !attachmentsReadOnly()" (click)="retryUpload(u)">
+                    <span class="material-symbols-outlined">refresh</span>
+                  </button>
+                  <button type="button" class="ek-recipient-btn is-remove" title="Listeden kaldır" (click)="dismissUpload(u)">
+                    <span class="material-symbols-outlined">close</span>
+                  </button>
+                </ng-container>
+              </li>
+            </ul>
+
+            <div class="ek-recipients-empty" *ngIf="attachmentsLoading()">
+              <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              Ekler yükleniyor...
+            </div>
+
+            <div class="ek-recipients-empty is-error" *ngIf="!attachmentsLoading() && attachmentsLoadFailed()">
+              <span class="material-symbols-outlined">error</span>
+              Ekler yüklenemedi.
+              <button type="button" class="ek-recipients-retry" (click)="loadAttachments()">Tekrar dene</button>
+            </div>
+
+            <div class="ek-recipients-empty"
+              *ngIf="!attachmentsLoading() && !attachmentsLoadFailed() && !attachments().length && !uploadQueue().length">
+              <span class="material-symbols-outlined">draft</span>
+              Elektronik ek yok.
+            </div>
+
+            <!-- Ek listesi: sürükleyerek sıralanır, tıklanınca sağda önizlenir -->
+            <div class="ek-att-list" cdkDropList [cdkDropListDisabled]="attachmentsReadOnly() || reorderingAttachments()"
+              (cdkDropListDropped)="dropAttachment($event)" *ngIf="attachments().length">
+              <div class="ek-att" *ngFor="let a of attachments(); let i = index; trackBy: trackAttachment" cdkDrag
+                [cdkDragData]="a" [class.is-previewing]="previewAttachment()?.id === a.id">
+                <div class="ek-att-main">
+                  <span class="ek-att-handle" cdkDragHandle *ngIf="!attachmentsReadOnly()" title="Sürükleyerek sırala">
+                    <span class="material-symbols-outlined">drag_indicator</span>
+                  </span>
+                  <span class="ek-att-no">{{ i + 1 }}</span>
+                  <button type="button" class="ek-att-body" (click)="showAttachment(a)" title="Önizle">
+                    <span class="ek-att-name">{{ a.name }}</span>
+                    <small class="ek-att-meta">{{ a.originalFileName }} · {{ fileSize(a.fileSize) }}</small>
+                    <small class="ek-att-desc" *ngIf="a.description">{{ a.description }}</small>
+                  </button>
+                  <span class="spinner-border spinner-border-sm" *ngIf="attachmentActionId() === a.id"></span>
+                  <button type="button" class="ek-recipient-btn" title="Yeni sekmede aç" (click)="openAttachmentInNewTab(a)">
+                    <span class="material-symbols-outlined">open_in_new</span>
+                  </button>
+                  <ng-container *ngIf="!attachmentsReadOnly()">
+                    <button type="button" class="ek-recipient-btn" title="Ad / açıklama düzenle"
+                      [class.is-active]="editingAttachmentId() === a.id" (click)="startEditAttachment(a)">
+                      <span class="material-symbols-outlined">edit</span>
+                    </button>
+                    <button type="button" class="ek-recipient-btn is-remove" title="Eki sil"
+                      [disabled]="attachmentActionId() === a.id" (click)="removeAttachment(a)">
+                      <span class="material-symbols-outlined">delete</span>
+                    </button>
+                  </ng-container>
+                </div>
+
+                <!-- Ad / açıklama düzenleme -->
+                <div class="ek-att-edit" *ngIf="editingAttachmentId() === a.id">
+                  <label class="zm-field">
+                    <span class="zm-field-label">Ek Adı (EYP'de görünür)</span>
+                    <input type="text" class="form-control ok-input" [attr.maxlength]="attachmentNameMax"
+                      [value]="editAttachmentName()" (input)="editAttachmentName.set($any($event.target).value)">
+                  </label>
+                  <label class="zm-field">
+                    <span class="zm-field-label">Açıklama</span>
+                    <textarea class="form-control ok-input" rows="2" [attr.maxlength]="attachmentDescriptionMaxLen"
+                      [value]="editAttachmentDescription()" (input)="editAttachmentDescription.set($any($event.target).value)"></textarea>
+                    <span class="zm-field-hint text-end">{{ editAttachmentDescription().length }} / {{ attachmentDescriptionMaxLen }}</span>
+                  </label>
+                  <div class="ek-att-edit-actions">
+                    <button type="button" class="btn btn-light btn-sm" (click)="cancelEditAttachment()">Vazgeç</button>
+                    <button type="button" class="btn btn-primary btn-sm" [disabled]="attachmentActionId() === a.id"
+                      (click)="saveEditAttachment(a)">Kaydet</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <!-- ===== İşlem Takip ===== -->
         <div class="ek-pane" [hidden]="activeTab() !== 'transaction'">
@@ -252,7 +461,7 @@
       </div>
 
       <!-- Alt şerit: özet + aksiyonlar (sekmeye göre) -->
-      <div class="card-footer zm-footer mt-auto" *ngIf="activeTab() !== 'transaction'">
+      <div class="card-footer zm-footer mt-auto" *ngIf="activeTab() === 'general' || activeTab() === 'detail'">
         <div class="zm-summary" [class.is-ready]="documentNo()">
           <span class="zm-summary-docs">
             <span class="material-symbols-outlined">description</span>
@@ -262,12 +471,12 @@
 
         <div class="zm-footer-actions" *ngIf="activeTab() === 'general'">
           <button type="submit" form="ekGeneralForm" class="btn btn-light zm-back-btn"
-            [disabled]="activeStatus()" (click)="publish.set(false)">
+            [disabled]="activeStatus() || attachmentsBusy()" (click)="publish.set(false)">
             <span class="material-symbols-outlined">save</span>
             Kaydet
           </button>
           <button type="submit" form="ekGeneralForm" class="btn btn-primary zimmet-submit-btn" data-mode="self"
-            [disabled]="activeStatus()" (click)="publish.set(true)">
+            [disabled]="activeStatus() || attachmentsBusy()" (click)="publish.set(true)">
             <span class="zimmet-submit-icon material-symbols-outlined">publish</span>
             <span class="zimmet-submit-text">Kaydet/Yayınla</span>
           </button>
@@ -287,11 +496,28 @@
   <div class="col-lg-7 col-12">
     <div class="card zm-card d-flex flex-column">
       <div class="card-header dashboard-header d-flex align-items-center justify-content-between">
-        <div class="d-flex align-items-center">
-          <span class="material-symbols-outlined me-2 text-info">picture_as_pdf</span>
-          <h5 class="card-title mb-0 fw-semibold">Evrak Önizleme</h5>
+        <div class="d-flex align-items-center ek-preview-title">
+          <span class="material-symbols-outlined me-2 text-info">{{ previewAttachment() ? 'attach_file' : 'picture_as_pdf' }}</span>
+          <h5 class="card-title mb-0 fw-semibold" *ngIf="!previewAttachment()">Evrak Önizleme</h5>
+          <h5 class="card-title mb-0 fw-semibold text-truncate" *ngIf="previewInfo() as p" [title]="p.a.name">
+            <span class="ek-preview-kicker">Ek {{ p.no }}</span>{{ p.a.name }}
+          </h5>
         </div>
-        <div class="d-flex align-items-center gap-2">
+        <!-- Ek önizlenirken: ana belgeye dönüş, yeni sekme ve indirme -->
+        <div class="d-flex align-items-center gap-2" *ngIf="previewAttachment() as a">
+          <button type="button" class="zm-pill-btn" title="Yeni sekmede aç" (click)="openAttachmentInNewTab(a)">
+            <span class="material-symbols-outlined">open_in_new</span>
+            <span>Yeni Sekmede</span>
+          </button>
+          <button type="button" class="zm-pill-btn" title="İndir" (click)="downloadAttachment(a)">
+            <span class="material-symbols-outlined">download</span>
+          </button>
+          <button type="button" class="ek-head-upload-btn" (click)="closeAttachmentPreview()">
+            <span class="material-symbols-outlined">description</span>
+            Ana Belge
+          </button>
+        </div>
+        <div class="d-flex align-items-center gap-2" *ngIf="!previewAttachment()">
           <span class="ek-status-pill" *ngIf="showPublishPill()"
             [attr.data-tone]="statusBadge().tone">
             <span class="material-symbols-outlined">{{ statusBadge().icon }}</span>
@@ -318,7 +544,19 @@
         <span>{{ reason }}</span>
       </div>
 
-      <div class="card-body ek-pdf-body">
+      <!-- Ek önizlemesi (blob); ana belge alanının yerine geçer -->
+      <div class="card-body ek-pdf-body" *ngIf="previewAttachment()">
+        <div class="zm-empty ek-pdf-empty" *ngIf="previewLoading()">
+          <div class="zm-empty-icon">
+            <div class="spinner-border text-primary"></div>
+          </div>
+          <div class="zm-empty-title">Ek yükleniyor</div>
+          <div class="zm-empty-text">Ek dosyası hazırlanıyor, lütfen bekleyin.</div>
+        </div>
+        <iframe *ngIf="!previewLoading() && previewUrl()" class="ek-pdf-frame" [src]="previewUrl()" title="Ek önizleme"></iframe>
+      </div>
+
+      <div class="card-body ek-pdf-body" *ngIf="!previewAttachment()">
         <!-- Belge yüklenmemiş + Gizli / Çok Gizli / Kripto: gizlilik mührü -->
         <!-- Belge yüklenmemiş: "belge sahnesi" — masa üstünde boş bir sayfa silueti,
              (Gizli / Çok Gizli / Kripto seçiliyse üzerinde mühür), durum hapı ve üç adım -->

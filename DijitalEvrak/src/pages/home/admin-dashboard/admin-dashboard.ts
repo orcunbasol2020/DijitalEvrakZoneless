@@ -1,3 +1,4 @@
+import { idKey } from '../../../models/ids';
 import { Component, ChangeDetectionStrategy, ViewEncapsulation, computed, inject, signal, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CommonModule, DatePipe } from '@angular/common';
@@ -11,6 +12,7 @@ import { NotaCounts } from '../nota-counts/nota-counts';
 import { ReportChart } from '../../reports/report-chart';
 import { ExternalInstitutionType } from '../../../services/external-institution';
 import { AdminDashboardData, incomingNotaMission, outgoingNotaMissions } from './admin-dashboard-data';
+import { incomingRecipientsOf } from '../../../models/incoming-document/incoming-document.model';
 
 type Direction = 'incoming' | 'outgoing';
 
@@ -179,11 +181,16 @@ export class AdminDashboard {
 
   /** Gelen: birime gelen evrak. Giden: birimin gönderdiği evrak. */
   readonly #unitRows = computed<CompareRow[]>(() => {
-    const units = new Map(this.#data.departments().map(d => [d.id.toLowerCase(), d]));
-    const docs: { departmentId?: string | null; createdDate?: string | Date | null }[] =
-      this.centerTab() === 'incoming' ? this.#data.incoming() : this.#data.outgoing();
+    const units = new Map(this.#data.departments().map(d => [idKey(d.id), d]));
     const counter = periodCounter();
-    for (const d of docs) counter.add(d.createdDate, d.departmentId);
+    if (this.centerTab() === 'incoming') {
+      // Gelen evrak birden fazla birime gidebilir: her alıcı birimde ayrı sayılır
+      for (const d of this.#data.incoming()) {
+        for (const r of incomingRecipientsOf(d)) counter.add(d.createdDate, r.departmentId);
+      }
+    } else {
+      for (const d of this.#data.outgoing()) counter.add(d.createdDate, d.departmentId);
+    }
     return counter.top(id => {
       const unit = units.get(id);
       const name = unit?.name ?? 'Bilinmeyen birim';
@@ -195,18 +202,18 @@ export class AdminDashboard {
   readonly #missionRows = computed<CompareRow[]>(() => {
     const missions = new Map(this.#data.institutions()
       .filter(i => i.type === ExternalInstitutionType.Misyon)
-      .map(i => [i.id.toLowerCase(), i.name]));
+      .map(i => [idKey(i.id)!, i.name]));
     const counter = periodCounter();
-    const add = (date: string | Date | null | undefined, id: string | null | undefined) => {
-      if (id && missions.has(id.toLowerCase())) counter.add(date, id);
+    const add = (date: string | Date | null | undefined, id: string | number | null | undefined) => {
+      if (missions.has(idKey(id)!)) counter.add(date, id);
     };
 
     if (this.missionTab() === 'incoming') {
       for (const d of this.#data.incoming()) add(d.createdDate, d.externalInstitutionId);
     } else {
       for (const d of this.#data.outgoing()) {
-        const recipients = new Set((d.distributions ?? []).map(x => x.externalInstitutionId?.toLowerCase()).filter(Boolean));
-        if (d.externalInstitutonId) recipients.add(d.externalInstitutonId.toLowerCase());
+        const recipients = new Set((d.distributions ?? []).map(x => idKey(x.externalInstitutionId)).filter(Boolean));
+        if (d.externalInstitutonId) recipients.add(idKey(d.externalInstitutonId)!);
         recipients.forEach(id => add(d.createdDate, id));
       }
     }
@@ -224,7 +231,7 @@ export class AdminDashboard {
   readonly missionMap = computed<MissionMapCountry[]>(() => {
     const missions = new Map(this.#data.institutions()
       .filter(i => i.type === ExternalInstitutionType.Misyon)
-      .map(i => [i.id.toLowerCase(), i.name]));
+      .map(i => [idKey(i.id)!, i.name]));
     const since = Date.now() - MAP_DAYS * DAY_MS;
     const inPeriod = (date?: string | Date | null) => !!date && new Date(date).getTime() >= since;
     const perMission = new Map<string, number>();
@@ -234,7 +241,7 @@ export class AdminDashboard {
 
     if (this.mapTab() === 'incoming') {
       for (const d of this.#data.incoming()) {
-        const id = d.externalInstitutionId?.toLowerCase();
+        const id = idKey(d.externalInstitutionId);
         if (id && inPeriod(d.createdDate)) add(id);
       }
     } else {
@@ -243,10 +250,10 @@ export class AdminDashboard {
         if (!inPeriod(d.createdDate)) continue;
         const recipients = new Set<string>();
         for (const dist of d.distributions ?? []) {
-          const id = dist.externalInstitutionId?.toLowerCase();
+          const id = idKey(dist.externalInstitutionId);
           if (id && !(dist as { isDeleted?: boolean }).isDeleted) recipients.add(id);
         }
-        if (d.externalInstitutonId) recipients.add(d.externalInstitutonId.toLowerCase());
+        if (d.externalInstitutonId) recipients.add(idKey(d.externalInstitutonId)!);
         recipients.forEach(add);
       }
     }
@@ -297,12 +304,12 @@ function periodCounter() {
   const counts = new Map<string, { current: number; previous: number }>();
 
   return {
-    add(date: string | Date | null | undefined, id: string | null | undefined): void {
-      if (!date || !id) return;
+    add(date: string | Date | null | undefined, id: string | number | null | undefined): void {
+      if (!date || id === null || id === undefined || id === '') return;
       const t = new Date(date).getTime();
       const field = t >= start && t <= now ? 'current' : t >= prevStart && t < start ? 'previous' : null;
       if (!field) return;
-      const key = id.toLowerCase();
+      const key = idKey(id)!;
       const row = counts.get(key) ?? { current: 0, previous: 0 };
       row[field]++;
       counts.set(key, row);

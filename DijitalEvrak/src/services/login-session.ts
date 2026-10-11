@@ -35,6 +35,12 @@ export function readStoredUser(): StoredUser | null {
     clearStoredUser();
     return null;
   }
+  // Birimler kaynak sisteme (ComDepartment) geçmeden önce açılmış oturumda birim kimliği Guid'dir;
+  // yeni kimlikle eşleşmeyeceği için yeniden giriş istenir
+  if (typeof user.departmentId === 'string') {
+    clearStoredUser();
+    return null;
+  }
   return user;
 }
 

@@ -1,3 +1,5 @@
+import { DepartmentId, idKey } from '../../models/ids';
+import { IncomingAttachmentsView } from '../../../components/incoming-attachments-view/incoming-attachments-view';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -13,7 +15,7 @@ import GenericModel from '../../../components/generic-model/generic-model';
 import { CommonModule } from '@angular/common';
 import { FlexiToastService } from 'flexi-toast';
 import { IncomingDocumentService } from '../../services/incomingdocument';
-import { IncomingDocumentModel } from '../../models/incoming-document/incoming-document.model';
+import { IncomingDocumentModel, incomingRecipientNames } from '../../models/incoming-document/incoming-document.model';
 import { DocumentAssignmentService } from '../../services/documentassignment';
 import { Common } from '../../services/common';
 import { RoleService } from '../../services/role-service';
@@ -119,6 +121,7 @@ const QUEUE_STORAGE_KEY = 'scanlist.queue';
 
 @Component({
   imports: [
+    IncomingAttachmentsView,
     GenericModel,
     CommonModule,
     FormsModule,
@@ -242,7 +245,6 @@ export default class Scanlist {
     const file = this.fileFilter();
     const ocrReady = this.ocrReadyOnly();
     const publish = this.activeQueue() === 'published' ? this.publishFilter() : 'all';
-    const institutions = this.institutionNames();
 
     const rows = this.queueRows().filter(d => {
       if (urgency != null && d.urgencyDegree !== urgency) return false;
@@ -255,7 +257,7 @@ export default class Scanlist {
       if (publish === 'progress' && !isPublishing(d)) return false;
       if (publish === 'failed' && !isPublishFailed(d)) return false;
       if (term) {
-        const from = d.externalInstitutionId ? institutions[d.externalInstitutionId.toLowerCase()] : '';
+        const from = d.externalInstitutionName || '';
         const haystack = [d.qrCode, d.orginalNo, d.currentAssignmentUser, from]
           .filter(Boolean).join(' ').toLocaleLowerCase('tr');
         if (!haystack.includes(term)) return false;
@@ -319,8 +321,9 @@ export default class Scanlist {
     return d.urgencyDegree != null && ATTENTION_URGENCIES.has(d.urgencyDegree);
   }
 
+  // Kurum adı cevapta gelir (externalInstitutionName); ~160.000 kurumluk liste ad için çekilmez
   institutionName(d: IncomingDocumentModel): string {
-    return (d.externalInstitutionId && this.institutionNames()[d.externalInstitutionId.toLowerCase()]) || '';
+    return d.externalInstitutionName || '';
   }
 
   setQueue(q: QueueView): void {
@@ -454,8 +457,8 @@ export default class Scanlist {
   // Yönetici ve Gelen Evrak rolleri hiçbir filtre göndermez (tüm gelen evrakları
   // görür); diğer kullanıcılar (ör. Birim Evrak Sorumlusu) kendi departmentId'siyle
   // sınırlanır, böylece sadece kendi birimlerine ait evrakları görür.
-  private get departmentFilterId(): string | undefined {
-    return this.#roleService.hasAny(['Yönetici', 'Gelen Evrak']) ? undefined : this.user()?.departmentId;
+  private get departmentFilterId(): DepartmentId | undefined {
+    return this.#roleService.hasAny(['Yönetici', 'Gelen Evrak']) ? undefined : this.user()?.departmentId ?? undefined;
   }
 
   // Tüm gelen evraklar tek istekte çekilir; kuyruklara ayırma ve süzme istemcide yapılır.
@@ -502,7 +505,7 @@ export default class Scanlist {
   private loadUsersOnce() {
     if (this.usersLoaded) return;
     this.usersLoading.set(true);
-    this.httpService.get<UserModel[]>('api/Users/GetAll').pipe(
+    this.httpService.get<UserModel[]>('api/Users/GetAll?onlyWithRoles=true').pipe(
       switchMap(res => {
         const active = (res ?? []).filter((u): u is UserModel & { id: string } => !!u.id && u.isActive && !u.isDeleted);
         if (!active.length) return of([] as UserModel[]);
@@ -700,7 +703,7 @@ export default class Scanlist {
   // popup'ının listesi yalnızca Gelen Evrak rolünü tuttuğundan tüm kullanıcılar ayrıca,
   // sayfa açılışını yavaşlatmasın diye popup ilk açıldığında bir kez yüklenir.
   private readonly allUsersRequested = signal(false);
-  readonly allUsersResult = httpResource<UserModel[]>(() => this.allUsersRequested() ? 'api/Users/GetAll' : undefined);
+  readonly allUsersResult = httpResource<UserModel[]>(() => this.allUsersRequested() ? 'api/Users/GetAll?onlyWithRoles=true' : undefined);
   readonly userDepartmentShortMap = computed(() => {
     const map: Record<string, string> = {};
     for (const u of this.allUsersResult.value() ?? []) {
@@ -829,8 +832,8 @@ export default class Scanlist {
   // Ek bilgisi gibi alanlar liste yanıtında eksik olabileceğinden evrak GetById ile tazelenir.
   private readonly departmentService = inject(Department);
   private readonly externalInstitutionService = inject(ExternalInstitution);
-  private readonly departmentNames = signal<Record<string, string>>({});
-  private readonly institutionNames = signal<Record<string, string>>({});
+  // Birim adları: Nereye'de kısa ad (yoksa tam ad) yazılır, tam ad title'da
+  private readonly departmentNames = signal<Record<string, { name: string; short: string }>>({});
   private lookupsRequested = false;
 
   readonly infoVisible = signal(false);
@@ -911,8 +914,11 @@ export default class Scanlist {
         cls: actionRequiredBadgeClass(d.actionRequired)
       },
 
-      from: text(d.externalInstitutionId ? this.institutionNames()[d.externalInstitutionId.toLowerCase()] : null),
-      to: text(d.departmentId ? this.departmentNames()[d.departmentId.toLowerCase()] : null),
+      from: text(d.externalInstitutionName || null),
+      // Nereye: tüm alıcı birimler (distributions) kısa adla, Bilgi alıcıları "(B)" ekiyle;
+      // üzerine gelince tam adlar alt alta
+      to: text(incomingRecipientNames(d, id => this.departmentNames()[idKey(id)!]?.short).join(', ')),
+      toTitle: incomingRecipientNames(d, id => this.departmentNames()[idKey(id)!]?.name, 'Bilgi').join('\n'),
 
       pageCount: d.pageCount != null && String(d.pageCount) !== '' ? String(d.pageCount) : '-',
       hasAttachment: d.hasAttachment ?? null,
@@ -947,10 +953,16 @@ export default class Scanlist {
     this.infoLoading.set(true);
     this.loadLookupsOnce();
 
-    this.incomingDocumentService.getIncomingDocumentByDocumentId(item.id).subscribe({
+    // GetById alıcıları döndürmez; "Nereye" listesi GetDistributions'tan eklenir
+    this.incomingDocumentService.getIncomingDocumentWithDistributions(item.id).subscribe({
       next: (fresh) => {
-        // Atanan personelin adı yalnızca liste satırında gelir; tazelenen kayda taşınır
-        if (fresh) this.infoDoc.set({ ...fresh, currentAssignmentUser: fresh.currentAssignmentUser ?? item.currentAssignmentUser });
+        // Atanan personelin adı yalnızca liste satırında gelir; tazelenen kayda taşınır.
+        // Alıcılar okunamadıysa liste satırındaki distributions kullanılır.
+        if (fresh) this.infoDoc.set({
+          ...fresh,
+          distributions: fresh.distributions ?? item.distributions,
+          currentAssignmentUser: fresh.currentAssignmentUser ?? item.currentAssignmentUser
+        });
         this.infoLoading.set(false);
       },
       error: (err) => {
@@ -970,14 +982,9 @@ export default class Scanlist {
     if (this.lookupsRequested) return;
     this.lookupsRequested = true;
     this.departmentService.getDepartments().subscribe({
-      next: (list) => this.departmentNames.set(
-        Object.fromEntries((list ?? []).filter(x => x.id).map(x => [x.id!.toLowerCase(), x.name]))),
+      next: (list) => this.departmentNames.set(Object.fromEntries((list ?? []).filter(x => x.id)
+        .map(x => [idKey(x.id)!, { name: x.name, short: x.shortName?.trim() || x.name }]))),
       error: (err) => console.error('Birimler alınamadı:', err)
-    });
-    this.externalInstitutionService.getExternalInstitutions().subscribe({
-      next: (list) => this.institutionNames.set(
-        Object.fromEntries((list ?? []).filter(x => x.id).map(x => [x.id!.toLowerCase(), x.name]))),
-      error: (err) => console.error('Dış kurumlar alınamadı:', err)
     });
   }
 

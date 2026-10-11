@@ -370,7 +370,7 @@ export default class Zimmetlerim {
   readonly outgoingCount = computed(() =>
     this.zimmetlerim().filter(i => i.documentDirection === DocumentDirectionEnum.Giden).length);
 
-  readonly usersResult = httpResource<UserModel[]>(() => 'api/Users/GetAll');
+  readonly usersResult = httpResource<UserModel[]>(() => 'api/Users/GetAll?onlyWithRoles=true');
   readonly personFilter = signal('');
   readonly personList = computed(() => {
     const query = this.personFilter().trim().toLocaleLowerCase('tr');

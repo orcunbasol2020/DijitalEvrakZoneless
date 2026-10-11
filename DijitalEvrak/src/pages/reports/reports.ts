@@ -4,6 +4,7 @@ import GenericModel from '../../../components/generic-model/generic-model';
 import { ReportChart } from './report-chart';
 import { MultiOption, ReportMultiselect } from './report-multiselect';
 import { Direction, EnvelopeRow, ReportDataService, ReportDataset, ReportDoc } from './report-data';
+import { downloadCsv } from './report-csv';
 import { UrgencyDegreeEnum, UrgencyDegreeLabels } from '../../models/urgencydegree.model';
 import { SecurityDegreeEnum, SecurityDegreeLabels } from '../../models/securitydegree.model';
 
@@ -119,11 +120,12 @@ function inRange(date: Date | null, r: Range): boolean {
   return (!r.from || date >= r.from) && (!r.to || date < r.to);
 }
 
-function countBy<T>(list: T[], keyOf: (x: T) => string): Item[] {
+// keyOf birden fazla değer döndürebilir (ör. gelen evrakın alıcı birimleri): kayıt her değerde bir kez sayılır
+function countBy<T>(list: T[], keyOf: (x: T) => string | string[]): Item[] {
   const map = new Map<string, number>();
   for (const x of list) {
-    const k = keyOf(x);
-    map.set(k, (map.get(k) ?? 0) + 1);
+    const keys = keyOf(x);
+    for (const k of Array.isArray(keys) ? keys : [keys]) map.set(k, (map.get(k) ?? 0) + 1);
   }
   // Bilinmeyen değer (Belirtilmemiş / —) en sonda ve gri: asıl dağılımın önüne geçmesin
   const unknown = (n: string) => n === 'Belirtilmemiş' || n === '—';
@@ -154,23 +156,6 @@ export function formatHours(hours: number | null): string {
   const days = Math.floor(hours / 24);
   const rest = Math.round(hours % 24);
   return rest ? `${days} g ${rest} sa` : `${days} g`;
-}
-
-function csvCell(value: unknown): string {
-  const s = value == null ? '' : String(value);
-  return /[;"\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
-
-/** Excel'in Türkçe ayarında doğrudan açılan CSV (noktalı virgül, UTF-8 BOM) */
-function downloadCsv(fileName: string, header: string[], rows: unknown[][]): void {
-  const body = [header, ...rows].map(r => r.map(csvCell).join(';')).join('\r\n');
-  const blob = new Blob(['﻿' + body], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = fileName;
-  a.click();
-  URL.revokeObjectURL(url);
 }
 
 @Component({
@@ -292,7 +277,8 @@ export default class Reports {
     const data = this.data();
     if (!data || !r) return [];
     const unit = this.unitFilter();
-    return data.docs.filter(d => (!unit || d.departmentId === unit) && inRange(this.dateOf(d), r));
+    // Gelen evrak alıcı birimlerinden herhangi biri seçili birimse kapsama girer
+    return data.docs.filter(d => (!unit || d.units.some(u => u.id === unit)) && inRange(this.dateOf(d), r));
   }
 
   /** Genel süzgeçlerden geçen evraklar (Detaylı Sorgu hariç tüm sekmeler) */
@@ -507,7 +493,7 @@ export default class Reports {
   readonly incomingBreakdowns = computed<Breakdown[]>(() => {
     const inc = this.incoming();
     return [
-      { id: 'in-unit', title: 'Birimlere Göre', icon: 'apartment', kind: 'hbar', items: top(countBy(inc, d => d.departmentName), 12) },
+      { id: 'in-unit', title: 'Birimlere Göre', icon: 'apartment', kind: 'hbar', items: top(countBy(inc, d => d.units.map(u => u.name)), 12) },
       { id: 'in-inst', title: 'Gönderen Kurumlar', icon: 'account_balance', kind: 'hbar', items: top(countBy(inc, d => d.institutionName), 12) },
       { id: 'in-urgency', title: 'İvedilik', icon: 'bolt', kind: 'bar', items: this.urgencyItems(inc) },
       { id: 'in-security', title: 'Gizlilik Derecesi', icon: 'lock', kind: 'donut', items: this.securityItems(inc) },
@@ -647,10 +633,11 @@ export default class Reports {
   // ---------------------------------------------------------------- Birim karşılaştırma
   readonly unitRows = computed<UnitRow[]>(() => {
     const map = new Map<string, UnitRow>();
-    for (const d of this.docs()) {
-      const id = d.departmentId ?? '-';
+    // Gelen evrak her alıcı biriminin satırında ayrı sayılır
+    for (const d of this.docs()) for (const unit of d.units) {
+      const id = unit.id ?? '-';
       const r = map.get(id) ?? {
-        id, name: d.departmentName, incoming: 0, delivered: 0, pending: 0, rate: 0, urgent: 0, published: 0, outgoing: 0, total: 0,
+        id, name: unit.name, incoming: 0, delivered: 0, pending: 0, rate: 0, urgent: 0, published: 0, outgoing: 0, total: 0,
       };
       if (d.direction === 'in') {
         r.incoming++;
@@ -759,7 +746,7 @@ export default class Reports {
         name: names.get(id) ?? this.data()?.departments.find(d => d.id === id)?.name ?? id,
         type: 'line', smooth: true, symbol: 'circle', symbolSize: 5,
         itemStyle: { color: PALETTE[i % PALETTE.length] }, lineStyle: { width: 2 },
-        data: this.series(this.incoming().filter(d => d.departmentId === id)),
+        data: this.series(this.incoming().filter(d => d.units.some(u => u.id === id))),
       })),
     };
   });
@@ -954,7 +941,7 @@ export default class Reports {
       (dir === 'all' || d.direction === dir)
       && (!text || d.searchText.includes(text))
       && inRange(field === 'created' ? d.createdDate : d.documentDate, range)
-      && has(units, d.departmentId ?? '')
+      && (!units.length || d.units.some(u => units.includes(u.id ?? '')))
       && has(insts, d.institutionId ?? '')
       && has(instTypes, d.institutionType)
       && has(urg, String(d.urgency ?? ''))
@@ -977,7 +964,7 @@ export default class Reports {
       outgoing: r.length - inc.length,
       delivered: r.filter(d => d.delivered).length,
       urgent: r.filter(d => d.urgency != null && HIGH_URGENCY.has(d.urgency)).length,
-      units: new Set(r.map(d => d.departmentId)).size,
+      units: new Set(r.flatMap(d => d.units.map(u => u.id))).size,
       institutions: new Set(r.map(d => d.institutionId).filter(Boolean)).size,
     };
   });
@@ -1001,7 +988,7 @@ export default class Reports {
   readonly queryGroupItems = computed<Item[]>(() => {
     const r = this.queryResults();
     switch (this.qGroup()) {
-      case 'department': return top(countBy(r, d => d.departmentName), 15);
+      case 'department': return top(countBy(r, d => d.units.map(u => u.name)), 15);
       case 'institution': return top(countBy(r, d => d.institutionName), 15);
       case 'institutionType': return countBy(r, d => d.institutionType);
       case 'urgency': return this.urgencyItems(r);

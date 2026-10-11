@@ -1,3 +1,5 @@
+import { sameId } from '../../models/ids';
+import { IncomingAttachmentsView } from '../../../components/incoming-attachments-view/incoming-attachments-view';
 import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal, ViewEncapsulation } from '@angular/core';
 import GenericModel from '../../../components/generic-model/generic-model';
 import { Router } from '@angular/router';
@@ -9,7 +11,7 @@ import { FlexiToastService } from 'flexi-toast';
 import { SecurityDegreeLabels, SecurityDegreeBadgeClass } from '../../models/securitydegree.model';
 import { actionRequiredLabel, actionRequiredBadgeClass, actionRequiredIcon } from '../../models/actionrequired.model';
 import { DocumentTypeLabels } from '../../models/documenttype.model';
-import { IncomingDocumentModel } from '../../models/incoming-document/incoming-document.model';
+import { IncomingDocumentModel, incomingRecipientNames } from '../../models/incoming-document/incoming-document.model';
 import { DocumentAllocation } from '../../services/documentallocation';
 import { DocumentAllocationModel } from '../../models/documentallocation.model';
 import { Department, DepartmentModel } from '../../services/department';
@@ -41,6 +43,7 @@ const DOC_STATUS: Record<number, { label: string; tone: 'info' | 'success' | 'wa
 @Component({
   imports: [
     GenericModel,
+    IncomingAttachmentsView,
     CommonModule
   ],
   templateUrl: './surecler.html',
@@ -92,14 +95,18 @@ export default class Surecler implements OnInit {
     return (status != null && DOC_STATUS[status]) || { label: '-', tone: 'neutral' as const };
   });
 
+  // Nereye: evrak birden fazla birime gidebilir; Bilgi alıcıları "(B)" ekiyle
   readonly departmentName = computed(() => {
-    const id = this.documentDetail()?.departmentId;
-    return (id && this.departments().find(d => d.id === id)?.name) || '-';
+    const doc = this.documentDetail();
+    if (!doc) return '-';
+    const departments = this.departments();
+    return incomingRecipientNames(doc, id => departments.find(d => sameId(d.id, id))?.name)
+      .join(', ') || '-';
   });
 
+  // Kurum adı cevapta gelir (externalInstitutionName); ~160.000 kurumluk liste ad için çekilmez
   readonly externalInstitutionName = computed(() => {
-    const id = this.documentDetail()?.externalInstitutionId;
-    return (id && this.externalInstitutions().find(i => i.id === id)?.name) || '-';
+    return this.documentDetail()?.externalInstitutionName || '-';
   });
 
   readonly documentTypeLabel = computed(() => {
@@ -173,10 +180,6 @@ export default class Surecler implements OnInit {
       next: (res) => this.departments.set(res ?? []),
       error: (err) => console.error('Birimler yüklenemedi:', err)
     });
-    this.externalInstitutionService.getExternalInstitutions().subscribe({
-      next: (res) => this.externalInstitutions.set(res ?? []),
-      error: (err) => console.error('Dış kurumlar yüklenemedi:', err)
-    });
   }
 
   backToList() {
@@ -219,7 +222,8 @@ export default class Surecler implements OnInit {
       return;
     }
 
-    this.documentService.getIncomingDocumentByDocumentId(documentNumber)
+    // GetById alıcıları döndürmez; "Nereye" listesi GetDistributions'tan eklenir
+    this.documentService.getIncomingDocumentWithDistributions(documentNumber)
       .subscribe(doc => {
         if (!doc?.id) {
           this.#toast.showToast('Hata', 'Evrak bulunamadı', 'error');

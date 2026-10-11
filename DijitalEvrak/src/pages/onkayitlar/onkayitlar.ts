@@ -130,7 +130,7 @@ export default class Onkayitlar {
   // "Kaydeden" ve "Atanan" sütunları için kullanıcı id -> kullanıcı eşlemesi.
   // Users/GetAll id'leri büyük harfli GUID, evraktaki createdUserId / currentAssignmentUserId
   // küçük harfli döndüğünden anahtarlar küçük harfe indirgenir.
-  readonly usersResult = httpResource<UserModel[]>(() => 'api/Users/GetAll');
+  readonly usersResult = httpResource<UserModel[]>(() => 'api/Users/GetAll?onlyWithRoles=true');
   readonly userMap = computed(() => {
     const map: Record<string, UserModel> = {};
     for (const u of this.usersResult.value() ?? []) {

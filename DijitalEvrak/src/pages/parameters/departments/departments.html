@@ -1,48 +1,103 @@
 <app-generic pageTitle="Birimler"
   [breadcrumbs]="[{title: 'Birimler', url: 'birimler', icon: ''}]">
 </app-generic>
-<div [class.show-filters]="showFilters">
-  <flexi-grid
-    [data]="data()"
-    [loading]="loading()"
-    language="tr"
-    [showCaption]="true"
-    captionTitle="Birimler"
-    [showExportExcelBtn]="true"
-    exportExcelFileName="birimler"
-    (onRefresh)="result.reload()">
-    <ng-template flexiGridCaptionCommandTemplate>
 
-      <!-- 🔥 Filtre Aç/Kapa butonu -->
-      <flexi-button
-        btnIcon="filter_alt"
-        btnColor="light"
-        title="Filtre Aç/Kapat"
-        flexiTooltip
-        (click)="showFilters = !showFilters">
-      </flexi-button></ng-template>
-    <flexi-grid-column field="shortName" title="Kısa Ad" width="40px" />
-    <flexi-grid-column field="name" title="Ad" />
-    <flexi-grid-column field="isDeleted" title="Silindi" textAlign="center"
-      filterType="boolean" [booleanData]="['Silindi', 'Silinmedi']"
-      width="60px">
-      <ng-template flexiGridCellTemplate let-item>
-        <div class="d-flex justify-content-center">
-          <div class="form-check form-switch">
-            <input
-              class="form-check-input"
-              type="checkbox"
-              role="switch"
-              [id]="item.id"
-              name="item.id"
-              [(ngModel)]="item.isDeleted">
-          </div>
-        </div>
-      </ng-template>
-    </flexi-grid-column>
-    <!--  <flexi-grid-column title="Tarih" width="40px">
-  <ng-template flexiGridCellTemplate let-item>
-    {{ item.createdDate | date:'dd.MM.yyyy' }}
-  </ng-template>
-</flexi-grid-column>-->
-  </flexi-grid></div>
+<!-- Birimler kaynak sistemden gelir; burada yalnızca listelenir. Ağaç parentId ile kurulur. -->
+<div class="st-page">
+<section class="st-card dp-card">
+  <div class="st-card-head dp-head">
+    <span class="st-card-icon">
+      <span class="material-symbols-outlined">account_tree</span>
+    </span>
+    <div class="dp-head-text">
+      <h4 class="st-card-title">Birim Ağacı</h4>
+      <div class="st-card-sub">
+        @if (matchCount() !== null) {
+          {{ matchCount() }} birim aramaya uyuyor
+        } @else {
+          {{ tree().total }} birim · {{ tree().roots.length }} üst birim
+        }
+      </div>
+    </div>
+
+    <div class="zl-head-tools dp-tools">
+      <span class="dp-search">
+        <span class="material-symbols-outlined" aria-hidden="true">search</span>
+        <input type="search" class="form-control" placeholder="Birim adı ya da kısa adı"
+          aria-label="Birim ara" autocomplete="off"
+          [value]="search()" (input)="onSearch($any($event.target).value)" (keydown.escape)="clearSearch()">
+      </span>
+
+      <div class="dp-scope" role="group" aria-label="Kapsam">
+        <button type="button" [class.is-active]="!includeMissions()" [attr.aria-pressed]="!includeMissions()"
+          (click)="setIncludeMissions(false)">Merkez</button>
+        <button type="button" [class.is-active]="includeMissions()" [attr.aria-pressed]="includeMissions()"
+          (click)="setIncludeMissions(true)">Temsilcilikler dahil</button>
+      </div>
+
+      <button type="button" class="zl-icon-btn" [disabled]="matchCount() !== null"
+        [title]="allExpanded() ? 'Tümünü kapat' : 'Tümünü aç'" [attr.aria-label]="allExpanded() ? 'Tümünü kapat' : 'Tümünü aç'"
+        (click)="toggleAll()">
+        <span class="material-symbols-outlined">{{ allExpanded() ? 'unfold_less' : 'unfold_more' }}</span>
+      </button>
+      <button type="button" class="zl-icon-btn" title="Excel'e Aktar" aria-label="Excel'e Aktar"
+        [disabled]="!tree().total" (click)="exportCsv()">
+        <span class="material-symbols-outlined">file_export</span>
+      </button>
+      <button type="button" class="zl-icon-btn" title="Güncel Verileri Getir" aria-label="Güncel Verileri Getir"
+        (click)="result.reload()">
+        <span class="material-symbols-outlined">refresh</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="dp-body">
+    @if (loading() && !tree().total) {
+      <div class="dp-state">
+        <span class="spinner-border spinner-border-sm"></span>
+        Birimler yükleniyor…
+      </div>
+    } @else if (result.error()) {
+      <div class="dp-state">
+        <span class="material-symbols-outlined">cloud_off</span>
+        Birimler alınamadı.
+        <button type="button" class="btn btn-sm btn-outline-secondary" (click)="result.reload()">Tekrar dene</button>
+      </div>
+    } @else if (!rows().length) {
+      <div class="dp-state">
+        <span class="material-symbols-outlined">search_off</span>
+        {{ matchCount() !== null ? 'Bu aramaya uyan birim yok' : 'Birim bulunamadı' }}
+      </div>
+    } @else {
+      <ul class="dp-tree" role="tree" aria-label="Birimler">
+        @for (row of rows(); track row.node.dept.id) {
+          <li role="treeitem" class="dp-row" [class.is-match]="row.match"
+            [attr.aria-level]="row.level"
+            [attr.aria-expanded]="row.node.children.length ? row.expanded : null"
+            [style.--dp-level]="row.level - 1">
+            <button type="button" class="dp-node" [class.is-leaf]="!row.node.children.length"
+              [attr.tabindex]="0" (click)="toggle(row)" (keydown)="onKeydown($event, row)">
+              <span class="material-symbols-outlined dp-chevron" aria-hidden="true">
+                {{ row.node.children.length ? 'chevron_right' : 'remove' }}
+              </span>
+              <span class="material-symbols-outlined dp-icon" aria-hidden="true">
+                {{ typeLabel(row.node.dept) ? 'public' : (row.node.children.length ? (row.expanded ? 'folder_open' : 'folder') : 'apartment') }}
+              </span>
+              <span class="dp-name">{{ row.node.dept.name }}</span>
+              @if (row.node.dept.shortName && row.node.dept.shortName !== row.node.dept.name) {
+                <span class="dp-short">{{ row.node.dept.shortName }}</span>
+              }
+              @if (typeLabel(row.node.dept); as type) {
+                <span class="dp-type">{{ type }}</span>
+              }
+              @if (row.node.descendantCount) {
+                <span class="dp-count" [title]="row.node.descendantCount + ' alt birim'">{{ row.node.descendantCount }}</span>
+              }
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</section>
+</div>

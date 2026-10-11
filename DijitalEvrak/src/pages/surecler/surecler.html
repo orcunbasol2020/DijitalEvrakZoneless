@@ -257,6 +257,10 @@
                             <div class="iz-detail-label">Notlar</div>
                             <div class="iz-detail-value">{{ doc.notes }}</div>
                         </div>
+                        <!-- Elektronik ekler (PDF): GetById cevabında gelmez, ayrıca okunur -->
+                        <div class="iz-detail iz-detail-wide">
+                            <app-incoming-attachments-view [documentId]="doc.id" />
+                        </div>
                     </div>
 
                     <!-- Diğer Bilgiler: Evrak Bilgileri sekmesinde yer almayan alanlar -->

@@ -1,3 +1,4 @@
+import { idKey, ExternalInstitutionId, sameId, toExternalInstitutionId } from '../../models/ids';
 import { ChangeDetectionStrategy, Component, ElementRef, HostListener, Injector, ViewEncapsulation, afterNextRender, computed, inject, signal, viewChild } from '@angular/core';
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -25,7 +26,7 @@ const FILTERS_OPEN_KEY = 'nota-raporlari.filtersOpen';
 
 /** Misyon seçicideki kayıt (GetNotaSenders) */
 interface MissionOption {
-  id: string;
+  id: ExternalInstitutionId;
   name: string;
   country: string | null;
   notaCount: number;
@@ -115,7 +116,7 @@ export default class NotaRaporlari {
     this.missions().filter(m => m.notaCount > 0).slice(0, POPULAR_LIMIT));
 
   // ---- Seçili misyon ve dönem ----
-  readonly selected = signal<{ id: string; name: string } | null>(null);
+  readonly selected = signal<{ id: ExternalInstitutionId; name: string } | null>(null);
   readonly year = signal<number | null>(null);
   readonly month = signal<number | null>(null);
   readonly dateField = signal<NotaDateField>('created');
@@ -171,8 +172,8 @@ export default class NotaRaporlari {
 
   constructor() {
     this.loadMissions();
-    const id = this.route.snapshot.queryParamMap.get('misyon');
-    if (id) this.select({ id, name: '' }, false);
+    const id = toExternalInstitutionId(this.route.snapshot.queryParamMap.get('misyon'));
+    if (id !== null) this.select({ id, name: '' }, false);
   }
 
   // ---- Misyon listesi: nota gönderenler, nota sayısına göre azalan (GetNotaSenders) ----
@@ -181,18 +182,18 @@ export default class NotaRaporlari {
     forkJoin({
       senders: this.reportService.getSenders(),
       // Seçicide nota göndermemiş misyonlar da yer alır; alınamazsa yalnızca nota gönderenler listelenir
-      institutions: this.institutionService.getExternalInstitutions().pipe(catchError(() => of([]))),
+      institutions: this.institutionService.getMissions().pipe(catchError(() => of([]))),
     }).subscribe({
       next: ({ senders, institutions }) => {
         const all = (institutions ?? []).filter(i => i?.id);
-        this.institutionNames = new Map(all.map(i => [i.id.toLowerCase(), i.name]));
+        this.institutionNames = new Map(all.map(i => [idKey(i.id)!, i.name]));
         const options = new Map<string, MissionOption>();
         for (const s of senders ?? []) {
-          options.set(s.externalInstitutionId.toLowerCase(),
+          options.set(idKey(s.externalInstitutionId)!,
             this.toOption(s.externalInstitutionId, this.nameOf(s.externalInstitutionId, s.name), s.notaCount));
         }
         for (const i of all) {
-          if (i.type === ExternalInstitutionType.Misyon && !options.has(i.id.toLowerCase())) options.set(i.id.toLowerCase(), this.toOption(i.id, i.name ?? '', 0));
+          if (i.type === ExternalInstitutionType.Misyon && !options.has(idKey(i.id)!)) options.set(idKey(i.id)!, this.toOption(i.id, i.name ?? '', 0));
         }
         // Nota sayısına göre azalan, eşitlikte ada göre
         this.setMissions([...options.values()].sort((a, b) => b.notaCount - a.notaCount || a.name.localeCompare(b.name, 'tr')));
@@ -204,11 +205,11 @@ export default class NotaRaporlari {
     });
   }
 
-  private nameOf(id: string | null | undefined, name: string | null | undefined): string {
-    return name?.trim() || (id && this.institutionNames.get(id.toLowerCase())) || '';
+  private nameOf(id: ExternalInstitutionId | null | undefined, name: string | null | undefined): string {
+    return name?.trim() || (id && this.institutionNames.get(idKey(id)!)) || '';
   }
 
-  private toOption(id: string, name: string, notaCount: number): MissionOption {
+  private toOption(id: ExternalInstitutionId, name: string, notaCount: number): MissionOption {
     const country = countryOfMission(name)?.label ?? null;
     return { id, name, country, notaCount, search: lower(`${name} ${country ?? ''}`) };
   }
@@ -219,7 +220,7 @@ export default class NotaRaporlari {
     // Adresten gelen misyonun adı listeden tamamlanır (özet gelmeden başlıkta görünsün)
     const s = this.selected();
     if (s && !s.name) {
-      const found = list.find(m => m.id.toLowerCase() === s.id.toLowerCase());
+      const found = list.find(m => sameId(m.id, s.id));
       if (found) this.selected.set({ id: s.id, name: found.name });
     }
   }
@@ -264,7 +265,7 @@ export default class NotaRaporlari {
   }
 
   // ---- Seçim ----
-  select(mission: { id: string; name: string }, updateUrl = true): void {
+  select(mission: { id: ExternalInstitutionId; name: string }, updateUrl = true): void {
     this.selected.set(mission);
     this.years.set([]);
     this.year.set(null);

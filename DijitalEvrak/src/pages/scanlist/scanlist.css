@@ -1955,3 +1955,15 @@
     color: #bae6fd;
 }
 
+
+/* Detay popup'ı: Belge Özellikleri altında elektronik ekler (IncomingAttachmentsView) */
+.ei-side .ei-attachments {
+    display: block;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid #e7eaf0;
+}
+
+[data-theme="dark"] .ei-side .ei-attachments {
+    border-top-color: rgba(148, 163, 184, 0.16);
+}

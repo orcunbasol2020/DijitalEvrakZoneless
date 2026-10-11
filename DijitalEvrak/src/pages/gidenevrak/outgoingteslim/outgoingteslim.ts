@@ -1,3 +1,4 @@
+import { idKey } from '../../../models/ids';
 import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
@@ -74,7 +75,6 @@ export default class Outgoingteslim implements OnInit {
     2: 'Atlas'
   };
 
-  readonly institutionsResult = httpResource<ExternalInstitutionModel[]>(() => "api/ExternalInstitutions/GetAll");
   readonly departmentsResult = httpResource<DepartmentModel[]>(() => "api/Departments/GetAll");
 
   readonly senderDepartmentName = computed(() => {
@@ -88,17 +88,14 @@ export default class Outgoingteslim implements OnInit {
   // tek alıcı alanına (externalInstitutonId) düşülür.
   readonly recipientNames = computed<string[]>(() => {
     const dist = this.distributions();
-    const institutions = this.institutionsResult.value() ?? [];
     if (dist.length) {
       const deptMap: Record<string, string> = {};
-      for (const d of this.departmentsResult.value() ?? []) deptMap[d.id] = d.name;
-      const instMap: Record<string, string> = {};
-      for (const i of institutions) instMap[i.id] = i.name;
-      return dist.map(d => distributionRecipientName(d, deptMap, instMap));
+      for (const d of this.departmentsResult.value() ?? []) deptMap[idKey(d.id)!] = d.name;
+      // Dağıtım satırında kurum adı cevapta gelir
+      return dist.map(d => distributionRecipientName(d, deptMap));
     }
-    const institutionId = this.document()?.externalInstitutonId;
-    if (!institutionId) return [];
-    const name = institutions.find(i => i.id === institutionId)?.name;
+    // Eski kayıt: evrak üzerindeki tek alıcı; adı cevapta gelir
+    const name = this.document()?.externalInstitutionName;
     return name ? [name] : [];
   });
 

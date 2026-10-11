@@ -1,3 +1,4 @@
+import { DepartmentId, sameId, ExternalInstitutionId, idKey } from '../../../models/ids';
 import { AfterViewInit, ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ElementRef, inject, OnDestroy, OnInit, signal, ViewChild, ViewEncapsulation } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import GenericModel from '../../../../components/generic-model/generic-model';
@@ -18,7 +19,7 @@ import { OutgoingDocumentService } from '../../../services/outgoingdocument';
 import { OutgoingDocumentAllocation } from '../../../services/outgoingdocumentallocation';
 import { AllocationStatusEnum, AllocationStatusLabels } from '../../../models/allocationstatus.model';
 import { OutgoingDocumentAllocationModel } from '../../../models/outgoingdocumentallocation.model';
-import { ExternalInstitution, ExternalInstitutionModel } from '../../../services/external-institution';
+import { ExternalInstitution, INSTITUTION_MIN_SEARCH, institutionSearch } from '../../../services/external-institution';
 import { ExternalUserService, ExternalUserModel, initialExternalUser } from '../../../services/external-user';
 import { UserModel } from '../../users/users';
 import { SimpleAutocompleteComponent } from '../../simpleautocomplete/simpleautocomplete';
@@ -355,9 +356,9 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
   readonly mode = signal<ZimmetMode>('self');
   readonly selectedPersonId = signal<string | null>(null);
   readonly personSearch = signal('');
-  readonly selectedInstitutionId = signal<string | null>(null);
+  readonly selectedInstitutionId = signal<ExternalInstitutionId | null>(null);
 
-  readonly usersResult = httpResource<UserModel[]>(() => "api/Users/GetAll");
+  readonly usersResult = httpResource<UserModel[]>(() => "api/Users/GetAll?onlyWithRoles=true");
   readonly internalUserList = computed<PersonListItem[]>(() =>
     (this.usersResult.value() ?? []).filter((x): x is UserModel & { id: string } => !!x.id && !x.isDeleted && x.isActive)
   );
@@ -375,38 +376,14 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     return this.internalUserList().find(x => x.id === id) ?? null;
   });
 
-  readonly institutionsResult = httpResource<ExternalInstitutionModel[]>(() => "api/ExternalInstitutions/GetAll");
-  readonly institutionList = computed(() =>
-    (this.institutionsResult.value() ?? []).filter(x => !x.isDeleted)
-  );
-
-  // Kurumlar parentId ile hiyerarşik olabildiğinden, autocomplete listesinde
-  // üst kurumun hemen altına alt kurumlar girintili şekilde sıralanır.
-  readonly institutionOptions = computed(() => {
-    const list = this.institutionList();
-    const byParent = new Map<string | null, ExternalInstitutionModel[]>();
-
-    for (const inst of list) {
-      const key = list.some(p => p.id === inst.parentId) ? inst.parentId! : null;
-      if (!byParent.has(key)) byParent.set(key, []);
-      byParent.get(key)!.push(inst);
-    }
-    for (const group of byParent.values()) {
-      group.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
-    }
-
-    const result: { id: string; name: string; level: number }[] = [];
-    const addChildren = (parentId: string | null, level: number) => {
-      for (const inst of byParent.get(parentId) ?? []) {
-        result.push({ id: inst.id, name: inst.name, level });
-        addChildren(inst.id, level + 1);
-      }
-    };
-    addChildren(null, 0);
-
-    return result;
-  });
-  readonly institutionControl = new FormControl<{ id: string, name: string } | null>(null);
+  // Dış kurumlar (~160.000) indirilmez: kurum seçici sunucuda arar. Seçili kurumun adı seçimden,
+  // arama sonucundan ya da evrak / zarf cevabından bilinir (bkz. institutionNameOf).
+  readonly institutionSearch = institutionSearch();
+  readonly institutionMinSearch = INSTITUTION_MIN_SEARCH;
+  readonly institutionOptions = computed(() =>
+    this.institutionSearch.options().map(i => ({ id: i.id, name: i.name })));
+  private readonly pickedInstitution = signal<{ id: ExternalInstitutionId; name: string } | null>(null);
+  readonly institutionControl = new FormControl<{ id: ExternalInstitutionId, name: string } | null>(null);
 
   readonly externalUsersResult = httpResource<ExternalUserModel[]>(() => "api/ExternalUsers/GetAll");
   readonly externalPersonList = computed<PersonListItem[]>(() => {
@@ -434,8 +411,17 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
 
   readonly selectedInstitutionName = computed(() => {
     const id = this.selectedInstitutionId();
-    return id ? this.institutionList().find(x => x.id === id)?.name ?? null : null;
+    return id !== null ? this.institutionNameOf(id) : null;
   });
+
+  private institutionNameOf(id: ExternalInstitutionId): string | null {
+    const picked = this.pickedInstitution();
+    if (picked?.id === id) return picked.name;
+    if (this.previewEnvelope?.externalInstitutionId === id && this.previewEnvelope.externalInstitutionName) {
+      return this.previewEnvelope.externalInstitutionName;
+    }
+    return this.institutionSearch.options().find(i => i.id === id)?.name ?? null;
+  }
 
   // ---- Kargoya Ver paneli ----
   // Zarf ya elden teslim edilir ya kargolanır; bu yüzden kargo işlemi listedeki
@@ -484,7 +470,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
   });
 
   // Tek personelli kurum için otomatik seçimin hangi kurumda yapıldığını tutar.
-  private autoSelectedInstitutionId: string | null = null;
+  private autoSelectedInstitutionId: ExternalInstitutionId | null = null;
 
   readonly quickAddModalVisible = signal(false);
   readonly quickAddSaving = signal(false);
@@ -502,7 +488,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     // Belgenin kurumu değiştiğinde arama kutusunda gösterilen seçimi de eşitle.
     effect(() => {
       const id = this.selectedInstitutionId();
-      const match = id ? this.institutionOptions().find(o => o.id === id) ?? null : null;
+      const match = id !== null ? { id, name: this.institutionNameOf(id) ?? '' } : null;
       if (this.institutionControl.value?.id !== match?.id) {
         this.institutionControl.setValue(match, { emitEvent: false });
       }
@@ -522,6 +508,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     });
 
     this.institutionControl.valueChanges.subscribe(value => {
+      if (value) this.pickedInstitution.set(value);
       this.selectInstitution(value?.id ?? null);
     });
 
@@ -576,7 +563,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     this.internalUserControl.setValue(null, { emitEvent: false });
   }
 
-  selectInstitution(id: string | null): void {
+  selectInstitution(id: ExternalInstitutionId | null): void {
     this.selectedInstitutionId.set(id);
     this.selectedPersonId.set(null);
     this.autoSelectedInstitutionId = null;
@@ -716,18 +703,6 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
 
         this.applyEnvelopeInstitution();
 
-        // GetByNo, GetById gibi kurum adını (externalInstitutionName) join'lemeden
-        // dönebiliyor; yalnızca id geldiyse burada ayrıca çekiyoruz.
-        if (!envelope.externalInstitutionName && envelope.externalInstitutionId) {
-          this.externalInstitutionService.getExternalInstitutionById(envelope.externalInstitutionId).subscribe({
-            next: (institution: ExternalInstitutionModel) => {
-              if (this.previewEnvelope === envelope) {
-                this.previewEnvelope = { ...envelope, externalInstitutionName: institution.name };
-                this.cdr.markForCheck();
-              }
-            }
-          });
-        }
 
         const docs = await this.envelopeDocumentService
           .getEnvelopeDocumentsByEnvelopeId(envelope.id);
@@ -1103,15 +1078,14 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
   // Boş dizi yalnızca evrağın hiçbir alıcı bilgisi yoksa döner.
   private async resolveDistributionIds(
     outgoingDocumentId: string,
-    institutionId: string | null
+    institutionId: ExternalInstitutionId | null
   ): Promise<string[]> {
     const rows: OutgoingDocumentDistributionModel[] =
       ((await firstValueFrom(this.distributionService.getByOutgoingDocumentId(outgoingDocumentId))) ?? [])
         .filter(r => !(r as { isDeleted?: boolean }).isDeleted);
     const open = rows.filter(r => !r.shipmentId);
 
-    const sameId = (a?: string | null, b?: string | null) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
-    const createRow = async (departmentId: string | null, externalInstitutionId: string | null) => {
+    const createRow = async (departmentId: DepartmentId | null, externalInstitutionId: ExternalInstitutionId | null) => {
       const created = await firstValueFrom(this.distributionService.create(outgoingDocumentId, [{
         departmentId,
         externalInstitutionId,

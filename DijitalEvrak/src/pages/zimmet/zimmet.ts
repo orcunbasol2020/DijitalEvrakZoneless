@@ -1,3 +1,4 @@
+import { DepartmentId, idKey, sameId } from '../../models/ids';
 import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, inject, OnInit, OnDestroy, signal, ViewChild, ViewEncapsulation, computed, effect } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { firstValueFrom } from 'rxjs';
@@ -10,6 +11,7 @@ import { AllocationRequestService } from '../../services/allocationrequest';
 import { AllocationRequestActionResultEnum, AllocationRequestModel, AllocationRequestStatusEnum, allocationRequestOperationLabel } from '../../models/allocationrequest.model';
 import { Common } from '../../services/common';
 import { IncomingDocumentService } from '../../services/incomingdocument';
+import { IncomingDocumentModel, incomingRecipientNames } from '../../models/incoming-document/incoming-document.model';
 import { AllocationFlowComponent } from '../dynamics/allocation-flow/allocation-flow';
 import { DocumentAllocationModel } from '../../models/documentallocation.model';
 import { AllocationStatusEnum, AllocationStatusLabels } from '../../models/allocationstatus.model';
@@ -178,15 +180,30 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
 
   // Nereden / Nereye: evraktaki id'ler kurum ve birim adına çevrilir (Süreçler ekranıyla aynı yaklaşım).
   readonly departments = signal<DepartmentModel[]>([]);
-  readonly externalInstitutions = signal<ExternalInstitutionModel[]>([]);
 
-  departmentNameOf(id?: string | null): string {
-    return (id && this.departments().find(d => d.id?.toLowerCase() === id.toLowerCase())?.name) || '-';
+  departmentNameOf(id?: DepartmentId | null): string {
+    return this.departments().find(d => sameId(d.id, id))?.name || '-';
   }
 
-  externalInstitutionNameOf(id?: string | null): string {
-    return (id && this.externalInstitutions().find(i => i.id?.toLowerCase() === id.toLowerCase())?.name) || '-';
+  // Nereye: evrak birden fazla birime gidebilir; Bilgi alıcıları "(B)" ekiyle
+  recipientNamesOf(doc: IncomingDocumentModel): string {
+    return incomingRecipientNames(doc, id => this.departments().find(d => sameId(d.id, id))?.name)
+      .join(', ') || '-';
   }
+
+  // GetById / GetByQrCode alıcıları döndürmez; "Nereye" listesi GetDistributions'tan eklenir.
+  // Okunamazsa evraktaki ana birim (departmentId) gösterilmeye devam eder.
+  private loadDistributions(documentId: string) {
+    this.incomingDocumentService.getDistributions(documentId, false).subscribe({
+      next: (distributions) => {
+        this.docs.update(list => list.map(d => d.id === documentId
+          ? { ...d, detail: { ...d.detail, distributions: distributions ?? [] } } : d));
+        this.cdr.markForCheck();
+      },
+      error: (err) => console.error('Alıcılar yüklenemedi:', err)
+    });
+  }
+
 
   // === OKUTULAN EVRAKLAR ===
   // Arka arkaya okutulan evraklar burada birikir. Tek evrak varken sol panelde
@@ -235,7 +252,9 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
   // Autocomplete seçimi; şablonda seçili personel kartı ve buton durumları için.
   readonly selectedPerson = toSignal(this.personControl.valueChanges, { initialValue: this.personControl.value });
 
-  readonly usersResult = httpResource<UserModel[]>(() => "api/Users/GetAll");
+  // Kaynakta ~10.000 kullanıcı var, süzgeçsiz liste 200 ile sınırlı: "tüm personel" araması bu
+  // sistemde rolü olanlar arasında yapılır; birim kartları birimin kullanıcılarını ayrıca çeker.
+  readonly usersResult = httpResource<UserModel[]>(() => "api/Users/GetAll?onlyWithRoles=true");
   readonly personList = computed(() =>
     (this.usersResult.value() ?? [])
       .filter(x => !x.isDeleted && x.isActive)
@@ -263,7 +282,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
   // === BİRİME GÖRE PERSONEL ===
   // Devret'te önce birim seçilir, altında o birimin personeli kart olarak listelenir.
   // Birim, evrağın Nereye birimiyle açılır; kullanıcı başka bir birim seçebilir.
-  readonly departmentControl = new FormControl<{ id: string, name: string } | null>(null);
+  readonly departmentControl = new FormControl<{ id: DepartmentId, name: string } | null>(null);
   readonly selectedDepartment = toSignal(this.departmentControl.valueChanges, { initialValue: this.departmentControl.value });
 
   readonly departmentOptions = computed(() =>
@@ -273,11 +292,16 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
       .map(d => ({ id: d.id, name: d.shortName ? `${d.name} (${d.shortName})` : d.name }))
   );
 
+  // Seçilen birimin kullanıcıları (sunucuda birime göre süzülür)
+  readonly departmentUsersResult = httpResource<UserModel[]>(() => {
+    const id = this.selectedDepartment()?.id;
+    return id != null ? `api/Users/GetAll?departmentId=${id}` : undefined;
+  });
+
   readonly departmentPersons = computed(() => {
-    const deptId = this.selectedDepartment()?.id?.toLowerCase();
-    if (!deptId) return [];
-    return this.personList()
-      .filter(p => !!p.id && p.departmentId?.toLowerCase() === deptId)
+    if (this.selectedDepartment()?.id == null) return [];
+    return (this.departmentUsersResult.value() ?? [])
+      .filter(p => !!p.id && !p.isDeleted && p.isActive)
       .sort((a, b) => `${a.name} ${a.surname}`.localeCompare(`${b.name} ${b.surname}`, 'tr'));
   });
 
@@ -295,7 +319,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
   // birime gidiyorsa o birim, farklıysa boş (kullanıcı kendisi seçer).
   readonly docsTargetDepartmentId = computed<string | null>(() => {
     const ids = new Set(this.docs()
-      .map(d => (d.detail?.departmentId as string | null | undefined)?.toLowerCase())
+      .map(d => idKey(d.detail?.departmentId))
       .filter((id): id is string => !!id));
     return ids.size === 1 ? [...ids][0] : null;
   });
@@ -309,7 +333,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     const options = this.departmentOptions();
     if (!options.length || target === this.appliedTargetDepartmentId) return;
     this.appliedTargetDepartmentId = target;
-    this.departmentControl.setValue(target ? options.find(o => o.id.toLowerCase() === target) ?? null : null);
+    this.departmentControl.setValue(target ? options.find(o => idKey(o.id) === target) ?? null : null);
   });
 
   activeAllocationOf(doc: ScannedDoc): DocumentAllocationModel | null {
@@ -370,10 +394,6 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     this.departmentService.getDepartments().subscribe({
       next: (res) => this.departments.set(res ?? []),
       error: (err) => console.error('Birimler yüklenemedi:', err)
-    });
-    this.externalInstitutionService.getExternalInstitutions().subscribe({
-      next: (res) => this.externalInstitutions.set(res ?? []),
-      error: (err) => console.error('Dış kurumlar yüklenemedi:', err)
     });
 
     if (this.id) {
@@ -557,6 +577,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     this.docs.update(list => [...list, { id: doc.id, qrCode, detail: doc, allocations: [] }]);
     this.loadAllocations(doc.id);
     this.loadPendingRequest(doc.id);
+    this.loadDistributions(doc.id);
 
     // Zimmet türü ve personel seçimi yalnızca ilk evrakta sıfırlanır; sonraki
     // okutmalarda kullanıcının sağ panelde yaptığı seçim korunur.
@@ -673,8 +694,11 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
             : e.hasAttachment === false ? '' : null,
           userId
         };
-        await firstValueFrom(this.incomingDocumentService.updateIncomingDocument(updated));
-        this.docs.update(list => list.map(d => d.id === e.doc.id ? { ...d, detail: { ...d.detail, ...updated } } : d));
+        // departmentId (ana alıcı) recipients'sız gönderilirse backend "Nereye" listesini o tek
+        // birime indirger; alıcılara dokunulmaması için ikisi de gönderilmez.
+        const { departmentId: _primary, distributions: _list, recipients: _recipients, ...payload } = updated;
+        await firstValueFrom(this.incomingDocumentService.updateIncomingDocument(payload));
+        this.docs.update(list => list.map(d => d.id === e.doc.id ? { ...d, detail: { ...d.detail, ...updated, distributions: d.detail?.distributions } } : d));
         e.original = {
           pageCount: this.normalizedPageCount(e),
           hasAttachment: e.hasAttachment,

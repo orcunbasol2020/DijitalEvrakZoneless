@@ -1,20 +1,23 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, ViewEncapsulation } from '@angular/core';
 import { httpResource } from '@angular/common/http';
 import { Router } from '@angular/router';
 import GenericModel from '../../../../components/generic-model/generic-model';
 import { FlexiGridModule } from 'flexi-grid';
-import { FormsModule } from '@angular/forms';
+import { FormControl, FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { FlexiToastService } from 'flexi-toast';
 import { ExternalUserService, ExternalUserModel, initialExternalUser } from '../../../services/external-user';
-import { ExternalInstitution, ExternalInstitutionModel } from '../../../services/external-institution';
+import { ExternalInstitution, INSTITUTION_MIN_SEARCH, institutionSearch } from '../../../services/external-institution';
+import { ExternalInstitutionId } from '../../../models/ids';
+import { SimpleAutocompleteComponent } from '../../simpleautocomplete/simpleautocomplete';
 
 @Component({
   imports: [
     GenericModel,
     FlexiGridModule,
     FormsModule,
-    CommonModule
+    CommonModule,
+    SimpleAutocompleteComponent
   ],
   templateUrl: './externaluser.html',
   encapsulation: ViewEncapsulation.None,
@@ -30,8 +33,37 @@ export default class Externaluser {
   readonly data = computed(() => this.result.value() ?? []);
   readonly loading = computed(() => this.result.isLoading());
 
-  readonly institutionsResult = httpResource<ExternalInstitutionModel[]>(() => "api/ExternalInstitutions/GetAll");
-  readonly institutions = computed(() => this.institutionsResult.value() ?? []);
+  // Kurumlar (~160.000) indirilmez. Personel cevabında kurum adı olmadığı için listedeki kurumların
+  // adları tek tek alınır (personel sayısı az); kurum seçici sunucuda arar.
+  readonly #institutionNames = signal(new Map<ExternalInstitutionId, string>());
+  readonly institutionSearch = institutionSearch();
+  readonly institutionMinSearch = INSTITUTION_MIN_SEARCH;
+  readonly institutionOptions = computed(() =>
+    this.institutionSearch.options().map(i => ({ id: i.id, name: i.name })));
+  readonly institutionControl = new FormControl<{ id: ExternalInstitutionId; name: string } | null>(null);
+
+  constructor() {
+    effect(() => {
+      const known = this.#institutionNames();
+      const missing = new Set<ExternalInstitutionId>();
+      for (const u of this.data()) {
+        const id = u.externalInstitutionId;
+        if (id !== null && id !== undefined && !known.has(id)) missing.add(id);
+      }
+      for (const id of missing) this.#loadInstitutionName(id);
+    });
+  }
+
+  #requestedNames = new Set<ExternalInstitutionId>();
+  #loadInstitutionName(id: ExternalInstitutionId): void {
+    if (this.#requestedNames.has(id)) return;
+    this.#requestedNames.add(id);
+    this.#institutionService.getExternalInstitutionById(id).subscribe({
+      next: (inst) => this.#institutionNames.update(m => new Map(m).set(id, inst?.name ?? '-')),
+      // Kaynakta kapatılmış / bulunamayan kurum
+      error: () => this.#institutionNames.update(m => new Map(m).set(id, '-')),
+    });
+  }
 
   readonly userTypeMap: Record<number, string> = {
     1: 'Standart',
@@ -45,9 +77,9 @@ export default class Externaluser {
 
   form: ExternalUserModel = { ...initialExternalUser };
 
-  institutionName(institutionId?: string | null): string {
-    if (!institutionId) return '-';
-    return this.institutions().find(item => item.id === institutionId)?.name ?? '-';
+  institutionName(institutionId?: ExternalInstitutionId | null): string {
+    if (institutionId === null || institutionId === undefined) return '-';
+    return this.#institutionNames().get(institutionId) ?? '…';
   }
 
   openZimmetler(item: ExternalUserModel) {
@@ -57,12 +89,15 @@ export default class Externaluser {
   openCreateModal() {
     this.editingId.set(null);
     this.form = { ...initialExternalUser };
+    this.institutionControl.setValue(null);
     this.modalVisible.set(true);
   }
 
   openEditModal(item: ExternalUserModel) {
     this.editingId.set(item.id ?? null);
     this.form = { ...item };
+    const id = item.externalInstitutionId;
+    this.institutionControl.setValue(id !== null && id !== undefined ? { id, name: this.institutionName(id) } : null);
     this.modalVisible.set(true);
   }
 
@@ -82,7 +117,9 @@ export default class Externaluser {
       return;
     }
 
-    if (!this.form.externalInstitutionId) {
+    const institution = this.institutionControl.value;
+    this.form.externalInstitutionId = institution?.id ?? null;
+    if (!institution) {
       this.#toast.showToast('Uyarı', 'Kurum seçimi zorunludur', 'warning');
       return;
     }
@@ -109,6 +146,7 @@ export default class Externaluser {
         this.#toast.showToast('Başarılı', id ? 'Kullanıcı güncellendi' : 'Kullanıcı eklendi', 'success');
         this.saving.set(false);
         this.modalVisible.set(false);
+        if (institution) this.#institutionNames.update(m => new Map(m).set(institution.id, institution.name));
         this.result.reload();
       },
       error: () => {

@@ -16,7 +16,7 @@ export interface ProcessStep {
 
 // İşlem türüne göre zaman çizelgesi düğümünün ikonu ve rengi.
 // 1 Ön Kayıt, 6 Zimmet, 7 Teslim, 8 OCR, 9 Birim Arşivi, 17 Şerhli Kabul,
-// 19 Atlas Aktarımı Hatalı; diğerleri varsayılan.
+// 19 Atlas Aktarımı Hatalı, 20 Ek Yükleme, 21 Ek Silme; diğerleri varsayılan.
 const TYPE_STYLE: Record<number, { icon: string; tone: ProcessTone }> = {
   1: { icon: 'app_registration', tone: 'info' },
   6: { icon: 'contract_edit', tone: 'info' },
@@ -25,6 +25,8 @@ const TYPE_STYLE: Record<number, { icon: string; tone: ProcessTone }> = {
   9: { icon: 'assured_workload', tone: 'neutral' },
   17: { icon: 'rule', tone: 'warning' },
   19: { icon: 'cloud_off', tone: 'danger' },
+  20: { icon: 'attach_file_add', tone: 'info' },
+  21: { icon: 'link_off', tone: 'neutral' },
 };
 
 // Kilometre taşları hem bilinen tür numarasından hem de backend'in gönderdiği işlem
@@ -84,6 +86,8 @@ export function processPersonLabel(t: DocumentTransactionModel): string {
   if (type === 6) return 'Zimmet Sahibi';
   if (type === 9) return 'Arşivleyen';
   if (type === 17) return 'Kabul Eden';
+  if (type === 20) return 'Yükleyen';
+  if (type === 21) return 'Silen';
   return 'Kullanıcı';
 }
 

@@ -1,9 +1,10 @@
+import { DepartmentId, ExternalInstitutionId } from '../ids';
 export interface DocumentModel {
   id: string;
   orginalNo?: string;
   subject?: string;
-  externalInstitutionId?: string;
-  departmentId?: string;
+  externalInstitutionId?: ExternalInstitutionId | null;
+  departmentId?: DepartmentId | null;
   documentDate?: string;
   notes?: string;
   status?: string;

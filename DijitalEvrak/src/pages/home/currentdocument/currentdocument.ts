@@ -1,3 +1,4 @@
+import { idKey } from '../../../models/ids';
 import { ChangeDetectionStrategy, Component, HostListener, ViewEncapsulation, computed, inject, input, signal } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { httpResource } from '@angular/common/http';
@@ -7,7 +8,7 @@ import { catchError } from 'rxjs/operators';
 import { IncomingDocumentService } from '../../../services/incomingdocument';
 import { Department } from '../../../services/department';
 import { ExternalInstitution } from '../../../services/external-institution';
-import { IncomingDocumentModel } from '../../../models/incoming-document/incoming-document.model';
+import { IncomingDocumentModel, incomingRecipientNames, summarizeRecipientNames } from '../../../models/incoming-document/incoming-document.model';
 import { SecurityDegreeEnum, SecurityDegreeLabels } from '../../../models/securitydegree.model';
 import { UrgencyDegreeEnum, UrgencyDegreeLabels } from '../../../models/urgencydegree.model';
 import { isPublished, PublishStatusEnum, publishStatusOf } from '../../../models/publishstatus.model';
@@ -167,7 +168,7 @@ export class Currentdocument {
   readonly failed = signal(false);
 
   // Atanan personelin adı backend'den gelmezse kullanıcı listesinden çözülür
-  private readonly usersResult = httpResource<UserModel[]>(() => 'api/Users/GetAll');
+  private readonly usersResult = httpResource<UserModel[]>(() => 'api/Users/GetAll?onlyWithRoles=true');
   private readonly userNames = computed(() => {
     const map = new Map<string, string>();
     for (const u of this.usersResult.value() ?? []) {
@@ -225,17 +226,15 @@ export class Currentdocument {
     forkJoin({
       docs: this.incomingDocumentService.getAllIncomingDocuments(),
       departments: this.departmentService.getDepartments().pipe(catchError(() => of([]))),
-      institutions: this.externalInstitutionService.getExternalInstitutions().pipe(catchError(() => of([]))),
     }).subscribe({
-      next: ({ docs, departments, institutions }) => {
+      next: ({ docs, departments }) => {
         const names = new Map<string, string>();
         const shortNames = new Map<string, string>();
         for (const d of departments ?? []) {
           if (!d.id) continue;
-          names.set(d.id.toLowerCase(), d.name);
-          shortNames.set(d.id.toLowerCase(), d.shortName?.trim() || d.name);
+          names.set(idKey(d.id)!, d.name);
+          shortNames.set(idKey(d.id)!, d.shortName?.trim() || d.name);
         }
-        for (const i of institutions ?? []) if (i.id) names.set(i.id.toLowerCase(), i.name);
         this.placeNames.set(names);
         this.departmentShortNames.set(shortNames);
         this.documents.set(docs ?? []);
@@ -274,18 +273,19 @@ export class Currentdocument {
     return {
       id: doc.id!,
       documentNo: doc.qrCode || doc.orginalNo || '-',
-      institution: this.placeName(doc.externalInstitutionId),
+      institution: doc.externalInstitutionName || '-',
       date: created,
       idleDays,
       idleMinutes,
       lightning: urgency === UrgencyDegreeEnum.Lightning,
       assignee: this.assigneeName(doc),
       assigneeId: doc.currentAssignmentUserId || null,
-      origin: this.placeNameOrNull(doc.externalInstitutionId),
-      destination: doc.departmentId
-        ? this.departmentShortNames().get(doc.departmentId.toLowerCase()) ?? null
-        : null,
-      destinationFull: this.placeNameOrNull(doc.departmentId),
+      // Kurum adı cevapta gelir (externalInstitutionName); ~160.000 kurumluk liste ad için çekilmez
+      origin: doc.externalInstitutionName || null,
+      // Evrak birden fazla birime gidebilir (distributions): kısa adlarla özet, tam liste title'da
+      destination: summarizeRecipientNames(
+        incomingRecipientNames(doc, id => this.departmentShortNames().get(idKey(id)!))) || null,
+      destinationFull: incomingRecipientNames(doc, id => this.placeNameOrNull(id), 'Bilgi').join(', ') || null,
       documentDate: this.validDate(doc.documentDate),
       scanned: !!doc.documentName,
       docStatus: doc.status,
@@ -316,9 +316,10 @@ export class Currentdocument {
     return date.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   }
 
-  private placeNameOrNull(id?: string | null): string | null {
-    if (!id) return null;
-    return this.placeNames().get(id.toLowerCase()) ?? null;
+  // Birim adı
+  private placeNameOrNull(id?: string | number | null): string | null {
+    const key = idKey(id);
+    return key ? this.placeNames().get(key) ?? null : null;
   }
 
   private assigneeName(doc: IncomingDocumentModel): string | null {

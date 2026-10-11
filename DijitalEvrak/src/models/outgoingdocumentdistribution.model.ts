@@ -1,3 +1,4 @@
+import { DepartmentId, idKey, ExternalInstitutionId } from './ids';
 import { CargoCompanyEnum, DeliveryMethodEnum, ShipmentStatusEnum } from './shipment.model';
 
 // Giden evrağın dağıtım (alıcı) listesi. Bir evrak birden fazla iç birime
@@ -9,9 +10,9 @@ import { CargoCompanyEnum, DeliveryMethodEnum, ShipmentStatusEnum } from './ship
 export interface OutgoingDocumentDistributionModel {
   id: string;
   outgoingDocumentId: string;
-  departmentId?: string | null;
+  departmentId?: DepartmentId | null;
   departmentName?: string | null;
-  externalInstitutionId?: string | null;
+  externalInstitutionId?: ExternalInstitutionId | null;
   externalInstitutionName?: string | null;
   // true: Gereği, false: Bilgi
   actionRequired?: boolean | null;
@@ -35,8 +36,8 @@ export interface OutgoingDocumentDistributionModel {
 
 // POST api/OutgoingDocumentDistributions/Create gövdesindeki tek alıcı.
 export interface OutgoingDocumentRecipientInput {
-  departmentId?: string | null;
-  externalInstitutionId?: string | null;
+  departmentId?: DepartmentId | null;
+  externalInstitutionId?: ExternalInstitutionId | null;
   actionRequired?: boolean | null;
   sentDate?: string | null;
   deliveryDate?: string | null;
@@ -57,17 +58,17 @@ export interface OutgoingDocumentDistributionUpdateInput {
 }
 
 // Alıcının ekranda gösterilecek adı; DTO'daki ad boşsa verilen id -> ad
-// eşlemelerinden çözülür.
+// eşlemelerinden çözülür (anahtarlar idKey biçiminde).
 export function distributionRecipientName(
   d: OutgoingDocumentDistributionModel,
   departmentNames?: Record<string, string>,
   institutionNames?: Record<string, string>
 ): string {
   if (d.externalInstitutionId) {
-    return d.externalInstitutionName || institutionNames?.[d.externalInstitutionId] || '-';
+    return d.externalInstitutionName || institutionNames?.[idKey(d.externalInstitutionId)!] || '-';
   }
   if (d.departmentId) {
-    return d.departmentName || departmentNames?.[d.departmentId] || '-';
+    return d.departmentName || departmentNames?.[idKey(d.departmentId)!] || '-';
   }
   return '-';
 }

@@ -407,6 +407,9 @@
                         <app-simple-autocomplete
                             [control]="institutionControl"
                             [options]="institutionOptions()"
+                            [remote]="true" [minChars]="institutionMinSearch"
+                            [searching]="institutionSearch.loading()"
+                            (search)="institutionSearch.search($event)"
                             placeholder="Kurum adıyla arayın...">
                         </app-simple-autocomplete>
                         <div class="zm-field-hint" *ngIf="selectedInstitutionId() && selectedInstitutionId() === previewEnvelope?.externalInstitutionId">

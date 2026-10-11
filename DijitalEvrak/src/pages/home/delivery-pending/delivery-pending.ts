@@ -1,3 +1,4 @@
+import { idKey } from '../../../models/ids';
 import { ChangeDetectionStrategy, Component, ViewEncapsulation, computed, inject, input, signal } from '@angular/core';
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -8,7 +9,7 @@ import { Department } from '../../../services/department';
 import { ExternalInstitution } from '../../../services/external-institution';
 import { UserService } from '../../../services/user';
 import { normalizeRoleName } from '../../../services/role-service';
-import { IncomingDocumentModel } from '../../../models/incoming-document/incoming-document.model';
+import { IncomingDocumentModel, incomingRecipientsOf } from '../../../models/incoming-document/incoming-document.model';
 import { UrgencyDegreeEnum, UrgencyDegreeLabels } from '../../../models/urgencydegree.model';
 import { SecurityDegreeEnum, SecurityDegreeLabels } from '../../../models/securitydegree.model';
 
@@ -223,36 +224,38 @@ export class DeliveryPending {
     forkJoin({
       docs: this.incomingDocumentService.getAllIncomingDocuments(),
       departments: this.departmentService.getDepartments().pipe(catchError(() => of([]))),
-      institutions: this.externalInstitutionService.getExternalInstitutions().pipe(catchError(() => of([]))),
-      users: this.userService.getAll().pipe(catchError(() => of([]))),
+      users: this.userService.getAll({ onlyWithRoles: true }).pipe(catchError(() => of([]))),
     }).subscribe({
-      next: ({ docs, departments, institutions, users }) => {
-        // GUID'ler uçlara göre farklı harf büyüklüğüyle dönebildiğinden anahtarlar küçük harfe indirgenir
+      next: ({ docs, departments, users }) => {
+        // Anahtarlar idKey biçiminde (birim kimliği sayı)
         const counts = new Map<string, { incoming: number; pending: IncomingDocumentModel[] }>();
+        // Evrak birden fazla birime gidebilir: her alıcı birimin satırında sayılır
+        // (backend'deki birim süzgeci ve birim panosundaki sayımla aynı)
         for (const d of docs ?? []) {
-          if (d.isDeleted || !d.departmentId) continue;
-          const key = d.departmentId.toLowerCase();
-          const c = counts.get(key) ?? { incoming: 0, pending: [] };
-          c.incoming++;
-          if (d.status !== 3) c.pending.push(d);
-          counts.set(key, c);
+          if (d.isDeleted) continue;
+          for (const r of incomingRecipientsOf(d)) {
+            const key = idKey(r.departmentId)!;
+            const c = counts.get(key) ?? { incoming: 0, pending: [] };
+            c.incoming++;
+            if (d.status !== 3) c.pending.push(d);
+            counts.set(key, c);
+          }
         }
 
         const people = new Map<string, ReminderPerson[]>();
         for (const u of users ?? []) {
           if (u.isDeleted || !u.isActive || !u.departmentId) continue;
           if (!(u.roles ?? []).some(r => normalizeRoleName(r.name) === BIRIM_EVRAK_SORUMLUSU)) continue;
-          const key = u.departmentId.toLowerCase();
+          const key = idKey(u.departmentId)!;
           const list = people.get(key) ?? [];
           list.push({ name: `${u.name} ${u.surname}`.trim(), email: u.email });
           people.set(key, list);
         }
 
-        const departmentById = new Map((departments ?? []).filter(d => d.id).map(d => [d.id.toLowerCase(), d]));
+        const departmentById = new Map((departments ?? []).filter(d => d.id).map(d => [idKey(d.id)!, d]));
         // Nereden: gönderen kurum (dış kurum ya da kurum içi birim), Yüksek Öncelikli Evraklar ile aynı çözümleme
         const placeNames = new Map<string, string>();
-        for (const d of departments ?? []) if (d.id) placeNames.set(d.id.toLowerCase(), d.name);
-        for (const i of institutions ?? []) if (i.id) placeNames.set(i.id.toLowerCase(), i.name);
+        for (const d of departments ?? []) if (d.id) placeNames.set(idKey(d.id)!, d.name);
 
         const rows: ReminderRow[] = [];
         for (const [key, c] of counts) {
@@ -294,7 +297,8 @@ export class DeliveryPending {
       tone: TONES[urgencyRank(d)],
       security: SecurityDegreeLabels[d.securityDegree as SecurityDegreeEnum] ?? '—',
       highSecurity: HIGH_SECURITY.has(d.securityDegree),
-      origin: (d.externalInstitutionId && placeNames.get(d.externalInstitutionId.toLowerCase())) || null,
+      // Kurum adı cevapta gelir (externalInstitutionName); ~160.000 kurumluk liste ad için çekilmez
+      origin: d.externalInstitutionName || null,
     }));
     return {
       pendingDocs,

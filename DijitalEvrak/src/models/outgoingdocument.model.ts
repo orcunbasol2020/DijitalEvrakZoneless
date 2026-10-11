@@ -1,3 +1,4 @@
+import { DepartmentId, ExternalInstitutionId } from './ids';
 import { OutgoingDocumentDistributionModel } from './outgoingdocumentdistribution.model';
 
 export enum OutgoingDocumentStatus {
@@ -36,13 +37,15 @@ export interface OutgoingDocumentModel {
   // ESKİ tek alıcı alanı: yeni kayıtlarda alıcılar dağıtım listesine
   // (OutgoingDocumentDistributions) yazılır, bu alan gönderilmez. Eski
   // kayıtlar için okunmaya devam eder.
-  externalInstitutonId?: string | null;
+  externalInstitutonId?: ExternalInstitutionId | null;
+  // Kurum adı (ComAgency); cevapta doldurulur, ad için kurum listesi çekilmez
+  externalInstitutionName?: string | null;
   // Dağıtım listesi. GetById/GetAll şu an bu alanı doldurmuyor (null döner);
   // alıcılar OutgoingDocumentDistributionService ile ayrıca çekilir. Backend
   // ileride doldurursa liste ekranı doğrudan buradan okur.
   distributions?: OutgoingDocumentDistributionModel[] | null;
   // Gönderen birim (dahili). Manuel giden evrak kaydında kullanılıyor.
-  departmentId?: string | null;
+  departmentId?: DepartmentId | null;
   // Evrak türü (1: Nota, 2: Evrak). API alan adı "type" (documentTypeId değil).
   type?: number;
   // Gizlilik derecesi (bkz. SecurityDegreeEnum).

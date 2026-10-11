@@ -1,3 +1,4 @@
+import { DepartmentId } from '../models/ids';
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpContext } from '@angular/common/http';
 import { HttpService } from './http';
@@ -21,7 +22,7 @@ export class OutgoingDocumentShipmentService {
   // Kargo Takip listesi. departmentId verilirse yalnızca o birimin evraklarını içeren
   // paketler döner. Uç nokta backend'de henüz yoksa 404 gelir; ekran bunu kendisi
   // gösterdiği için genel hata toast'ı atlanır.
-  getAll(departmentId?: string) {
+  getAll(departmentId?: DepartmentId | null) {
     const query = departmentId ? `?departmentId=${encodeURIComponent(departmentId)}` : '';
     return this.http.get<OutgoingDocumentShipmentModel[]>(`${this.baseUrl}GetAll${query}`, {
       context: new HttpContext().set(SKIP_ERROR_TOAST, true)

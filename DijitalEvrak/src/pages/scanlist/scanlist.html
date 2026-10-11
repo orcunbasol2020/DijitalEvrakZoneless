@@ -767,7 +767,7 @@
                 <span class="ei-route-icon"><span class="material-symbols-outlined">call_received</span></span>
                 <div class="ei-route-text">
                   <span class="ei-label">Nereye</span>
-                  <span class="ei-route-name" [class.is-empty]="v.to === '-'" [title]="v.to">{{ v.to }}</span>
+                  <span class="ei-route-name" [class.is-empty]="v.to === '-'" [title]="v.toTitle || v.to">{{ v.to }}</span>
                 </div>
               </div>
             </div>
@@ -837,6 +837,9 @@
                 </dd>
               </div>
             </dl>
+
+            <!-- Elektronik ekler (PDF): GetById cevabında gelmez, ayrıca okunur; tıklanınca yeni sekmede açılır -->
+            <app-incoming-attachments-view class="ei-attachments" [documentId]="infoDoc()?.id" [hideWhenEmpty]="true" />
           </aside>
         </div>
 

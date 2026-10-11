@@ -42,6 +42,37 @@
     border-color: #7dd3fc;
 }
 
+/* Kullanıcı araması (sunucuda): ad, soyad ya da kullanıcı adı */
+.us-search {
+    position: relative;
+    display: block;
+    width: 260px;
+    max-width: 100%;
+}
+
+.us-search .material-symbols-outlined {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 18px;
+    color: #94a3b8;
+    pointer-events: none;
+}
+
+.us-search .form-control {
+    height: 34px;
+    padding-left: 34px;
+    font-size: 13px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+}
+
+.us-head-sub {
+    font-size: 12px;
+    color: #64748b;
+}
+
 /* Birim etiketi: zeminsiz, ince gri çerçeve, yazı siyah */
 .us-dept-badge {
     color: #0f172a;
@@ -173,5 +204,9 @@
     .us-head-tools {
         width: 100%;
         justify-content: flex-start;
+    }
+
+    .us-search {
+        width: 100%;
     }
 }

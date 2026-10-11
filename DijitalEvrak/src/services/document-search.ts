@@ -1,3 +1,4 @@
+import { DepartmentId, idKey } from '../models/ids';
 import { inject, Injectable } from '@angular/core';
 import { forkJoin, Observable, of } from 'rxjs';
 import { catchError, map, shareReplay } from 'rxjs/operators';
@@ -5,7 +6,7 @@ import { HttpService } from './http';
 import { Common } from './common';
 import { RoleService } from './role-service';
 import { Department, DepartmentModel } from './department';
-import { IncomingDocumentModel } from '../models/incoming-document/incoming-document.model';
+import { IncomingDocumentModel, incomingRecipientNames, summarizeRecipientNames } from '../models/incoming-document/incoming-document.model';
 import { OutgoingDocumentModel, OutgoingDocumentStatus } from '../models/outgoingdocument.model';
 
 export type SearchDirection = 'in' | 'out';
@@ -93,7 +94,7 @@ export class DocumentSearchService {
     const departmentId = this.#common.user()?.departmentId || undefined;
     const incomingScope = this.#roles.hasAny(['Yönetici', 'Gelen Evrak', 'Ön Kayıt']) ? undefined : departmentId;
     const outgoingScope = this.#roles.hasAny(['Yönetici', 'Giden Evrak']) ? undefined : departmentId;
-    const query = (id?: string) => id ? `?departmentId=${encodeURIComponent(id)}` : '';
+    const query = (id?: DepartmentId | null) => id ? `?departmentId=${id}` : '';
     const safe = <T>(obs: Observable<T[]>) => obs.pipe(catchError(() => of([] as T[])));
 
     return forkJoin({
@@ -102,8 +103,8 @@ export class DocumentSearchService {
       departments: safe(this.#departments.getDepartments()),
     }).pipe(
       map(({ incoming, outgoing, departments }) => {
-        const deptName = new Map((departments as DepartmentModel[]).map(d => [d.id.toLowerCase(), d.name]));
-        const nameOf = (id?: string | null) => (id && deptName.get(id.toLowerCase())) || '';
+        const deptName = new Map((departments as DepartmentModel[]).map(d => [idKey(d.id), d.name]));
+        const nameOf = (id?: DepartmentId | null) => deptName.get(idKey(id)) || '';
 
         const rows: DocumentSearchResult[] = [
           ...(incoming ?? []).filter(d => d.id && !d.isDeleted).map(d => {
@@ -113,7 +114,8 @@ export class DocumentSearchService {
               direction: 'in' as const,
               no: d.qrCode || d.orginalNo || '-',
               subject: d.subject || '',
-              departmentName: nameOf(d.departmentId),
+              // Gelen evrak birden fazla birime gidebilir (distributions)
+              departmentName: summarizeRecipientNames(incomingRecipientNames(d, id => nameOf(id))),
               date: toDate(d.createdDate) ?? toDate(d.documentDate),
               statusLabel: status.label,
               statusClass: status.cls,

@@ -1,3 +1,4 @@
+import { idKey } from '../../../models/ids';
 import { ChangeDetectionStrategy, Component, computed, inject, signal, ViewEncapsulation } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ExternalInstitutionModel, ExternalInstitutionType } from '../../../services/external-institution';
@@ -54,7 +55,7 @@ export class NotaCounts {
   readonly #missions = computed(() => new Map<string, ExternalInstitutionModel>(
     this.#data.institutions()
       .filter(i => i.type === ExternalInstitutionType.Misyon)
-      .map(i => [i.id.toLowerCase(), i])
+      .map(i => [idKey(i.id)!, i])
   ));
 
   reload(): void {

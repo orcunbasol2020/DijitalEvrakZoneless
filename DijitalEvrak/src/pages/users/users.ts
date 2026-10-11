@@ -7,21 +7,23 @@ import GenericModel from '../../../components/generic-model/generic-model';
 import { UserService } from '../../services/user';
 import { normalizeRoleName, roleIcon } from '../../services/role-service';
 import { RoleModel } from './role/role';
+import { DepartmentId } from '../../models/ids';
 
+// Kullanıcılar kaynak sistemden (ComAuthorizationUser) gelir, bizde salt okunurdur; yalnızca roller atanır.
 export interface UserModel{
   id?: string;
   name: string;
   surname: string;
   email: string;
+  /** AD kullanıcı adı (ör. "ayse.yilmaz"), "HITIT\" öneki olmadan */
   userName: string;
-  departmentId: string;
+  /** Birimi tanımsız kullanıcılarda null */
+  departmentId: DepartmentId | null;
   departmentName: string;
   departmentShortName: string;
+  /** false: pasif, girişi engellenmiş ya da kurumdan ayrılmış */
   isActive: boolean;
   isDeleted: boolean;
-  createDate: string;
-  updateDate: string;
-  password?: string;
   /** Kullanıcının etkin rolleri; yalnızca Users/GetAll doldurur (GetById'de null gelir). */
   roles?: UserRoleRef[] | null;
 }
@@ -34,21 +36,20 @@ export interface UserRoleRef {
 /** Listede gösterilen satır: rol adları ızgara araması ve Excel çıktısı için tek metne çevrilir. */
 type UserRow = UserModel & { roleNames: string };
 
-/** Rol filtresinde "rolü olmayan kullanıcılar" seçeneği. */
-const NO_ROLE = 'none';
+/** Arama en az bu kadar karakterle sunucuya gider */
+const MIN_SEARCH = 2;
+const SEARCH_DEBOUNCE_MS = 300;
 
 export const initialUser:UserModel = {
   name: "",
   surname: "",
   email: "",
   userName: "",
-  departmentId: "",
+  departmentId: null,
   departmentName: "",
   departmentShortName: "",
   isActive: true,
   isDeleted: false,
-  createDate: "",
-  updateDate: "",
 }
 
 @Component({
@@ -69,61 +70,62 @@ export const initialUser:UserModel = {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export default class Users {
-  readonly result = httpResource<UserModel[]>(() => "api/Users/GetAll");
+  readonly #userService = inject(UserService);
+
+  // Kaynakta ~10.000 kullanıcı var. Arama yokken bu sistemde rolü olanlar listelenir; rol verilecek
+  // kişi arama kutusundan bulunur (ad, soyad ya da kullanıcı adı, sunucuda aranır).
+  readonly search = signal('');
+  readonly #searchTerm = signal('');
+  #searchTimer?: ReturnType<typeof setTimeout>;
+  readonly searching = computed(() => this.#searchTerm().length >= MIN_SEARCH);
+
+  /** Boş: tüm roller; aksi halde rol id'si (sunucuda süzülür) */
+  readonly roleFilter = signal<string>('');
+
+  readonly result = httpResource<UserModel[]>(() => {
+    const term = this.#searchTerm();
+    return this.#userService.listUrl({
+      search: term.length >= MIN_SEARCH ? term : null,
+      onlyWithRoles: term.length < MIN_SEARCH,
+      roleId: this.roleFilter() || null,
+    });
+  });
   readonly loading = computed(() => this.result.isLoading());
 
   readonly rolesResult = httpResource<RoleModel[]>(() => "api/Roles/GetAll");
   readonly roleOptions = computed(() =>
     (this.rolesResult.value() ?? [])
       .filter(r => r.isActive && !r.isDeleted && r.id)
-      .map(r => ({ id: r.id!.toLowerCase(), name: normalizeRoleName(r.name) }))
+      .map(r => ({ id: r.id!, name: normalizeRoleName(r.name) }))
       .sort((a, b) => a.name.localeCompare(b.name, 'tr')));
 
-  readonly NO_ROLE = NO_ROLE;
-  /** Boş: tüm kullanıcılar; NO_ROLE: rolü olmayanlar; aksi halde rol id'si (küçük harf). */
-  readonly roleFilter = signal<string>('');
-
-  private readonly rows = computed<UserRow[]>(() =>
+  readonly data = computed<UserRow[]>(() =>
     (this.result.value() ?? []).map(u => ({
       ...u,
       roles: (u.roles ?? []).map(r => ({ ...r, name: normalizeRoleName(r.name) })),
       roleNames: (u.roles ?? []).map(r => normalizeRoleName(r.name)).join(', ')
     })));
 
-  // Users/GetAll id'leri büyük harfle, Roles/GetAll küçük harfle döndürüyor; karşılaştırma küçük harfle yapılır.
-  readonly data = computed(() => {
-    const filter = this.roleFilter();
-    const rows = this.rows();
-    if (!filter) return rows;
-    if (filter === NO_ROLE) return rows.filter(u => !u.roles?.length);
-    return rows.filter(u => u.roles?.some(r => r.id.toLowerCase() === filter));
-  });
   /** Birimi sütununun seçmeli filtresi: listedeki kullanıcıların birimleri, alfabetik. */
   readonly departmentFilterData = computed<FlexiGridFilterDataModel[]>(() =>
-    [...new Set(this.rows().map(u => u.departmentName).filter(Boolean))]
+    [...new Set(this.data().map(u => u.departmentName).filter(Boolean))]
       .sort((a, b) => a.localeCompare(b, 'tr'))
       .map(name => ({ value: name, name })));
   showFilters = false;
-  readonly #userService = inject(UserService);
+
+  onSearch(value: string): void {
+    this.search.set(value);
+    clearTimeout(this.#searchTimer);
+    this.#searchTimer = setTimeout(() => this.#searchTerm.set(value.trim()), SEARCH_DEBOUNCE_MS);
+  }
+
+  clearSearch(): void {
+    clearTimeout(this.#searchTimer);
+    this.search.set('');
+    this.#searchTerm.set('');
+  }
 
   roleIcon(name: string): string {
     return roleIcon(name);
-  }
-
-  changeIsAdmin(data:UserRow){
-    this.#userService.update(this.toUpdatePayload(data)).subscribe(() => {
-      this.result.reload();
-    });
-  }
-
-  changeIsActive(data:UserRow){
-    this.#userService.update(this.toUpdatePayload(data)).subscribe(() => {
-      this.result.reload();
-    });
-  }
-
-  /** Satıra eklenen rol alanları güncelleme isteğine gönderilmez. */
-  private toUpdatePayload({ roles, roleNames, ...user }: UserRow) {
-    return user as Partial<UserModel> & { id: string };
   }
 }

@@ -6,12 +6,13 @@ import { ExternalInstitution, ExternalInstitutionModel, ExternalInstitutionType 
 import { Department, DepartmentModel } from '../../../services/department';
 import { IncomingDocumentModel } from '../../../models/incoming-document/incoming-document.model';
 import { OutgoingDocumentModel } from '../../../models/outgoingdocument.model';
+import { idKey } from '../../../models/ids';
 
 // Nota kuralı (Nota Raporları backend'iyle aynı): yabancı misyondan gelen ve yabancı misyona giden her
-// evrak, türü ne olursa olsun notadır. Misyon = dış kurum türü 1; Kurum ve Şahıs nota sayılmaz.
-// Kimlikler küçük harfle karşılaştırılır (missionIds küçük harf tutar).
+// evrak, türü ne olursa olsun notadır. Misyon = dış kurum türü 1; kurum, dilekçe ve uluslararası kuruluş
+// nota sayılmaz. Kimlikler idKey biçiminde karşılaştırılır (missionIds de öyle tutar).
 
-const key = (id: string | null | undefined) => (id ? id.toLowerCase() : null);
+const key = idKey;
 
 /** Gelen evrak nota ise gönderen misyonun kimliği (küçük harf), değilse null */
 export function incomingNotaMission(d: IncomingDocumentModel, missionIds: ReadonlySet<string>): string | null {
@@ -50,11 +51,12 @@ export class AdminDashboardData {
   /** Silinmiş kayıtlar ayıklanmış halde */
   readonly incoming = signal<IncomingDocumentModel[]>([]);
   readonly outgoing = signal<OutgoingDocumentModel[]>([]);
+  /** Yalnızca misyonlar (~840); kurum adları evrak cevaplarında gelir */
   readonly institutions = signal<ExternalInstitutionModel[]>([]);
   readonly departments = signal<DepartmentModel[]>([]);
-  /** Misyon türündeki dış kurumların kimlikleri, küçük harf */
+  /** Misyon kimlikleri (idKey biçiminde) */
   readonly missionIds = computed(() => new Set(
-    this.institutions().filter(i => i.type === ExternalInstitutionType.Misyon).map(i => i.id.toLowerCase())));
+    this.institutions().filter(i => i.type === ExternalInstitutionType.Misyon).map(i => idKey(i.id)!)));
 
   constructor() {
     this.load();
@@ -68,7 +70,7 @@ export class AdminDashboardData {
     forkJoin({
       incoming: safe(this.#http.get<IncomingDocumentModel[]>('api/IncomingDocuments/GetAll')),
       outgoing: safe(this.#http.get<OutgoingDocumentModel[]>('api/OutgoingDocuments/GetAll')),
-      institutions: safe(this.#institutions.getExternalInstitutions()),
+      institutions: safe(this.#institutions.getMissions()),
       // Birim adları yalnızca etiket için; gelmezse kartlar yine açılır
       departments: this.#departments.getDepartments().pipe(catchError(() => of([] as DepartmentModel[]))),
     }).subscribe(({ incoming, outgoing, institutions, departments }) => {

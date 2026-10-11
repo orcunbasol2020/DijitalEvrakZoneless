@@ -1,3 +1,4 @@
+import { DepartmentId, sameId, ExternalInstitutionId } from './ids';
 export enum EnvelopeStatus {
   Yeni = 1,
   // Zarf, Giden Evrak birimine teslim edildi; dış kuruma henüz çıkmadı.
@@ -65,12 +66,12 @@ export interface EnvelopeModel {
   createdByUserId: string;
   // Gideceği yer: dış kurum / yabancı misyon ise externalInstitutionId,
   // kurum içi birim ise targetDepartmentId dolu gelir (ikisi birlikte dolu olmaz).
-  externalInstitutionId?: string | null;
-  externalInstitutionName?: string;
-  targetDepartmentId?: string | null;
+  externalInstitutionId?: ExternalInstitutionId | null;
+  externalInstitutionName?: string | null;
+  targetDepartmentId?: DepartmentId | null;
   targetDepartmentName?: string;
   // Gönderen (zarfı oluşturan) birim; Zarflar listesi filtresi ve "Ekleyen" sütunu buna bakar.
-  departmentId?: string;
+  departmentId?: DepartmentId | null;
   unitName?: string;
   address?: string;
   documentCount:number;
@@ -108,18 +109,18 @@ export function envelopeTargetKind(
 // Gideceği yerin adı: önce API'nin join'lediği ad, yoksa verilen listelerden çözülür.
 export function envelopeTargetName(
   env: Pick<EnvelopeModel, 'targetDepartmentId' | 'targetDepartmentName' | 'externalInstitutionId' | 'externalInstitutionName'> | null | undefined,
-  departments: { id: string; name: string }[] = [],
-  institutions: { id: string; name: string }[] = []
+  departments: { id: DepartmentId; name: string }[] = [],
+  institutions: { id: ExternalInstitutionId; name: string }[] = []
 ): string {
   if (!env) return '';
   if (env.targetDepartmentId) {
     return env.targetDepartmentName
-      || departments.find(d => d.id?.toLowerCase() === env.targetDepartmentId!.toLowerCase())?.name
+      || departments.find(d => sameId(d.id, env.targetDepartmentId))?.name
       || '';
   }
   return env.externalInstitutionName
     || (env.externalInstitutionId
-      ? institutions.find(i => i.id?.toLowerCase() === env.externalInstitutionId!.toLowerCase())?.name
+      ? institutions.find(i => sameId(i.id, env.externalInstitutionId))?.name
       : '')
     || '';
 }

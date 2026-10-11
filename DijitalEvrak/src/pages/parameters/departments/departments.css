@@ -1,0 +1,301 @@
+/* ============================================================
+   Birimler: parentId ile kurulan birim ağacı (dp-*)
+   Kart iskeleti settings.css (st-*), başlık araçları zimmetlerim.css (zl-*)
+   ============================================================ */
+
+.dp-head {
+    flex-wrap: wrap;
+}
+
+.dp-head-text {
+    min-width: 0;
+}
+
+.dp-tools {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.dp-tools .zl-icon-btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+    background: #fff;
+    color: #64748b;
+}
+
+/* ---- Arama ---- */
+.dp-search {
+    position: relative;
+    display: block;
+    width: 260px;
+    max-width: 100%;
+}
+
+.dp-search .material-symbols-outlined {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 18px;
+    color: #94a3b8;
+    pointer-events: none;
+}
+
+.dp-search .form-control {
+    height: 34px;
+    padding-left: 34px;
+    font-size: 13px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+}
+
+/* ---- Kapsam: merkez / temsilcilikler dahil ---- */
+.dp-scope {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #f8fafc;
+}
+
+.dp-scope button {
+    height: 28px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.dp-scope button.is-active {
+    color: #0369a1;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+}
+
+/* ---- Ağaç ---- */
+.dp-body {
+    padding: 8px 10px 12px;
+}
+
+.dp-tree {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.dp-row {
+    --dp-indent: 22px;
+    position: relative;
+}
+
+/* Alt seviyelerde dikey kılavuz çizgisi */
+.dp-row::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(20px + (var(--dp-level) - 1) * var(--dp-indent));
+    width: 1px;
+    background: #e8edf3;
+    display: none;
+}
+
+.dp-row:not([aria-level="1"])::before {
+    display: block;
+}
+
+.dp-node {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    min-height: 34px;
+    padding: 4px 10px 4px calc(6px + var(--dp-level) * var(--dp-indent));
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    text-align: left;
+    font-size: 13.5px;
+    color: #1e293b;
+    cursor: pointer;
+}
+
+.dp-node.is-leaf {
+    cursor: default;
+}
+
+.dp-node:hover {
+    background: #f1f5f9;
+}
+
+.dp-node:focus-visible {
+    outline: 2px solid #0ea5e9;
+    outline-offset: -2px;
+}
+
+.dp-chevron {
+    flex: 0 0 auto;
+    font-size: 20px;
+    color: #94a3b8;
+    transition: transform 0.15s ease;
+}
+
+.dp-node.is-leaf .dp-chevron {
+    font-size: 14px;
+    color: #cbd5e1;
+}
+
+.dp-row[aria-expanded="true"] > .dp-node .dp-chevron {
+    transform: rotate(90deg);
+    color: #0369a1;
+}
+
+.dp-icon {
+    flex: 0 0 auto;
+    font-size: 19px;
+    color: #0284c7;
+}
+
+.dp-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dp-row[aria-level="1"] > .dp-node .dp-name {
+    font-weight: 600;
+}
+
+.dp-short,
+.dp-type,
+.dp-count {
+    flex: 0 0 auto;
+    padding: 1px 7px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.dp-short {
+    color: #475569;
+    border: 1px solid #d1d5db;
+}
+
+.dp-type {
+    color: #0369a1;
+    background: #e0f2fe;
+}
+
+.dp-count {
+    margin-left: auto;
+    color: #64748b;
+    background: #f1f5f9;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Aramada eşleşen birim */
+.dp-row.is-match > .dp-node {
+    background: #fef9c3;
+}
+
+.dp-row.is-match > .dp-node:hover {
+    background: #fef08a;
+}
+
+.dp-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 40px 16px;
+    font-size: 13px;
+    color: #64748b;
+}
+
+@media (max-width: 767.98px) {
+    .dp-tools {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .dp-search {
+        width: 100%;
+    }
+
+    .dp-row {
+        --dp-indent: 14px;
+    }
+
+    .dp-short {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dp-chevron {
+        transition: none;
+    }
+}
+
+/* ---- Koyu tema ---- */
+[data-theme="dark"] .dp-search .form-control,
+[data-theme="dark"] .dp-scope {
+    background: rgba(148, 163, 184, 0.06);
+    border-color: rgba(148, 163, 184, 0.24);
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .dp-scope button.is-active {
+    color: #7dd3fc;
+    background: rgba(14, 165, 233, 0.18);
+    box-shadow: none;
+}
+
+[data-theme="dark"] .dp-node {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .dp-node:hover {
+    background: rgba(148, 163, 184, 0.1);
+}
+
+[data-theme="dark"] .dp-row::before {
+    background: rgba(148, 163, 184, 0.18);
+}
+
+[data-theme="dark"] .dp-icon,
+[data-theme="dark"] .dp-row[aria-expanded="true"] > .dp-node .dp-chevron {
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .dp-short {
+    color: #cbd5e1;
+    border-color: rgba(148, 163, 184, 0.35);
+}
+
+[data-theme="dark"] .dp-type {
+    color: #7dd3fc;
+    background: rgba(14, 165, 233, 0.18);
+}
+
+[data-theme="dark"] .dp-count {
+    color: #94a3b8;
+    background: rgba(148, 163, 184, 0.12);
+}
+
+[data-theme="dark"] .dp-row.is-match > .dp-node {
+    background: rgba(250, 204, 21, 0.16);
+}
+
+[data-theme="dark"] .dp-tools .zl-icon-btn:disabled {
+    background: transparent;
+    color: #64748b;
+}

@@ -81,9 +81,14 @@
                         </button>
                     </div>
                     <label class="form-label text-muted small zarf-kind-label">Gideceği Yer</label>
+                    <!-- Dış kurumlar (~160.000) sunucuda aranır; birim ve misyon listeleri tam yüklenir -->
                     <app-simple-autocomplete
                         [control]="targetControl"
                         [options]="targetOptions"
+                        [remote]="targetKind() === 'external'"
+                        [minChars]="targetKind() === 'external' ? institutionMinSearch : 0"
+                        [searching]="targetKind() === 'external' && institutionSearch.loading()"
+                        (search)="institutionSearch.search($event)"
                         [placeholder]="targetPlaceholder">
                     </app-simple-autocomplete>
                 </div>

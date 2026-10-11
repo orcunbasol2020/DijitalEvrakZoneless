@@ -1,3 +1,4 @@
+import { DepartmentId, ExternalInstitutionId } from '../models/ids';
 import { Injectable, inject } from '@angular/core';
 import { HttpContext, HttpErrorResponse } from '@angular/common/http';
 import { HttpService } from './http';
@@ -18,7 +19,7 @@ export interface NotaPeriod {
 }
 
 export interface NotaSender {
-  externalInstitutionId: string;
+  externalInstitutionId: ExternalInstitutionId;
   name: string;
   /** ExternalInstitutionType: 1 Misyon, 2 Kurum, 3 Şahıs */
   type: number;
@@ -27,7 +28,7 @@ export interface NotaSender {
 }
 
 export interface NotaDepartmentCount {
-  departmentId: string;
+  departmentId: DepartmentId;
   /** Birim kaydı bulunamazsa null gelir; ekranda "Bilinmeyen birim" */
   departmentName: string | null;
   departmentShortName?: string | null;
@@ -37,7 +38,7 @@ export interface NotaDepartmentCount {
 }
 
 export interface NotaSummary {
-  externalInstitutionId: string;
+  externalInstitutionId: ExternalInstitutionId;
   name: string;
   notaCount: number;
   eNotaCount: number;
@@ -79,7 +80,7 @@ export class NotaReportService {
       `${this.baseUrl}GetNotaSenders?${this.query({ year: period.year, dateField: period.dateField })}`, this.quiet());
   }
 
-  getSummary(externalInstitutionId: string, period: NotaPeriod = {}) {
+  getSummary(externalInstitutionId: ExternalInstitutionId, period: NotaPeriod = {}) {
     return this.httpService.get<NotaSummary>(
       `${this.baseUrl}GetNotaSummary?${this.query({ externalInstitutionId, ...period })}`, this.quiet());
   }

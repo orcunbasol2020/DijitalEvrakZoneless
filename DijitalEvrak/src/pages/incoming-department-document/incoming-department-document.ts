@@ -1,3 +1,4 @@
+import { idKey } from '../../models/ids';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -76,18 +77,9 @@ export default class IncomingDepartmentDocument {
 
   // "Nereden" sütunu: evrakın externalInstitutionId'si dış kurum adına çevrilir (Evrak Kayıt'taki
   // Nereden alanının karşılığı). Dış kurum listesi bir kez çekilir.
-  readonly externalInstitutions = signal<ExternalInstitutionModel[]>([]);
-  readonly externalInstitutionMap = computed(() => {
-    const map: Record<string, string> = {};
-    for (const d of this.externalInstitutions()) {
-      if (d.id) map[d.id.toLowerCase()] = d.name;
-    }
-    return map;
-  });
-
+  // Kurum adı cevapta gelir (externalInstitutionName); ~160.000 kurumluk liste ad için çekilmez
   externalInstitutionNameOf(doc: IncomingDocumentModel): string {
-    const id = doc.externalInstitutionId?.toLowerCase();
-    return (id && this.externalInstitutionMap()[id]) || '';
+    return doc.externalInstitutionName || '';
   }
 
   // Gizlilik derecesi: ikonlu yuvarlak rozet (Giden Evraklar listesiyle aynı; degree-tier-* styles.css)
@@ -262,10 +254,6 @@ export default class IncomingDepartmentDocument {
         if (params.get('filtre') === 'teslim-bekleyen') this.setListFilter('undelivered');
       });
     this.loadDocuments();
-    this.externalInstitutionService.getExternalInstitutions().subscribe({
-      next: (res) => this.externalInstitutions.set(res ?? []),
-      error: (err) => console.error('Dış kurumlar yüklenemedi:', err)
-    });
   }
 
   // Evraklar backend'de departmentId ile süzülür (IncomingDocuments/GetAll?departmentId=).
@@ -350,7 +338,7 @@ export default class IncomingDepartmentDocument {
   // Zimmet kaydı birim taşımadığı için kullanıcı listesinden userId ile eşlenir; liste
   // sayfa açılışını yavaşlatmasın diye popup ilk açıldığında bir kez yüklenir.
   private readonly allUsersRequested = signal(false);
-  readonly allUsersResult = httpResource<UserModel[]>(() => this.allUsersRequested() ? 'api/Users/GetAll' : undefined);
+  readonly allUsersResult = httpResource<UserModel[]>(() => this.allUsersRequested() ? 'api/Users/GetAll?onlyWithRoles=true' : undefined);
   readonly userDepartmentShortMap = computed(() => {
     const map: Record<string, string> = {};
     for (const u of this.allUsersResult.value() ?? []) {

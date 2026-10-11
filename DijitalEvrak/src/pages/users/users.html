@@ -10,8 +10,22 @@
     </span>
     <div>
       <h4 class="st-card-title">Kullanıcı Listesi</h4>
+      <div class="us-head-sub">
+        @if (searching()) {
+          Aramaya uyan kullanıcılar
+        } @else {
+          Bu sistemde rolü olan kullanıcılar. Rol vermek için kullanıcıyı arayın.
+        }
+      </div>
     </div>
     <div class="zl-head-tools us-head-tools">
+      <!-- Kullanıcılar kaynak sistemden gelir: ekleme / güncelleme yok, yalnızca rol atanır -->
+      <span class="us-search">
+        <span class="material-symbols-outlined" aria-hidden="true">search</span>
+        <input type="search" class="form-control" placeholder="Ad, soyad ya da kullanıcı adı"
+          aria-label="Kullanıcı ara" autocomplete="off"
+          [value]="search()" (input)="onSearch($any($event.target).value)" (keydown.escape)="clearSearch()">
+      </span>
       <select class="form-select us-role-select" title="Role göre filtrele"
         [class.is-on]="roleFilter()"
         [ngModel]="roleFilter()" (ngModelChange)="roleFilter.set($event)">
@@ -19,12 +33,7 @@
         @for (role of roleOptions(); track role.id) {
           <option [value]="role.id">{{ role.name }}</option>
         }
-        <option [value]="NO_ROLE">Rolü yok</option>
       </select>
-      <a routerLink="/users/create" class="zl-btn-primary">
-        <span class="material-symbols-outlined">add</span>
-        Kullanıcı Ekle
-      </a>
       <button type="button" class="zl-icon-btn" [class.is-on]="showFilters" title="Filtre Aç/Kapat"
         (click)="showFilters = !showFilters">
         <span class="material-symbols-outlined">filter_alt</span>
@@ -66,7 +75,7 @@
             {{ item.departmentShortName || item.departmentName }}
           </span>
         } @else {
-          <span class="text-muted small">-</span>
+          <span class="text-muted small">Birimi tanımsız</span>
         }
       </ng-template>
     </flexi-grid-column>
@@ -90,52 +99,26 @@
       </ng-template>
     </flexi-grid-column>
 
-    <flexi-grid-column field="isActive" title="Aktif" textAlign="center"
-      filterType="boolean" [booleanData]="['Aktif', 'Pasif']" width="70px">
+    <!-- Aktiflik kaynak sistemden gelir (pasif, girişi engellenmiş ya da kurumdan ayrılmış) -->
+    <flexi-grid-column field="isActive" title="Durum" textAlign="center"
+      filterType="boolean" [booleanData]="['Aktif', 'Pasif']" width="80px">
       <ng-template flexiGridCellTemplate let-item>
-        <div class="d-flex align-items-center justify-content-center gap-2">
-          <div class="form-check form-switch form-switch-lg mb-0">
-            <input
-              (change)="changeIsActive(item)"
-              class="form-check-input"
-              type="checkbox"
-              role="switch"
-              [id]="item.id"
-              name="item.id"
-              [(ngModel)]="item.isActive">
-          </div>
-        </div>
+        @if (item.isActive) {
+          <span class="badge text-bg-success">Aktif</span>
+        } @else {
+          <span class="badge text-bg-secondary" title="Pasif, girişi engellenmiş ya da kurumdan ayrılmış">Pasif</span>
+        }
       </ng-template>
     </flexi-grid-column>
 
-    <!-- Güncelle normal sütun: komut sütunu hep en sonda çizildiği için Silindi en sağda kalsın diye -->
-    <flexi-grid-column title="Güncelle" textAlign="center" width="70px" [filterable]="false" [sortable]="false">
+    <flexi-grid-column title="Roller" textAlign="center" width="70px" [filterable]="false" [sortable]="false">
       <ng-template flexiGridCellTemplate let-item>
         <flexi-button
           [routerLink]="['/','users','edit',item.id]"
-          btnIcon="edit"
+          btnIcon="manage_accounts"
           btnColor="info"
-          title="Güncelle"
+          title="Rolleri düzenle"
           flexiTooltip />
-      </ng-template>
-    </flexi-grid-column>
-
-    <flexi-grid-column field="isDeleted" title="Sil" textAlign="center"
-      filterType="boolean" [booleanData]="['Silindi', 'Silinmedi']"
-      width="70px">
-      <ng-template flexiGridCellTemplate let-item>
-        <div class="d-flex align-items-center justify-content-center gap-2">
-          <div class="form-check form-switch form-switch-lg mb-0">
-            <input
-              (change)="changeIsAdmin(item)"
-              class="form-check-input"
-              type="checkbox"
-              role="switch"
-              [id]="item.id"
-              name="item.id"
-              [(ngModel)]="item.isDeleted">
-          </div>
-        </div>
       </ng-template>
     </flexi-grid-column>
 

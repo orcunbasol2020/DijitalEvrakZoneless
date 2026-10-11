@@ -1,3 +1,4 @@
+import { toDepartmentId, toExternalInstitutionId } from '../../../models/ids';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -20,7 +21,7 @@ import { OutgoingDocumentModel, OutgoingDocumentStatus, OutgoingDocumentStatusBa
 import { Common } from '../../../services/common';
 import { SimpleAutocompleteComponent } from '../../simpleautocomplete/simpleautocomplete';
 import { Department, DepartmentModel } from '../../../services/department';
-import { ExternalInstitution, ExternalInstitutionModel } from '../../../services/external-institution';
+import { INSTITUTION_MIN_SEARCH, institutionSearch } from '../../../services/external-institution';
 import { Language, LanguageModel } from '../../../services/language';
 import { SecurityDegreeEnum, SecurityDegreeLabels } from '../../../models/securitydegree.model';
 import { UrgencyDegreeEnum, UrgencyDegreeLabels } from '../../../models/urgencydegree.model';
@@ -38,7 +39,8 @@ import { firstValueFrom, Subscription } from 'rxjs';
 
 // Alıcı türü: iç birim (departmentId) ya da dış kurum (externalInstitutionId).
 type RecipientKind = 'department' | 'institution';
-type RecipientOption = { id: string; name: string };
+// Birim kimliği sayı, dış kurum kimliği Guid
+type RecipientOption = { id: string | number; name: string };
 
 // Formdaki tek alıcı satırı. id dolu ise sunucuda kayıtlı bir dağıtım satırıdır:
 // alıcısı değiştirilemez (backend Update bunu desteklemez), yalnızca Gereği/Bilgi
@@ -78,7 +80,6 @@ export default class Outgoingcreate {
   private readonly outgoingDocumentService = inject(OutgoingDocumentService);
   private readonly distributionService = inject(OutgoingDocumentDistributionService);
   private readonly departmentService = inject(Department);
-  private readonly externalInstitutionService = inject(ExternalInstitution);
   private readonly languageService = inject(Language);
   private readonly allocationService = inject(OutgoingDocumentAllocation);
 
@@ -91,17 +92,18 @@ export default class Outgoingcreate {
   readonly documentSource = signal<number | null>(null);
   readonly documentStatus = signal<number | null>(null);
   readonly departments = signal<DepartmentModel[]>([]);
-  readonly externalInstitutions = signal<ExternalInstitutionModel[]>([]);
+  // Dış kurum alıcısı: ~160.000 kurum olduğu için liste indirilmez, yazılan metin sunucuda aranır
+  // (misyonlar dahil). Satırlar tek aramayı paylaşır; aynı anda yalnızca bir kutuya yazılır.
+  readonly institutionSearch = institutionSearch();
+  readonly institutionMinSearch = INSTITUTION_MIN_SEARCH;
   readonly languages = signal<(LanguageModel & { id: string })[]>([]);
 
   // Seçenek listeleri ayrı ayrı yüklenir; her biri için yükleniyor/hata durumu
   // tutulur ki ilgili alan hazır olana kadar pasif görünsün ve hata olduğunda
   // kullanıcı "Tekrar dene" ile yalnızca başarısız olanları yeniden çekebilsin.
   readonly departmentsLoading = signal(true);
-  readonly externalInstitutionsLoading = signal(true);
   readonly languagesLoading = signal(true);
   readonly departmentsError = signal(false);
-  readonly externalInstitutionsError = signal(false);
   readonly languagesError = signal(false);
 
   // Güncellenen kaydın kendisi; "Nereden"/"Dil" alanlarını dolduran effect'ler
@@ -128,21 +130,20 @@ export default class Outgoingcreate {
 
   // "Nereden" alanı: kayıt VE birim listesi gelene kadar yükleniyor kabul edilir.
   readonly departmentFieldLoading = computed(() => this.loading() || this.departmentsLoading());
-  readonly externalInstitutionFieldLoading = computed(() => this.loading() || this.externalInstitutionsLoading());
+  readonly externalInstitutionFieldLoading = this.loading;
   readonly languageFieldLoading = computed(() => this.loading() || this.languagesLoading());
 
   readonly lookupsLoading = computed(() =>
-    this.departmentsLoading() || this.externalInstitutionsLoading() || this.languagesLoading() || this.distributionsLoading()
+    this.departmentsLoading() || this.languagesLoading() || this.distributionsLoading()
   );
 
   readonly lookupsError = computed(() =>
-    this.departmentsError() || this.externalInstitutionsError() || this.languagesError() || this.distributionsError()
+    this.departmentsError() || this.languagesError() || this.distributionsError()
   );
 
   readonly failedLookupNames = computed(() => {
     const names: string[] = [];
     if (this.departmentsError()) names.push('Birimler');
-    if (this.externalInstitutionsError()) names.push('Dış kurumlar');
     if (this.languagesError()) names.push('Diller');
     if (this.distributionsError()) names.push('Alıcılar');
     return names;
@@ -154,29 +155,12 @@ export default class Outgoingcreate {
   // Dil isteğe bağlı olduğundan onun yüklenememesi kaydı engellemez.
   readonly formReady = computed(() =>
     !this.loading()
-    && !this.departmentsLoading() && !this.externalInstitutionsLoading() && !this.distributionsLoading()
-    && !this.departmentsError() && !this.externalInstitutionsError() && !this.distributionsError()
+    && !this.departmentsLoading() && !this.distributionsLoading()
+    && !this.departmentsError() && !this.distributionsError()
   );
 
-  // Kurum adı -> id eşlemesi; alıcı listesinde alt kurumların üst kurumla
-  // ilişkisini göstermek için kullanılır.
-  private readonly externalInstitutionNameMap = computed(() => {
-    const map: Record<string, string> = {};
-    for (const i of this.externalInstitutions()) map[i.id] = i.name;
-    return map;
-  });
-
-  // Alt kurumların adının önüne üst kurumun adı eklenir (ör. "İçişleri Bakanlığı / Nüfus Müdürlüğü")
-  // böylece alıcı arama listesinde parent/child ilişkisi görünür olur.
-  readonly externalInstitutionOptions = computed<RecipientOption[]>(() => {
-    const nameMap = this.externalInstitutionNameMap();
-    return this.externalInstitutions()
-      .map(i => ({
-        id: i.id,
-        name: i.parentId && nameMap[i.parentId] ? `${nameMap[i.parentId]} / ${i.name}` : i.name
-      }))
-      .sort((a, b) => a.name.localeCompare(b.name, 'tr'));
-  });
+  readonly externalInstitutionOptions = computed<RecipientOption[]>(() =>
+    this.institutionSearch.options().map(i => ({ id: i.id, name: i.name })));
 
   // Güncellemede kayıttaki birim/dil, ilgili liste geldikten sonra bir kez
   // control'e yazılır. Bir kez uygulandıktan sonra kullanıcının seçimi liste
@@ -256,7 +240,6 @@ export default class Outgoingcreate {
     const id = this.route.snapshot.paramMap.get('id');
 
     this.loadDepartments();
-    this.loadExternalInstitutions();
     this.loadLanguages();
 
     if (id) {
@@ -315,17 +298,13 @@ export default class Outgoingcreate {
     effect(() => {
       const item = this.editItem();
       const saved = this.savedDistributions();
-      const options = this.externalInstitutionOptions();
-      if (!item || saved === null || this.externalInstitutionsLoading() || this.legacyRecipientApplied) return;
+      if (!item || saved === null || this.legacyRecipientApplied) return;
       this.legacyRecipientApplied = true;
       if (saved.length > 0 || !item.externalInstitutonId) return;
 
-      const inst = options.find(i => i.id === item.externalInstitutonId);
-      if (inst) {
-        untracked(() => this.addRecipientRow('institution', inst, item.actionRequired ?? true));
-      } else {
-        this.#toast.showToast('Uyarı', 'Kayıttaki alıcı kurum listede bulunamadı, lütfen alıcıyı yeniden ekleyiniz', 'warning');
-      }
+      // Kurum adı cevapta gelir; liste beklenmez
+      const inst: RecipientOption = { id: item.externalInstitutonId, name: item.externalInstitutionName || '' };
+      untracked(() => this.addRecipientRow('institution', inst, item.actionRequired ?? true));
     });
 
     effect(() => {
@@ -418,23 +397,6 @@ export default class Outgoingcreate {
     });
   }
 
-  private loadExternalInstitutions(): void {
-    this.externalInstitutionsLoading.set(true);
-    this.externalInstitutionsError.set(false);
-    this.externalInstitutionService.getExternalInstitutions().subscribe({
-      next: (res) => {
-        this.externalInstitutions.set(res);
-        this.externalInstitutionsLoading.set(false);
-      },
-      error: (err) => {
-        console.error(err);
-        this.externalInstitutionsError.set(true);
-        this.externalInstitutionsLoading.set(false);
-        this.#toast.showToast('Hata', 'Dış kurumlar yüklenemedi', 'error');
-      }
-    });
-  }
-
   private loadLanguages(): void {
     this.languagesLoading.set(true);
     this.languagesError.set(false);
@@ -456,7 +418,6 @@ export default class Outgoingcreate {
   // kullanıcının o ana kadar yaptığı seçimler korunur.
   retryFailedLookups(): void {
     if (this.departmentsError()) this.loadDepartments();
-    if (this.externalInstitutionsError()) this.loadExternalInstitutions();
     if (this.languagesError()) this.loadLanguages();
     const editingId = this.editingId();
     if (this.distributionsError() && editingId) this.loadDistributions(editingId);
@@ -524,8 +485,8 @@ export default class Outgoingcreate {
   private recipientInput(row: RecipientRow): OutgoingDocumentRecipientInput {
     const targetId = row.control.value!.id;
     return {
-      departmentId: row.kind === 'department' ? targetId : null,
-      externalInstitutionId: row.kind === 'institution' ? targetId : null,
+      departmentId: row.kind === 'department' ? toDepartmentId(targetId) : null,
+      externalInstitutionId: row.kind === 'institution' ? toExternalInstitutionId(targetId) : null,
       actionRequired: row.actionRequired
     };
   }
