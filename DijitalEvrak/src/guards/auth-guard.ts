@@ -1,20 +1,18 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { Common } from '../services/common';
-import { UserModel } from '../pages/users/users';
+import { readStoredUser } from '../services/login-session';
 
 export const authGuard: CanActivateFn = (route, state) => {
-  const res = localStorage.getItem("user") ?? sessionStorage.getItem("user");
   const router = inject(Router);
-  const common = inject(Common);
+  const user = readStoredUser();
 
-  if(!res)
-  {
-    router.navigateByUrl("/login");
-    return false;
+  if (!user) {
+    // Giriş (canlıda otomatik Windows girişi) sonrası açılmak istenen sayfaya dönülür
+    const returnUrl = state.url && state.url !== '/' ? state.url : null;
+    return router.createUrlTree(['/login'], { queryParams: returnUrl ? { returnUrl } : {} });
   }
 
-  const user : UserModel = JSON.parse(res);
-  common.user.set(user);
+  inject(Common).user.set(user);
   return true;
 };

@@ -1,6 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 import { BreadcrumbModel } from '../pages/layouts/breadcrumb/breadcrumb';
 import { UserModel } from '../pages/users/users';
+import { signOut } from './login-session';
 
 @Injectable({
   providedIn: 'root'
@@ -18,9 +19,9 @@ export class Common {
     this.data.set([val, ...data]);
   }
 
+  // Giriş ekranı bu sekmede otomatik Windows girişi yapmaz; "Oturumunuz kapatıldı" gösterir
   logout(): void {
-    localStorage.removeItem("user");
-    sessionStorage.removeItem("user");
+    signOut();
     this.user.set(undefined);
   }
 }

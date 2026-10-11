@@ -2,6 +2,12 @@ import { inject, Injectable, resource, runInInjectionContext, Injector } from '@
 import { HttpClient, HttpContext } from '@angular/common/http';
 import { lastValueFrom } from 'rxjs';
 
+/** withCredentials yalnızca Windows girişinde gerekir (tarayıcı Windows kimliğini ancak böyle gönderir) */
+export interface HttpOptions {
+  context?: HttpContext;
+  withCredentials?: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class HttpService {
   readonly #http = inject(HttpClient);
@@ -20,11 +26,11 @@ export class HttpService {
     );
   }
 
-  get<T>(endpoint: string, options?: { context?: HttpContext }) {
+  get<T>(endpoint: string, options?: HttpOptions) {
     return this.#http.get<T>(endpoint, options);
   }
 
-  post<T>(endpoint: string, body: any, options?: { context?: HttpContext }) {
+  post<T>(endpoint: string, body: any, options?: HttpOptions) {
     return this.#http.post<T>(endpoint, body, options);
   }
 
