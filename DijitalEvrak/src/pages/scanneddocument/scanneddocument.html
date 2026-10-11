@@ -3,17 +3,17 @@
 </app-generic>
 
 <div class="row">
-  <!-- SOL PANEL: taranmış evrak görüntüleyici -->
-  <div class="col-lg-8 col-12">
+  <!-- SOL PANEL: tek evrak görünümünde büyük evrak, küçük resim görünümünde tüm genişlikte ızgara -->
+  <div [class]="viewMode() === 'grid' ? 'col-12' : 'col-lg-8 col-12'">
     <div class="card zm-card d-flex flex-column">
       <div class="card-header dashboard-header d-flex align-items-center justify-content-between gap-3">
         <div class="d-flex align-items-center min-w-0">
           <span class="material-symbols-outlined me-2 text-info">document_scanner</span>
-          <h5 class="card-title mb-0 fw-semibold">Taranmış Evrak</h5>
+          <h5 class="card-title mb-0 fw-semibold">{{ viewMode() === 'grid' ? 'Taranmış Evraklar' : 'Taranmış Evrak' }}</h5>
         </div>
 
         <div class="sd-nav">
-          @if (scannedDocuments().length) {
+          @if (viewMode() === 'single' && scannedDocuments().length) {
             <button type="button" class="zm-icon-btn" title="Önceki evrak"
               (click)="prev()" [disabled]="currentIndex() === 0 || isLoading()">
               <span class="material-symbols-outlined">chevron_left</span>
@@ -24,6 +24,22 @@
               <span class="material-symbols-outlined">chevron_right</span>
             </button>
           }
+          @if (viewMode() === 'grid' && scannedDocuments().length) {
+            <span class="sd-counter">{{ scannedDocuments().length }} evrak</span>
+          }
+
+          <div class="sd-view-toggle" role="group" aria-label="Görünüm">
+            <button type="button" title="Tek evrak (büyük görünüm)" aria-label="Tek evrak görünümü"
+              [class.is-active]="viewMode() === 'single'" [attr.aria-pressed]="viewMode() === 'single'" (click)="showSingle()">
+              <span class="material-symbols-outlined">description</span>
+            </button>
+            <button type="button" title="Küçük resimler" aria-label="Küçük resim görünümü"
+              [class.is-active]="viewMode() === 'grid'" [attr.aria-pressed]="viewMode() === 'grid'"
+              [disabled]="!scannedDocuments().length" (click)="showGrid()">
+              <span class="material-symbols-outlined">grid_view</span>
+            </button>
+          </div>
+
           <button type="button" class="zm-icon-btn" title="Listeyi yenile"
             (click)="loadDocuments()" [disabled]="isLoading()">
             <span class="material-symbols-outlined">refresh</span>
@@ -40,6 +56,39 @@
             <div class="zm-empty-title">Evraklar yükleniyor...</div>
             <div class="zm-empty-text">Eşleştirilmeyi bekleyen taranmış evraklar getiriliyor.</div>
           </div>
+        } @else if (viewMode() === 'grid' && scannedDocuments().length) {
+          <!-- Küçük resimler: seçilen evrak tek evrak görünümünde açılır -->
+          <div class="sd-grid">
+            @for (item of gridItems(); track item.doc.id) {
+              <button type="button" class="sd-grid-item" [class.is-current]="item.index === currentIndex()"
+                [attr.aria-label]="(item.index + 1) + '. evrakı aç'" (click)="selectFromGrid(item.index)">
+                <span class="sd-thumb">
+                  <app-scan-thumb [url]="item.url" />
+                  <span class="sd-thumb-no">{{ item.index + 1 }}</span>
+                  @if (item.index === currentIndex()) {
+                    <span class="sd-thumb-badge">Son açılan</span>
+                  }
+                </span>
+              </button>
+            }
+          </div>
+
+          @if (gridPageCount() > 1) {
+            <nav class="sd-pager" aria-label="Küçük resim sayfaları">
+              <button type="button" class="zm-icon-btn" title="Önceki 10 evrak"
+                [disabled]="gridPage() === 0" (click)="setGridPage(gridPage() - 1)">
+                <span class="material-symbols-outlined">chevron_left</span>
+              </button>
+              <span class="sd-pager-label">
+                <strong>{{ gridRangeLabel() }}</strong>
+                <span>Sayfa {{ gridPage() + 1 }} / {{ gridPageCount() }}</span>
+              </span>
+              <button type="button" class="zm-icon-btn" title="Sonraki 10 evrak"
+                [disabled]="gridPage() >= gridPageCount() - 1" (click)="setGridPage(gridPage() + 1)">
+                <span class="material-symbols-outlined">chevron_right</span>
+              </button>
+            </nav>
+          }
         } @else if (currentDocument()) {
           <div class="sd-viewer">
             <iframe [src]="pdfUrl()" title="Taranmış evrak"></iframe>
@@ -59,7 +108,8 @@
     </div>
   </div>
 
-  <!-- SAĞ PANEL: belge no eşleştirme -->
+  <!-- SAĞ PANEL: belge no eşleştirme (yalnızca tek evrak görünümünde) -->
+  @if (viewMode() === 'single') {
   <div class="col-lg-4 col-12">
     <div class="card zm-card d-flex flex-column">
       <div class="card-header dashboard-header d-flex align-items-center">
@@ -175,4 +225,5 @@
       </div>
     </div>
   </div>
+  }
 </div>
