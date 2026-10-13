@@ -202,7 +202,7 @@ export const routes: Routes = [
                 path: 'ticket',
                 loadComponent: () => import('./pages/envelope/ticket/ticket'),
                 canActivate: [roleGuard],
-                data: { roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Birim Yöneticisi", "Giden Evrak", "Ön Kayıt"] }
+                data: { roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Birim Yöneticisi", "Giden Evrak", "Ön Kayıt", "Yönetici"] }
             },
             {
                 path: 'settings',
