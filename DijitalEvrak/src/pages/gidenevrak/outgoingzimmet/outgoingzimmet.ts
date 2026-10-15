@@ -26,7 +26,7 @@ import { OutgoingDocumentDistributionModel, distributionRecipientName } from '..
 // Zarf zimmet ekranıyla (gidenevrak/zimmet) aynı üç mod:
 // self: kendi üzerine alma, internal: iç kullanıcıya zimmet, external: dış kuruma teslim.
 type ZimmetMode = 'self' | 'internal' | 'external';
-type PersonListItem = { id: string; name: string; surname: string; identityNo?: string; email?: string };
+type PersonListItem = { id: string; name: string; surname: string; identityNo?: string; email?: string; titleName?: string | null };
 
 @Component({
   imports: [
@@ -107,7 +107,8 @@ export default class Outgoingzimmet implements OnInit {
   readonly internalUserControl = new FormControl<{ id: string, name: string } | null>(null);
   readonly internalUserOptions = computed(() =>
     this.internalUserList()
-      .map(u => ({ id: u.id, name: `${u.name} ${u.surname}`.trim() }))
+      // Unvan seçeneğin altında küçük gösterilir (hint); aramaya katılmaz
+      .map(u => ({ id: u.id, name: `${u.name} ${u.surname}`.trim(), hint: u.titleName }))
       .sort((a, b) => a.name.localeCompare(b.name, 'tr'))
   );
   readonly selectedInternalUser = computed<PersonListItem | null>(() => {

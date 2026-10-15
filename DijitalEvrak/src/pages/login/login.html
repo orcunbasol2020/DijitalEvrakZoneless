@@ -90,7 +90,7 @@
           @case ('form') {
             <h1 class="login-heading">Hoş geldiniz</h1>
             <!-- Bu form yalnızca geliştirme ortamında açıktır; canlıda Windows oturumuyla otomatik girilir -->
-            <p class="login-lead">Geliştirme girişi: şifre gerekmez, kurumsal (AD) kullanıcı adını yazın.</p>
+            <p class="login-lead">Geliştirme girişi: kurumsal (AD) kullanıcı adını ve ortak geliştirme şifresini yazın.</p>
 
             <form #form="ngForm" (ngSubmit)="signIn(form)" novalidate>
 
@@ -121,11 +121,34 @@
                 }
               </div>
 
-              <div class="login-options">
-                <label class="login-remember">
-                  <input type="checkbox" class="form-check-input" id="rememberMe" ngModel name="rememberMe">
-                  <span>Beni hatırla</span>
-                </label>
+              <div class="login-field"
+                   [class.is-invalid]="password.invalid && (password.touched || submitted())">
+                <label for="password" class="login-label">Şifre</label>
+                <div class="login-input-wrap">
+                  <span class="login-input-icon material-symbols-outlined" aria-hidden="true">lock</span>
+                  <input #password="ngModel"
+                         [type]="showPassword() ? 'text' : 'password'"
+                         class="login-input has-toggle"
+                         id="password" ngModel name="password"
+                         autocomplete="current-password"
+                         required
+                         [attr.aria-invalid]="password.invalid && (password.touched || submitted())"
+                         [attr.aria-describedby]="password.invalid && (password.touched || submitted()) ? 'password-error' : null"
+                         (input)="clearError()">
+                  <button type="button"
+                          class="login-password-toggle"
+                          [attr.aria-label]="showPassword() ? 'Şifreyi gizle' : 'Şifreyi göster'"
+                          [attr.aria-pressed]="showPassword()"
+                          (click)="showPassword.set(!showPassword())">
+                    <span class="material-symbols-outlined" aria-hidden="true">{{ showPassword() ? 'visibility_off' : 'visibility' }}</span>
+                  </button>
+                </div>
+                @if (password.invalid && (password.touched || submitted())) {
+                  <div id="password-error" class="login-field-error">
+                    <span class="material-symbols-outlined" aria-hidden="true">error</span>
+                    Şifre zorunludur.
+                  </div>
+                }
               </div>
 
               @if (errorMessage(); as message) {
@@ -150,24 +173,6 @@
               </button>
 
             </form>
-
-            @if (windowsEnabled()) {
-              <!-- Yerelde iki giriş de açık: Windows girişi düğmeyle denenir -->
-              <div class="login-divider" aria-hidden="true"><span>veya</span></div>
-              <button type="button"
-                      class="btn-login btn-login-secondary"
-                      [disabled]="windowsLoading() || isLoading()"
-                      [attr.aria-busy]="windowsLoading()"
-                      (click)="signInWithWindows()">
-                @if (windowsLoading()) {
-                  <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
-                  <span>Windows oturumu doğrulanıyor...</span>
-                } @else {
-                  <span class="material-symbols-outlined" aria-hidden="true">badge</span>
-                  <span>Windows hesabımla gir</span>
-                }
-              </button>
-            }
           }
         }
       </div>

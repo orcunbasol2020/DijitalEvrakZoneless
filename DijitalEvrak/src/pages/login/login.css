@@ -302,43 +302,6 @@
   outline-offset: 1px;
 }
 
-/* ---------- Seçenekler ---------- */
-.login-options {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 4px 0 16px;
-}
-
-.login-remember {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--login-text);
-  cursor: pointer;
-  user-select: none;
-}
-
-.login-remember .form-check-input {
-  margin: 0;
-  width: 17px;
-  height: 17px;
-  cursor: pointer;
-  border-color: var(--login-input-border-hover);
-}
-
-.login-remember .form-check-input:checked {
-  background-color: var(--login-accent);
-  border-color: var(--login-accent);
-}
-
-.login-remember .form-check-input:focus {
-  box-shadow: 0 0 0 3px var(--login-accent-soft);
-  border-color: var(--login-accent-strong);
-}
-
 /* ---------- Genel hata kutusu ---------- */
 .login-alert {
   display: flex;
@@ -437,23 +400,6 @@
   background: var(--login-input-bg);
   border-color: var(--login-input-border-hover);
   box-shadow: none;
-}
-
-.login-divider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 18px 0;
-  font-size: 0.78rem;
-  color: var(--login-muted);
-}
-
-.login-divider::before,
-.login-divider::after {
-  content: "";
-  flex: 1 1 auto;
-  height: 1px;
-  background: var(--login-input-border);
 }
 
 /* ---------- Durum ekranları (doğrulanıyor, tanımsız kullanıcı, çıkış ...) ---------- */

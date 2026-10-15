@@ -508,7 +508,7 @@
                                                 <span class="zm-avatar">{{ initials(p.name + ' ' + p.surname) }}</span>
                                                 <span class="zm-person-info">
                                                     <span class="zm-person-name d-block">{{ p.name }} {{ p.surname }}</span>
-                                                    <span class="zm-person-meta d-block">{{ p.userName }}</span>
+                                                    <span class="zm-person-meta d-block" [title]="p.titleName || ''">{{ p.titleName ? p.titleName + ' · ' + p.userName : p.userName }}</span>
                                                 </span>
                                                 <span class="material-symbols-outlined zm-person-check">
                                                     {{ isPersonSelected(p) ? 'check_circle' : 'radio_button_unchecked' }}

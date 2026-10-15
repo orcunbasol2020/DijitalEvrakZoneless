@@ -1,7 +1,7 @@
 import { UserModel } from '../pages/users/users';
 
 // Oturum, giriş cevabıyla (Login / WindowsLogin: token ve tokenExpiration dahil) "user" anahtarında tutulur;
-// "Beni hatırla" ve Windows girişi localStorage'a, diğer form girişleri sessionStorage'a yazar.
+// Windows girişi localStorage'a, form girişi sessionStorage'a yazar.
 const USER_KEY = 'user';
 // Kullanıcı çıkış yaptıysa giriş ekranı otomatik Windows girişi yapmaz, "Oturumunuz kapatıldı" gösterir
 const SIGNED_OUT_KEY = 'loginSignedOut';

@@ -216,11 +216,17 @@ export const routes: Routes = [
                 data: { roles: ["Yönetici"] }
             },
             {
-                // Atlas'a aktarımı kalıcı hata alan gelen evraklar ve Yeniden Dene
-                path: 'atlas-aktarim-hatalari',
-                loadComponent: () => import('./pages/atlas-aktarim-hatalari/atlas-aktarim-hatalari'),
+                // Atlas'a EYP aktarımı: servis durumu, kuyruk, hatalı evraklar, son denemeler, Şimdi Çalıştır.
+                // Paket indirme evrak içeriğini verdiği için yalnızca yönetici.
+                path: 'atlas-aktarim',
+                loadComponent: () => import('./pages/atlas-aktarim/atlas-aktarim'),
                 canActivate: [roleGuard],
                 data: { roles: ["Yönetici"] }
+            },
+            {
+                // Eski Atlas Aktarım Hataları sayfası: Atlas Aktarım'ın Hatalı sekmesine taşındı
+                path: 'atlas-aktarim-hatalari',
+                redirectTo: '/atlas-aktarim?tab=hatali'
             },
             {
                 path: 'support',

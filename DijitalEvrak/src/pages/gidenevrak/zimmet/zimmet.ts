@@ -31,7 +31,7 @@ import { CargoCompanyEnum, CargoCompanyLabels, cargoCompanyOptions } from '../..
 
 // self: Teslim Al, internal: Zimmetle, external: Teslim Et (elden), cargo: Kargoya Ver
 type ZimmetMode = 'self' | 'internal' | 'external' | 'cargo';
-type PersonListItem = { id: string; name: string; surname: string; identityNo?: string; email?: string };
+type PersonListItem = { id: string; name: string; surname: string; identityNo?: string; email?: string; titleName?: string | null };
 
 @Component({
   imports: [
@@ -367,7 +367,8 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
   readonly internalUserControl = new FormControl<{ id: string, name: string } | null>(null);
   readonly internalUserOptions = computed(() =>
     this.internalUserList()
-      .map(u => ({ id: u.id, name: `${u.name} ${u.surname}`.trim() }))
+      // Unvan seçeneğin altında küçük gösterilir (hint); aramaya katılmaz
+      .map(u => ({ id: u.id, name: `${u.name} ${u.surname}`.trim(), hint: u.titleName }))
       .sort((a, b) => a.name.localeCompare(b.name, 'tr'))
   );
   readonly selectedInternalUser = computed<PersonListItem | null>(() => {

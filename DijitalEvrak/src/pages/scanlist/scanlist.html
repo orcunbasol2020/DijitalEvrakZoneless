@@ -425,7 +425,7 @@
                 <span class="pa-avatar">{{ initials(userFullName(u)) }}</span>
                 <div class="pa-person-info">
                   <div class="pa-person-name">{{ userFullName(u) }}</div>
-                  <div class="pa-person-meta">{{ u.departmentName || u.departmentShortName || '-' }}</div>
+                  <div class="pa-person-meta" [title]="u.titleName || ''">{{ u.titleName ? u.titleName + ' · ' : '' }}{{ u.departmentName || u.departmentShortName || '-' }}</div>
                 </div>
                 <span class="material-symbols-outlined pa-person-check">check_circle</span>
               </button>

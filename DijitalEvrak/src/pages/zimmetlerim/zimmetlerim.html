@@ -421,7 +421,7 @@
                 <span class="zl-avatar">{{ initials(p) }}</span>
                 <span class="zl-person-info">
                   <span class="zl-person-name d-block">{{ p.name }} {{ p.surname }}</span>
-                  <span class="zl-person-meta d-block">{{ p.departmentName || p.userName }}</span>
+                  <span class="zl-person-meta d-block" [title]="p.titleName || ''">{{ p.titleName ? p.titleName + ' · ' : '' }}{{ p.departmentName || p.userName }}</span>
                 </span>
                 <span class="material-symbols-outlined zl-person-check">
                   {{ selectedPersonId() === p.id ? 'check_circle' : 'radio_button_unchecked' }}

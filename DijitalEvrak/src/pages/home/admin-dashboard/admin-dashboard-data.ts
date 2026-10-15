@@ -7,6 +7,8 @@ import { Department, DepartmentModel } from '../../../services/department';
 import { IncomingDocumentModel } from '../../../models/incoming-document/incoming-document.model';
 import { OutgoingDocumentModel } from '../../../models/outgoingdocument.model';
 import { idKey } from '../../../models/ids';
+import { UserService } from '../../../services/user';
+import { UserModel } from '../../users/users';
 
 // Nota kuralı (Nota Raporları backend'iyle aynı): yabancı misyondan gelen ve yabancı misyona giden her
 // evrak, türü ne olursa olsun notadır. Misyon = dış kurum türü 1; kurum, dilekçe ve uluslararası kuruluş
@@ -45,6 +47,7 @@ export class AdminDashboardData {
   readonly #http = inject(HttpService);
   readonly #institutions = inject(ExternalInstitution);
   readonly #departments = inject(Department);
+  readonly #users = inject(UserService);
 
   readonly loading = signal(true);
   readonly failed = signal(false);
@@ -54,6 +57,8 @@ export class AdminDashboardData {
   /** Yalnızca misyonlar (~840); kurum adları evrak cevaplarında gelir */
   readonly institutions = signal<ExternalInstitutionModel[]>([]);
   readonly departments = signal<DepartmentModel[]>([]);
+  /** Rolü olan kullanıcılar (birim evrak sorumluları için) */
+  readonly users = signal<UserModel[]>([]);
   /** Misyon kimlikleri (idKey biçiminde) */
   readonly missionIds = computed(() => new Set(
     this.institutions().filter(i => i.type === ExternalInstitutionType.Misyon).map(i => idKey(i.id)!)));
@@ -73,7 +78,9 @@ export class AdminDashboardData {
       institutions: safe(this.#institutions.getMissions()),
       // Birim adları yalnızca etiket için; gelmezse kartlar yine açılır
       departments: this.#departments.getDepartments().pipe(catchError(() => of([] as DepartmentModel[]))),
-    }).subscribe(({ incoming, outgoing, institutions, departments }) => {
+      // Evrak sorumluları yalnızca bilgi amaçlı; gelmezse sorumlu sütunu boş kalır
+      users: this.#users.getAll({ onlyWithRoles: true }).pipe(catchError(() => of([] as UserModel[]))),
+    }).subscribe(({ incoming, outgoing, institutions, departments, users }) => {
       if (!incoming || !outgoing || !institutions) {
         this.failed.set(true);
       } else {
@@ -81,6 +88,7 @@ export class AdminDashboardData {
         this.outgoing.set(outgoing.filter(d => !d.isDeleted));
         this.institutions.set(institutions.filter(i => !i.isDeleted));
         this.departments.set(departments ?? []);
+        this.users.set(users ?? []);
       }
       this.loading.set(false);
     });

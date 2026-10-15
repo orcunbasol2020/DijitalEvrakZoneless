@@ -13,6 +13,7 @@ import { ReportChart } from '../../reports/report-chart';
 import { ExternalInstitutionType } from '../../../services/external-institution';
 import { AdminDashboardData, incomingNotaMission, outgoingNotaMissions } from './admin-dashboard-data';
 import { incomingRecipientsOf } from '../../../models/incoming-document/incoming-document.model';
+import { normalizeRoleName } from '../../../services/role-service';
 
 type Direction = 'incoming' | 'outgoing';
 
@@ -39,20 +40,18 @@ interface StatCard {
 
 /** En Çok Bekleyen Evrakı Olan Birimler satırı */
 interface PendingUnit {
+  id: string;
   code: string;
   name: string;
-  owners: { name: string; ext: string }[];
+  owners: { name: string; email: string }[];
   pending: number;
 }
 
-// En Çok Bekleyen Evrakı Olan Birimler (veri bağlanana kadar örnek değerler)
-const PENDING_UNITS: PendingUnit[] = [
-  { code: 'EÇGM', name: 'Enerji, Çevre ve Sınıraşan Sular Genel Müdürlüğü', owners: [{ name: 'Banu Gültekin', ext: '3420' }], pending: 18 },
-  { code: 'DSGM', name: 'Destek Hizmetleri Genel Müdürlüğü', owners: [{ name: 'Aytül Özcan', ext: '1323' }, { name: 'Zeynep Büşra Tatar', ext: '1323' }], pending: 15 },
-  { code: 'KOGM', name: 'Konsolosluk Hizmetleri ve Yurtdışında Yaşayan Vatandaşlar Genel Müdürlüğü', owners: [{ name: 'Didem Pekzorlu', ext: '2025' }], pending: 12 },
-  { code: 'TPGM', name: 'Bilim ve Teknoloji Politikaları Genel Müdürlüğü', owners: [{ name: 'Cevşen Büşra Bahçecik', ext: '1116' }], pending: 11 },
-  { code: 'BYMB', name: 'BYMB Bakan Yardımcılığı', owners: [{ name: 'Eda Tokan Akkuş', ext: '2219' }], pending: 9 },
-];
+/** Kartta gösterilen birim sayısı; tüm liste Teslim Bekleyenler sayfasında */
+const PENDING_UNIT_LIMIT = 5;
+/** Teslim alındı durumu (Teslim Bekleyenler kartıyla aynı) */
+const INCOMING_DELIVERED = 3;
+const BIRIM_EVRAK_SORUMLUSU = 'Birim Evrak Sorumlusu';
 
 @Component({
   imports: [
@@ -164,12 +163,46 @@ export class AdminDashboard {
   }
 
   // ---- En Çok Bekleyen Evrakı Olan Birimler ----
-  readonly pendingUnits = PENDING_UNITS;
-  readonly #maxPending = Math.max(...PENDING_UNITS.map(u => u.pending), 1);
+  // Teslim Bekleyenler kartıyla aynı sayım: birime yönlendirilmiş, teslim alınmamış gelen evrak;
+  // birden fazla alıcısı olan evrak her alıcı birimde sayılır. Sorumlular birimin Birim Evrak Sorumluları.
+  readonly pendingUnits = computed<PendingUnit[]>(() => {
+    const counts = new Map<string, number>();
+    for (const d of this.#data.incoming()) {
+      if (d.status === INCOMING_DELIVERED) continue;
+      for (const r of incomingRecipientsOf(d)) {
+        const id = idKey(r.departmentId)!;
+        counts.set(id, (counts.get(id) ?? 0) + 1);
+      }
+    }
+
+    const owners = new Map<string, PendingUnit['owners']>();
+    for (const u of this.#data.users()) {
+      if (u.isDeleted || !u.isActive || !u.departmentId) continue;
+      if (!(u.roles ?? []).some(r => normalizeRoleName(r.name) === BIRIM_EVRAK_SORUMLUSU)) continue;
+      const id = idKey(u.departmentId)!;
+      owners.set(id, [...(owners.get(id) ?? []), { name: `${u.name} ${u.surname}`.trim(), email: u.email }]);
+    }
+
+    const units = new Map(this.#data.departments().map(d => [idKey(d.id)!, d]));
+    return [...counts.entries()]
+      .map(([id, pending]) => {
+        const unit = units.get(id);
+        return {
+          id,
+          code: unit?.shortName?.trim() ?? '',
+          name: unit?.name || unit?.shortName?.trim() || 'Bilinmeyen birim',
+          owners: (owners.get(id) ?? []).sort((a, b) => a.name.localeCompare(b.name, 'tr')),
+          pending,
+        };
+      })
+      .sort((a, b) => b.pending - a.pending || a.name.localeCompare(b.name, 'tr'))
+      .slice(0, PENDING_UNIT_LIMIT);
+  });
+  readonly #maxPending = computed(() => Math.max(...this.pendingUnits().map(u => u.pending), 1));
 
   /** Bekleyen sayısının listedeki en yüksek değere oranı (çubuk genişliği) */
   pendingShare(unit: PendingUnit): number {
-    return this.pct(unit.pending, this.#maxPending);
+    return this.pct(unit.pending, this.#maxPending());
   }
 
   // ---- En Çok Evrak Gelen Birimler / Misyonlar ----

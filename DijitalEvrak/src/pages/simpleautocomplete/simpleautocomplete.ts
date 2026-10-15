@@ -40,6 +40,7 @@ template: `
 
           <span *ngIf="option.indent" class="autocomplete-tree-marker">└</span>
           {{ option.name }}
+          <small *ngIf="option.hint" class="autocomplete-hint" [title]="option.hint">{{ option.hint }}</small>
         </li>
 
       </ng-container>
@@ -103,6 +104,15 @@ template: `
       font-size: 0.92em;
     }
 
+    .autocomplete-hint {
+      display: block;
+      font-size: 0.8em;
+      color: #64748b;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     .autocomplete-tree-marker {
       display: inline-block;
       margin-right: 4px;
@@ -131,7 +141,8 @@ template: `
 export class SimpleAutocompleteComponent implements OnInit, OnChanges, OnDestroy {
 
   /** indent: ağaç gösteriminde girinti seviyesi (birimlerin makam "level" alanıyla karışmasın diye ayrı ad) */
-  @Input() options: { id: number | string, name: string, indent?: number }[] = [];
+  /** hint: adın altında küçük ikincil metin (ör. unvan); yalnızca gösterim, aramaya katılmaz */
+  @Input() options: { id: number | string, name: string, indent?: number, hint?: string | null }[] = [];
   @Input() control!: FormControl;
   @Input() placeholder: string = '';
   /** 0 ise odaklanınca tüm liste açılır; >0 ise liste ancak bu kadar karakter yazılınca görünür
@@ -149,7 +160,7 @@ export class SimpleAutocompleteComponent implements OnInit, OnChanges, OnDestroy
   @Input() searching = false;
   @Output() search = new EventEmitter<string>();
 
-  filteredOptions: { id: number | string, name: string, indent?: number }[] = [];
+  filteredOptions: { id: number | string, name: string, indent?: number, hint?: string | null }[] = [];
   show = false;
   activeIndex = -1;
 

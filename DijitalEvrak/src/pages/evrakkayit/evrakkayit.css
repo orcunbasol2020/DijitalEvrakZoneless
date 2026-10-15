@@ -71,7 +71,9 @@
 /* ---- Sekme seçici (Teslim türü segment seçicisiyle aynı dil) ---- */
 .ek-tabs {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    /* 4 sekme; yöneticide yayına gönderilmiş evrakta Aktarım ile 5 */
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
     gap: 4px;
     padding: 4px;
     border-radius: 14px;
@@ -95,6 +97,18 @@
     cursor: pointer;
     white-space: nowrap;
     transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+/* Beş sekmede yazılar sığmaz: geniş ekran dışında yalnızca simge (adı title'da) */
+.ek-tabs.is-compact .ek-tab {
+    padding-left: 6px;
+    padding-right: 6px;
+}
+
+@media (max-width: 1599.98px) {
+    .ek-tabs.is-compact .ek-tab span:not(.material-symbols-outlined):not(.ek-tab-count) {
+        display: none;
+    }
 }
 
 .ek-tab .material-symbols-outlined {

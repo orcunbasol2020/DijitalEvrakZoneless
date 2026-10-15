@@ -4,7 +4,7 @@ import { Common } from '../../../services/common';
 import { httpResource } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { RoleService, normalizeRoleName } from '../../../services/role-service';
+import { RoleService, isRoleVisible, normalizeRoleName } from '../../../services/role-service';
 import { RecentLogins } from '../../home/recent-logins/recent-logins';
 
 export interface RoleModel {
@@ -54,8 +54,12 @@ export default class Profile {
 
   readonly result = httpResource<RoleModel[]>(() => "api/Roles/GetAll", {});
   readonly data = computed(() =>
-    // Rol adı ekranda düzeltilmiş yazımla gösterilir (ör. backend'deki "Ön Kayit" → "Ön Kayıt")
-    (this.result.value() ?? []).map(r => ({ ...r, name: normalizeRoleName(r.name), hasRole: this.#roleService.has(r.name) }))
+    // Rol adı ekranda düzeltilmiş yazımla gösterilir (ör. backend'deki "Ön Kayit" → "Ön Kayıt").
+    // Silinmiş ve pasif roller yetki vermez, listelenmez; gizli roller (Admin) yalnızca kullanıcıda varsa görünür.
+    (this.result.value() ?? [])
+      .filter(r => !r.isDeleted && r.isActive)
+      .map(r => ({ ...r, name: normalizeRoleName(r.name), hasRole: this.#roleService.has(r.name) }))
+      .filter(r => r.hasRole || isRoleVisible(r.name))
   );
   readonly loading = computed(() => this.result.isLoading());
   readonly activeRoleCount = computed(() => this.data().filter(r => r.hasRole).length);

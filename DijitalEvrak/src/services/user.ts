@@ -18,6 +18,8 @@ export interface UserListFilter {
     /** Yalnızca bu sistemde rolü olanlar */
     onlyWithRoles?: boolean;
     departmentId?: DepartmentId | null;
+    /** departmentId ile birlikte: parentId zinciriyle bağlı tüm alt birimlerin kullanıcıları da gelir */
+    includeSubDepartments?: boolean;
     roleId?: string | null;
 }
 
@@ -30,8 +32,8 @@ export class UserService {
     private baseUrl = 'api/Users/';
 
     /** Geliştirme girişi (yalnızca formLoginEnabled iken): şifresiz, AD kullanıcı adıyla */
-    getUserByUsername(user: string) {
-        const body = { userName: user };
+    login(userName: string, password: string) {
+        const body = { userName, password };
 
         return this.httpService.post<UserModel>(`${this.baseUrl}Login`, body, { context: quiet() });
     }

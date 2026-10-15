@@ -631,3 +631,32 @@
 .dl-orig {
     font-style: italic;
 }
+
+/* Süreç ve Zimmet Geçmişi popup'ları: sağ sütunda etiket (durum çipi / Güncel) üstte, tarih altında */
+.zh-modal .zh-card-side {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+}
+
+.zh-modal .zh-card-side .zh-status-chip {
+    width: auto;
+}
+
+.zh-modal .zh-hero.is-active .zh-hero-side {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+/* Süreç ve Zimmet Geçmişi popup'ları: ad soyadın yanında parantez içinde "(Birim / Unvan)" */
+.dl-sp-meta {
+    margin-left: 4px;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: #64748b;
+}
+
+[data-theme="dark"] .dl-sp-meta {
+    color: #94a3b8;
+}

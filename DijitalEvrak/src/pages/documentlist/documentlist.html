@@ -342,9 +342,6 @@
     <!-- Satır menüsü: tablonun kaydırma alanına takılmaması için sabit konumda açılır -->
     @if (menu(); as m) {
       <div class="dl-menu" role="menu" [style.top.px]="m.top" [style.left.px]="m.left" (click)="$event.stopPropagation()">
-        <button type="button" role="menuitem" (click)="runMenu('info')">
-          <span class="material-symbols-outlined">info</span>Evrak Bilgileri
-        </button>
         <button type="button" role="menuitem" (click)="runMenu('process')">
           <span class="material-symbols-outlined">conversion_path</span>Süreç
         </button>
@@ -444,18 +441,25 @@
                 <div class="zh-card">
                   <div class="zh-card-main">
                     <div class="zh-name" [title]="t.transactionTypeName">{{ t.transactionTypeName || '-' }}</div>
+                    <!-- Kişi adının yanında parantez içinde "(Birim / Unvan)" -->
                     <div class="zh-meta">
                       @if (t.transactionType === 7) {
                         <span class="material-symbols-outlined">person</span>
-                        <span class="zh-meta-by">Teslim Alan: <strong>{{ t.userFullName || '-' }}</strong></span>
+                        <span class="zh-meta-by">Teslim Alan: <strong>{{ t.userFullName || '-' }}</strong>
+                          @if (personMetaByName(t.userFullName); as meta) {<span class="dl-sp-meta">({{ meta }})</span>}
+                        </span>
                         <span class="sp-meta-sep">·</span>
-                        <span class="zh-meta-by">Teslim Eden: <strong>{{ t.createdUserFullName || '-' }}</strong></span>
+                        <span class="zh-meta-by">Teslim Eden: <strong>{{ t.createdUserFullName || '-' }}</strong>
+                          @if (personMetaByName(t.createdUserFullName); as meta) {<span class="dl-sp-meta">({{ meta }})</span>}
+                        </span>
                       } @else if (t.transactionType === 8) {
                         <span class="material-symbols-outlined">smart_toy</span>
                         <span class="zh-meta-by">Sistem</span>
                       } @else {
                         <span class="material-symbols-outlined">person</span>
-                        <span class="zh-meta-by">{{ processPersonLabel(t) }}: <strong>{{ t.userFullName || '-' }}</strong></span>
+                        <span class="zh-meta-by"><strong>{{ t.userFullName || '-' }}</strong>
+                          @if (personMetaByName(t.userFullName); as meta) {<span class="dl-sp-meta">({{ meta }})</span>}
+                        </span>
                       }
                     </div>
                   </div>
@@ -464,7 +468,6 @@
                       <span class="sp-latest">Güncel</span>
                     }
                     <span class="zh-date">
-                      <span class="material-symbols-outlined">schedule</span>
                       {{ t.createdDate | date:'dd.MM.yyyy HH:mm' }}
                     </span>
                   </div>
@@ -475,9 +478,10 @@
                   <span class="material-symbols-outlined sp-sub-arrow">subdirectory_arrow_right</span>
                   <span class="material-symbols-outlined sp-sub-icon">{{ processTypeIcon(c) }}</span>
                   <span class="sp-sub-title">{{ c.transactionTypeName || '-' }}</span>
-                  <span class="sp-sub-by">{{ processPersonLabel(c) }}: <strong>{{ c.userFullName || '-' }}</strong></span>
+                  <span class="sp-sub-by"><strong>{{ c.userFullName || '-' }}</strong>
+                    @if (personMetaByName(c.userFullName); as meta) {<span class="dl-sp-meta">({{ meta }})</span>}
+                  </span>
                   <span class="zh-date">
-                    <span class="material-symbols-outlined">schedule</span>
                     {{ c.createdDate | date:'dd.MM.yyyy HH:mm' }}
                   </span>
                 </div>
@@ -523,16 +527,17 @@
           <div class="zh-hero is-active">
             <span class="zh-avatar">{{ initials(a.fullName) }}</span>
             <div class="zh-hero-text">
+              <div class="zh-hero-name">{{ a.fullName || '-' }}
+                @if (personMeta(a); as meta) {<span class="dl-sp-meta">({{ meta }})</span>}
+              </div>
+            </div>
+            <!-- Sağ sütun: "Aktif Zimmet" etiketi üstte, tarih altında; durum çipi hareket listesinde görünür. -->
+            <div class="zh-hero-side">
               <div class="zh-hero-label">
                 <span class="zh-pulse"></span>
                 Aktif Zimmet
               </div>
-              <div class="zh-hero-name">{{ personLabel(a) }}</div>
-            </div>
-            <!-- Aktif zimmette durum çipi gösterilmez; durum zaten hareket listesinde görünür. -->
-            <div class="zh-hero-side">
               <span class="zh-date">
-                <span class="material-symbols-outlined">schedule</span>
                 {{ a.createdDate | date:'dd.MM.yyyy HH:mm' }}
               </span>
             </div>
@@ -579,11 +584,15 @@
                 </span>
                 <div class="zh-card">
                   <div class="zh-card-main">
-                    <div class="zh-name" [title]="personLabel(h)">{{ personLabel(h) }}</div>
+                    <div class="zh-name" [title]="h.fullName || ''">{{ h.fullName || '-' }}
+                      @if (personMeta(h); as meta) {<span class="dl-sp-meta">({{ meta }})</span>}
+                    </div>
                     @if (zimmetActors()[h.id]; as actor) {
                       <div class="zh-meta">
                         <span class="material-symbols-outlined">person</span>
-                        <span class="zh-meta-by">{{ allocationActorLabels[h.status] }}: <strong>{{ actor }}</strong></span>
+                        <span class="zh-meta-by">{{ allocationActorLabels[h.status] }}: <strong>{{ actor.fullName || '-' }}</strong>
+                          @if (personMeta(actor); as actorMeta) {<span class="dl-sp-meta">({{ actorMeta }})</span>}
+                        </span>
                       </div>
                     }
                   </div>
@@ -593,7 +602,6 @@
                       {{ allocationStatusLabels[h.status] || '-' }}
                     </span>
                     <span class="zh-date">
-                      <span class="material-symbols-outlined">schedule</span>
                       {{ h.createdDate | date:'dd.MM.yyyy HH:mm' }}
                     </span>
                   </div>

@@ -42,6 +42,45 @@
     border-color: #7dd3fc;
 }
 
+/* Birimim: yalnızca kendi birimindeki personel; rol filtresiyle aynı yükseklik ve seçili görünüm */
+.us-dept-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 34px;
+    padding: 0 12px;
+    font-size: 13px;
+    color: var(--bs-body-color);
+    background: var(--bs-body-bg);
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.us-dept-toggle .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.us-dept-toggle:hover {
+    background: var(--bs-tertiary-bg);
+}
+
+.us-dept-toggle.is-on {
+    color: #0369a1;
+    background: #e0f2fe;
+    border-color: #7dd3fc;
+}
+
+[data-theme="dark"] .us-dept-toggle {
+    border-color: var(--bs-border-color);
+}
+
+[data-theme="dark"] .us-dept-toggle.is-on {
+    color: #7dd3fc;
+    background: rgba(14, 165, 233, 0.16);
+    border-color: rgba(125, 211, 252, 0.4);
+}
+
 /* Kullanıcı araması (sunucuda): ad, soyad ya da kullanıcı adı */
 .us-search {
     position: relative;
@@ -73,22 +112,17 @@
     color: #64748b;
 }
 
-/* Birim etiketi: zeminsiz, ince gri çerçeve, yazı siyah */
-.us-dept-badge {
+/* Birim: tam ad düz yazı; uzun adlar alt satıra kayar */
+.us-dept {
+    display: block;
+    font-size: 13px;
+    line-height: 1.35;
+    white-space: normal;
     color: #0f172a;
-    background-color: transparent;
-    border: 1px solid #d1d5db;
-    /* Ortak .badge (styles.css: 0.65rem yazı, 0.25em dolgu) üzerine: yazı 0.2px büyük,
-       üstten ve alttan 2px fazla dolgu (toplam 4px daha yüksek) */
-    font-size: calc(0.65rem + 0.2px);
-    padding-top: calc(0.25em + 2px);
-    padding-bottom: calc(0.25em + 2px);
 }
 
-[data-theme="dark"] .us-dept-badge {
+[data-theme="dark"] .us-dept {
     color: #f8fafc;
-    background-color: transparent;
-    border-color: rgba(156, 163, 175, 0.4);
 }
 
 .us-roles {
@@ -209,4 +243,13 @@
     .us-search {
         width: 100%;
     }
+}
+
+/* Unvan 150+ karakter olabilir: tek satırda kısaltılır, tam metin title ile görünür */
+.us-title {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }

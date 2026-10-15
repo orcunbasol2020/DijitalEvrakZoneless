@@ -16,6 +16,7 @@ import { UserModel } from '../../users/users';
 import { DocumentAssignmentService } from '../../../services/documentassignment';
 import { Common } from '../../../services/common';
 import { FlexiToastService } from 'flexi-toast';
+import { IncomingInfoModal } from '../../../../components/incoming-info-modal/incoming-info-modal';
 
 /** recent: en son kaydedilen evraklar (Gelen Evrak paneli)
  *  attention: işi bitmemiş evraklardan dikkat gerektirenler (Yönetici paneli) */
@@ -113,7 +114,7 @@ function isOpen(doc: IncomingDocumentModel): boolean {
  * Tablo stilleri (orders-table, doc-status) styles.css'ten, başlık (ad-head) dashboard.css'ten gelir.
  */
 @Component({
-  imports: [RouterLink, NgTemplateOutlet],
+  imports: [RouterLink, NgTemplateOutlet, IncomingInfoModal],
   standalone: true,
   selector: 'app-currentdocument',
   templateUrl: './currentdocument.html',
@@ -141,7 +142,7 @@ export class Currentdocument {
   readonly showSubtitle = input<boolean>(true);
 
   /** Dikkat listesinde satıra tıklayınca ne olacağı.
-   *  detail: kilitsiz belge detayı (Yönetici), process: Gelen Evraklar'daki İşleme Al akışı (evrak kayıt personeli) */
+   *  detail: Evrak Bilgileri popup'ı, oradan kilitsiz belge detayı (Yönetici), process: Gelen Evraklar'daki İşleme Al akışı (evrak kayıt personeli) */
   readonly rowAction = input<AttentionRowAction>('detail');
 
   /** Evrak hücresinde Nereden (gönderen kurum) / Nereye (birim) satırı; evrak kayıt panelinde açık */
@@ -209,9 +210,30 @@ export class Currentdocument {
     this.allOpen.set(false);
   }
 
+  // Evrak Bilgileri popup'ı açıkken Esc yalnızca onu kapatır (popup kendi dinleyicisiyle kapanır)
   @HostListener('document:keydown.escape')
   onEscape(): void {
+    if (this.infoDoc()) return;
     if (this.allOpen()) this.closeAll();
+  }
+
+  // ---- Evrak Bilgileri popup'ı (Yönetici) ----
+  readonly infoDoc = signal<IncomingDocumentModel | null>(null);
+
+  private openInfo(id: string): void {
+    const doc = this.documents().find(d => d.id === id);
+    if (!doc) return;
+    // Atanan personelin adı backend'den gelmediyse popup'ta da kullanıcı listesinden gösterilir
+    this.infoDoc.set({ ...doc, currentAssignmentUser: this.assigneeName(doc) });
+  }
+
+  closeInfo(): void {
+    this.infoDoc.set(null);
+  }
+
+  openInfoDetail(id: string): void {
+    this.closeInfo();
+    this.goDetail(id);
   }
 
   constructor() {
@@ -413,7 +435,7 @@ export class Currentdocument {
 
   /** Gelen Evraklar'daki İşleme Al düğmesinin başlıklarıyla aynı */
   getRowTitle(row: DocRow): string {
-    if (this.rowAction() !== 'process') return 'Evrak detayına git';
+    if (this.rowAction() !== 'process') return 'Evrak bilgilerini göster';
     const blocked = this.blockReason(row);
     if (blocked) return blocked;
     if (!IN_REGISTRATION.has(row.docStatus)) return 'Belge Detayına Git';
@@ -423,7 +445,7 @@ export class Currentdocument {
   onRowClick(row: DocRow): void {
     if (!this.isAttention() || !this.isRowClickable(row)) return;
     if (this.rowAction() === 'process') this.processRow(row);
-    else this.goDetail(row.id);
+    else this.openInfo(row.id);
   }
 
   /** Yönetici: atama (işleme alma) ya da kilit kontrolü yapmadan belge detayına gider. */

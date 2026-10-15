@@ -23,12 +23,47 @@ const ROLE_ICONS: Record<string, string> = {
   'Misyon Yetkilisi': 'flag',
   'Misyon Evrak Sorumlusu': 'public',
   'Kurye': 'local_shipping',
-  'Kurye Takip': 'share_location',
 };
 
 /** Rol rozetinde gösterilecek Material simgesi. */
 export function roleIcon(name: string): string {
   return ROLE_ICONS[name] ?? 'verified_user';
+}
+
+/**
+ * Rol atama ekranında rol adının altında gösterilen kısa açıklamalar (navigation.ts'deki menü yetkilerinden).
+ * Uygulamada henüz ekranı olmayan roller (Misyon, Kurye) açıklamasız gösterilir.
+ */
+const ROLE_DESCRIPTIONS: Record<string, string> = {
+  'Yönetici': 'Tüm gelen evraklar, kullanıcılar, roller, giriş kayıtları ve uygulama ayarları',
+  'Birim Yöneticisi': 'Birim evrak sorumlusu yetkileri; ana sayfada birim paneli',
+  'Birim Evrak Sorumlusu': 'Birimine gelen evraklar, zimmet ve zarf işlemleri',
+  'Gelen Evrak': 'Evrak kaydı, gelen ve taranmış evraklar, zimmet, kullanıcı yönetimi',
+  'Giden Evrak': 'Giden evraklar, zarflar, teslim alma / zimmetleme ve kargo takibi',
+  'Ön Kayıt': 'Ön kayıt ve evrak kaydı, zimmet, zarf ve kargo işlemleri',
+};
+
+/** Rol atama ekranında ve rol süzgecinde gösterilmeyen roller (kullanımda değil). */
+const HIDDEN_ROLES = new Set(['Admin']);
+
+/** Rol atama ekranında ve rol süzgecinde gösterilir mi. */
+export function isRoleVisible(name: string): boolean {
+  return !HIDDEN_ROLES.has(name);
+}
+
+/** Menü ve sayfa yetkilerinde adıyla geçen roller; silinirse ya da adı değişirse ekran yetkileri bozulur. */
+const SYSTEM_ROLES = new Set([
+  ...navigations.flatMap(n => [...(n.roles ?? []), ...(n.excludeRoles ?? [])]),
+  ...LIMITED_ROLES,
+]);
+
+export function isSystemRole(name: string): boolean {
+  return SYSTEM_ROLES.has(normalizeRoleName(name));
+}
+
+/** Rolün kısa açıklaması; tanımsızsa boş döner. */
+export function roleDescription(name: string): string {
+  return ROLE_DESCRIPTIONS[name] ?? '';
 }
 
 /** Birim düzeyindeki evrak rolleri. Birim Yöneticisi şimdilik yalnızca ana sayfa panelinde ayrışır. */

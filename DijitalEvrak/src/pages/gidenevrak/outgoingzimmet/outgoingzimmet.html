@@ -203,7 +203,7 @@
                             <span class="zm-avatar">{{ initials(p) }}</span>
                             <div class="zm-person-info">
                                 <div class="zm-person-name">{{ p.name }} {{ p.surname }}</div>
-                                <div class="zm-person-meta">{{ p.identityNo || p.email || 'Evrak bu kullanıcıya zimmetlenecek' }}</div>
+                                <div class="zm-person-meta" [title]="p.titleName || ''">{{ p.titleName || p.identityNo || p.email || 'Evrak bu kullanıcıya zimmetlenecek' }}</div>
                             </div>
                             <button type="button" class="zm-icon-btn" title="Seçimi kaldır" (click)="clearInternalUser()">
                                 <span class="material-symbols-outlined">close</span>

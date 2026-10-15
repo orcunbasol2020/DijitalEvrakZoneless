@@ -132,6 +132,10 @@
     </div>
 }
 
+<!-- Yönetici: satıra tıklanınca Evrak Bilgileri (Tümünü gör popup'ının da üstünde açılır) -->
+<app-incoming-info-modal [document]="infoDoc()" [showDetailLink]="true"
+    (closed)="closeInfo()" (detail)="openInfoDetail($event)" />
+
 <ng-template #attentionTable let-list>
     <table class="table table-hover orders-table align-middle">
         <thead>

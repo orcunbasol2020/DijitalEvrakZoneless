@@ -65,6 +65,14 @@
             <div class="card-header d-flex align-items-center">
                 <span class="material-symbols-outlined me-2 text-secondary">security</span>
                 <h4 class="mb-0">Roller</h4>
+                @if (!loadingUser() && assignableRoles().length) {
+                    <span class="ra-count ms-2">{{ selectedCount() }} seçili</span>
+                    @if (isDirty()) {
+                        <span class="ra-dirty ms-auto" title="Değişiklikler henüz kaydedilmedi">
+                            <span class="ra-dirty-dot"></span>Kaydedilmedi
+                        </span>
+                    }
+                }
             </div>
             <div class="card-body">
                 @if (loadingUser()) {
@@ -72,14 +80,24 @@
                         <span class="spinner-border spinner-border-sm"></span>
                     </div>
                 } @else if (assignableRoles().length) {
-                    <div class="d-flex flex-column gap-2">
+                    <div class="ra-list">
                         @for (role of assignableRoles(); track role.id) {
-                            <div class="form-check form-switch d-flex align-items-center justify-content-between mb-0">
-                                <label class="form-check-label" [for]="'role-' + role.id">{{ role.name }}</label>
-                                <input class="form-check-input" type="checkbox" role="switch" [id]="'role-' + role.id"
-                                    [checked]="isRoleSelected(role.id!)"
-                                    (change)="toggleRole(role.id!, $any($event.target).checked)">
-                            </div>
+                            <label class="ra-row" [for]="'role-' + role.id"
+                                [class.is-on]="isRoleSelected(role.id!)"
+                                [class.is-admin]="role.label === 'Yönetici'">
+                                <span class="ra-icon material-symbols-outlined" aria-hidden="true">{{ role.icon }}</span>
+                                <span class="ra-text">
+                                    <span class="ra-name">{{ role.label }}</span>
+                                    @if (role.description) {
+                                        <span class="ra-desc">{{ role.description }}</span>
+                                    }
+                                </span>
+                                <span class="form-check form-switch mb-0">
+                                    <input class="form-check-input" type="checkbox" role="switch" [id]="'role-' + role.id"
+                                        [checked]="isRoleSelected(role.id!)"
+                                        (change)="toggleRole(role.id!, $any($event.target).checked)">
+                                </span>
+                            </label>
                         }
                     </div>
                     <div class="d-flex justify-content-end mt-3">

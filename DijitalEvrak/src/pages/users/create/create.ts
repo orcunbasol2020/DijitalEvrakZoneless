@@ -8,6 +8,7 @@ import { FlexiToastService } from 'flexi-toast';
 import { BreadcrumbModel } from '../../layouts/breadcrumb/breadcrumb';
 import { UserService } from '../../../services/user';
 import { UserRoleService } from '../../../services/user-role';
+import { isRoleVisible, normalizeRoleName, roleDescription, roleIcon } from '../../../services/role-service';
 
 function setsEqual(a: Set<string>, b: Set<string>): boolean {
   if (a.size !== b.size) return false;
@@ -22,6 +23,7 @@ function setsEqual(a: Set<string>, b: Set<string>): boolean {
 @Component({
   imports: [GenericModel],
   templateUrl: './create.html',
+  styleUrl: './create.css',
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -47,7 +49,13 @@ export default class Create {
 
   readonly rolesResult = httpResource<RoleModel[]>(() => "api/Roles/GetAll", {});
   readonly assignableRoles = computed(() =>
-    (this.rolesResult.value() ?? []).filter(r => r.isActive && !r.isDeleted));
+    (this.rolesResult.value() ?? [])
+      .filter(r => r.isActive && !r.isDeleted && isRoleVisible(normalizeRoleName(r.name)))
+      .map(r => {
+        const label = normalizeRoleName(r.name);
+        return { ...r, label, icon: roleIcon(label), description: roleDescription(label) };
+      })
+      .sort((a, b) => a.label.localeCompare(b.label, 'tr')));
 
   readonly userRoleNamesResult = resource({
     params: () => this.id(),
@@ -62,6 +70,7 @@ export default class Create {
   readonly selectedRoleIds = linkedSignal(() => this.initialSelectedRoleIds());
   readonly savingRoles = signal(false);
   readonly isDirty = computed(() => !setsEqual(this.selectedRoleIds(), this.initialSelectedRoleIds()));
+  readonly selectedCount = computed(() => this.selectedRoleIds().size);
 
   readonly breadcrumbs = signal<BreadcrumbModel[]>([
     { title: 'Kullanıcılar', url: '/users', icon: 'group' },

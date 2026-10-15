@@ -130,7 +130,7 @@ const QUEUE_STORAGE_KEY = 'scanlist.queue';
   templateUrl: './scanlist.html',
   // scanlist.css popup stilleri (pa-, zh-, ei-) Yönetici ve Birim listeleriyle ortaktır;
   // kuyruk görünümünün stilleri (sq-) yalnızca bu sayfaya aittir.
-  styleUrls: ['./scanlist.css', './scanlist-queue.css'],
+  styleUrls: ['./scanlist.css', './scanlist-queue.css', '../../../components/incoming-info-modal/incoming-info-modal.css'],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush
 })

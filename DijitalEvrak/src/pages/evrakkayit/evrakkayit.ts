@@ -21,6 +21,7 @@ import {
   formatFileSize
 } from '../../models/incoming-document-attachment.model';
 import { AtlasTransferService } from '../../services/atlas-transfer';
+import { AtlasTransferDetail } from '../../../components/atlas-transfer-detail/atlas-transfer-detail';
 import { SimpleAutocompleteComponent } from '../simpleautocomplete/simpleautocomplete';
 import {
   IncomingDocumentDistributionModel,
@@ -88,7 +89,8 @@ interface AttachmentUpload {
     ReactiveFormsModule,
     SimpleAutocompleteComponent,
     UploadDocumentModal,
-    DragDropModule
+    DragDropModule,
+    AtlasTransferDetail
   ],
   templateUrl: './evrakkayit.html',
   // Görsel dil Ön Kayıt / Zimmet ekranlarıyla aynı; ortak zm-* sınıfları
@@ -105,9 +107,9 @@ export default class Evrakkayit implements OnInit {
   readonly documentNo = signal<string>('');
 
   // Sol karttaki sekmeler (Bootstrap tab JS yerine sinyal ile yönetilir)
-  readonly activeTab = signal<'general' | 'detail' | 'attachments' | 'transaction'>('general');
+  readonly activeTab = signal<'general' | 'detail' | 'attachments' | 'transaction' | 'transfer'>('general');
 
-  setTab(tab: 'general' | 'detail' | 'attachments' | 'transaction') {
+  setTab(tab: 'general' | 'detail' | 'attachments' | 'transaction' | 'transfer') {
     this.activeTab.set(tab);
     if (tab === 'transaction') this.loadTransactions();
   }
@@ -294,6 +296,20 @@ export default class Evrakkayit implements OnInit {
   private readonly loadedDoc = signal<IncomingDocumentModel | null>(null);
   readonly uploadDoc = signal<IncomingDocumentModel | null>(null);
   readonly uploadLoading = signal(false);
+
+  // ---- Aktarım sekmesi ----
+  // Paketler evrakın içeriğini taşıdığı için yalnızca yönetici görür. Yayınlanmamış evrakta paket
+  // olmaz ama sekme açıktır: test paketi yayından önce içeriği incelemek için üretilir
+  readonly loadedDocId = computed(() => this.loadedDoc()?.id ?? null);
+  readonly canSeeTransfer = computed(() =>
+    !!this.loadedDocId() && this.roleService.hasAny(['Yönetici']));
+
+  // Aktarım sekmesinden Yeniden Dene: evrak güncel bilgileriyle yeniden sıraya girdi
+  onTransferRetried(): void {
+    this.publishState.set(PublishStatusEnum.AktarimSirasinda);
+    this.publishError.set(null);
+    this.activeStatus.set(true);
+  }
 
   openUpload(): void {
     const doc = this.loadedDoc();

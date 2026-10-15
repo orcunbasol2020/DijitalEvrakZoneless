@@ -130,14 +130,21 @@
                 <div class="ad-head-text">
                     <h5 class="ad-head-title ad-head-title-low">En Çok Bekleyen Evrakı Olan Birimler</h5>
                 </div>
-                <a routerLink="/birimler" class="ad-link">
+                <a routerLink="/teslim-bekleyenler" class="ad-link">
                     Tümü
                     <span class="material-symbols-outlined">chevron_right</span>
                 </a>
             </div>
             <div class="card-body p-0">
+                @if (statsLoading()) {
+                    <div class="ad-nota-state"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Yükleniyor...</div>
+                } @else if (rankingFailed()) {
+                    <div class="ad-nota-state"><span class="material-symbols-outlined">error</span> Veriler alınamadı.</div>
+                } @else if (pendingUnits().length === 0) {
+                    <div class="ad-nota-state"><span class="material-symbols-outlined">task_alt</span> Teslim alınmayı bekleyen evrak yok.</div>
+                } @else {
                 <div class="table-responsive">
-                    <!-- Birim kodu + tam ad, sorumlular alt alta (dahili ipucunda), bekleyen sayısı + en yükseğe oranlı çubuk -->
+                    <!-- Birim kodu + tam ad, sorumlular alt alta (e-posta ipucunda), bekleyen sayısı + en yükseğe oranlı çubuk -->
                     <table class="table customers-table ad-list-table mb-3">
                         <thead>
                             <tr>
@@ -147,21 +154,25 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @for (unit of pendingUnits; track unit.code) {
+                            @for (unit of pendingUnits(); track unit.id) {
                                 <tr>
                                     <td>
                                         <div class="ad-unit">
-                                            <div class="ad-unit-code">{{ unit.code }}</div>
+                                            @if (unit.code) {
+                                                <div class="ad-unit-code">{{ unit.code }}</div>
+                                            }
                                             <div class="ad-unit-name" [title]="unit.name">{{ unit.name }}</div>
                                         </div>
                                     </td>
                                     <td>
                                         <div class="ad-unit-owners">
-                                            @for (owner of unit.owners; track owner.name) {
-                                                <div class="ad-unit-owner" [title]="'Dahili: ' + owner.ext">
+                                            @for (owner of unit.owners; track $index) {
+                                                <div class="ad-unit-owner" [title]="owner.email">
                                                     <span class="material-symbols-outlined">person</span>
                                                     {{ owner.name }}
                                                 </div>
+                                            } @empty {
+                                                <div class="ad-unit-owner text-muted">Sorumlu tanımlı değil</div>
                                             }
                                         </div>
                                     </td>
@@ -178,6 +189,7 @@
                         </tbody>
                     </table>
                 </div>
+                }
             </div>
         </div>
     </div>

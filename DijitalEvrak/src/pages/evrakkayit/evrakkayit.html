@@ -7,27 +7,33 @@
     <div class="card zm-card d-flex flex-column">
       <div class="card-body zm-body">
         <!-- Sekme seçici (Teslim türü segment seçicisiyle aynı dil) -->
-        <div class="ek-tabs" role="tablist">
-          <button type="button" class="ek-tab" role="tab"
+        <div class="ek-tabs" role="tablist" [class.is-compact]="canSeeTransfer()">
+          <button type="button" class="ek-tab" role="tab" title="Evrak Kayıt"
             [class.is-active]="activeTab() === 'general'" (click)="setTab('general')">
             <span class="material-symbols-outlined">description</span>
             <span>Evrak Kayıt</span>
           </button>
-          <button type="button" class="ek-tab" role="tab"
+          <button type="button" class="ek-tab" role="tab" title="Diğer Bilgiler"
             [class.is-active]="activeTab() === 'detail'" (click)="setTab('detail')">
             <span class="material-symbols-outlined">tune</span>
             <span>Diğer Bilgiler</span>
           </button>
-          <button type="button" class="ek-tab" role="tab"
+          <button type="button" class="ek-tab" role="tab" title="Ekler"
             [class.is-active]="activeTab() === 'attachments'" (click)="setTab('attachments')">
             <span class="material-symbols-outlined">attach_file</span>
             <span>Ekler</span>
             <span class="ek-tab-count" *ngIf="attachments().length">{{ attachments().length }}</span>
           </button>
-          <button type="button" class="ek-tab" role="tab"
+          <button type="button" class="ek-tab" role="tab" title="İşlem Takip"
             [class.is-active]="activeTab() === 'transaction'" (click)="setTab('transaction')">
             <span class="material-symbols-outlined">history</span>
             <span>İşlem Takip</span>
+          </button>
+          <!-- Atlas aktarımı: paketler, denemeler, paket indirme (yalnızca yönetici, yayına gönderilmiş evrak) -->
+          <button type="button" class="ek-tab" role="tab" title="Atlas Aktarım" *ngIf="canSeeTransfer()"
+            [class.is-active]="activeTab() === 'transfer'" (click)="setTab('transfer')">
+            <span class="material-symbols-outlined">cloud_sync</span>
+            <span>Aktarım</span>
           </button>
         </div>
 
@@ -457,6 +463,12 @@
               </ng-template>
             </ng-container>
           </div>
+        </div>
+
+        <!-- ===== Atlas Aktarım ===== -->
+        <div class="ek-pane" *ngIf="activeTab() === 'transfer' && canSeeTransfer()">
+          <app-atlas-transfer-detail [documentId]="loadedDocId()" [showHeader]="false"
+            (changed)="onTransferRetried()" />
         </div>
       </div>
 

@@ -68,7 +68,7 @@
             }
             @if (group.id === 'atlasTransfer' && transferStats(); as t) {
               @if (t.failed > 0) {
-                <a class="st-card-head-end st-count is-failed" routerLink="/atlas-aktarim-hatalari"
+                <a class="st-card-head-end st-count is-failed" routerLink="/atlas-aktarim" [queryParams]="{ tab: 'hatali' }"
                   title="Aktarımı hatalı evrakların listesi">
                   <span class="material-symbols-outlined">cloud_off</span>
                   Hatalı: {{ t.failed }}

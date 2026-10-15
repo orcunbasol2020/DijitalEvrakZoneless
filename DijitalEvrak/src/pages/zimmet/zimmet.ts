@@ -262,17 +262,21 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
   readonly personOptions = computed(() =>
     this.personList()
       .filter((p): p is UserModel & { id: string } => !!p.id)
-      .map(p => ({
-        id: p.id,
-        name: `${p.name} ${p.surname} (${p.departmentShortName})`
-      }))
+      // Unvan seçeneğin altında küçük gösterilir (hint); aramaya katılmaz
+      .map(p => ({ id: p.id, name: this.personOptionName(p), hint: p.titleName }))
   );
+
+  // "Ad Soyad (BDHD)"; birimi tanımsızsa yalnızca ad soyad
+  private personOptionName(p: UserModel): string {
+    const short = p.departmentShortName?.trim();
+    return short ? `${p.name} ${p.surname} (${short})` : `${p.name} ${p.surname}`;
+  }
 
   // Personel kartından seçim: autocomplete ile aynı { id, name } biçiminde yazılır ki
   // seçili personel kartı, özet şeridi ve kayıt akışı değişmeden çalışsın.
   selectPerson(p: UserModel): void {
     if (!p.id) return;
-    this.personControl.setValue({ id: p.id, name: `${p.name} ${p.surname} (${p.departmentShortName})` });
+    this.personControl.setValue({ id: p.id, name: this.personOptionName(p) });
   }
 
   isPersonSelected(p: UserModel): boolean {

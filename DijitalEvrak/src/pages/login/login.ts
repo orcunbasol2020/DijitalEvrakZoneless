@@ -18,7 +18,7 @@ import { UserModel } from '../users/users';
 
 /**
  * checking:       giriş seçenekleri alınıyor / otomatik Windows girişi deneniyor
- * form:           kullanıcı adı + şifre (yerelde; Windows girişi açıksa yanında düğmesi)
+ * form:           kullanıcı adı + şifre (yerelde)
  * denied:         Windows kimliği doğrulandı ama kullanıcı sistemde yok / silinmiş / pasif (403)
  * windows-failed: Windows kimliği doğrulanamadı (401 / ağ hatası) ve form girişi kapalı
  * signed-out:     kullanıcı çıkış yaptı; otomatik girilmez, düğmeyle yeniden girilir
@@ -48,6 +48,7 @@ export default class Login {
   readonly isLoading = signal(false);
   readonly windowsLoading = signal(false);
   readonly submitted = signal(false);
+  readonly showPassword = signal(false);
   readonly errorMessage = signal<string | null>(null);
 
   readonly version = 'v1.0.0';
@@ -146,11 +147,11 @@ export default class Login {
     if (!form.valid) return;
 
     const userName = this.normalizeUserName(form.value['userName']);
-    const rememberMe = !!form.value['rememberMe'];
+    const password: string = form.value['password'];
 
     this.isLoading.set(true);
 
-    this.#userService.getUserByUsername(userName).subscribe({
+    this.#userService.login(userName, password).subscribe({
       next: (res) => {
         this.isLoading.set(false);
 
@@ -164,12 +165,12 @@ export default class Login {
           return;
         }
 
-        this.#complete(res, 'form', rememberMe);
+        this.#complete(res, 'form', false);
       },
       error: (err: HttpErrorResponse) => {
         this.isLoading.set(false);
         if (err.status === 401) {
-          this.errorMessage.set('Kullanıcı bulunamadı ya da hesap pasif. Kurumsal kullanıcı adınızı kontrol edin.');
+          this.errorMessage.set('Kullanıcı adı ya da şifre hatalı, veya hesap pasif.');
         } else if (err.status === 404) {
           // Sunucuda form girişi kapatılmış (canlı)
           this.errorMessage.set('Kullanıcı adıyla giriş kapalı. Windows hesabınızla giriş yapın.');

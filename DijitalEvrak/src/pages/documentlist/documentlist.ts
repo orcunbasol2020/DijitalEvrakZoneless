@@ -35,7 +35,7 @@ import { isPublished, isPublishFailed, isPublishing, isSentToPublish, publishSta
 import { DocumentNumberUploadError, DocumentUploadFlow } from '../../services/document-upload-flow';
 import { DocumentTransaction } from '../../services/documenttransaction';
 import {
-  buildProcessSteps, processMilestoneKind, processPersonLabel, ProcessStep, processTypeIcon, processTypeTone,
+  buildProcessSteps, processMilestoneKind, ProcessStep, processTypeIcon, processTypeTone,
   sortProcessTransactions
 } from '../../models/process-step';
 
@@ -130,10 +130,11 @@ type DocumentRow = IncomingDocumentModel & { currentAssignmentUser?: string | nu
     UploadDocumentModal
   ],
   templateUrl: './documentlist.html',
-  // scanlist.css: Evrak Bilgileri, Süreç ve Zimmet Geçmişi popup'ları (ei-, zh-, sp-);
+  // scanlist.css: Süreç ve Zimmet Geçmişi popup'ları (zh-, sp-); incoming-info-modal.css: Evrak Bilgileri (ei-);
   // scanlist-queue.css: kuyruk kartları, araç çubuğu, satır ve sayfalama (sq-).
   styleUrls: [
     '../scanlist/scanlist.css',
+    '../../../components/incoming-info-modal/incoming-info-modal.css',
     '../scanlist/scanlist-queue.css',
     './documentlist.css'
   ],
@@ -495,12 +496,11 @@ export default class Documentlist {
     this.menu.set({ id: item.id, item, top, left: Math.max(8, rect.right - width) });
   }
 
-  runMenu(action: 'info' | 'process' | 'history' | 'zimmet'): void {
+  runMenu(action: 'process' | 'history' | 'zimmet'): void {
     const item = this.menu()?.item;
     this.menu.set(null);
     if (!item?.id) return;
     switch (action) {
-      case 'info': this.openInfo(item); break;
       case 'process': this.openProcess(item); break;
       case 'history': this.openZimmetHistory(item); break;
       case 'zimmet': this.goToZimmet(item.id); break;
@@ -790,10 +790,10 @@ export default class Documentlist {
   readonly processTypeIcon = processTypeIcon;
   readonly processTypeTone = processTypeTone;
   readonly processMilestoneKind = processMilestoneKind;
-  readonly processPersonLabel = processPersonLabel;
 
   openProcess(item: IncomingDocumentModel): void {
     if (!item.id) return;
+    this.usersRequested.set(true);
     this.processDoc.set(item);
     this.processSteps.set([]);
     this.processFailed.set(false);
@@ -834,22 +834,44 @@ export default class Documentlist {
   readonly zimmetHistoryExpanded = signal(true);
   readonly allocationStatusLabels: Record<number, string> = AllocationStatusLabels;
 
-  // Kişi adının yanında çalıştığı birimin kısa adı; kullanıcı listesi popup ilk açıldığında yüklenir
+  // Kişi adının yanında "(Birim kısa adı / Unvan)"; boş olan parça yazılmaz. Kullanıcı listesi popup ilk açıldığında yüklenir
   private readonly usersRequested = signal(false);
   readonly usersResult = httpResource<UserModel[]>(() => this.usersRequested() ? 'api/Users/GetAll?onlyWithRoles=true' : undefined);
-  readonly userDepartmentShortMap = computed(() => {
+  readonly userMetaMap = computed(() => {
     const map: Record<string, string> = {};
     for (const u of this.usersResult.value() ?? []) {
       const short = u.departmentShortName?.trim() || u.departmentName?.trim();
-      if (u.id && short) map[u.id.toLowerCase()] = short;
+      const meta = [short, u.titleName?.trim()].filter(Boolean).join(' / ');
+      if (u.id && meta) map[u.id.toLowerCase()] = meta;
     }
     return map;
   });
 
-  personLabel(a: DocumentAllocationModel): string {
-    const name = a.fullName || '-';
-    const short = a.userId ? this.userDepartmentShortMap()[a.userId.toLowerCase()] : undefined;
-    return short ? `${name} (${short})` : name;
+  /** "Birim / Unvan"; kartlarda ve "Devreden / Teslim eden" satırında ad soyadın altında küçük gösterilir */
+  personMeta(a: { userId?: string | null }): string | null {
+    return a.userId ? this.userMetaMap()[a.userId.toLowerCase()] ?? null : null;
+  }
+
+  // Süreç kayıtları (DocumentTransactionDto) kişi Id'si taşımıyor, yalnızca ad soyad; bu yüzden ad soyaddan eşlenir.
+  // Aynı ada sahip birden fazla kullanıcı varsa belirsiz olduğundan bilgi gösterilmez.
+  private readonly userMetaByName = computed(() => {
+    const map: Record<string, string | null> = {};
+    for (const u of this.usersResult.value() ?? []) {
+      const key = this.nameKey(`${u.name ?? ''} ${u.surname ?? ''}`);
+      if (!key) continue;
+      const meta = u.id ? this.userMetaMap()[u.id.toLowerCase()] ?? null : null;
+      map[key] = key in map ? null : meta;
+    }
+    return map;
+  });
+
+  private nameKey(name?: string | null): string {
+    return (name ?? '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('tr');
+  }
+
+  personMetaByName(name?: string | null): string | null {
+    const key = this.nameKey(name);
+    return key ? this.userMetaByName()[key] ?? null : null;
   }
 
   readonly allocationStatusIcons: Record<number, string> = {
@@ -886,11 +908,11 @@ export default class Documentlist {
   readonly zimmetActors = computed(() => {
     const chronological = [...this.zimmetHistory()]
       .sort((a, b) => new Date(a.createdDate).getTime() - new Date(b.createdDate).getTime());
-    const actors: Record<string, string> = {};
+    const actors: Record<string, DocumentAllocationModel> = {};
     chronological.forEach((h, i) => {
       if (h.status === AllocationStatusEnum.IlkKayit || !this.allocationActorLabels[h.status]) return;
       const previous = chronological[i - 1];
-      if (previous) actors[h.id] = this.personLabel(previous);
+      if (previous) actors[h.id] = previous;
     });
     return actors;
   });

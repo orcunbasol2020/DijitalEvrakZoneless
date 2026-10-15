@@ -1894,3 +1894,12 @@ app-gelen-evrak-dashboard app-currentdocument .premium-card .orders-table,
 .ad-delivery-card .orders-table {
     --bs-table-bg: transparent;
 }
+
+/* Birim paneli kullanıcı tablosu: uzun unvan tek satırda kısaltılır, tam metin title ile görünür */
+.ad-title {
+    display: block;
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
