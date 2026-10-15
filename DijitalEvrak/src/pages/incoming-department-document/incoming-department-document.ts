@@ -1,3 +1,4 @@
+import { idKey } from '../../models/ids';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -8,8 +9,9 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { httpResource } from '@angular/common/http';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FlexiToastService } from 'flexi-toast';
 import GenericModel from '../../../components/generic-model/generic-model';
 import { IncomingDocumentService } from '../../services/incomingdocument';
@@ -75,18 +77,9 @@ export default class IncomingDepartmentDocument {
 
   // "Nereden" sütunu: evrakın externalInstitutionId'si dış kurum adına çevrilir (Evrak Kayıt'taki
   // Nereden alanının karşılığı). Dış kurum listesi bir kez çekilir.
-  readonly externalInstitutions = signal<ExternalInstitutionModel[]>([]);
-  readonly externalInstitutionMap = computed(() => {
-    const map: Record<string, string> = {};
-    for (const d of this.externalInstitutions()) {
-      if (d.id) map[d.id.toLowerCase()] = d.name;
-    }
-    return map;
-  });
-
+  // Kurum adı cevapta gelir (externalInstitutionName); ~160.000 kurumluk liste ad için çekilmez
   externalInstitutionNameOf(doc: IncomingDocumentModel): string {
-    const id = doc.externalInstitutionId?.toLowerCase();
-    return (id && this.externalInstitutionMap()[id]) || '';
+    return doc.externalInstitutionName || '';
   }
 
   // Gizlilik derecesi: ikonlu yuvarlak rozet (Giden Evraklar listesiyle aynı; degree-tier-* styles.css)
@@ -106,13 +99,13 @@ export default class IncomingDepartmentDocument {
   readonly sortDirection = signal<'asc' | 'desc'>('asc');
 
   // Yayın durumu akış durumundan ayrı alanda (submissionStatus; bkz. publishstatus.model).
-  // Aktarım hatalı evrak da servis yeniden deneyeceği için yayın sırasında sayılır.
+  // Aktarım hatalı evrak ayrı tutulur: servis onu yeniden denemez, müdahale gerekir.
   isPublished(doc: IncomingDocumentModel): boolean {
     return isPublished(doc);
   }
 
   isPublishing(doc: IncomingDocumentModel): boolean {
-    return isPublishing(doc) || isPublishFailed(doc);
+    return isPublishing(doc);
   }
 
   // Teslim sütunu ve üstteki teslim filtresi: evrak akış durumu 3 = Teslim Edildi.
@@ -135,11 +128,11 @@ export default class IncomingDepartmentDocument {
     return 'pending';
   }
 
-  // Aktarım hatalı evrak yayın sırasında sayılır ama servis yeniden deneyeceği için
-  // ayrı (amber) tonla gösterilir; normal aktarımda ikon yavaşça döner.
+  // Aktarım hatalı evrak kalıcı hatadır (servis yeniden denemez), hata tonuyla (kırmızı)
+  // gösterilir; normal aktarımda ikon yavaşça döner.
   statusClass(doc: IncomingDocumentModel): string {
     if (this.isPublished(doc)) return 'is-published';
-    if (isPublishFailed(doc)) return 'is-retry';
+    if (isPublishFailed(doc)) return 'is-failed';
     if (this.isPublishing(doc)) return 'is-publishing';
     return 'is-inprocess';
   }
@@ -253,11 +246,14 @@ export default class IncomingDepartmentDocument {
   }
 
   constructor() {
+    // Giriş popup'ından veya zil menüsünden gelindiğinde liste süzgeci hazır açılır; sayfa zaten
+    // açıkken zil menüsüne tıklanırsa bileşen yeniden oluşmadığı için parametre izlenir.
+    inject(ActivatedRoute).queryParamMap
+      .pipe(takeUntilDestroyed())
+      .subscribe(params => {
+        if (params.get('filtre') === 'teslim-bekleyen') this.setListFilter('undelivered');
+      });
     this.loadDocuments();
-    this.externalInstitutionService.getExternalInstitutions().subscribe({
-      next: (res) => this.externalInstitutions.set(res ?? []),
-      error: (err) => console.error('Dış kurumlar yüklenemedi:', err)
-    });
   }
 
   // Evraklar backend'de departmentId ile süzülür (IncomingDocuments/GetAll?departmentId=).
@@ -316,7 +312,8 @@ export default class IncomingDepartmentDocument {
     [AllocationStatusEnum.Teslim]: 'handshake',
     [AllocationStatusEnum.Arsiv]: 'inventory_2',
     [AllocationStatusEnum.TeslimAlindi]: 'move_to_inbox',
-    [AllocationStatusEnum.KargoyaVerildi]: 'local_shipping'
+    [AllocationStatusEnum.KargoyaVerildi]: 'local_shipping',
+    [AllocationStatusEnum.DevirAlindi]: 'how_to_reg'
   };
 
   readonly allocationStatusClass: Record<number, string> = {
@@ -325,7 +322,8 @@ export default class IncomingDepartmentDocument {
     [AllocationStatusEnum.Teslim]: 'is-teslim',
     [AllocationStatusEnum.Arsiv]: 'is-arsiv',
     [AllocationStatusEnum.TeslimAlindi]: 'is-teslimalindi',
-    [AllocationStatusEnum.KargoyaVerildi]: 'is-kargo'
+    [AllocationStatusEnum.KargoyaVerildi]: 'is-kargo',
+    [AllocationStatusEnum.DevirAlindi]: 'is-devir'
   };
 
   initials(fullName?: string | null): string {
@@ -340,7 +338,7 @@ export default class IncomingDepartmentDocument {
   // Zimmet kaydı birim taşımadığı için kullanıcı listesinden userId ile eşlenir; liste
   // sayfa açılışını yavaşlatmasın diye popup ilk açıldığında bir kez yüklenir.
   private readonly allUsersRequested = signal(false);
-  readonly allUsersResult = httpResource<UserModel[]>(() => this.allUsersRequested() ? 'api/Users/GetAll' : undefined);
+  readonly allUsersResult = httpResource<UserModel[]>(() => this.allUsersRequested() ? 'api/Users/GetAll?onlyWithRoles=true' : undefined);
   readonly userDepartmentShortMap = computed(() => {
     const map: Record<string, string> = {};
     for (const u of this.allUsersResult.value() ?? []) {
@@ -365,7 +363,8 @@ export default class IncomingDepartmentDocument {
     [AllocationStatusEnum.Teslim]: 'Teslim eden',
     [AllocationStatusEnum.TeslimAlindi]: 'Teslim eden',
     [AllocationStatusEnum.Arsiv]: 'Arşive kaldıran',
-    [AllocationStatusEnum.KargoyaVerildi]: 'Kargoya veren'
+    [AllocationStatusEnum.KargoyaVerildi]: 'Kargoya veren',
+    [AllocationStatusEnum.DevirAlindi]: 'Devreden'
   };
 
   readonly zimmetActors = computed(() => {

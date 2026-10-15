@@ -15,109 +15,166 @@
           </div>
         </div>
 
-        <h1 class="login-heading">Hoş geldiniz</h1>
-        <p class="login-lead">Devam etmek için kurumsal hesabınızla giriş yapın.</p>
-
-        <form #form="ngForm" (ngSubmit)="signIn(form)" novalidate>
-
-          <div class="login-field"
-               [class.is-invalid]="userName.invalid && (userName.touched || submitted())">
-            <label for="username" class="login-label">Kullanıcı Adı</label>
-            <div class="login-input-wrap">
-              <span class="login-input-icon material-symbols-outlined" aria-hidden="true">person</span>
-              <input #userNameInput
-                     #userName="ngModel"
-                     type="text"
-                     class="login-input"
-                     id="username" ngModel name="userName"
-                     placeholder="ad.soyad"
-                     autocomplete="username"
-                     autocapitalize="off"
-                     spellcheck="false"
-                     required
-                     [attr.aria-invalid]="userName.invalid && (userName.touched || submitted())"
-                     [attr.aria-describedby]="userName.invalid && (userName.touched || submitted()) ? 'username-error' : null"
-                     (input)="clearError()">
-            </div>
-            @if (userName.invalid && (userName.touched || submitted())) {
-              <div id="username-error" class="login-field-error">
-                <span class="material-symbols-outlined" aria-hidden="true">error</span>
-                Kullanıcı adı zorunludur.
-              </div>
-            }
-          </div>
-
-          <div class="login-field"
-               [class.is-invalid]="password.invalid && (password.touched || submitted())">
-            <label for="password" class="login-label">Şifre</label>
-            <div class="login-input-wrap">
-              <span class="login-input-icon material-symbols-outlined" aria-hidden="true">lock</span>
-              <input #password="ngModel"
-                     [type]="showPassword() ? 'text' : 'password'"
-                     class="login-input has-toggle"
-                     id="password" ngModel name="password"
-                     placeholder="••••••••"
-                     autocomplete="current-password"
-                     required
-                     [attr.aria-invalid]="password.invalid && (password.touched || submitted())"
-                     [attr.aria-describedby]="password.invalid && (password.touched || submitted()) ? 'password-error' : null"
-                     (keydown)="checkCapsLock($event)"
-                     (keyup)="checkCapsLock($event)"
-                     (blur)="capsLockOn.set(false)"
-                     (input)="clearError()">
-              <button type="button"
-                      class="login-password-toggle"
-                      (click)="togglePassword()"
-                      [attr.aria-label]="showPassword() ? 'Şifreyi gizle' : 'Şifreyi göster'"
-                      [attr.aria-pressed]="showPassword()"
-                      tabindex="-1">
-                <span class="material-symbols-outlined" aria-hidden="true">
-                  {{ showPassword() ? 'visibility_off' : 'visibility' }}
-                </span>
-              </button>
-            </div>
-            @if (password.invalid && (password.touched || submitted())) {
-              <div id="password-error" class="login-field-error">
-                <span class="material-symbols-outlined" aria-hidden="true">error</span>
-                Şifre zorunludur.
-              </div>
-            } @else if (capsLockOn()) {
-              <div class="login-field-hint" role="status">
-                <span class="material-symbols-outlined" aria-hidden="true">keyboard_capslock</span>
-                Caps Lock açık.
-              </div>
-            }
-          </div>
-
-          <div class="login-options">
-            <label class="login-remember">
-              <input type="checkbox" class="form-check-input" id="rememberMe" ngModel name="rememberMe">
-              <span>Beni hatırla</span>
-            </label>
-          </div>
-
-          @if (errorMessage(); as message) {
-            <div class="login-alert" role="alert">
-              <span class="material-symbols-outlined" aria-hidden="true">warning</span>
-              <span>{{ message }}</span>
+        @switch (mode()) {
+          @case ('checking') {
+            <div class="login-status" role="status" aria-live="polite">
+              <span class="login-status-icon is-busy">
+                <span class="spinner-border" aria-hidden="true"></span>
+              </span>
+              <h1 class="login-heading">Giriş yapılıyor</h1>
+              <p class="login-lead">Windows oturumunuz doğrulanıyor, lütfen bekleyin…</p>
             </div>
           }
 
-          <button type="submit"
-                  class="btn-login"
-                  id="loginBtn"
-                  [disabled]="isLoading()"
-                  [attr.aria-busy]="isLoading()">
-            @if (isLoading()) {
-              <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
-              <span>Giriş yapılıyor...</span>
-            } @else {
-              <span class="material-symbols-outlined" aria-hidden="true">login</span>
-              <span>Giriş Yap</span>
-            }
-          </button>
+          @case ('denied') {
+            <div class="login-status" role="alert">
+              <span class="login-status-icon is-danger">
+                <span class="material-symbols-outlined" aria-hidden="true">person_off</span>
+              </span>
+              <h1 class="login-heading">Sistemde tanımlı değilsiniz</h1>
+              <p class="login-lead">
+                Windows hesabınız doğrulandı ancak bu sistemde tanımlı değilsiniz ya da hesabınız pasif.
+                Sistem yöneticisine başvurun.
+              </p>
+              <button type="button" class="btn-login btn-login-secondary" (click)="signInWithWindows()">
+                <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
+                <span>Tekrar dene</span>
+              </button>
+              @if (formEnabled()) {
+                <button type="button" class="login-link" (click)="showForm()">Kullanıcı adı ve şifreyle giriş yap</button>
+              }
+            </div>
+          }
 
-        </form>
+          @case ('windows-failed') {
+            <div class="login-status" role="alert">
+              <span class="login-status-icon is-warning">
+                <span class="material-symbols-outlined" aria-hidden="true">gpp_maybe</span>
+              </span>
+              <h1 class="login-heading">Windows oturumunuz doğrulanamadı</h1>
+              <p class="login-lead">
+                Bilgisayarınız kurum ağına bağlı olmalı ve kurumsal Windows hesabınızla oturum açmış olmalısınız.
+                Sorun sürerse Bilgi Teknolojileri ile iletişime geçin.
+              </p>
+              <button type="button" class="btn-login" (click)="signInWithWindows()">
+                <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
+                <span>Tekrar dene</span>
+              </button>
+            </div>
+          }
+
+          @case ('signed-out') {
+            <div class="login-status">
+              <span class="login-status-icon">
+                <span class="material-symbols-outlined" aria-hidden="true">logout</span>
+              </span>
+              <h1 class="login-heading">Oturumunuz kapatıldı</h1>
+              <p class="login-lead">Yeniden girmek için Windows hesabınızı kullanın.</p>
+              <button type="button" class="btn-login" (click)="signInWithWindows()">
+                <span class="material-symbols-outlined" aria-hidden="true">badge</span>
+                <span>Windows hesabımla gir</span>
+              </button>
+            </div>
+          }
+
+          @case ('unavailable') {
+            <div class="login-status" role="alert">
+              <span class="login-status-icon is-warning">
+                <span class="material-symbols-outlined" aria-hidden="true">block</span>
+              </span>
+              <h1 class="login-heading">Giriş şu an kapalı</h1>
+              <p class="login-lead">Sistem girişe kapatılmış. Lütfen daha sonra tekrar deneyin.</p>
+            </div>
+          }
+
+          @case ('form') {
+            <h1 class="login-heading">Hoş geldiniz</h1>
+            <!-- Bu form yalnızca geliştirme ortamında açıktır; canlıda Windows oturumuyla otomatik girilir -->
+            <p class="login-lead">Geliştirme girişi: kurumsal (AD) kullanıcı adını ve ortak geliştirme şifresini yazın.</p>
+
+            <form #form="ngForm" (ngSubmit)="signIn(form)" novalidate>
+
+              <div class="login-field"
+                   [class.is-invalid]="userName.invalid && (userName.touched || submitted())">
+                <label for="username" class="login-label">Kullanıcı Adı</label>
+                <div class="login-input-wrap">
+                  <span class="login-input-icon material-symbols-outlined" aria-hidden="true">person</span>
+                  <input #userNameInput
+                         #userName="ngModel"
+                         type="text"
+                         class="login-input"
+                         id="username" ngModel name="userName"
+                         placeholder="ad.soyad"
+                         autocomplete="username"
+                         autocapitalize="off"
+                         spellcheck="false"
+                         required
+                         [attr.aria-invalid]="userName.invalid && (userName.touched || submitted())"
+                         [attr.aria-describedby]="userName.invalid && (userName.touched || submitted()) ? 'username-error' : null"
+                         (input)="clearError()">
+                </div>
+                @if (userName.invalid && (userName.touched || submitted())) {
+                  <div id="username-error" class="login-field-error">
+                    <span class="material-symbols-outlined" aria-hidden="true">error</span>
+                    Kullanıcı adı zorunludur.
+                  </div>
+                }
+              </div>
+
+              <div class="login-field"
+                   [class.is-invalid]="password.invalid && (password.touched || submitted())">
+                <label for="password" class="login-label">Şifre</label>
+                <div class="login-input-wrap">
+                  <span class="login-input-icon material-symbols-outlined" aria-hidden="true">lock</span>
+                  <input #password="ngModel"
+                         [type]="showPassword() ? 'text' : 'password'"
+                         class="login-input has-toggle"
+                         id="password" ngModel name="password"
+                         autocomplete="current-password"
+                         required
+                         [attr.aria-invalid]="password.invalid && (password.touched || submitted())"
+                         [attr.aria-describedby]="password.invalid && (password.touched || submitted()) ? 'password-error' : null"
+                         (input)="clearError()">
+                  <button type="button"
+                          class="login-password-toggle"
+                          [attr.aria-label]="showPassword() ? 'Şifreyi gizle' : 'Şifreyi göster'"
+                          [attr.aria-pressed]="showPassword()"
+                          (click)="showPassword.set(!showPassword())">
+                    <span class="material-symbols-outlined" aria-hidden="true">{{ showPassword() ? 'visibility_off' : 'visibility' }}</span>
+                  </button>
+                </div>
+                @if (password.invalid && (password.touched || submitted())) {
+                  <div id="password-error" class="login-field-error">
+                    <span class="material-symbols-outlined" aria-hidden="true">error</span>
+                    Şifre zorunludur.
+                  </div>
+                }
+              </div>
+
+              @if (errorMessage(); as message) {
+                <div class="login-alert" role="alert">
+                  <span class="material-symbols-outlined" aria-hidden="true">warning</span>
+                  <span>{{ message }}</span>
+                </div>
+              }
+
+              <button type="submit"
+                      class="btn-login"
+                      id="loginBtn"
+                      [disabled]="isLoading()"
+                      [attr.aria-busy]="isLoading()">
+                @if (isLoading()) {
+                  <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                  <span>Giriş yapılıyor...</span>
+                } @else {
+                  <span class="material-symbols-outlined" aria-hidden="true">login</span>
+                  <span>Giriş Yap</span>
+                }
+              </button>
+
+            </form>
+          }
+        }
       </div>
 
       <!-- SAĞ TARAF: Marka paneli -->

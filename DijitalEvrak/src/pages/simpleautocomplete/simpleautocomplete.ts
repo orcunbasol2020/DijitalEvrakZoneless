@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnChanges, OnDestroy, SimpleChanges, ElementRef, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, OnDestroy, SimpleChanges, ElementRef, ChangeDetectorRef, inject } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
@@ -22,7 +22,7 @@ template: `
       (keydown)="onKeyDown($event)"
     >
 
-    <span *ngIf="loading" class="autocomplete-spinner spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+    <span *ngIf="loading || searching" class="autocomplete-spinner spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
 
     <ul *ngIf="show && !loading && !disabled"
         class="list-group position-absolute w-100 zindex-dropdown dropdown-anim">
@@ -33,20 +33,21 @@ template: `
           class="list-group-item list-group-item-action"
           *ngFor="let option of filteredOptions; let i = index"
           [class.active-item]="i === activeIndex"
-          [class.autocomplete-item-child]="(option.level || 0) > 0"
-          [style.padding-left.px]="option.level ? 14 + option.level * 18 : null"
+          [class.autocomplete-item-child]="(option.indent || 0) > 0"
+          [style.padding-left.px]="option.indent ? 14 + option.indent * 18 : null"
           (mousedown)="select(option)"
           (mouseenter)="activeIndex = i">
 
-          <span *ngIf="option.level" class="autocomplete-tree-marker">└</span>
+          <span *ngIf="option.indent" class="autocomplete-tree-marker">└</span>
           {{ option.name }}
+          <small *ngIf="option.hint" class="autocomplete-hint" [title]="option.hint">{{ option.hint }}</small>
         </li>
 
       </ng-container>
 
       <ng-template #noResult>
         <li class="list-group-item no-result">
-          Sonuç bulunamadı
+          {{ searching ? 'Aranıyor...' : 'Sonuç bulunamadı' }}
         </li>
       </ng-template>
 
@@ -103,6 +104,15 @@ template: `
       font-size: 0.92em;
     }
 
+    .autocomplete-hint {
+      display: block;
+      font-size: 0.8em;
+      color: #64748b;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     .autocomplete-tree-marker {
       display: inline-block;
       margin-right: 4px;
@@ -130,7 +140,9 @@ template: `
 })
 export class SimpleAutocompleteComponent implements OnInit, OnChanges, OnDestroy {
 
-  @Input() options: { id: number | string, name: string, level?: number }[] = [];
+  /** indent: ağaç gösteriminde girinti seviyesi (birimlerin makam "level" alanıyla karışmasın diye ayrı ad) */
+  /** hint: adın altında küçük ikincil metin (ör. unvan); yalnızca gösterim, aramaya katılmaz */
+  @Input() options: { id: number | string, name: string, indent?: number, hint?: string | null }[] = [];
   @Input() control!: FormControl;
   @Input() placeholder: string = '';
   /** 0 ise odaklanınca tüm liste açılır; >0 ise liste ancak bu kadar karakter yazılınca görünür
@@ -141,8 +153,14 @@ export class SimpleAutocompleteComponent implements OnInit, OnChanges, OnDestroy
   @Input() loading = false;
   @Input() loadingText = 'Yükleniyor...';
   @Input() disabled = false;
+  /** Uzak arama: liste sunucuda aranır (ör. ~160.000 kurum). Yazılan metin (search) ile bildirilir,
+   *  options sunucudan gelen sonuçlardır; bileşen ayrıca süzmez. minChars ile birlikte kullanılır. */
+  @Input() remote = false;
+  /** Uzak aramada istek sürerken true: kutu açık kalır, sağda spinner döner */
+  @Input() searching = false;
+  @Output() search = new EventEmitter<string>();
 
-  filteredOptions: { id: number | string, name: string, level?: number }[] = [];
+  filteredOptions: { id: number | string, name: string, indent?: number, hint?: string | null }[] = [];
   show = false;
   activeIndex = -1;
 
@@ -181,7 +199,8 @@ export class SimpleAutocompleteComponent implements OnInit, OnChanges, OnDestroy
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['options']) {
-      this.filteredOptions = this.options;
+      // Uzak aramada sonuçlar yazılan metne göre gelir; yerelde yazılan metinle yeniden süzülür
+      this.filteredOptions = this.remote || this.searchText === null ? this.options : this.localFilter(this.searchText);
     }
   }
 
@@ -212,9 +231,17 @@ export class SimpleAutocompleteComponent implements OnInit, OnChanges, OnDestroy
   }
 
   private filter(value: any) {
-    if (!value) {
+    if (this.remote) {
+      this.search.emit(value ?? '');
       this.filteredOptions = this.options;
       return;
+    }
+    this.filteredOptions = this.localFilter(value);
+  }
+
+  private localFilter(value: any) {
+    if (!value) {
+      return this.options;
     }
 
     // Varsayılan (locale'siz) toLowerCase(), Türkçe "İ" harfini tek bir "i" yerine
@@ -224,7 +251,7 @@ export class SimpleAutocompleteComponent implements OnInit, OnChanges, OnDestroy
     // tutarlı hale gelir.
     const search = value.toLocaleLowerCase('tr');
 
-    this.filteredOptions = this.options.filter(o =>
+    return this.options.filter(o =>
       o.name.toLocaleLowerCase('tr').includes(search)
     );
   }

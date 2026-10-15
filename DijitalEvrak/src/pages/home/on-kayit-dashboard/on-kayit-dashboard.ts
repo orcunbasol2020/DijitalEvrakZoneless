@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, signal, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, ViewEncapsulation } from '@angular/core';
 import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { RoleService } from '../../../services/role-service';
 
 type DocStatus = 'zimmet' | 'onkayit' | 'ocr' | 'yayinlandi';
 
@@ -54,6 +55,8 @@ export default class OnKayitDashboard {
   // ---- Üst şerit ----
   readonly today = new Date();
   readonly lastUpdated = signal(new Date());
+  // Rapor düğmesi yalnızca Raporlar sayfasını açabilen kullanıcıya gösterilir
+  readonly canViewReports = inject(RoleService).canViewLimitedPages();
   readonly refreshing = signal(false);
 
   /** Veriler bağlanana kadar yalnızca "son güncelleme" zamanını tazeler. */

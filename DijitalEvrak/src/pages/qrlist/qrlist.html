@@ -13,24 +13,35 @@
 
         <div class="d-flex gap-2 flex-wrap align-items-center">
 
-          <div class="qr-link-btn-container" role="group" aria-label="Etiket adedi">
-            @for (count of counts; track count) {
-              <button
-                type="button"
-                class="qr-link-btn"
-                [class.selected]="count === selectedCount()"
-                [attr.aria-pressed]="count === selectedCount()"
-                (click)="updateDocuments(count)">
-                {{ count }}
-              </button>
-            }
-          </div>
+          <label class="qr-count-field" title="Kaç etiket basılacak ({{ minCount }}–{{ maxCount }})">
+            <span>Adet</span>
+            <input
+              type="number"
+              class="form-control form-control-sm"
+              [min]="minCount"
+              [max]="maxCount"
+              [ngModel]="count()"
+              (ngModelChange)="count.set($event)"
+              (keydown.enter)="reserve()"
+              [disabled]="reserving()">
+          </label>
+
+          <button
+            type="button"
+            class="btn btn-gradient-print"
+            (click)="reserve()"
+            [disabled]="reserving()"
+            title="Atlas numara havuzundan girilen adette evrak numarası ayırır">
+            <span class="material-symbols-outlined">{{ reserving() ? 'progress_activity' : 'confirmation_number' }}</span>
+            {{ reserving() ? 'Alınıyor' : 'Numara Al' }}
+          </button>
 
           <button
             type="button"
             class="btn btn-gradient-print"
             (click)="printQrList()"
-            title="Seçilen adette QR etiketini A4 sayfalara yazdırır">
+            [disabled]="activeLabels().length === 0"
+            title="Ayrılan numaraların QR etiketlerini A4 sayfalara yazdırır">
             <span class="material-symbols-outlined">print</span>
             Yazdır
           </button>
@@ -38,52 +49,75 @@
         </div>
       </div>
 
-      <!-- Özet: ne basılacağını yazdırmadan önce tek bakışta gösterir. -->
+      <!-- Özet: havuz durumu ve ne basılacağı tek bakışta. -->
       <div class="qr-summary">
+        @if (stock(); as s) {
+          <span class="qr-summary-item" [class.is-warning]="stockLow()"
+                title="Havuzda en az {{ s.minStock }} numara bulunması beklenir">
+            <span class="material-symbols-outlined">{{ stockLow() ? 'warning' : 'inventory_2' }}</span>
+            <span class="qr-summary-label">BOŞTA</span>
+            <strong>{{ s.available }}</strong> numara
+          </span>
+        }
         <span class="qr-summary-item">
           <span class="material-symbols-outlined">tag</span>
-          <span class="qr-summary-label">Toplam</span>
-          <strong>{{ documents().length }}</strong> etiket
-        </span>
-        <span class="qr-summary-item">
-          <span class="material-symbols-outlined">linear_scale</span>
-          <span class="qr-summary-label">Aralık</span>
-          <strong>{{ firstDocument() }}</strong>
-          @if (documents().length > 1) {
-            <span class="qr-summary-sep">–</span>
-            <strong>{{ lastDocument() }}</strong>
+          <span class="qr-summary-label">ETİKET</span>
+          <strong>{{ activeLabels().length }}</strong>
+          @if (cancelledCount() > 0) {
+            <span class="qr-summary-sep">·</span> {{ cancelledCount() }} iptal
           }
         </span>
-        <span class="qr-summary-item">
-          <span class="material-symbols-outlined">description</span>
-          <span class="qr-summary-label">Çıktı</span>
-          A4, 4 sütun, yaklaşık <strong>{{ estimatedPages() }}</strong> sayfa
-        </span>
+        @if (activeLabels().length > 0) {
+          <span class="qr-summary-item">
+            <span class="material-symbols-outlined">description</span>
+            <span class="qr-summary-label">ÇIKTI</span>
+            A4, 4 sütun, yaklaşık <strong>{{ estimatedPages() }}</strong> sayfa
+          </span>
+        }
       </div>
 
       <div class="card-body">
 
-        <div class="qr-placeholder-grid">
-          @for (doc of previewDocuments(); track doc) {
-            <div class="qr-placeholder-item">
-              <div class="qr-placeholder-box">QR</div>
-              <div class="qr-placeholder-text">{{ doc }}</div>
-            </div>
-          }
-        </div>
-
-        @if (hiddenCount() > 0) {
-          <div class="qr-preview-more">
-            <span class="material-symbols-outlined">more_horiz</span>
-            … ve <strong>{{ hiddenCount() }}</strong> etiket daha
-            (<strong>{{ lastDocument() }}</strong> numarasına kadar)
+        @if (notice(); as message) {
+          <div class="qr-notice">
+            <span class="material-symbols-outlined">info</span>
+            {{ message }}
           </div>
         }
 
-        <div class="qr-preview-note">
-          <span class="material-symbols-outlined">info</span>
-          Yukarıdaki kutular temsilidir; gerçek QR kodları yazdırma çıktısında oluşturulur.
-        </div>
+        @if (labels().length === 0) {
+          <div class="qr-empty">
+            <span class="material-symbols-outlined">qr_code_2</span>
+            <div>
+              Basılacak etiket adedini girip <strong>Numara Al</strong>'a basın.
+              Numaralar Atlas numara havuzundan ayrılır ve başka bir kullanıcıya verilmez.
+            </div>
+          </div>
+        } @else {
+          <div class="qr-label-grid">
+            @for (label of labels(); track label.no) {
+              <div class="qr-label-card" [class.is-cancelled]="label.cancelled">
+                @if (!label.cancelled) {
+                  <button type="button" class="qr-label-cancel"
+                          (click)="cancel(label.no)"
+                          [disabled]="cancellingNo() !== null"
+                          [class.is-busy]="cancellingNo() === label.no"
+                          title="Numarayı iptal et (hatalı basılan etiket); bu numarayla evrak açılamaz"
+                          aria-label="Numarayı iptal et">
+                    <span class="material-symbols-outlined">close</span>
+                  </button>
+                }
+
+                <qrcode [qrdata]="label.no" [width]="90" [errorCorrectionLevel]="'H'"></qrcode>
+                <div class="qr-label-no">{{ label.no }}</div>
+
+                @if (label.cancelled) {
+                  <span class="qr-label-state">İptal edildi</span>
+                }
+              </div>
+            }
+          </div>
+        }
 
       </div>
 

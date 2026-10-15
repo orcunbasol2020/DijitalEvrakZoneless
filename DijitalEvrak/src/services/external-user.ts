@@ -1,3 +1,4 @@
+import { ExternalInstitutionId } from '../models/ids';
 import { Injectable, inject } from '@angular/core';
 import { HttpService } from './http';
 
@@ -8,7 +9,7 @@ export interface ExternalUserModel {
   email: string;
   identityNo: string;
   userType: number;
-  externalInstitutionId?: string | null;
+  externalInstitutionId?: ExternalInstitutionId | null;
   isActive: boolean;
   isDeleted: boolean;
   createdDate?: string;

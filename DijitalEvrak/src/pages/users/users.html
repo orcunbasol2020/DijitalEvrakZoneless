@@ -10,13 +10,41 @@
     </span>
     <div>
       <h4 class="st-card-title">Kullanıcı Listesi</h4>
-      <div class="st-card-sub">Kullanıcıyı güncellemek için kalem simgesine, durumunu değiştirmek için anahtara tıklayın</div>
+      <div class="us-head-sub">
+        @if (departmentFilter() && searching()) {
+          Biriminizde{{ includeSubDepartments ? ' ve alt birimlerinde' : '' }} aramaya uyan personel
+        } @else if (departmentFilter()) {
+          Biriminizdeki{{ includeSubDepartments ? ' ve alt birimlerindeki' : '' }} tüm personel
+        } @else if (searching()) {
+          Aramaya uyan kullanıcılar
+        } @else {
+          Bu sistemde rolü olan kullanıcılar. Rol vermek için kullanıcıyı arayın.
+        }
+      </div>
     </div>
     <div class="zl-head-tools us-head-tools">
-      <span class="st-count">
-        <span class="material-symbols-outlined">verified_user</span>
-        {{ activeCount() }} / {{ data().length }} aktif
+      <!-- Kullanıcılar kaynak sistemden gelir: ekleme / güncelleme yok, yalnızca rol atanır -->
+      <span class="us-search">
+        <span class="material-symbols-outlined" aria-hidden="true">search</span>
+        <input type="search" class="form-control" placeholder="Ad, soyad ya da kullanıcı adı"
+          aria-label="Kullanıcı ara" autocomplete="off"
+          [value]="search()" (input)="onSearch($any($event.target).value)" (keydown.escape)="clearSearch()">
       </span>
+      @if (ownDepartmentId()) {
+        <button type="button" class="us-dept-toggle" [class.is-on]="onlyOwnDepartment()"
+          [attr.aria-pressed]="onlyOwnDepartment()" [title]="includeSubDepartments ? 'Birimimdeki ve alt birimlerindeki personeli göster' : 'Yalnızca kendi birimimdeki personeli göster'"
+          (click)="onlyOwnDepartment.set(!onlyOwnDepartment())">
+          <span class="material-symbols-outlined" aria-hidden="true">apartment</span>Birimim
+        </button>
+      }
+      <select class="form-select us-role-select" title="Role göre filtrele"
+        [class.is-on]="roleFilter()"
+        [ngModel]="roleFilter()" (ngModelChange)="roleFilter.set($event)">
+        <option value="">Tüm roller</option>
+        @for (role of roleOptions(); track role.id) {
+          <option [value]="role.id">{{ role.name }}</option>
+        }
+      </select>
       <button type="button" class="zl-icon-btn" [class.is-on]="showFilters" title="Filtre Aç/Kapat"
         (click)="showFilters = !showFilters">
         <span class="material-symbols-outlined">filter_alt</span>
@@ -27,10 +55,6 @@
       <button type="button" class="zl-icon-btn" title="Güncel Verileri Getir" (click)="result.reload()">
         <span class="material-symbols-outlined">refresh</span>
       </button>
-      <a routerLink="/users/create" class="zl-btn-primary">
-        <span class="material-symbols-outlined">add</span>
-        Kullanıcı Ekle
-      </a>
     </div>
   </div>
 
@@ -43,75 +67,73 @@
     [showCaption]="false"
     exportExcelFileName="kullanicilar"
     [filterable]="true"
-    commandColumnTitle="Güncelle"
     (onRefresh)="result.reload()">
 
     <flexi-grid-column field="name" title="Kullanıcı" width="220px">
       <ng-template flexiGridCellTemplate let-item>
         <div class="d-flex flex-column">
-          <span class="fw-semibold">{{ item.name }} {{ item.surname }}</span>
-          <span class="text-muted small">{{ item.userName }}</span>
+          <!-- AD kullanıcı adı satırda yazılmaz, ad soyadın üzerine gelince görünür -->
+          <span class="fw-semibold" [title]="item.userName || ''">{{ item.name }} {{ item.surname }}</span>
+          @if (item.titleName) {
+            <span class="small us-title" [title]="item.titleName">{{ item.titleName }}</span>
+          }
         </div>
       </ng-template>
     </flexi-grid-column>
 
-    <flexi-grid-column title="Birimi" width="160px">
+    <!-- Birimin tam adı; uzun adlar hücre içinde alt satıra kayar -->
+    <flexi-grid-column field="departmentName" title="Birimi" width="380px" [hideOverflow]="false"
+      filterType="select" [filterData]="departmentFilterData()">
       <ng-template flexiGridCellTemplate let-item>
         @if (item.departmentName) {
-          <span class="badge department-badge" [ngClass]="getDepartmentBadgeClass(item.departmentShortName)" [title]="item.departmentName">
-            <span class="material-symbols-outlined align-middle" style="font-size:13px;">apartment</span>
-            {{ item.departmentShortName || item.departmentName }}
-          </span>
+          <span class="us-dept">{{ item.departmentName }}</span>
+        } @else {
+          <span class="text-muted small">Birimi tanımsız</span>
+        }
+      </ng-template>
+    </flexi-grid-column>
+
+    <flexi-grid-column field="roleNames" title="Roller" width="240px">
+      <ng-template flexiGridCellTemplate let-item>
+        @if (item.roles?.length) {
+          <div class="us-roles">
+            @for (role of item.roles; track role.id) {
+              <span class="us-role-chip" [class.is-admin-chip]="role.name === 'Yönetici'">
+                <span class="material-symbols-outlined"
+                  [class.is-admin]="role.name === 'Yönetici'"
+                  [class.is-unit-manager]="role.name === 'Birim Yöneticisi'">{{ roleIcon(role.name) }}</span>
+                {{ role.name }}
+              </span>
+            }
+          </div>
         } @else {
           <span class="text-muted small">-</span>
         }
       </ng-template>
     </flexi-grid-column>
 
-    <flexi-grid-column field="isActive" title="Aktif" textAlign="center"
-      filterType="boolean" [booleanData]="['Aktif', 'Pasif']" width="110px">
+    <!-- Aktiflik kaynak sistemden gelir (pasif, girişi engellenmiş ya da kurumdan ayrılmış) -->
+    <flexi-grid-column field="isActive" title="Durum" textAlign="center"
+      filterType="boolean" [booleanData]="['Aktif', 'Pasif']" width="80px">
       <ng-template flexiGridCellTemplate let-item>
-        <div class="d-flex align-items-center justify-content-center gap-2">
-          <div class="form-check form-switch form-switch-lg mb-0">
-            <input
-              (change)="changeIsActive(item)"
-              class="form-check-input"
-              type="checkbox"
-              role="switch"
-              [id]="item.id"
-              name="item.id"
-              [(ngModel)]="item.isActive">
-          </div>
-        </div>
-      </ng-template>
-    </flexi-grid-column>
-    <flexi-grid-column field="isDeleted" title="Silindi" textAlign="center"
-      filterType="boolean" [booleanData]="['Silindi', 'Silinmedi']"
-      width="110px">
-      <ng-template flexiGridCellTemplate let-item>
-        <div class="d-flex align-items-center justify-content-center gap-2">
-          <div class="form-check form-switch form-switch-lg mb-0">
-            <input
-              (change)="changeIsAdmin(item)"
-              class="form-check-input"
-              type="checkbox"
-              role="switch"
-              [id]="item.id"
-              name="item.id"
-              [(ngModel)]="item.isDeleted">
-          </div>
-        </div>
+        @if (item.isActive) {
+          <span class="badge text-bg-success">Aktif</span>
+        } @else {
+          <span class="badge text-bg-secondary" title="Pasif, girişi engellenmiş ya da kurumdan ayrılmış">Pasif</span>
+        }
       </ng-template>
     </flexi-grid-column>
 
-    <ng-template flexiGridColumnCommandTemplate let-item>
-      <flexi-button
-        [routerLink]="['/','users','edit',item.id]"
-        btnIcon="edit"
-        btnColor="info"
-        title="Güncelle"
-        flexiTooltip />
-    </ng-template>
+    <flexi-grid-column title="Roller" textAlign="center" width="70px" [filterable]="false" [sortable]="false" [hideOverflow]="false">
+      <ng-template flexiGridCellTemplate let-item>
+        <flexi-button
+          [routerLink]="['/','users','edit',item.id]"
+          btnIcon="manage_accounts"
+          btnColor="info"
+          title="Rolleri düzenle"
+          flexiTooltip="top" />
+      </ng-template>
+    </flexi-grid-column>
 
   </flexi-grid>
 </div>

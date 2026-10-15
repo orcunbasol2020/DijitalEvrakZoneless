@@ -396,6 +396,8 @@
     justify-content: flex-end;
     gap: 10px;
     padding-top: 4px;
+    /* Kart uzadığında bilgi ve butonlar kartın en altında kalır */
+    margin-top: auto;
 }
 
 .zarf-actions-hint {
@@ -1112,6 +1114,11 @@
     margin-bottom: 4px;
 }
 
+.doc-detail-optional {
+    font-weight: 400;
+    color: #94a3b8;
+}
+
 .doc-detail-field .form-control,
 .doc-detail-field .form-select {
     border-radius: 10px;
@@ -1532,7 +1539,7 @@
 
 /* ---- Manuel evrak ekleme popup'ı (Evrak Bilgisi ile aynı dil) ---- */
 .doc-manual-modal {
-    width: 520px;
+    width: 624px;
 }
 
 .doc-manual-body {

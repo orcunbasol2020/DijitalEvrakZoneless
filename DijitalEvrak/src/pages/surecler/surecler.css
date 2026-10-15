@@ -239,6 +239,112 @@
     }
 }
 
+/* Sağ kart sekmeleri: Evrak Kayıt ekranındaki ek-tab görünümüyle aynı */
+.sc-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px;
+    padding: 4px;
+    margin-bottom: 12px;
+    border-radius: 14px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+}
+
+.sc-tab {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 10px;
+    border: 1px solid transparent;
+    border-radius: 11px;
+    background: transparent;
+    font-size: 13px;
+    font-weight: 700;
+    color: #64748b;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.sc-tab .material-symbols-outlined {
+    font-size: 19px;
+    color: #94a3b8;
+}
+
+.sc-tab:hover {
+    color: #0f172a;
+    background: rgba(255, 255, 255, 0.6);
+}
+
+.sc-tab.is-active {
+    background: #fff;
+    color: #0c4a6e;
+    border-color: #e2e8f0;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.sc-tab.is-active .material-symbols-outlined {
+    color: #0284c7;
+}
+
+.sc-tab.is-active::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 4px;
+    width: 28px;
+    height: 3px;
+    border-radius: 999px;
+    transform: translateX(-50%);
+    background: linear-gradient(90deg, #0369a1, #38bdf8);
+}
+
+/* Diğer Bilgiler: Var / Yok / Yüklendi gibi kısa değerler için hap */
+.sc-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    background: #e2e8f0;
+}
+
+.sc-pill .material-symbols-outlined {
+    font-size: 15px;
+}
+
+.sc-pill.is-on {
+    color: #075985;
+    background: #e0f2fe;
+}
+
+.sc-pill.is-ok {
+    color: #166534;
+    background: #dcfce7;
+}
+
+.sc-pill.is-warn {
+    color: #9a3412;
+    background: #ffedd5;
+}
+
+.sc-muted {
+    color: #94a3b8;
+    font-style: italic;
+}
+
+.sc-urgency {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
 /* İki sütunlu ızgara; geniş alanlar (Konu, Birim, Kurum, Dosya) tam satır */
 .sc-details-grid {
     display: grid;
@@ -398,6 +504,8 @@
 .sc-item[data-tone="success"] .sc-step-title { color: #166534; }
 .sc-item[data-tone="warning"] .sc-step-title { color: #92400e; }
 .sc-item[data-tone="neutral"] .sc-step-title { color: #475569; }
+.sc-item[data-tone="danger"] .sc-node        { background: #fee2e2; color: #b91c1c; box-shadow: 0 0 0 1px #fca5a5; }
+.sc-item[data-tone="danger"] .sc-step-title  { color: #b91c1c; }
 
 .sc-item.is-latest .sc-node {
     box-shadow: 0 0 0 1px #7dd3fc, 0 0 0 5px rgba(14, 165, 233, 0.15);
@@ -462,6 +570,11 @@
 .sc-item[data-tone="neutral"] .sc-card {
     border-left-color: #94a3b8;
     background: #f8fafc;
+}
+
+.sc-item[data-tone="danger"] .sc-card {
+    border-left-color: #dc2626;
+    background: #fef2f2;
 }
 
 .sc-item.is-latest .sc-card {
@@ -834,6 +947,50 @@
     background: rgba(148, 163, 184, 0.06);
 }
 
+[data-theme="dark"] .sc-tabs {
+    background: rgba(148, 163, 184, 0.08);
+    border-color: rgba(148, 163, 184, 0.18);
+}
+
+[data-theme="dark"] .sc-tab {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .sc-tab:hover {
+    color: #e2e8f0;
+    background: rgba(148, 163, 184, 0.1);
+}
+
+[data-theme="dark"] .sc-tab.is-active {
+    background: rgba(14, 165, 233, 0.14);
+    color: #e0f2fe;
+    border-color: rgba(14, 165, 233, 0.3);
+}
+
+[data-theme="dark"] .sc-tab.is-active .material-symbols-outlined {
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .sc-pill {
+    color: #cbd5e1;
+    background: rgba(148, 163, 184, 0.16);
+}
+
+[data-theme="dark"] .sc-pill.is-on {
+    color: #7dd3fc;
+    background: rgba(14, 165, 233, 0.18);
+}
+
+[data-theme="dark"] .sc-pill.is-ok {
+    color: #86efac;
+    background: rgba(34, 197, 94, 0.16);
+}
+
+[data-theme="dark"] .sc-pill.is-warn {
+    color: #fdba74;
+    background: rgba(249, 115, 22, 0.16);
+}
+
 [data-theme="dark"] .sc-card {
     background: rgba(148, 163, 184, 0.06);
     border-color: rgba(148, 163, 184, 0.18);
@@ -863,6 +1020,8 @@
 [data-theme="dark"] .sc-item[data-tone="success"] .sc-step-title { color: #86efac; }
 [data-theme="dark"] .sc-item[data-tone="warning"] .sc-step-title { color: #fcd34d; }
 [data-theme="dark"] .sc-item[data-tone="neutral"] .sc-step-title { color: #cbd5e1; }
+[data-theme="dark"] .sc-item[data-tone="danger"] .sc-node        { background: rgba(239, 68, 68, 0.2); color: #fca5a5; box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.45); }
+[data-theme="dark"] .sc-item[data-tone="danger"] .sc-step-title  { color: #fca5a5; }
 
 [data-theme="dark"] .sc-item[data-tone="info"] .sc-card {
     background: rgba(14, 165, 233, 0.08);
@@ -889,6 +1048,10 @@
 
 [data-theme="dark"] .sc-item[data-tone="neutral"] .sc-card {
     background: rgba(148, 163, 184, 0.08);
+}
+
+[data-theme="dark"] .sc-item[data-tone="danger"] .sc-card {
+    background: rgba(239, 68, 68, 0.08);
 }
 
 [data-theme="dark"] .sc-date {

@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, ViewEncapsulation, signal, computed, inject, OnInit } from '@angular/core';
+import { idKey } from '../../models/ids';
+import { ChangeDetectionStrategy, Component, DestroyRef, ViewEncapsulation, signal, computed, inject, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule, FormControl } from '@angular/forms';
 import { Router } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -8,25 +9,40 @@ import { CommonModule } from '@angular/common';
 import { BreadcrumbModel } from '../layouts/breadcrumb/breadcrumb';
 import { IncomingDocumentService } from '../../services/incomingdocument';
 import { Department, DepartmentModel } from '../../services/department';
-import { ExternalInstitution, ExternalInstitutionModel } from '../../services/external-institution';
-import { Observable, startWith, map, switchMap } from 'rxjs';
+import { ExternalInstitutionModel, INSTITUTION_MIN_SEARCH, institutionSearch } from '../../services/external-institution';
+import { Observable, Subscription, concat, startWith, map, switchMap, tap, catchError, of } from 'rxjs';
+import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
+import { IncomingDocumentAttachmentService } from '../../services/incoming-document-attachment';
+import {
+  ATTACHMENT_DESCRIPTION_MAX as ELECTRONIC_ATTACHMENT_DESCRIPTION_MAX,
+  ATTACHMENT_NAME_MAX,
+  IncomingDocumentAttachmentModel,
+  attachmentFileError,
+  formatFileSize
+} from '../../models/incoming-document-attachment.model';
+import { AtlasTransferService } from '../../services/atlas-transfer';
+import { AtlasTransferDetail } from '../../../components/atlas-transfer-detail/atlas-transfer-detail';
 import { SimpleAutocompleteComponent } from '../simpleautocomplete/simpleautocomplete';
-import { IncomingDocumentModel } from '../../models/incoming-document/incoming-document.model';
+import {
+  IncomingDocumentDistributionModel,
+  IncomingDocumentModel,
+  IncomingDocumentRecipientInput
+} from '../../models/incoming-document/incoming-document.model';
 import { Common } from '../../services/common';
 import { DocumentTransaction } from '../../services/documenttransaction';
 import { DocumentTransactionModel } from '../../models/documenttransaction.model';
 import { SecurityDegreeEnum, SecurityDegreeLabels } from '../../models/securitydegree.model';
 import { UrgencyDegreeEnum, UrgencyDegreeLabels } from '../../models/urgencydegree.model';
-import { actionRequiredOptions } from '../../models/actionrequired.model';
+import { actionRequiredBadgeClass, actionRequiredLabel, actionRequiredOptions } from '../../models/actionrequired.model';
 import { DocumentTypeEnum, DocumentTypeLabels } from '../../models/documenttype.model';
 import { DocumentAllocation } from '../../services/documentallocation';
 import { RoleService } from '../../services/role-service';
 import { UPLOAD_DOCUMENT_ROLES, UploadDocumentModal } from '../../../components/upload-document-modal/upload-document-modal';
 import { DocumentUploadFlow } from '../../services/document-upload-flow';
-import { INCOMING_STATUS_KAYIT, INCOMING_STATUS_ON_KAYIT, INCOMING_STATUS_PUBLISH_REQUEST } from '../../services/incomingdocument';
+import { INCOMING_STATUS_KAYIT, INCOMING_STATUS_ON_KAYIT, incomingErrorMessage } from '../../services/incomingdocument';
 import { PublishStatusEnum, PublishStatusLabels, publishStatusOf } from '../../models/publishstatus.model';
 
-// Varsayılanlar: Hizmete Özel, Normal ivedilik, Gereği, elektronik kopya yok, Türkçe (1)
+// Varsayılanlar: Hizmete Özel, Normal ivedilik, yeni alıcı Gereği, elektronik kopya yok, Türkçe (1)
 const DETAIL_DEFAULTS = {
   securityDegree: SecurityDegreeEnum.ServiceUseOnly,
   urgencyDegree: UrgencyDegreeEnum.Normal,
@@ -34,6 +50,35 @@ const DETAIL_DEFAULTS = {
   electronicCopy: false,
   languageId: 1,
 } as const;
+
+// Ek açıklaması için sunucunun kabul ettiği en fazla karakter
+const ATTACHMENT_DESCRIPTION_MAX = 1000;
+
+// "Nereye" listesinin tek satırı: bir iç birim ve alıcı bazında Gereği/Bilgi.
+// Formda not girilmez; sunucuda kayıtlı bir not varsa Update listeyi değiştirirken
+// silinmesin diye görünmeden aynen geri gönderilir.
+interface RecipientRow {
+  key: number;
+  control: FormControl<DepartmentModel | null>;
+  actionRequired: boolean;
+  notes: string | null;
+  sub?: Subscription;
+}
+
+// Backend doğrulama mesajlarıyla aynı metinler
+const RECIPIENT_ERRORS = {
+  missing: 'Her alıcı için birim seçilmelidir!',
+  duplicate: 'Aynı birim birden fazla kez alıcı olarak eklenemez!',
+} as const;
+
+
+// Yükleme kuyruğundaki dosya: sırayla tek tek yüklenir; hata alan dosya listede kalır (tekrar dene / kaldır)
+interface AttachmentUpload {
+  key: number;
+  file: File;
+  status: 'pending' | 'uploading' | 'failed';
+  error: string | null;
+}
 
 @Component({
   standalone: true,
@@ -43,7 +88,9 @@ const DETAIL_DEFAULTS = {
     FormsModule,
     ReactiveFormsModule,
     SimpleAutocompleteComponent,
-    UploadDocumentModal
+    UploadDocumentModal,
+    DragDropModule,
+    AtlasTransferDetail
   ],
   templateUrl: './evrakkayit.html',
   // Görsel dil Ön Kayıt / Zimmet ekranlarıyla aynı; ortak zm-* sınıfları
@@ -60,9 +107,9 @@ export default class Evrakkayit implements OnInit {
   readonly documentNo = signal<string>('');
 
   // Sol karttaki sekmeler (Bootstrap tab JS yerine sinyal ile yönetilir)
-  readonly activeTab = signal<'general' | 'detail' | 'transaction'>('general');
+  readonly activeTab = signal<'general' | 'detail' | 'attachments' | 'transaction' | 'transfer'>('general');
 
-  setTab(tab: 'general' | 'detail' | 'transaction') {
+  setTab(tab: 'general' | 'detail' | 'attachments' | 'transaction' | 'transfer') {
     this.activeTab.set(tab);
     if (tab === 'transaction') this.loadTransactions();
   }
@@ -86,29 +133,45 @@ export default class Evrakkayit implements OnInit {
 
   // Yayına gönderilen evrakın durumu okunur; Aktarım Sırasında / Aktarılıyor iken ya da
   // yayınlandıysa Kaydet ve Yayınla butonları pasiftir (aynı evrak tekrar sıraya alınmaz).
-  // Aktarım hatalıysa servis yeniden dener, butonlar açık kalır.
+  // Aktarım hatalıysa servis yeniden denemez; butonlar açık kalır, kullanıcı eksiği düzeltip
+  // Yayınla derse evrak güncel bilgilerle yeniden sıraya girer.
   private applyPublishState(doc: IncomingDocumentModel) {
     const state = publishStatusOf(doc);
     this.publishState.set(state);
+    this.loadPublishError(state === PublishStatusEnum.AktarimHatali ? doc.id : null);
     this.activeStatus.set(
       state === PublishStatusEnum.AktarimSirasinda
       || state === PublishStatusEnum.Aktariliyor
       || state === PublishStatusEnum.Yayinlandi
     );
   }
+
+  // Aktarım Hatalı evrakın nedeni: evrak modelinde yok, yalnızca GetFailed listesinden okunur
+  readonly publishError = signal<string | null>(null);
+  private atlasTransferService = inject(AtlasTransferService);
+
+  private loadPublishError(documentId: string | null | undefined) {
+    this.publishError.set(null);
+    if (!documentId) return;
+    this.atlasTransferService.getFailed().pipe(catchError(() => of([]))).subscribe(list => {
+      const failure = list.find(f => f.documentId === documentId);
+      if (failure && this.publishState() === PublishStatusEnum.AktarimHatali) {
+        this.publishError.set(failure.lastError || 'Atlas aktarımı hatalı; neden bildirilmedi.');
+      }
+    });
+  }
+
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private incomingDocumentService = inject(IncomingDocumentService);
   private departmentService = inject(Department);
-  private externalInstitutionService = inject(ExternalInstitution);
   private toast = inject(FlexiToastService);
   private sanitizer = inject(DomSanitizer);
   private allocationService = inject(DocumentAllocation);
+  readonly #destroyRef = inject(DestroyRef);
   // Evrağın sunucudan yüklendiği andaki durumu; ilk kayıtta (Ön Kayıt -> Kayıt)
   // zimmetin kayıt yapan personele devredilmesi buna göre tetiklenir.
   private loadedStatus = signal<number | null>(null);
-  private pendingDepartmentId: string | null = null;
-  private pendingExternalInstitutionId: string | null = null;
   public docStatus = signal<number>(2);
   activeStatus = signal(false);
   readonly #common = inject(Common);
@@ -117,15 +180,64 @@ export default class Evrakkayit implements OnInit {
   form!: FormGroup;
   formDetail!: FormGroup;
 
-  departments: DepartmentModel[] = [];
-  externalInstitutions: ExternalInstitutionModel[] = [];
+  readonly departments = signal<DepartmentModel[]>([]);
+  readonly departmentsLoading = signal(true);
+  // Nereden: ~160.000 kurum olduğu için liste indirilmez, yazılan metin sunucuda aranır (misyonlar dahil)
+  readonly institutionSearch = institutionSearch();
+  readonly institutionMinSearch = INSTITUTION_MIN_SEARCH;
 
-  filteredDepartments$!: Observable<DepartmentModel[]>;
-  filteredExternalInstitutions$!: Observable<ExternalInstitutionModel[]>;
 
-  get departmentControl(): FormControl<DepartmentModel | null> {
-    return this.form.get('departmentId') as FormControl<DepartmentModel | null>;
-  }
+  // ---- Nereye: birden fazla iç birim (alıcı bazında Gereği/Bilgi ve not) ----
+  // Alıcılar evrakla birlikte Create / Update'e "recipients" olarak gider; Update'te liste
+  // mevcut alıcıların yerine geçtiği için formdaki listenin tamamı gönderilir.
+  readonly recipientRows = signal<RecipientRow[]>([]);
+  readonly recipientsLoading = signal(false);
+  // Mevcut alıcılar okunamadıysa liste düzenlenemez ve Update'e recipients gönderilmez;
+  // aksi halde eksik liste sunucudaki alıcıların yerine geçerdi.
+  readonly recipientsLoadFailed = signal(false);
+  readonly actionRequiredLabel = actionRequiredLabel;
+  readonly actionRequiredBadgeClass = actionRequiredBadgeClass;
+  private nextRecipientKey = 1;
+  // Satır nesneleri her değişiklikte yenilenir; DOM (ve birim kutusu) korunsun diye key ile izlenir
+  readonly trackRecipient = (_: number, row: RecipientRow) => row.key;
+  // Sunucudaki son alıcı listesi; detay kaydında evrağın Gereği/Bilgi değeri bundan hesaplanır
+  private savedRecipients: IncomingDocumentRecipientInput[] = [];
+
+  // Atlas kilidi: Aktarım Sırasında (2), Aktarılıyor (3) ve Yayınlandı (4). EYP paketi ilk denemede
+  // üretilip sonraki denemelerde aynen gönderildiğinden bu durumlarda yapılan değişiklik Atlas'a
+  // gitmeyebilir. Aktarım Hatalı (5) evrak düzenlenebilir; yeniden yayınlanınca paket yenilenir.
+  readonly atlasLocked = computed(() =>
+    this.publishState() === PublishStatusEnum.AktarimSirasinda
+    || this.publishState() === PublishStatusEnum.Aktariliyor
+    || this.publishState() === PublishStatusEnum.Yayinlandi);
+
+  // Atlas kilidindeki evrakta "Nereye" listesi salt okunur gösterilir
+  readonly recipientsReadOnly = this.atlasLocked;
+
+  // Aynı birimin seçildiği satırlar (ilk satır hariç) uyarı rengiyle işaretlenir
+  readonly duplicateRecipientKeys = computed(() => {
+    const seen = new Set<string>();
+    const dup = new Set<number>();
+    for (const row of this.recipientRows()) {
+      const id = idKey(row.control.value?.id);
+      if (!id) continue;
+      if (seen.has(id)) dup.add(row.key); else seen.add(id);
+    }
+    return dup;
+  });
+
+  // Her satırın seçenekleri: başka satırda seçilmiş birimler listede görünmez
+  readonly recipientOptions = computed(() => {
+    const rows = this.recipientRows();
+    const all = this.departments();
+    const options = new Map<number, DepartmentModel[]>();
+    for (const row of rows) {
+      const taken = new Set(rows.filter(r => r.key !== row.key)
+        .map(r => idKey(r.control.value?.id)).filter(Boolean));
+      options.set(row.key, taken.size ? all.filter(d => !taken.has(idKey(d.id))) : all);
+    }
+    return options;
+  });
 
   get externalInstitutionControl(): FormControl<ExternalInstitutionModel | null> {
     return this.form.get('externalInstitutionId') as FormControl<ExternalInstitutionModel | null>;
@@ -167,7 +279,8 @@ export default class Evrakkayit implements OnInit {
 
   private static readonly stampLabels: Partial<Record<SecurityDegreeEnum, string>> = {
     [SecurityDegreeEnum.Confidential]: 'GİZLİ',
-    [SecurityDegreeEnum.TopSecret]: 'ÇOK GİZLİ'
+    [SecurityDegreeEnum.TopSecret]: 'ÇOK GİZLİ',
+    [SecurityDegreeEnum.Crypto]: 'KRİPTO'
   };
 
   readonly securityStamp = computed(() => Evrakkayit.stampLabels[this.selectedSecurityDegree()] ?? null);
@@ -183,6 +296,20 @@ export default class Evrakkayit implements OnInit {
   private readonly loadedDoc = signal<IncomingDocumentModel | null>(null);
   readonly uploadDoc = signal<IncomingDocumentModel | null>(null);
   readonly uploadLoading = signal(false);
+
+  // ---- Aktarım sekmesi ----
+  // Paketler evrakın içeriğini taşıdığı için yalnızca yönetici görür. Yayınlanmamış evrakta paket
+  // olmaz ama sekme açıktır: test paketi yayından önce içeriği incelemek için üretilir
+  readonly loadedDocId = computed(() => this.loadedDoc()?.id ?? null);
+  readonly canSeeTransfer = computed(() =>
+    !!this.loadedDocId() && this.roleService.hasAny(['Yönetici']));
+
+  // Aktarım sekmesinden Yeniden Dene: evrak güncel bilgileriyle yeniden sıraya girdi
+  onTransferRetried(): void {
+    this.publishState.set(PublishStatusEnum.AktarimSirasinda);
+    this.publishError.set(null);
+    this.activeStatus.set(true);
+  }
 
   openUpload(): void {
     const doc = this.loadedDoc();
@@ -288,6 +415,11 @@ export default class Evrakkayit implements OnInit {
     .map(([value, label]) => ({ value: Number(value) as DocumentTypeEnum, label }))
     .filter(opt => !Evrakkayit.hiddenDocumentTypes.has(opt.value));
 
+  // "Diğer Bilgiler" sekmesindeki ek bilgisi: Var / Yok / belirtilmemiş (null)
+  readonly hasAttachment = signal<boolean | null>(null);
+  readonly attachmentDescriptionLength = signal(0);
+  readonly attachmentDescriptionMax = ATTACHMENT_DESCRIPTION_MAX;
+
   private documentTransactionService = inject(DocumentTransaction);
   transactionData = signal<DocumentTransactionModel[]>([]);
   transactionLoading = signal(false);
@@ -305,12 +437,16 @@ export default class Evrakkayit implements OnInit {
       notes: [''],
       documentName: [''],
       externalInstitutionId: new FormControl<ExternalInstitutionModel | null>(null),
-      departmentId: new FormControl<DepartmentModel | null>(null),
       documentTypeId: [null as DocumentTypeEnum | null],
-      // Gizlilik derecesi, ivedilik derecesi ve Gereği/Bilgi "Evrak Kayıt" sekmesinde girilir
+      // Gizlilik ve ivedilik derecesi "Evrak Kayıt" sekmesinde girilir. Gereği/Bilgi evrak
+      // düzeyinde değil, "Nereye" listesinde alıcı bazında seçilir (bkz. recipientRows).
       securityDegree: [DETAIL_DEFAULTS.securityDegree],
       urgencyDegree: [DETAIL_DEFAULTS.urgencyDegree],
-      actionRequired: [DETAIL_DEFAULTS.actionRequired as boolean | null],
+    });
+
+    this.#destroyRef.onDestroy(() => {
+      for (const row of this.recipientRows()) row.sub?.unsubscribe();
+      this.closeAttachmentPreview();
     });
 
     this.formDetail = this.fb.group({
@@ -319,9 +455,16 @@ export default class Evrakkayit implements OnInit {
       electronicCopy: [DETAIL_DEFAULTS.electronicCopy],
       languageId: [DETAIL_DEFAULTS.languageId],
       pageCount: [''],
+      hasAttachment: [null as boolean | null],
+      attachmentDescription: ['', Validators.maxLength(ATTACHMENT_DESCRIPTION_MAX)],
       ocrStatus: [{ value: '', disabled: true }],
       release: [{ value: '', disabled: true }]
     });
+
+    // Açıklama kutusu yalnızca "Var" seçiliyken görünür (zoneless: şablon sinyalden okur)
+    this.formDetail.controls['hasAttachment'].valueChanges.subscribe(v => this.hasAttachment.set(v ?? null));
+    this.formDetail.controls['attachmentDescription'].valueChanges.subscribe(v =>
+      this.attachmentDescriptionLength.set((v ?? '').length));
 
     // Zoneless CD: şablondaki evrak sayısı metni ham form değeri yerine bu sinyalden okunur,
     // böylece patchValue sonrası görünüm güncellenir.
@@ -330,7 +473,6 @@ export default class Evrakkayit implements OnInit {
       this.selectedSecurityDegree.set(v ?? DETAIL_DEFAULTS.securityDegree));
 
     this.loadDepartments();
-    this.loadExternalInstitutions();
 
     const id = this.incomingDocumentService.currentIncomingDocumentId;
     if (!id) {
@@ -359,18 +501,17 @@ export default class Evrakkayit implements OnInit {
 
         this.form.patchValue({
           ...doc,
-          departmentId: null,
           externalInstitutionId: null,
           documentDate: doc.documentDate?.split('T')[0],
           securityDegree: doc.securityDegree ?? DETAIL_DEFAULTS.securityDegree,
-          urgencyDegree: doc.urgencyDegree ?? DETAIL_DEFAULTS.urgencyDegree,
-          actionRequired: doc.actionRequired ?? DETAIL_DEFAULTS.actionRequired
+          urgencyDegree: doc.urgencyDegree ?? DETAIL_DEFAULTS.urgencyDegree
         });
 
         this.applyDocumentFile(doc);
 
-        this.applyDepartment(doc.departmentId);
-        this.applyExternalInstitution(doc.externalInstitutionId);
+        this.loadRecipients(doc.id);
+        this.loadAttachments(doc.id);
+        this.applyExternalInstitution(doc);
 
         this.patchDetail(doc);
 
@@ -378,75 +519,431 @@ export default class Evrakkayit implements OnInit {
 
     }
 
-    this.filteredDepartments$ = this.form.controls['departmentId'].valueChanges.pipe(
-      startWith(''),
-      map(value => this.filterDepartments(value))
-    );
-
-    this.filteredExternalInstitutions$ = this.form.controls['externalInstitutionId'].valueChanges.pipe(
-      startWith(''),
-      map(value => this.filterExternalInstitutions(value))
-    );
   }
 
   private loadDepartments() {
     this.departmentService.getDepartments().subscribe({
       next: (res) => {
-        this.departments = res;
-
-        if (this.pendingDepartmentId) {
-          const selected = this.departments.find(d => d.id === this.pendingDepartmentId);
-          if (selected) {
-            this.form.controls['departmentId'].setValue(selected);
-          }
-        }
+        this.departments.set(res ?? []);
+        this.departmentsLoading.set(false);
+        this.resolveRecipientDepartments();
       },
       error: (err) => {
         console.error(err);
+        this.departmentsLoading.set(false);
         this.toast.showToast("Hata", "Birimler yüklenemedi");
       }
     });
   }
 
+  // ---- Nereye alıcıları ----
 
-  private loadExternalInstitutions() {
-    this.externalInstitutionService.getExternalInstitutions().subscribe({
-      next: (res) => {
-        this.externalInstitutions = res;
+  // Mevcut alıcılar GetDistributions'tan okunur (GetById alıcıları döndürmez)
+  loadRecipients(documentId: string | null | undefined = this.loadedDoc()?.id) {
+    this.setRecipientRows([]);
+    this.savedRecipients = [];
+    this.recipientsLoadFailed.set(false);
+    if (!documentId) return;
 
-        if (this.pendingExternalInstitutionId) {
-          const selected = this.externalInstitutions.find(
-            d => d.id === this.pendingExternalInstitutionId
-          );
-
-          if (selected) {
-            this.externalInstitutionControl.setValue(selected);
-          }
-
-          this.pendingExternalInstitutionId = null;
-        }
+    this.recipientsLoading.set(true);
+    this.incomingDocumentService.getDistributions(documentId).subscribe({
+      next: (list) => {
+        const rows = (list ?? []).filter(d => !d.isDeleted && d.departmentId);
+        this.savedRecipients = rows.map(d => ({
+          departmentId: d.departmentId,
+          actionRequired: d.actionRequired ?? null,
+          notes: d.notes ?? null
+        }));
+        this.setRecipientRows(rows.map(d => this.createRecipientRow(
+          this.departmentOf(d), d.actionRequired ?? DETAIL_DEFAULTS.actionRequired, d.notes ?? null)));
+        this.recipientsLoading.set(false);
       },
       error: (err) => {
-        console.error(err);
-        this.toast.showToast("Hata", "Dış kurumlar yüklenemedi");
+        console.error('Alıcılar yüklenemedi:', err);
+        this.recipientsLoading.set(false);
+        this.recipientsLoadFailed.set(true);
       }
     });
   }
 
-
-  private filterDepartments(value: string | DepartmentModel): DepartmentModel[] {
-    const filterValue = typeof value === 'string' ? value.toLowerCase() : value?.name.toLowerCase();
-    return this.departments.filter(d => d.name.toLowerCase().includes(filterValue ?? ''));
+  // Birim listesi henüz gelmediyse satır, yanıttaki adla geçici bir kayıtla açılır;
+  // liste gelince listedeki kayda bağlanır (bkz. resolveRecipientDepartments).
+  private departmentOf(d: IncomingDocumentDistributionModel): DepartmentModel {
+    return this.departments().find(x => idKey(x.id) === idKey(d.departmentId))
+      ?? { id: d.departmentId, name: d.departmentName || 'Bilinmeyen birim' };
   }
 
-  private filterExternalInstitutions(value: string | ExternalInstitutionModel): ExternalInstitutionModel[] {
-    const filterValue = typeof value === 'string' ? value.toLowerCase() : value?.name.toLowerCase();
-    return this.externalInstitutions.filter(d => d.name.toLowerCase().includes(filterValue ?? ''));
+  private resolveRecipientDepartments() {
+    for (const row of this.recipientRows()) {
+      const current = row.control.value;
+      if (!current) continue;
+      const found = this.departments().find(x => idKey(x.id) === idKey(current.id));
+      if (found && found !== current) row.control.setValue(found);
+    }
   }
 
-  displayDepartment(dept: DepartmentModel): string {
-    return dept?.name ?? '';
+  private createRecipientRow(department: DepartmentModel | null, actionRequired: boolean, notes: string | null = null): RecipientRow {
+    const row: RecipientRow = {
+      key: this.nextRecipientKey++,
+      control: new FormControl<DepartmentModel | null>(department),
+      actionRequired,
+      notes,
+    };
+    // Seçim değişince liste yeni dizi olarak yayınlanır; tekrar ve seçenek hesapları tazelenir
+    row.sub = row.control.valueChanges.subscribe(() => this.recipientRows.update(rows => [...rows]));
+    return row;
   }
+
+  private setRecipientRows(rows: RecipientRow[]) {
+    for (const row of this.recipientRows()) row.sub?.unsubscribe();
+    this.recipientRows.set(rows);
+  }
+
+  addRecipientRow() {
+    if (this.recipientsReadOnly() || this.recipientsLoading() || this.recipientsLoadFailed()) return;
+    const row = this.createRecipientRow(null, DETAIL_DEFAULTS.actionRequired);
+    this.recipientRows.update(rows => [...rows, row]);
+  }
+
+  removeRecipientRow(row: RecipientRow) {
+    if (this.recipientsReadOnly()) return;
+    row.sub?.unsubscribe();
+    this.recipientRows.update(rows => rows.filter(r => r.key !== row.key));
+  }
+
+  setRecipientAction(row: RecipientRow, actionRequired: boolean) {
+    this.recipientRows.update(rows => rows.map(r => r.key === row.key ? { ...r, actionRequired } : r));
+  }
+
+  // Formdaki kurallar backend'le aynı: her satırda birim seçili, aynı birim iki kez yok
+  private recipientValidationError(): string | null {
+    const rows = this.recipientRows();
+    if (rows.some(r => !r.control.value?.id)) return RECIPIENT_ERRORS.missing;
+    if (this.duplicateRecipientKeys().size) return RECIPIENT_ERRORS.duplicate;
+    return null;
+  }
+
+  // Update'e gidecek alıcı listesi; liste okunamadıysa ya da salt okunursa undefined
+  // (alan gönderilmez, sunucudaki alıcılara dokunulmaz).
+  private recipientsPayload(): IncomingDocumentRecipientInput[] | undefined {
+    if (this.recipientsReadOnly() || this.recipientsLoading() || this.recipientsLoadFailed()) return undefined;
+    return this.recipientRows().map(r => ({
+      departmentId: r.control.value!.id,
+      actionRequired: r.actionRequired,
+      notes: r.notes
+    }));
+  }
+
+  // Evrak düzeyindeki Gereği/Bilgi backend'de alıcılardan hesaplanır: biri Gereği ise
+  // Gereği, hepsi Bilgi ise Bilgi. Alıcısız evrakta yüklenen değer korunur.
+  private actionRequiredOf(recipients: IncomingDocumentRecipientInput[]): boolean | null {
+    if (!recipients.length) return this.loadedDoc()?.actionRequired ?? null;
+    return recipients.some(r => r.actionRequired !== false);
+  }
+
+  // ---- Elektronik ekler (PDF) ----
+  // Ekler evrakla aynı istekte gitmez: kayıtlı evraka dosya başına ayrı Upload atılır ve
+  // Atlas'a giden EYP paketine orderNo sırasıyla eklenir. Fiziki ek bilgisi (Ek Var mı? /
+  // ek açıklaması) "Diğer Bilgiler" sekmesinde kalır.
+  private readonly attachmentService = inject(IncomingDocumentAttachmentService);
+  readonly attachments = signal<IncomingDocumentAttachmentModel[]>([]);
+  readonly attachmentsLoading = signal(false);
+  readonly attachmentsLoadFailed = signal(false);
+  readonly uploadQueue = signal<AttachmentUpload[]>([]);
+  readonly reorderingAttachments = signal(false);
+  readonly attachmentActionId = signal<string | null>(null);
+  readonly editingAttachmentId = signal<string | null>(null);
+  readonly editAttachmentName = signal('');
+  readonly editAttachmentDescription = signal('');
+  readonly attachmentDropActive = signal(false);
+  readonly attachmentNameMax = ATTACHMENT_NAME_MAX;
+  readonly attachmentDescriptionMaxLen = ELECTRONIC_ATTACHMENT_DESCRIPTION_MAX;
+  readonly fileSize = formatFileSize;
+  private nextUploadKey = 1;
+  readonly trackAttachment = (_: number, a: IncomingDocumentAttachmentModel) => a.id;
+
+  // Atlas kilidindeyken (ve yayın isteği sürerken) ekler yalnızca görüntülenir
+  readonly attachmentsReadOnly = computed(() => this.atlasLocked() || this.activeStatus());
+
+  // Yükleme / sıralama / silme sürerken Kaydet ve Yayınla beklenir: yayın, eklerden önce
+  // kuyruğa girerse ekler Atlas'a gitmeyebilir.
+  readonly attachmentsBusy = computed(() =>
+    this.uploadQueue().some(u => u.status !== 'failed')
+    || this.reorderingAttachments()
+    || this.attachmentActionId() !== null);
+
+  readonly failedUploads = computed(() => this.uploadQueue().filter(u => u.status === 'failed'));
+
+  loadAttachments(documentId: string | null | undefined = this.loadedDoc()?.id) {
+    this.attachments.set([]);
+    this.attachmentsLoadFailed.set(false);
+    this.closeAttachmentPreview();
+    if (!documentId) return;
+
+    this.attachmentsLoading.set(true);
+    this.attachmentService.getByDocument(documentId, false).subscribe({
+      next: (list) => {
+        this.attachments.set(list ?? []);
+        this.attachmentsLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Ekler yüklenemedi:', err);
+        this.attachmentsLoading.set(false);
+        this.attachmentsLoadFailed.set(true);
+      }
+    });
+  }
+
+  onAttachmentFilesSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    this.queueAttachmentFiles(Array.from(input.files ?? []));
+    input.value = '';
+  }
+
+  onAttachmentDragOver(event: DragEvent) {
+    if (this.attachmentsReadOnly() || !event.dataTransfer?.types.includes('Files')) return;
+    event.preventDefault();
+    this.attachmentDropActive.set(true);
+  }
+
+  onAttachmentDrop(event: DragEvent) {
+    this.attachmentDropActive.set(false);
+    if (this.attachmentsReadOnly() || !event.dataTransfer?.files.length) return;
+    event.preventDefault();
+    this.queueAttachmentFiles(Array.from(event.dataTransfer.files));
+  }
+
+  // Dosyalar seçim sırasıyla, tek tek yüklenir (ek sırası seçim sırasını izler). PDF ve 10 MB
+  // kontrolü tarayıcıda yapılır: 11 MB'ı aşan istek sunucuda dosya okunmadan reddedilir ve
+  // Türkçe hata mesajı dönmez.
+  private queueAttachmentFiles(files: File[]) {
+    if (!files.length || this.attachmentsReadOnly()) return;
+    if (!this.loadedDoc()?.id) {
+      this.toast.showToast('Ek yüklenemez', 'Ekler evrak kaydedildikten sonra yüklenebilir.', 'warning');
+      return;
+    }
+    const items: AttachmentUpload[] = files.map(file => {
+      const error = attachmentFileError(file);
+      return { key: this.nextUploadKey++, file, status: error ? 'failed' : 'pending', error };
+    });
+    this.uploadQueue.update(q => [...q, ...items]);
+    this.processUploadQueue();
+  }
+
+  private processUploadQueue() {
+    const queue = this.uploadQueue();
+    if (queue.some(u => u.status === 'uploading')) return;
+    const next = queue.find(u => u.status === 'pending');
+    const documentId = this.loadedDoc()?.id;
+    const userId = this.user()?.id;
+    if (!next || !documentId) return;
+    if (!userId) {
+      this.toast.showToast('Hata', 'Kullanıcı bilgisi alınamadı', 'error');
+      return;
+    }
+
+    this.setUploadStatus(next.key, 'uploading');
+    this.attachmentService.upload(documentId, next.file, userId).subscribe({
+      next: (attachment) => {
+        this.uploadQueue.update(q => q.filter(u => u.key !== next.key));
+        if (attachment) this.attachments.update(list => [...list, attachment]);
+        this.markHasAttachment();
+        this.processUploadQueue();
+      },
+      error: (err) => {
+        console.error('Ek yüklenemedi:', err);
+        this.setUploadStatus(next.key, 'failed', incomingErrorMessage(err, 'Ek yüklenemedi.'));
+        this.processUploadQueue();
+      }
+    });
+  }
+
+  private setUploadStatus(key: number, status: AttachmentUpload['status'], error: string | null = null) {
+    this.uploadQueue.update(q => q.map(u => u.key === key ? { ...u, status, error } : u));
+  }
+
+  retryUpload(item: AttachmentUpload) {
+    if (attachmentFileError(item.file) || this.attachmentsReadOnly()) return;
+    this.setUploadStatus(item.key, 'pending');
+    this.processUploadQueue();
+  }
+
+  dismissUpload(item: AttachmentUpload) {
+    this.uploadQueue.update(q => q.filter(u => u.key !== item.key));
+  }
+
+  canRetryUpload(item: AttachmentUpload): boolean {
+    return !attachmentFileError(item.file);
+  }
+
+  // Backend yükleme sonrası hasAttachment'ı true yapar; form da işaretlenir, aksi halde
+  // "Diğer Bilgiler" kaydında hasAttachment: false gidip evrak "ek yok" görünür.
+  private markHasAttachment() {
+    if (this.formDetail.controls['hasAttachment'].value !== true) {
+      this.formDetail.patchValue({ hasAttachment: true });
+    }
+    const doc = this.loadedDoc();
+    if (doc && doc.hasAttachment !== true) this.loadedDoc.set({ ...doc, hasAttachment: true });
+  }
+
+  // Sürükle-bırak sıralama: liste hemen yeni sırasıyla gösterilir, yeri değişen her ek için
+  // yeni sıra numarasıyla ayrı Update atılır (backend sıraları kendisi kaydırmaz).
+  dropAttachment(event: CdkDragDrop<IncomingDocumentAttachmentModel[]>) {
+    if (this.attachmentsReadOnly() || this.reorderingAttachments() || event.previousIndex === event.currentIndex) return;
+    const list = [...this.attachments()];
+    moveItemInArray(list, event.previousIndex, event.currentIndex);
+    const changed = list
+      .map((a, i) => ({ a, orderNo: i + 1 }))
+      .filter(x => x.a.orderNo !== x.orderNo);
+    this.attachments.set(list.map((a, i) => ({ ...a, orderNo: i + 1 })));
+    if (!changed.length) return;
+
+    this.reorderingAttachments.set(true);
+    concat(...changed.map(x => this.attachmentService.update({ id: x.a.id, orderNo: x.orderNo }))).subscribe({
+      error: (err) => {
+        console.error('Ek sırası kaydedilemedi:', err);
+        this.reorderingAttachments.set(false);
+        this.toast.showToast('Sıra kaydedilemedi', incomingErrorMessage(err, 'Ek sırası güncellenemedi.'), 'error');
+        this.loadAttachments();
+      },
+      complete: () => this.reorderingAttachments.set(false)
+    });
+  }
+
+  startEditAttachment(a: IncomingDocumentAttachmentModel) {
+    if (this.attachmentsReadOnly()) return;
+    this.editingAttachmentId.set(a.id);
+    this.editAttachmentName.set(a.name ?? '');
+    this.editAttachmentDescription.set(a.description ?? '');
+  }
+
+  cancelEditAttachment() {
+    this.editingAttachmentId.set(null);
+  }
+
+  saveEditAttachment(a: IncomingDocumentAttachmentModel) {
+    const name = this.editAttachmentName().trim();
+    const description = this.editAttachmentDescription().trim();
+    if (!name) {
+      this.toast.showToast('Ek adı', 'Ek adı boş olamaz!', 'warning');
+      return;
+    }
+    if (name.length > ATTACHMENT_NAME_MAX) {
+      this.toast.showToast('Ek adı', `Ek adı en fazla ${ATTACHMENT_NAME_MAX} karakter olabilir`, 'warning');
+      return;
+    }
+    if (description.length > ELECTRONIC_ATTACHMENT_DESCRIPTION_MAX) {
+      this.toast.showToast('Ek açıklaması', `Ek açıklaması en fazla ${ELECTRONIC_ATTACHMENT_DESCRIPTION_MAX} karakter olabilir`, 'warning');
+      return;
+    }
+    if (name === a.name && description === (a.description ?? '')) {
+      this.editingAttachmentId.set(null);
+      return;
+    }
+
+    this.attachmentActionId.set(a.id);
+    // description: "" açıklamayı temizler
+    this.attachmentService.update({ id: a.id, name, description }).subscribe({
+      next: (updated) => {
+        this.attachments.update(list => list.map(x => x.id === a.id ? { ...x, ...(updated ?? { name, description }) } : x));
+        this.attachmentActionId.set(null);
+        this.editingAttachmentId.set(null);
+      },
+      error: (err) => {
+        this.attachmentActionId.set(null);
+        this.toast.showToast('Ek güncellenemedi', incomingErrorMessage(err, 'Ek bilgileri kaydedilemedi.'), 'error');
+      }
+    });
+  }
+
+  removeAttachment(a: IncomingDocumentAttachmentModel) {
+    if (this.attachmentsReadOnly()) return;
+    const userId = this.user()?.id;
+    if (!userId) {
+      this.toast.showToast('Hata', 'Kullanıcı bilgisi alınamadı', 'error');
+      return;
+    }
+    this.toast.showSwal('Eki Sil', `"${a.name}" eki silinsin mi? Ek, Atlas'a gidecek pakete de eklenmez.`, 'Sil', () => {
+      this.attachmentActionId.set(a.id);
+      this.attachmentService.remove(a.id, userId).subscribe({
+        next: () => {
+          this.attachmentActionId.set(null);
+          this.attachments.update(list => list.filter(x => x.id !== a.id));
+          if (this.previewAttachment()?.id === a.id) this.closeAttachmentPreview();
+          // Son elektronik ek silinince backend "Ek var" bilgisini değiştirmez
+          if (!this.attachments().length && this.formDetail.controls['hasAttachment'].value === true) {
+            this.toast.showToast('Ek silindi',
+              "Evrakta başka (fiziki) ek yoksa Diğer Bilgiler sekmesinde \"Ek Var mı?\" alanını güncelleyin.", 'info');
+          } else {
+            this.toast.showToast('Ek silindi', `"${a.name}" kaldırıldı.`, 'success');
+          }
+        },
+        error: (err) => {
+          this.attachmentActionId.set(null);
+          this.toast.showToast('Ek silinemedi', incomingErrorMessage(err, 'Ek kaldırılamadı.'), 'error');
+        }
+      });
+    });
+  }
+
+  // ---- Ek önizleme: sağ panelde ana belgenin yerine gösterilir ----
+  // Dosya blob olarak alınır (Download ileride token isteyecek; doğrudan adres verilmez).
+  readonly previewAttachment = signal<IncomingDocumentAttachmentModel | null>(null);
+  readonly previewLoading = signal(false);
+  private readonly previewBlobUrl = signal<string | null>(null);
+  readonly previewUrl = computed<SafeResourceUrl | null>(() => {
+    const url = this.previewBlobUrl();
+    return url ? this.sanitizer.bypassSecurityTrustResourceUrl(url + '#zoom=80') : null;
+  });
+  private previewSub?: Subscription;
+
+  // Başlıkta ekin güncel adı ve sırası (yeniden adlandırma / sıralama sonrası da doğru kalır)
+  readonly previewInfo = computed(() => {
+    const p = this.previewAttachment();
+    if (!p) return null;
+    const i = this.attachments().findIndex(x => x.id === p.id);
+    return { a: i >= 0 ? this.attachments()[i] : p, no: i >= 0 ? i + 1 : '' };
+  });
+
+  showAttachment(a: IncomingDocumentAttachmentModel) {
+    if (this.previewAttachment()?.id === a.id) return;
+    this.closeAttachmentPreview();
+    this.previewAttachment.set(a);
+    this.previewLoading.set(true);
+    this.previewSub = this.attachmentService.download(a.id).subscribe({
+      next: (blob) => {
+        this.previewBlobUrl.set(URL.createObjectURL(blob));
+        this.previewLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Ek açılamadı:', err);
+        this.closeAttachmentPreview();
+        this.toast.showToast('Ek açılamadı', 'Ek dosyası bulunamadı.', 'error');
+      }
+    });
+  }
+
+  closeAttachmentPreview() {
+    this.previewSub?.unsubscribe();
+    const url = this.previewBlobUrl();
+    if (url) URL.revokeObjectURL(url);
+    this.previewBlobUrl.set(null);
+    this.previewAttachment.set(null);
+    this.previewLoading.set(false);
+  }
+
+  openAttachmentInNewTab(a: IncomingDocumentAttachmentModel) {
+    this.attachmentService.openInNewTab(a).subscribe({
+      error: () => this.toast.showToast('Ek açılamadı', 'Ek dosyası bulunamadı.', 'error')
+    });
+  }
+
+  downloadAttachment(a: IncomingDocumentAttachmentModel) {
+    this.attachmentService.saveToDisk(a).subscribe({
+      error: () => this.toast.showToast('Ek indirilemedi', 'Ek dosyası bulunamadı.', 'error')
+    });
+  }
+
 
   displayInstitution(inst: ExternalInstitutionModel): string {
     return inst?.name ?? '';
@@ -468,6 +965,10 @@ export default class Evrakkayit implements OnInit {
   }
 
   saveDetail() {
+    if (this.formDetail.controls['attachmentDescription'].hasError('maxlength')) {
+      this.toast.showToast("Ek açıklaması çok uzun", `Ek açıklaması en fazla ${ATTACHMENT_DESCRIPTION_MAX} karakter olabilir.`, "warning");
+      return;
+    }
     if (!this.formDetail.valid) {
       this.toast.showToast("Eksik bilgi var", "Lütfen gerekli alanları doldurun");
       return;
@@ -480,13 +981,24 @@ export default class Evrakkayit implements OnInit {
     }
     const raw = this.formDetail.value;
 
+    // Ek açıklaması yalnızca "Var" seçiliyken gönderilir. "Yok" seçilince sunucu açıklamayı
+    // kendisi siler; belirtilmemişse (null) alan gönderilmez ve mevcut değer korunur.
+    const hasAttachment: boolean | null = raw.hasAttachment ?? null;
+    const attachmentDescription = hasAttachment === true
+      ? (raw.attachmentDescription ?? '').trim()
+      : hasAttachment === false ? '' : null;
+
     const formData: IncomingDocumentModel = {
       ...raw,
+      hasAttachment,
+      attachmentDescription,
       // Evrak Kayıt sekmesine taşınan alanlar detay güncellemesinde de gönderilir;
       // aksi halde Update bu alanları boşaltabilir.
       securityDegree: this.form.value.securityDegree,
       urgencyDegree: this.form.value.urgencyDegree,
-      actionRequired: this.form.value.actionRequired,
+      // Alıcılar (recipients) ve departmentId gönderilmez: sunucudaki "Nereye" listesine
+      // dokunulmaz. Gereği/Bilgi, kayıtlı alıcılardan hesaplanan değerle korunur.
+      actionRequired: this.actionRequiredOf(this.savedRecipients),
       userId: userId
     };
 
@@ -518,14 +1030,32 @@ export default class Evrakkayit implements OnInit {
       return;
     }
 
+    // Ek yükleme / sıralama bitmeden kaydedilmez: yayın eklerden önce kuyruğa girerse ekler Atlas'a gitmeyebilir
+    if (this.attachmentsBusy()) {
+      this.toast.showToast("Bekleyiniz", "Ek işlemleri tamamlanınca kaydedebilirsiniz.", "warning");
+      return;
+    }
+    if (this.recipientsLoading()) {
+      this.toast.showToast("Bekleyiniz", "Nereye alıcıları yükleniyor.", "warning");
+      return;
+    }
+    const recipients = this.recipientsPayload();
+    const recipientError = recipients ? this.recipientValidationError() : null;
+    if (recipientError) {
+      this.toast.showToast("Nereye", recipientError, "warning");
+      return;
+    }
+
     const publishing = this.publish();
     // Yayınla sırasında butonlar hemen kilitlenir (çift tıklamada evrak iki kez sıraya girmesin)
     if (publishing) this.activeStatus.set(true);
 
+    // departmentId gönderilmez: "Nereye" artık recipients listesidir. recipients undefined ise
+    // (alıcılar okunamadı / salt okunur) alan gönderilmez ve sunucudaki alıcılara dokunulmaz.
     const formData: IncomingDocumentModel = {
       ...raw,
-      departmentId: raw.departmentId?.id ?? null,
       externalInstitutionId: raw.externalInstitutionId?.id ?? null,
+      ...(recipients ? { recipients } : { actionRequired: this.actionRequiredOf(this.savedRecipients) }),
       userId: userId,
       status: INCOMING_STATUS_KAYIT,
       // Oluşturan kullanıcı yalnızca ilk kayıtta yazılır; güncellemede değişmez.
@@ -538,17 +1068,22 @@ export default class Evrakkayit implements OnInit {
     // Yayınla, Update'e status 6 gönderir: backend evrakın akış durumuna dokunmaz, yayın
     // durumunu (submissionStatus) Aktarım Sırasında yapar. Ön Kayıt'taki evrak bu yüzden
     // önce Kayıt Tamamlandı (2) olarak kaydedilir, ardından yayına gönderilir.
+    // İlk kayıtta Kaydet adımı başarılı olup yayın reddedilirse evrak yine Kayıt Tamamlandı'dır
+    let registered = false;
     let saveObs: Observable<unknown>;
+    // Hata mesajı (ör. alıcı doğrulaması) backend'in Errors / Message alanından ekranda gösterilir
     if (!formData.id) {
-      saveObs = this.incomingDocumentService.createIncomingDocument(
-        publishing ? { ...formData, status: INCOMING_STATUS_PUBLISH_REQUEST } : formData);
+      saveObs = publishing
+        ? this.incomingDocumentService.createAndPublishIncomingDocument(formData)
+        : this.incomingDocumentService.createIncomingDocument(formData, false);
     } else if (!publishing) {
-      saveObs = this.incomingDocumentService.updateIncomingDocument(formData);
+      saveObs = this.incomingDocumentService.updateIncomingDocument(formData, false);
     } else {
-      const publishRequest = this.incomingDocumentService.updateIncomingDocument(
-        { ...formData, status: INCOMING_STATUS_PUBLISH_REQUEST });
+      const publishRequest = this.incomingDocumentService.publishIncomingDocument(formData);
       saveObs = isFirstRegistration
-        ? this.incomingDocumentService.updateIncomingDocument(formData).pipe(switchMap(() => publishRequest))
+        ? this.incomingDocumentService.updateIncomingDocument(formData, false).pipe(
+            tap(() => registered = true),
+            switchMap(() => publishRequest))
         : publishRequest;
     }
 
@@ -567,9 +1102,13 @@ export default class Evrakkayit implements OnInit {
 
         this.toast.showToast("Başarılı", msg);
 
+        if (recipients) this.markRecipientsSaved(recipients);
         this.docStatus.set(nextStatus);
         this.formDetail.patchValue({ status: nextStatus });
-        if (publishing) this.publishState.set(PublishStatusEnum.AktarimSirasinda);
+        if (publishing) {
+          this.publishState.set(PublishStatusEnum.AktarimSirasinda);
+          this.publishError.set(null);
+        }
 
         // Aynı ekranda tekrar kaydedilirse devir yeniden tetiklenmez
         this.loadedStatus.set(nextStatus);
@@ -581,9 +1120,34 @@ export default class Evrakkayit implements OnInit {
       error: (err) => {
         console.error(err);
         if (publishing) this.activeStatus.set(false);
-        this.toast.showToast("Kayıt Başarısız", "Belge kaydedilirken bir hata oluştu.");
+
+        if (registered && formData.id) {
+          if (recipients) this.markRecipientsSaved(recipients);
+          this.docStatus.set(INCOMING_STATUS_KAYIT);
+          this.formDetail.patchValue({ status: INCOMING_STATUS_KAYIT });
+          this.loadedStatus.set(INCOMING_STATUS_KAYIT);
+          this.transferAllocationToMe(formData.id, userId);
+        }
+
+        if (publishing) {
+          // Backend eksik bilgiyi açıklar (ör. "Evrak Atlas'a aktarılamaz: Konu girilmemiş.").
+          // Yeni evrak bu durumda hiç kaydedilmez; form açık kalır, eksik doldurulup tekrar Yayınla denir.
+          const reason = incomingErrorMessage(err, "Evrak Atlas'a aktarım sırasına alınamadı.");
+          this.toast.showToast(
+            registered ? "Kaydedildi, yayınlanamadı" : "Yayınlanamadı", reason, "error");
+          return;
+        }
+        this.toast.showToast("Kayıt Başarısız",
+          incomingErrorMessage(err, "Belge kaydedilirken bir hata oluştu."), "error");
       }
     });
+  }
+
+  // Kaydedilen alıcı listesi sunucudakiyle aynıdır; evrağın Gereği/Bilgi değeri de bundan hesaplanır
+  private markRecipientsSaved(recipients: IncomingDocumentRecipientInput[]) {
+    this.savedRecipients = recipients;
+    const doc = this.loadedDoc();
+    if (doc) this.loadedDoc.set({ ...doc, actionRequired: this.actionRequiredOf(recipients) });
   }
 
   // İlk kayıtta zimmet devri: ön kaydı yapan personelin üzerindeki zimmet, kaydı
@@ -614,12 +1178,10 @@ export default class Evrakkayit implements OnInit {
 
       this.form.patchValue({
         ...doc,
-        departmentId: null,
         externalInstitutionId: null,
         documentDate: doc.documentDate?.split('T')[0],
         securityDegree: doc.securityDegree ?? DETAIL_DEFAULTS.securityDegree,
-        urgencyDegree: doc.urgencyDegree ?? DETAIL_DEFAULTS.urgencyDegree,
-        actionRequired: doc.actionRequired ?? DETAIL_DEFAULTS.actionRequired
+        urgencyDegree: doc.urgencyDegree ?? DETAIL_DEFAULTS.urgencyDegree
       });
 
       if (doc.status) this.docStatus.set(doc.status);
@@ -627,8 +1189,9 @@ export default class Evrakkayit implements OnInit {
 
       this.applyDocumentFile(doc);
 
-      this.applyDepartment(doc.departmentId);
-      this.applyExternalInstitution(doc.externalInstitutionId);
+      this.loadRecipients(doc.id);
+      this.loadAttachments(doc.id);
+      this.applyExternalInstitution(doc);
 
       this.patchDetail(doc);
 
@@ -642,39 +1205,19 @@ export default class Evrakkayit implements OnInit {
       languageId: doc.languageId ?? DETAIL_DEFAULTS.languageId,
       electronicCopy: doc.electronicCopy ?? DETAIL_DEFAULTS.electronicCopy,
       pageCount: doc.pageCount,
+      hasAttachment: doc.hasAttachment ?? null,
+      attachmentDescription: doc.attachmentDescription ?? '',
       ocrStatus: doc.ocrStatus,
       release: doc.release,
       status: doc.status,
     });
   }
 
-  private applyExternalInstitution(id?: string | null) {
-    if (!id) return;
-
-    if (!this.externalInstitutions.length) {
-      this.pendingExternalInstitutionId = id;
-      return;
-    }
-
-    const found = this.externalInstitutions.find(d => d.id === id);
-    if (found) {
-      this.externalInstitutionControl.setValue(found);
-    }
-  }
-
-
-  private applyDepartment(id?: string | null) {
-    if (!id) return;
-
-    if (!this.departments.length) {
-      setTimeout(() => this.applyDepartment(id), 100);
-      return;
-    }
-
-    const found = this.departments.find(d => d.id === id);
-    if (found) {
-      this.form.controls['departmentId'].setValue(found);
-    }
+  // Seçili kurum evraktaki id ve cevaptaki adla kurulur (liste beklenmez)
+  private applyExternalInstitution(doc: IncomingDocumentModel) {
+    const id = doc.externalInstitutionId;
+    if (id === null || id === undefined) return;
+    this.externalInstitutionControl.setValue({ id, name: doc.externalInstitutionName || '', type: 0 });
   }
 
 
@@ -759,6 +1302,10 @@ export default class Evrakkayit implements OnInit {
     7: 'task_alt',
     8: 'document_scanner',
     9: 'assured_workload',
+    18: 'verified',
+    19: 'cloud_off',
+    20: 'attach_file_add',
+    21: 'link_off',
   };
 
   private readonly transactionColorMap: Record<number, string> = {
@@ -768,6 +1315,10 @@ export default class Evrakkayit implements OnInit {
     7: 'transaction-dot-success',
     8: 'transaction-dot-warning',
     9: 'transaction-dot-secondary',
+    18: 'transaction-dot-success',
+    19: 'transaction-dot-danger',
+    20: 'transaction-dot-info',
+    21: 'transaction-dot-secondary',
   };
 
   transactionIcon(type: number): string {

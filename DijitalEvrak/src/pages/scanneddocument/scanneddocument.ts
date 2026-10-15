@@ -20,9 +20,13 @@ import { Common } from '../../services/common';
 import { firstValueFrom } from 'rxjs';
 import { Router } from '@angular/router';
 import { IncomingDocumentService } from '../../services/incomingdocument';
+import { ScanThumb } from './scan-thumb';
+
+/** Küçük resim görünümünde bir sayfadaki evrak sayısı */
+const GRID_PAGE_SIZE = 10;
 
 @Component({
-  imports: [CommonModule, GenericModel],
+  imports: [CommonModule, GenericModel, ScanThumb],
   templateUrl: './scanneddocument.html',
   // Görsel dil Ön Kayıt / Evrak Kayıt ekranlarıyla aynı; ortak zm-* sınıfları
   // zimmet.css'ten gelir, görüntüleyici ve eşleştirme özeti (sd-*) bu ekrana özgüdür.
@@ -55,6 +59,47 @@ export default class Scanneddocument implements OnInit, OnDestroy {
     );
   });
 
+  // ---- Görünüm: tek evrak (solda büyük evrak, sağda eşleştirme) ya da küçük resim ızgarası ----
+  readonly viewMode = signal<'single' | 'grid'>('single');
+  readonly gridPage = signal(0);
+  readonly gridPageCount = computed(() => Math.max(1, Math.ceil(this.scannedDocuments().length / GRID_PAGE_SIZE)));
+  /** Izgaradaki evraklar; index tüm listedeki sırasıdır (seçilince tek evrak görünümünde o açılır) */
+  readonly gridItems = computed(() => {
+    const start = this.gridPage() * GRID_PAGE_SIZE;
+    return this.scannedDocuments()
+      .slice(start, start + GRID_PAGE_SIZE)
+      .map((doc, i) => ({ doc, index: start + i, url: this.service.getPdfUrl(doc.fileName) }));
+  });
+  readonly gridRangeLabel = computed(() => {
+    const total = this.scannedDocuments().length;
+    const start = this.gridPage() * GRID_PAGE_SIZE;
+    return total ? `${start + 1}–${Math.min(start + GRID_PAGE_SIZE, total)} / ${total}` : '0';
+  });
+
+  showGrid() {
+    // Açık evrakın bulunduğu sayfadan başlanır
+    this.gridPage.set(Math.floor(this.currentIndex() / GRID_PAGE_SIZE));
+    this.viewMode.set('grid');
+    this.buffer = '';
+  }
+
+  showSingle() {
+    this.viewMode.set('single');
+    this.focusQrInputSoon();
+  }
+
+  selectFromGrid(index: number) {
+    if (index !== this.currentIndex()) {
+      this.currentIndex.set(index);
+      this.resetQr();
+    }
+    this.showSingle();
+  }
+
+  setGridPage(page: number) {
+    this.gridPage.set(Math.min(Math.max(0, page), this.gridPageCount() - 1));
+  }
+
   readonly isLoading = signal(false);
   readonly saving = signal(false);
   // Yükleme göstergesi yalnızca basılan düğmede görünür.
@@ -78,7 +123,8 @@ export default class Scanneddocument implements OnInit, OnDestroy {
       const target = e.target as HTMLElement | null;
       const tag = target?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable) return;
-      if (!this.currentDocument() || this.saving()) return;
+      // Izgarada numara alanı yoktur; okutma tek evrak görünümünde yapılır
+      if (!this.currentDocument() || this.saving() || this.viewMode() === 'grid') return;
 
       if (e.key === 'Enter') {
         this.onQrScanned(this.buffer.trim());
@@ -107,6 +153,8 @@ export default class Scanneddocument implements OnInit, OnDestroy {
       // Eşleşen evrak listeden düştüğü için aynı sıra bir sonraki evrağı gösterir; eşleşen evrak
       // listenin sonundaysa önceki (zaten geçilmiş) evraka dönmek yerine baştan devam edilir.
       this.currentIndex.set(index < docs.length ? index : 0);
+      // Liste kısaldıysa ızgara son sayfaya çekilir
+      this.setGridPage(this.gridPage());
     } catch (err) {
       console.error(err);
       this.scannedDocuments.set([]);

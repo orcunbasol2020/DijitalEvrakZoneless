@@ -2,6 +2,32 @@
   [breadcrumbs]="[{ title: 'Dış Kurumlar', url: 'externalinstitution', icon: '' }]">
 </app-generic>
 
+<!-- Kurumlar kaynak sistemden (ComAgency) gelir; burada yalnızca aranır ve listelenir -->
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+  <div class="btn-group" role="group" aria-label="Kurum türü">
+    @for (t of types; track t) {
+      <button type="button" class="btn btn-sm"
+        [class.btn-primary]="type() === t" [class.btn-outline-secondary]="type() !== t"
+        [attr.aria-pressed]="type() === t" (click)="setType(t)">{{ typeLabels[t] }}</button>
+    }
+  </div>
+  <input type="search" class="form-control form-control-sm" style="max-width: 320px"
+    placeholder="Ad ya da DETSİS numarası" aria-label="Kurum ara" autocomplete="off"
+    [value]="search()" (input)="onSearch($any($event.target).value)">
+</div>
+
+@if (needsSearch()) {
+  <div class="alert alert-light border d-flex align-items-center gap-2 small">
+    <span class="material-symbols-outlined text-secondary">search</span>
+    Kamu kurumları (DETSİS, ~160.000 kayıt) yalnızca aramayla listelenir: en az {{ minSearch }} harf ya da DETSİS numarası yazın.
+  </div>
+} @else if (truncated()) {
+  <div class="alert alert-light border d-flex align-items-center gap-2 small">
+    <span class="material-symbols-outlined text-secondary">info</span>
+    İlk {{ data().length }} sonuç gösteriliyor; daha az sonuç için aramayı daraltın.
+  </div>
+}
+
 <div [class.show-filters]="showFilters">
   <flexi-grid
     [data]="data()"
@@ -10,12 +36,10 @@
     [showCaption]="true"
     captionTitle="Dış Kurumlar"
     [showExportExcelBtn]="true"
-    exportExcelFileName="externalInstitution"
+    exportExcelFileName="dis-kurumlar"
     [filterable]="true"
     (onRefresh)="result.reload()">
     <ng-template flexiGridCaptionCommandTemplate>
-
-      <!-- Filtre Aç/Kapa butonu -->
       <flexi-button
         btnIcon="filter_alt"
         btnColor="light"
@@ -23,117 +47,23 @@
         flexiTooltip
         (click)="showFilters = !showFilters">
       </flexi-button>
-
-      <flexi-button
-        (click)="openCreateModal()"
-        btnIcon="add"
-        btnColor="primary"
-        title="Kurum Ekle"
-        flexiTooltip />
     </ng-template>
 
     <flexi-grid-column field="name" title="Adı" />
-    <flexi-grid-column field="type" title="Tür" width="100px">
+    <flexi-grid-column field="type" title="Tür" width="140px">
       <ng-template flexiGridCellTemplate let-item>
-        {{ typeMap[+item.type] || '-' }}
+        {{ typeLabels[+item.type] || '-' }}
       </ng-template>
     </flexi-grid-column>
-    <flexi-grid-column field="address" title="Adres" />
-    <flexi-grid-column field="parentId" title="Bağlı Olduğu Kurum" width="180px">
+    <flexi-grid-column field="detsisCode" title="DETSİS No" width="110px">
       <ng-template flexiGridCellTemplate let-item>
-        {{ parentName(item.parentId) }}
+        {{ item.detsisCode || '-' }}
       </ng-template>
     </flexi-grid-column>
-
-    <flexi-grid-column field="isDeleted" title="Silindi" textAlign="center"
-      filterType="boolean" [booleanData]="['Silindi', 'Silinmedi']"
-      width="90px">
+    <flexi-grid-column field="address" title="Adres">
       <ng-template flexiGridCellTemplate let-item>
-        <div class="d-flex justify-content-center">
-          <span
-            class="material-symbols-outlined"
-            style="font-size: 1.35rem;"
-            [ngStyle]="{ color: item.isDeleted ? '#e53935' : '#4CAF50' }">
-            {{ item.isDeleted ? 'cancel' : 'check_circle' }}
-          </span>
-        </div>
+        {{ item.address || '-' }}
       </ng-template>
     </flexi-grid-column>
-
-    <ng-template flexiGridColumnCommandTemplate let-item width="90px">
-      <flexi-button
-        (click)="openEditModal(item)"
-        btnIcon="edit"
-        btnColor="info"
-        title="Güncelle"
-        flexiTooltip />
-
-      <flexi-button
-        (click)="delete(item)"
-        btnIcon="delete"
-        btnColor="warning"
-        title="Sil"
-        flexiTooltip />
-    </ng-template>
   </flexi-grid>
 </div>
-
-<!-- Ekle / Düzenle Modal -->
-@if (modalVisible()) {
-  <div class="modal-overlay" (click)="closeModal()">
-    <div class="modal-box" style="width: 420px;" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h5 class="d-flex align-items-center mb-0">
-          <span class="material-symbols-outlined me-2 text-secondary">apartment</span>
-          {{ editingId() ? 'Kurumu Güncelle' : 'Yeni Kurum Ekle' }}
-        </h5>
-      </div>
-      <div class="modal-body">
-        <div class="mb-3">
-          <label class="form-label">Kurum Adı</label>
-          <input
-            type="text"
-            class="form-control"
-            placeholder="Örn. Dışişleri Bakanlığı"
-            [(ngModel)]="form.name" />
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">Tür</label>
-          <select class="form-select" [(ngModel)]="form.type">
-            <option [ngValue]="1">Misyon</option>
-            <option [ngValue]="2">Kurum</option>
-            <option [ngValue]="3">Şahıs</option>
-          </select>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">Adres</label>
-          <textarea
-            class="form-control"
-            rows="2"
-            [(ngModel)]="form.address"></textarea>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">Bağlı Olduğu Kurum</label>
-          <select class="form-select" [(ngModel)]="form.parentId">
-            <option [ngValue]="null">Yok</option>
-            <option *ngFor="let p of parentOptions()" [ngValue]="p.id">
-              {{ p.name }}
-            </option>
-          </select>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" [disabled]="saving()" (click)="closeModal()">İptal</button>
-        <button class="btn btn-primary" [disabled]="saving()" (click)="save()">
-          @if (saving()) {
-            <span class="spinner-border spinner-border-sm me-1"></span>
-          }
-          Kaydet
-        </button>
-      </div>
-    </div>
-  </div>
-}

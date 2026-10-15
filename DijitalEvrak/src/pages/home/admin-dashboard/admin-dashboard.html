@@ -6,10 +6,10 @@
     <div class="ad-hero-text">
         <div class="ad-hero-kicker">
             <span class="material-symbols-outlined">shield_person</span>
-            YÖNETİCİ PANELİ
+            Yönetici Paneli
         </div>
         <div class="ad-hero-sub">
-            <span class="ad-hero-date">{{ today | date:'EEEE, d MMMM yyyy' }}</span>
+            <span class="ad-hero-date">{{ today | date:'d MMMM yyyy, EEEE' }}</span>
             <span class="ad-hero-dot"></span>
             <span>Son güncelleme {{ lastUpdated() | date:'HH:mm' }}</span>
         </div>
@@ -33,16 +33,18 @@
 
 <!-- ===================== İstatistik kartları ===================== -->
 <div class="ad-stats">
-    @for (s of stats; track s.label) {
+    @for (s of stats(); track s.label) {
         <a class="ad-stat" [routerLink]="s.url" [title]="s.hint">
             <div class="ad-stat-body">
                 <div class="ad-stat-label">{{ s.label }}</div>
-                <div class="ad-stat-value">{{ s.value }}</div>
+                <div class="ad-stat-value">{{ statsLoading() ? '…' : s.value }}</div>
                 <div class="ad-stat-foot">
-                    <span class="ad-trend" [class.is-up]="s.trend >= 0" [class.is-down]="s.trend < 0">
-                        <span class="material-symbols-outlined">{{ s.trend >= 0 ? 'trending_up' : 'trending_down' }}</span>
-                        {{ s.trend >= 0 ? '+' : '' }}{{ s.trend | number:'1.1-1' }}%
-                    </span>
+                    @if (!statsLoading() && s.trend !== null) {
+                        <span class="ad-trend" [class.is-up]="s.trend >= 0" [class.is-down]="s.trend < 0">
+                            <span class="material-symbols-outlined">{{ s.trend >= 0 ? 'trending_up' : 'trending_down' }}</span>
+                            {{ s.trend >= 0 ? '+' : '' }}{{ s.trend | number:'1.1-1' }}%
+                        </span>
+                    }
                     <span class="ad-stat-period">{{ s.period }}</span>
                 </div>
             </div>
@@ -57,8 +59,8 @@
 <!-- ===================== Son evraklar / anlık durum / AI ===================== -->
 <div class="row g-3 mb-4">
     <div class="col-lg-6">
-        <!-- Son Gelen Evraklar: Gelen Evrak paneliyle ortak bileşen -->
-        <app-currentdocument allLink="/documentlist" [showCustodian]="false" class="d-block h-100"></app-currentdocument>
+        <!-- Yüksek Öncelikli Evraklar: Gelen Evrak panelindeki Son Gelen Evraklar ile ortak bileşen -->
+        <app-currentdocument mode="attention" allLink="/documentlist" [showSubtitle]="false" class="d-block h-100"></app-currentdocument>
     </div>
 
     <div class="col-lg-3">
@@ -82,12 +84,16 @@
                 </span>
                 <div class="ad-head-text">
                     <h5 class="ad-head-title ad-head-title-low">Misyon Evrak Yoğunluk Haritası</h5>
-                    <div class="ad-head-sub">Dış temsilciliklerden gelen evrak dağılımı</div>
+                    <div class="ad-head-sub">{{ mapTab() === 'incoming' ? 'Yabancı misyonlardan gelen evrak' : 'Yabancı misyonlara giden evrak' }} · son {{ mapDays }} gün</div>
                 </div>
-                <span class="ad-period">Son 10 gün</span>
+                <div class="ad-tabs">
+                    <button type="button" class="ad-tab" [class.is-active]="mapTab() === 'incoming'" (click)="mapTab.set('incoming')">Gelen</button>
+                    <button type="button" class="ad-tab" [class.is-active]="mapTab() === 'outgoing'" (click)="mapTab.set('outgoing')">Giden</button>
+                </div>
             </div>
             <div class="card-body">
-                <app-map-world></app-map-world>
+                <app-map-world [countries]="missionMap()" [loading]="statsLoading()" [failed]="rankingFailed()"
+                    [emptyText]="mapTab() === 'incoming' ? 'Son ' + mapDays + ' günde misyonlardan evrak gelmedi.' : 'Son ' + mapDays + ' günde misyonlara evrak gönderilmedi.'"></app-map-world>
             </div>
         </div>
     </div>
@@ -112,59 +118,7 @@
 <!-- ===================== Nota / birimler ===================== -->
 <div class="row g-3 mb-4">
     <div class="col-lg-6">
-        <div class="card premium-card h-100">
-            <div class="card-header dashboard-header ad-head">
-                <span class="ad-head-icon">
-                    <span class="material-symbols-outlined">history_edu</span>
-                </span>
-                <div class="ad-head-text">
-                    <h5 class="ad-head-title ad-head-title-low">Diplomatik Nota Sayıları</h5>
-                    <div class="ad-head-sub">Temsilciliklere göre gelen ve gönderilen notalar</div>
-                </div>
-                <span class="ad-period">Son 7 gün</span>
-                <a routerLink="/documentlist" class="ad-link">
-                    Tümü
-                    <span class="material-symbols-outlined">chevron_right</span>
-                </a>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <!-- Bayrak temsilcilik hücresinde, sayılar düz ve sağa hizalı, sağda gelen/gönderilen dağılım çubuğu -->
-                    <table class="table customers-table ad-list-table mb-3">
-                        <thead>
-                            <tr>
-                                <th scope="col">TEMSİLCİLİK</th>
-                                <th scope="col" class="ad-num-col">GELEN</th>
-                                <th scope="col" class="ad-num-col">GÖNDERİLEN</th>
-                                <th scope="col" class="ad-share-col" title="Gelen ve gönderilen notaların payı">DAĞILIM</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @for (row of notaRows; track row.flag) {
-                                <tr>
-                                    <td>
-                                        <div class="ad-nota-mission">
-                                            <img class="ad-nota-flag" [src]="'assets/images/bayraklar/' + row.flag + '.png'" [alt]="row.country" />
-                                            <div class="ad-nota-text">
-                                                <div class="ad-nota-country">{{ row.country }}</div>
-                                                <div class="ad-nota-name" [title]="row.missionOfficial">{{ row.mission }}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="ad-num-col"><span class="ad-num">{{ row.incoming }}</span></td>
-                                    <td class="ad-num-col"><span class="ad-num">{{ row.outgoing }}</span></td>
-                                    <td class="ad-share-col">
-                                        <div class="ad-share" [title]="'%' + incomingShare(row) + ' gelen, %' + (100 - incomingShare(row)) + ' gönderilen'">
-                                            <span class="ad-share-in" [style.width.%]="incomingShare(row)"></span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+        <app-nota-counts class="d-block h-100" />
     </div>
 
     <div class="col-lg-6">
@@ -175,16 +129,22 @@
                 </span>
                 <div class="ad-head-text">
                     <h5 class="ad-head-title ad-head-title-low">En Çok Bekleyen Evrakı Olan Birimler</h5>
-                    <div class="ad-head-sub">Birim evrak sorumluları ve bekleyen evrak sayıları</div>
                 </div>
-                <a routerLink="/birimler" class="ad-link">
+                <a routerLink="/teslim-bekleyenler" class="ad-link">
                     Tümü
                     <span class="material-symbols-outlined">chevron_right</span>
                 </a>
             </div>
             <div class="card-body p-0">
+                @if (statsLoading()) {
+                    <div class="ad-nota-state"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Yükleniyor...</div>
+                } @else if (rankingFailed()) {
+                    <div class="ad-nota-state"><span class="material-symbols-outlined">error</span> Veriler alınamadı.</div>
+                } @else if (pendingUnits().length === 0) {
+                    <div class="ad-nota-state"><span class="material-symbols-outlined">task_alt</span> Teslim alınmayı bekleyen evrak yok.</div>
+                } @else {
                 <div class="table-responsive">
-                    <!-- Birim kodu + tam ad, sorumlular alt alta (dahili ipucunda), bekleyen sayısı + en yükseğe oranlı çubuk -->
+                    <!-- Birim kodu + tam ad, sorumlular alt alta (e-posta ipucunda), bekleyen sayısı + en yükseğe oranlı çubuk -->
                     <table class="table customers-table ad-list-table mb-3">
                         <thead>
                             <tr>
@@ -194,21 +154,25 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @for (unit of pendingUnits; track unit.code) {
+                            @for (unit of pendingUnits(); track unit.id) {
                                 <tr>
                                     <td>
                                         <div class="ad-unit">
-                                            <div class="ad-unit-code">{{ unit.code }}</div>
+                                            @if (unit.code) {
+                                                <div class="ad-unit-code">{{ unit.code }}</div>
+                                            }
                                             <div class="ad-unit-name" [title]="unit.name">{{ unit.name }}</div>
                                         </div>
                                     </td>
                                     <td>
                                         <div class="ad-unit-owners">
-                                            @for (owner of unit.owners; track owner.name) {
-                                                <div class="ad-unit-owner" [title]="'Dahili: ' + owner.ext">
+                                            @for (owner of unit.owners; track $index) {
+                                                <div class="ad-unit-owner" [title]="owner.email">
                                                     <span class="material-symbols-outlined">person</span>
                                                     {{ owner.name }}
                                                 </div>
+                                            } @empty {
+                                                <div class="ad-unit-owner text-muted">Sorumlu tanımlı değil</div>
                                             }
                                         </div>
                                     </td>
@@ -225,6 +189,7 @@
                         </tbody>
                     </table>
                 </div>
+                }
             </div>
         </div>
     </div>
@@ -239,8 +204,8 @@
                     <span class="material-symbols-outlined">bar_chart</span>
                 </span>
                 <div class="ad-head-text">
-                    <h5 class="ad-head-title ad-head-title-low">En Çok Evrak Gelen Birimler</h5>
-                    <div class="ad-head-sub">Birimlere göre evrak hacmi</div>
+                    <h5 class="ad-head-title ad-head-title-low">{{ centerTab() === 'incoming' ? 'En Çok Evrak Gelen Birimler' : 'En Çok Evrak Gönderen Birimler' }}</h5>
+                    <div class="ad-head-sub">İlk 5 · önceki 30 günle</div>
                 </div>
                 <div class="ad-tabs">
                     <button type="button" class="ad-tab" [class.is-active]="centerTab() === 'incoming'" (click)="centerTab.set('incoming')">Gelen</button>
@@ -248,7 +213,15 @@
                 </div>
             </div>
             <div class="card-body">
-                <center-chart></center-chart>
+                @if (statsLoading()) {
+                    <div class="ad-nota-state"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Yükleniyor...</div>
+                } @else if (rankingFailed()) {
+                    <div class="ad-nota-state"><span class="material-symbols-outlined">error</span> Veriler alınamadı.</div>
+                } @else if (unitsEmpty()) {
+                    <div class="ad-nota-state"><span class="material-symbols-outlined">inbox</span> {{ centerTab() === 'incoming' ? 'Son 30 günde birimlere evrak gelmedi.' : 'Son 30 günde birimlerden evrak gönderilmedi.' }}</div>
+                } @else {
+                    <div [reportChart]="unitCompareOption()" class="ad-compare-chart"></div>
+                }
             </div>
         </div>
     </div>
@@ -260,16 +233,24 @@
                     <span class="material-symbols-outlined">flag</span>
                 </span>
                 <div class="ad-head-text">
-                    <h5 class="ad-head-title ad-head-title-low">En Çok Evrak Gelen Misyonlar</h5>
-                    <div class="ad-head-sub">Dış temsilciliklere göre evrak hacmi</div>
+                    <h5 class="ad-head-title ad-head-title-low">{{ missionTab() === 'incoming' ? 'En Çok Evrak Gelen Misyonlar' : 'En Çok Evrak Gönderilen Misyonlar' }}</h5>
+                    <div class="ad-head-sub">İlk 5 · önceki 30 günle</div>
                 </div>
                 <div class="ad-tabs">
                     <button type="button" class="ad-tab" [class.is-active]="missionTab() === 'incoming'" (click)="missionTab.set('incoming')">Gelen</button>
                     <button type="button" class="ad-tab" [class.is-active]="missionTab() === 'outgoing'" (click)="missionTab.set('outgoing')">Giden</button>
                 </div>
             </div>
-            <div class="card-body p-2">
-                <mission-chart></mission-chart>
+            <div class="card-body">
+                @if (statsLoading()) {
+                    <div class="ad-nota-state"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Yükleniyor...</div>
+                } @else if (rankingFailed()) {
+                    <div class="ad-nota-state"><span class="material-symbols-outlined">error</span> Veriler alınamadı.</div>
+                } @else if (missionsEmpty()) {
+                    <div class="ad-nota-state"><span class="material-symbols-outlined">inbox</span> {{ missionTab() === 'incoming' ? 'Son 30 günde misyonlardan evrak gelmedi.' : 'Son 30 günde misyonlara evrak gönderilmedi.' }}</div>
+                } @else {
+                    <div [reportChart]="missionCompareOption()" class="ad-compare-chart"></div>
+                }
             </div>
         </div>
     </div>

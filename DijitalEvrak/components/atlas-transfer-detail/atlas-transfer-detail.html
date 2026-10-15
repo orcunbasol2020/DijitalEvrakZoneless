@@ -1,0 +1,183 @@
+<div class="aa-detail">
+  @if (loading() && !detail()) {
+    <div class="aa-state">
+      <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+      Aktarım bilgisi getiriliyor…
+    </div>
+  } @else if (loadError(); as err) {
+    <div class="aa-state is-error">
+      <span class="material-symbols-outlined">error</span>
+      <span>{{ err }}</span>
+      <button type="button" class="aa-link-btn" (click)="load()">Tekrar dene</button>
+    </div>
+  } @else if (detail(); as d) {
+    <!-- Durum -->
+    <div class="aa-detail-head">
+      @if (showHeader()) {
+        <div class="aa-detail-doc">
+          <span class="aa-detail-no">{{ d.qrCode || '—' }}</span>
+          @if (d.subject) {
+            <span class="aa-detail-subject" [title]="d.subject">{{ d.subject }}</span>
+          }
+        </div>
+      }
+      <div class="aa-detail-status">
+        <span class="aa-badge" [class]="'aa-badge aa-badge-' + statusTone().tone">
+          @if (isTransferring()) {
+            <span class="spinner-border aa-spinner" aria-hidden="true"></span>
+          } @else {
+            <span class="material-symbols-outlined">{{ statusTone().icon }}</span>
+          }
+          {{ statusLabel() }}
+        </span>
+        @if (d.statusUpdatedAt) {
+          <span class="aa-muted">{{ utc(d.statusUpdatedAt) | date:'dd.MM.yyyy HH:mm' }}</span>
+        }
+        <button type="button" class="aa-icon-btn ms-auto" title="Güncel Verileri Getir"
+          [disabled]="loading()" (click)="load()">
+          <span class="material-symbols-outlined" [class.aa-spin]="loading()">refresh</span>
+        </button>
+      </div>
+
+      @if (canRetry()) {
+        <div class="aa-retry-row">
+          <span class="aa-muted">Hatanın nedeni giderildiyse evrak güncel bilgileriyle yeni bir paketle sıraya alınır.</span>
+          <button type="button" class="aa-retry" [disabled]="retrying()" (click)="retry()">
+            <span class="material-symbols-outlined" [class.aa-spin]="retrying()">replay</span>
+            Yeniden Dene
+          </button>
+        </div>
+      }
+      @if (retryError(); as err) {
+        <div class="aa-state is-error">
+          <span class="material-symbols-outlined">error</span>
+          <span>
+            {{ err }}
+            @if (editLink()) {
+              <a class="aa-inline-link" [routerLink]="['/evrakkayit', d.documentId]">Evrakı düzenle</a>
+            }
+          </span>
+        </div>
+      }
+    </div>
+
+    <!-- Paketler -->
+    <section class="aa-section">
+      <h6 class="aa-section-title">
+        <span class="material-symbols-outlined">inventory_2</span>
+        Paketler
+        @if (d.packages.length) { <span class="aa-count">{{ d.packages.length }}</span> }
+        <button type="button" class="aa-download ms-auto" [disabled]="downloading() !== null"
+          title="Evrakın şimdiki bilgileriyle paket üretip indirir; kaydedilmez, aktarımı etkilemez"
+          (click)="generate()">
+          @if (downloading() === testPackage) {
+            <span class="spinner-border aa-spinner" aria-hidden="true"></span>
+          } @else {
+            <span class="material-symbols-outlined">science</span>
+          }
+          Test EYP Paketi İndir
+        </button>
+      </h6>
+      @if (!d.packages.length) {
+        <div class="aa-state">
+          <span class="material-symbols-outlined">inventory_2</span>
+          {{ status() === 1 ? 'Evrak yayınlanmadığı için paket yok.' : 'Paket henüz hazırlanmadı; ilk aktarım turunda hazırlanır.' }}
+        </div>
+      } @else {
+        <ul class="aa-packages">
+          @for (p of d.packages; track p.id) {
+            <li class="aa-package" [class.is-old]="!p.isActive">
+              <div class="aa-package-head">
+                <span class="material-symbols-outlined aa-package-icon">package_2</span>
+                <div class="aa-package-name">
+                  <span class="aa-package-file" [title]="p.fileName || ''">{{ p.fileName || 'Dosya adı yok' }}</span>
+                  <span class="aa-muted">
+                    {{ utc(p.createdDate) | date:'dd.MM.yyyy HH:mm' }}
+                    @if (p.fileSize) { · {{ size(p.fileSize) }} }
+                  </span>
+                </div>
+                <button type="button" class="aa-download" [disabled]="!p.fileExists || downloading() !== null"
+                  [title]="p.fileExists ? 'Paketi (.eyp) indir' : 'Paket dosyası yok: hazırlanamadı ya da silindi'"
+                  (click)="download(p)">
+                  @if (downloading() === p.id) {
+                    <span class="spinner-border aa-spinner" aria-hidden="true"></span>
+                  } @else {
+                    <span class="material-symbols-outlined">download</span>
+                  }
+                  İndir
+                </button>
+              </div>
+
+              @if (!p.isActive) {
+                <div class="aa-package-note">
+                  <span class="material-symbols-outlined">history</span>
+                  Eski paket (evrak yeniden sıraya alındı)
+                </div>
+              }
+              @if (p.usedPlaceholderContent) {
+                <div class="aa-package-note">
+                  <span class="material-symbols-outlined">description</span>
+                  Üst yazı: fiziki gönderim sayfası (evrakın dosyası yok)
+                </div>
+              }
+
+              <dl class="aa-package-meta">
+                <div><dt>Deneme</dt><dd>{{ p.tryCount }}</dd></div>
+                @if (p.transferredAt) {
+                  <div><dt>Aktarıldı</dt><dd>{{ utc(p.transferredAt) | date:'dd.MM.yyyy HH:mm' }}</dd></div>
+                } @else if (p.lastAttemptAt) {
+                  <div><dt>Son deneme</dt><dd>{{ utc(p.lastAttemptAt) | date:'dd.MM.yyyy HH:mm' }}</dd></div>
+                }
+                @if (p.nextAttemptAt && p.isActive) {
+                  <div><dt>Sonraki deneme</dt><dd>{{ utc(p.nextAttemptAt) | date:'dd.MM.yyyy HH:mm' }}</dd></div>
+                }
+                @if (p.atlasReferenceId) {
+                  <div class="is-wide"><dt>Atlas referansı</dt><dd class="aa-mono">{{ p.atlasReferenceId }}</dd></div>
+                }
+              </dl>
+              @if (p.lastError) {
+                <div class="aa-error-text">{{ p.lastError }}</div>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <!-- Denemeler -->
+    <section class="aa-section">
+      <h6 class="aa-section-title">
+        <span class="material-symbols-outlined">send</span>
+        Denemeler
+        @if (d.attempts.length) { <span class="aa-count">{{ d.attempts.length }}</span> }
+      </h6>
+      @if (!d.attempts.length) {
+        <div class="aa-state">
+          <span class="material-symbols-outlined">schedule_send</span>
+          Henüz gönderim denemesi yok.
+        </div>
+      } @else {
+        <ul class="aa-attempts">
+          @for (a of d.attempts; track trackAttempt(a)) {
+            @let o = outcome(a);
+            <li class="aa-attempt">
+              <span class="aa-badge" [class]="'aa-badge aa-badge-' + o.tone">{{ o.label }}</span>
+              <div class="aa-attempt-body">
+                <div class="aa-attempt-meta">
+                  {{ utc(a.attemptedAt) | date:'dd.MM.yyyy HH:mm:ss' }}
+                  <span class="aa-sep">·</span>
+                  {{ a.attemptNo }}. deneme
+                </div>
+                @if (a.isSuccess && a.atlasReferenceId) {
+                  <div class="aa-mono aa-muted">{{ a.atlasReferenceId }}</div>
+                } @else if (a.error) {
+                  <div class="aa-error-text">{{ a.error }}</div>
+                }
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  }
+</div>

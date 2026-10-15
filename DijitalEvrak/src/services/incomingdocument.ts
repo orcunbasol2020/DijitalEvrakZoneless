@@ -1,9 +1,13 @@
+import { DepartmentId } from '../models/ids';
+import { environment } from '../environments/environment';
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpService } from './http';
-import { IncomingDocumentModel } from '../models/incoming-document/incoming-document.model';
+import { IncomingDocumentDistributionModel, IncomingDocumentModel } from '../models/incoming-document/incoming-document.model';
 import { IncomingDocumentPreRegisterModel } from '../models/incoming-document/incomingdocument-pregister.model';
 import { IncomingDocumentTodayStats } from '../models/dashboard/IncomingDocumentTodayStats.model';
-import { firstValueFrom } from 'rxjs';
+import { catchError, firstValueFrom, forkJoin, map, of } from 'rxjs';
+import { HttpContext, HttpErrorResponse } from '@angular/common/http';
+import { SKIP_ERROR_TOAST } from '../interceptors/error-interceptor';
 import { IncomingDocumentLast30DaysStats } from '../models/dashboard/IncomingDocument30DaysStats.model';
 import { IncomingDocumentPendingScanStats } from '../models/dashboard/IncomingDocumentPendingScanStats.model';
 import { IncomingDocumentOcrQueueStats } from '../models/dashboard/IncomingDocumentOcrQueueStats.model';
@@ -16,6 +20,19 @@ import { IncomingDocumentOcrQueueStats } from '../models/dashboard/IncomingDocum
 export const INCOMING_STATUS_ON_KAYIT = 1;
 export const INCOMING_STATUS_KAYIT = 2;
 export const INCOMING_STATUS_PUBLISH_REQUEST = 6;
+
+/** Hata yanıtındaki backend mesajı ({ Message, StatusCode } ya da { Errors: [...] }); yoksa fallback. */
+export function incomingErrorMessage(err: unknown, fallback: string): string {
+  const body = (err as HttpErrorResponse)?.error;
+  const errors: unknown = body?.Errors ?? body?.errors;
+  const listed = Array.isArray(errors)
+    ? errors.filter(e => typeof e === 'string' && e.trim()).join(' ')
+    : '';
+  return body?.Message || body?.message || listed || fallback;
+}
+
+// Hata mesajını ekran kendisi gösterecekse genel "Sunucu Hatası" toast'ı atlanır
+const skipErrorToast = () => ({ context: new HttpContext().set(SKIP_ERROR_TOAST, true) });
 
 @Injectable({ providedIn: 'root' })
 export class IncomingDocumentService {
@@ -52,7 +69,7 @@ export class IncomingDocumentService {
   get currentIncomingDocumentUpdateType(): string | null {
     return this.incomingDocumentUpdateType();
   }
-  setIncomingDocumentSearchType(type: string) {
+  setIncomingDocumentSearchType(type: string | null) {
     this.incomingDocumentSearchType.set(type);
   }
   get currentIncomingDocumentSearchType(): string | null {
@@ -60,10 +77,21 @@ export class IncomingDocumentService {
   }
 
   // GET ALL (resource)
-  getAllIncomingDocuments(departmentId?: string) {
+  getAllIncomingDocuments(departmentId?: DepartmentId | null) {
     const query = departmentId ? `?departmentId=${encodeURIComponent(departmentId)}` : '';
     return this.httpService.get<IncomingDocumentModel[]>(
       this.baseUrl + "GetAll" + query
+    );
+  }
+
+  // Birimin teslim alınmayı bekleyen evrakları: Birim Gelen Evrakları ekranındaki
+  // "Teslim Alınmayı Bekleyenler" süzgeciyle aynı sayım (silinmemiş ve Teslim Edildi olmayan)
+  getDepartmentDeliveryStats(departmentId: DepartmentId) {
+    return this.getAllIncomingDocuments(departmentId).pipe(
+      map(docs => {
+        const list = (docs ?? []).filter(d => !d.isDeleted);
+        return { pending: list.filter(d => d.status !== 3).length, total: list.length };
+      })
     );
   }
 
@@ -81,11 +109,22 @@ export class IncomingDocumentService {
     );
   }
 
-  // CREATE
-  createIncomingDocument(model: IncomingDocumentModel) {
+  // CREATE. showErrorToast = false: backend mesajını (ör. alıcı doğrulaması) ekran gösterir.
+  createIncomingDocument(model: IncomingDocumentModel, showErrorToast = true) {
     return this.httpService.post<any>(
       `${this.baseUrl}Create`,
-      model
+      model,
+      showErrorToast ? undefined : skipErrorToast()
+    );
+  }
+
+  // İLK KAYITTA YAYINLA: Create'e status 6 gönderir. Backend evrakı Kayıt (2) olarak açıp
+  // kuyruğa alır; eksik bilgide evrak HİÇ kaydedilmez ve nedeni Message alanında döner.
+  createAndPublishIncomingDocument(model: IncomingDocumentModel) {
+    return this.httpService.post<any>(
+      `${this.baseUrl}Create`,
+      { ...model, status: INCOMING_STATUS_PUBLISH_REQUEST },
+      skipErrorToast()
     );
   }
 
@@ -96,11 +135,42 @@ export class IncomingDocumentService {
     );
   }
 
-  // UPDATE
-  updateIncomingDocument(model: IncomingDocumentModel) {
+  // UPDATE. recipients gönderilirse alıcı listesi onunla DEĞİŞTİRİLİR, gönderilmezse dokunulmaz.
+  // departmentId recipients'sız gönderilmemeli: backend alıcı listesini o tek birime indirger.
+  updateIncomingDocument(model: IncomingDocumentModel, showErrorToast = true) {
     return this.httpService.put<any>(
       `${this.baseUrl}Update`,
-      model
+      model,
+      showErrorToast ? undefined : skipErrorToast()
+    );
+  }
+
+  // "Nereye" alıcıları: silinmemiş, eklenme sırasıyla, birim adıyla. GetById alıcıları döndürmez.
+  getDistributions(incomingDocumentId: string, showErrorToast = true) {
+    return this.httpService.get<IncomingDocumentDistributionModel[]>(
+      `${this.baseUrl}GetDistributions?incomingDocumentId=${encodeURIComponent(incomingDocumentId)}`,
+      showErrorToast ? undefined : skipErrorToast()
+    );
+  }
+
+  // Detay popup'ları için GetById + alıcılar. GetById'de distributions boş geldiğinden liste
+  // GetDistributions'tan eklenir; o çağrı başarısızsa distributions undefined kalır ve çağıran
+  // taraf liste satırındaki alıcılara düşebilir.
+  getIncomingDocumentWithDistributions(id: string) {
+    return forkJoin({
+      doc: this.getIncomingDocumentByDocumentId(id),
+      distributions: this.getDistributions(id, false).pipe(catchError(() => of(undefined))),
+    }).pipe(map(({ doc, distributions }) => doc && { ...doc, distributions }));
+  }
+
+  // YAYINLA: Update'e status 6 gönderir. Backend evrakı Atlas kuyruğuna almadan önce doğrular
+  // (konu, evrak tarihi, gizlilik, gönderen kurum ve DETSİS kodu); eksik bilgide nedeni
+  // Message alanında döner. Mesajı ekran gösterdiği için genel "Sunucu Hatası" toast'ı atlanır.
+  publishIncomingDocument(model: IncomingDocumentModel) {
+    return this.httpService.put<any>(
+      `${this.baseUrl}Update`,
+      { ...model, status: INCOMING_STATUS_PUBLISH_REQUEST },
+      skipErrorToast()
     );
   }
 
@@ -142,7 +212,7 @@ export class IncomingDocumentService {
   }
 
   // OCR Filtreli liste
-  getIncomingDocumentsByStatus(status: string, departmentId?: string) {
+  getIncomingDocumentsByStatus(status: string, departmentId?: DepartmentId | null) {
     const departmentQuery = departmentId ? `&departmentId=${encodeURIComponent(departmentId)}` : '';
     return this.httpService.createResource<IncomingDocumentModel[]>(
       `${this.baseUrl}GetAll?Status=${encodeURIComponent(status)}${departmentQuery}`
@@ -150,7 +220,7 @@ export class IncomingDocumentService {
   }
   // GET BY STATUS: DocumentStatusEnum değerine göre (1 Ön Kayıt, 2 Güncelleme, 3 Teslim,
   // 4 Eşleştirme, 5 Ocr, 6 Yayınla). departmentId ve createdUserId isteğe bağlı süzgeçlerdir.
-  getIncomingDocumentsByStatusCode(status: number, options?: { departmentId?: string; createdUserId?: string }) {
+  getIncomingDocumentsByStatusCode(status: number, options?: { departmentId?: DepartmentId | null; createdUserId?: string }) {
     const params = [`status=${status}`];
     if (options?.departmentId) params.push(`departmentId=${encodeURIComponent(options.departmentId)}`);
     if (options?.createdUserId) params.push(`createdUserId=${encodeURIComponent(options.createdUserId)}`);
@@ -172,7 +242,7 @@ export class IncomingDocumentService {
   // PDF URL ÜRETİCİ
   getPdfUrl(fileName: string): string {
     if (!fileName) return '';
-    return `https://localhost:7056/api/ScannedDocuments/GetPdf?fileName=${encodeURIComponent(fileName)}`;
+    return `${environment.apiUrl}api/ScannedDocuments/GetPdf?fileName=${encodeURIComponent(fileName)}`;
   }
 
   getPendingCount(userId: string) {

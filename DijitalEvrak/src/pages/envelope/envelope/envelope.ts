@@ -1,3 +1,4 @@
+import { idKey } from '../../../models/ids';
 import { HttpClient, httpResource } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, signal, ViewEncapsulation } from '@angular/core';
 import { FlexiGridModule } from 'flexi-grid';
@@ -50,7 +51,7 @@ export default class Envelopes {
   // "Ekleyen" sütunu için departmentId -> ad eşlemesi.
   readonly departmentNameMap = computed(() => {
     const map: Record<string, string> = {};
-    for (const d of this.departments()) map[d.id] = d.name;
+    for (const d of this.departments()) map[idKey(d.id)!] = d.name;
     return map;
   });
 
@@ -68,7 +69,7 @@ export default class Envelopes {
       .sort((a, b) => new Date(b.createdDate ?? 0).getTime() - new Date(a.createdDate ?? 0).getTime())
       .map(e => ({
         ...e,
-        departmentName: (e.departmentId && deptMap[e.departmentId]) || '-',
+        departmentName: deptMap[idKey(e.departmentId)!] || '-',
         // "Gideceği Yer": kurum içi birim, yabancı misyon ya da dış kurum adı
         targetName: envelopeTargetName(e, departments) || '-',
         // Durum sütunu, filtre ve Excel dışa aktarımı ham sayı yerine etiketi kullansın.
@@ -76,7 +77,7 @@ export default class Envelopes {
       }));
   });
   readonly loading = computed(() => this.result.isLoading());
-  readonly isBirimEvrakSorumlusu = computed(() => this.#roleService.has('Birim Evrak Sorumlusu'));
+  readonly isBirimEvrakSorumlusu = computed(() => this.#roleService.hasBirimEvrakRole());
   // Giden Evrak rolündeki kullanıcılar tüm birimlerin zarflarını görebildiği için,
   // kendi biriminin kaydetmediği bir zarfta "Zarfı Teslim Et" yerine "Teslim Al"
   // ikonu gösteriliyor.

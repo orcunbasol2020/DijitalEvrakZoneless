@@ -24,6 +24,196 @@
     border-color: #7dd3fc;
 }
 
+/* Rol filtresi: başlık araçlarıyla aynı yükseklik; seçim yapılınca filtre butonu gibi vurgulanır */
+.us-role-select {
+    width: auto;
+    min-width: 170px;
+    height: 34px;
+    padding-top: 0;
+    padding-bottom: 0;
+    font-size: 13px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+}
+
+.us-role-select.is-on {
+    color: #0369a1;
+    background-color: #e0f2fe;
+    border-color: #7dd3fc;
+}
+
+/* Birimim: yalnızca kendi birimindeki personel; rol filtresiyle aynı yükseklik ve seçili görünüm */
+.us-dept-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 34px;
+    padding: 0 12px;
+    font-size: 13px;
+    color: var(--bs-body-color);
+    background: var(--bs-body-bg);
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.us-dept-toggle .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.us-dept-toggle:hover {
+    background: var(--bs-tertiary-bg);
+}
+
+.us-dept-toggle.is-on {
+    color: #0369a1;
+    background: #e0f2fe;
+    border-color: #7dd3fc;
+}
+
+[data-theme="dark"] .us-dept-toggle {
+    border-color: var(--bs-border-color);
+}
+
+[data-theme="dark"] .us-dept-toggle.is-on {
+    color: #7dd3fc;
+    background: rgba(14, 165, 233, 0.16);
+    border-color: rgba(125, 211, 252, 0.4);
+}
+
+/* Kullanıcı araması (sunucuda): ad, soyad ya da kullanıcı adı */
+.us-search {
+    position: relative;
+    display: block;
+    width: 260px;
+    max-width: 100%;
+}
+
+.us-search .material-symbols-outlined {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 18px;
+    color: #94a3b8;
+    pointer-events: none;
+}
+
+.us-search .form-control {
+    height: 34px;
+    padding-left: 34px;
+    font-size: 13px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+}
+
+.us-head-sub {
+    font-size: 12px;
+    color: #64748b;
+}
+
+/* Birim: tam ad düz yazı; uzun adlar alt satıra kayar */
+.us-dept {
+    display: block;
+    font-size: 13px;
+    line-height: 1.35;
+    white-space: normal;
+    color: #0f172a;
+}
+
+[data-theme="dark"] .us-dept {
+    color: #f8fafc;
+}
+
+.us-roles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+/* Rol rozeti: çerçeveli, zemini düşük opaklıkta turkuaz; premium paletin petrol tonu
+   çerçevede ve yazıda. Simge çerçevesiz, petrol tonunda. */
+.us-role-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 14px 2px 3px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 600;
+    line-height: 1.6;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    color: #0c4a6e;
+    background: rgba(125, 211, 252, 0.12);
+    border: 1px solid rgba(3, 105, 161, 0.45);
+}
+
+.us-role-chip .material-symbols-outlined {
+    width: 21.8px;
+    height: 21.8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14.5px;
+    color: #0369a1;
+    border-radius: 50%;
+}
+
+[data-theme="dark"] .us-role-chip {
+    color: #e0f2fe;
+    background: rgba(125, 211, 252, 0.08);
+    border-color: rgba(125, 211, 252, 0.45);
+}
+
+[data-theme="dark"] .us-role-chip .material-symbols-outlined {
+    color: #7dd3fc;
+}
+
+/* Yönetici rozeti diğer rol rozetlerinden %10 büyük (dolgu ve simge 1.1 katı); yazı boyutu aynı */
+.us-role-chip.is-admin-chip {
+    gap: 3.3px;
+    padding: 2.2px 15px 2.2px 3.3px;
+}
+
+.us-role-chip.is-admin-chip .material-symbols-outlined {
+    width: 24px;
+    height: 24px;
+    font-size: 16px;
+}
+
+/* Yönetim rolleri simge rengiyle ayrışır: Yönetici amber, Birim Yöneticisi zümrüt */
+.us-role-chip .material-symbols-outlined.is-admin {
+    color: #d97706;
+}
+
+.us-role-chip .material-symbols-outlined.is-unit-manager {
+    color: #059669;
+}
+
+[data-theme="dark"] .us-role-chip .material-symbols-outlined.is-admin {
+    color: #fbbf24;
+}
+
+[data-theme="dark"] .us-role-chip .material-symbols-outlined.is-unit-manager {
+    color: #34d399;
+}
+
+/* Aktif (4.) ve Sil (6.) başlıkları ortalı. Filtrelenebilir sütunlarda flexi-grid textAlign'ı
+   başlığa uygulamaz (flexi-th başlığı sola, filtre simgesini sağa yaslar), bu yüzden elle ortalanır.
+   Sütun sırası değişirse buradaki sıra numaraları da güncellenmeli. */
+.us-grid thead th:nth-child(4) .flexi-th,
+.us-grid thead th:nth-child(6) .flexi-th {
+    justify-content: center;
+    gap: 4px;
+}
+
+.us-grid thead th:nth-child(4) .flexi-th > .flexi-grid-sortable-th,
+.us-grid thead th:nth-child(6) .flexi-th > .flexi-grid-sortable-th {
+    justify-content: center;
+    width: auto;
+}
+
 /* Izgara kartın içinde: kendi çerçevesi, gölgesi ve köşe yuvarlaması yok */
 .us-grid .flexi-grid-table-container,
 .us-grid .flexi-grid-table-container-wrapper {
@@ -38,9 +228,28 @@
     border-color: rgba(125, 211, 252, 0.4);
 }
 
+[data-theme="dark"] .us-role-select.is-on {
+    color: #7dd3fc;
+    background-color: rgba(14, 165, 233, 0.16);
+    border-color: rgba(125, 211, 252, 0.4);
+}
+
 @media (max-width: 767.98px) {
     .us-head-tools {
         width: 100%;
         justify-content: flex-start;
     }
+
+    .us-search {
+        width: 100%;
+    }
+}
+
+/* Unvan 150+ karakter olabilir: tek satırda kısaltılır, tam metin title ile görünür */
+.us-title {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }

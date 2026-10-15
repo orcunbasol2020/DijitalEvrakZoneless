@@ -2,6 +2,9 @@ import { AllocationStatusEnum } from './allocationstatus.model';
 
 // GET api/DocumentAllocations/GetActiveDocumentsByUserId yanıtı:
 // kullanıcının üzerinde aktif zimmetli gelen + giden evraklar, zimmet tarihine göre yeniden eskiye.
+// GET api/DocumentAllocations/GetReceivedDocumentsByUserId aynı biçimde döner: kullanıcıya
+// verilmiş tüm zimmetler (sonradan devredilenler dahil, silinenler ve kişinin kendine
+// yaptığı zimmetler hariç).
 
 // Evrağın yönü; documentId buna göre IncomingDocument (1) ya da OutgoingDocument (2) tablosuna aittir.
 export enum DocumentDirectionEnum {
@@ -38,6 +41,8 @@ export interface ActiveDocumentModel {
   status: AllocationStatusEnum;
   source: AllocationSourceEnum;
   allocatedDate: string;             // UTC
+  // true: evrak hâlâ kullanıcıda, false: sonradan devredilmiş (aktif listede hep true)
+  isActive?: boolean;
   // Liste uç noktası bu alanları döndürmüyor; Zimmetlerim ekranı her evrağı kendi
   // GetById ucundan çekip doldurur (backend eklerse ek istek atılmaz).
   subject?: string | null;

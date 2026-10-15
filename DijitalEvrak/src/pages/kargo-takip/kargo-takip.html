@@ -1,0 +1,257 @@
+<app-generic pageTitle="Kargo Takip"
+  [breadcrumbs]="[{ title: 'Kargo Takip', url: 'kargo-takip', icon: '' }]">
+</app-generic>
+
+<!-- Üst şerit: takip numarasıyla arama ve durum süzgeci -->
+<section class="kt-bar">
+  <form class="kt-search" (ngSubmit)="searchTracking()">
+    <span class="material-symbols-outlined kt-search-icon">barcode_scanner</span>
+    <input type="text" class="form-control" name="tracking" placeholder="Takip numarası ile ara"
+      autocomplete="off"
+      [ngModel]="trackingQuery()" (ngModelChange)="trackingQuery.set($event); trackingNotFound.set(false)">
+    <button type="submit" class="btn btn-dark" [disabled]="!trackingQuery().trim() || trackingSearching()">
+      @if (trackingSearching()) {
+        <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+      } @else {
+        Bul
+      }
+    </button>
+  </form>
+  @if (trackingNotFound()) {
+    <div class="kt-search-miss">
+      <span class="material-symbols-outlined">search_off</span>
+      "{{ trackingQuery() }}" takip numarasıyla kargo kaydı bulunamadı.
+    </div>
+  }
+
+  @if (!listUnavailable()) {
+    <div class="kt-chips" role="tablist">
+      <button type="button" class="kt-chip" role="tab" [class.is-active]="statusFilter() === 0"
+        [attr.aria-selected]="statusFilter() === 0" (click)="statusFilter.set(0)">
+        Tümü <span class="kt-chip-count">{{ rows().length }}</span>
+      </button>
+      @for (status of statusOptions; track status) {
+        <button type="button" class="kt-chip" role="tab" [class.is-active]="statusFilter() === status"
+          [attr.aria-selected]="statusFilter() === status" (click)="statusFilter.set(status)">
+          <span class="material-symbols-outlined">{{ statusIcon[status] }}</span>
+          {{ statusLabels[status] }} <span class="kt-chip-count">{{ counts()[status] || 0 }}</span>
+        </button>
+      }
+    </div>
+  }
+</section>
+
+@if (listUnavailable()) {
+  <!-- GetAll uç noktası backend'de yokken takip numarasıyla arama yine çalışır -->
+  <div class="kt-info">
+    <span class="material-symbols-outlined">info</span>
+    <div>
+      <strong>Kargo listesi henüz kullanılamıyor.</strong>
+      Liste için sunucu tarafında güncelleme bekleniyor. Bu sırada takip numarasıyla arayarak
+      kargonun bilgilerini görebilir ve durumunu güncelleyebilirsiniz.
+    </div>
+  </div>
+} @else if (listFailed()) {
+  <div class="kt-info is-error">
+    <span class="material-symbols-outlined">error</span>
+    <div>
+      Kargo kayıtları alınamadı.
+      <button type="button" class="btn btn-link p-0 align-baseline" (click)="load()">Tekrar dene</button>
+    </div>
+  </div>
+} @else {
+  <div class="kt-grid" [class.show-filters]="showFilters">
+    <flexi-grid
+      [data]="filteredRows()"
+      [loading]="loading()"
+      language="tr"
+      [showCaption]="true"
+      captionTitle="Kargolar"
+      [showExportExcelBtn]="true"
+      exportExcelFileName="kargolar"
+      [filterable]="true"
+      (onRefresh)="load()">
+
+      <ng-template flexiGridCaptionCommandTemplate>
+        <flexi-button btnIcon="filter_alt" btnColor="light" title="Filtre Aç/Kapat" flexiTooltip
+          (click)="showFilters = !showFilters">
+        </flexi-button>
+      </ng-template>
+
+      <flexi-grid-column field="trackingNumber" title="Takip No" width="150px">
+        <ng-template flexiGridCellTemplate let-item>
+          <span class="kt-tracking">{{ item.trackingNumber }}</span>
+        </ng-template>
+      </flexi-grid-column>
+      <flexi-grid-column field="companyLabel" title="Firma" width="120px" />
+      <flexi-grid-column field="recipientLabel" title="Alıcı" width="180px" />
+      <flexi-grid-column field="documentCount" title="Evrak" width="70px" textAlign="center" [filterable]="false" />
+      <flexi-grid-column field="sentDate" title="Gönderim" width="120px" filterType="date">
+        <ng-template flexiGridCellTemplate let-item>
+          {{ item.sentDate | date:'dd.MM.yyyy HH:mm' }}
+        </ng-template>
+      </flexi-grid-column>
+      <flexi-grid-column field="sentUserFullName" title="Kargoya Veren" width="140px" />
+      <flexi-grid-column field="statusLabel" title="Durum" width="130px">
+        <ng-template flexiGridCellTemplate let-item>
+          <span class="badge kt-status" [class]="statusBadge[item.status]">
+            <span class="material-symbols-outlined">{{ statusIcon[item.status] }}</span>
+            {{ item.statusLabel }}
+          </span>
+        </ng-template>
+      </flexi-grid-column>
+      <flexi-grid-column field="deliveredDate" title="Teslim" width="110px" filterType="date">
+        <ng-template flexiGridCellTemplate let-item>
+          {{ item.deliveredDate ? (item.deliveredDate | date:'dd.MM.yyyy') : '-' }}
+        </ng-template>
+      </flexi-grid-column>
+
+      <ng-template flexiGridColumnCommandTemplate let-item>
+        <flexi-button btnIcon="{{ item.status === Status.TeslimEdildi || item.status === Status.Iade ? 'visibility' : 'edit' }}"
+          btnColor="primary" btnSize="small" flexiTooltip
+          [title]="item.status === Status.TeslimEdildi || item.status === Status.Iade ? 'Kargo Bilgisi' : 'Durumu Güncelle'"
+          (click)="open(item)">
+        </flexi-button>
+      </ng-template>
+    </flexi-grid>
+  </div>
+}
+
+<!-- Kargo bilgisi ve durum güncelleme popup'ı (ship-* sınıfları Zarflar'daki Kargo Bilgisi ile ortak) -->
+@if (selected(); as s) {
+  <div class="modal-overlay" (click)="close()">
+    <div class="modal-box ship-modal" role="dialog" aria-modal="true" aria-labelledby="kt-modal-title"
+      (click)="$event.stopPropagation()">
+      <div class="ship-head">
+        <span class="ship-head-icon">
+          <span class="material-symbols-outlined">local_shipping</span>
+        </span>
+        <div class="ship-head-text">
+          <h5 id="kt-modal-title" class="ship-head-title">{{ isFinal() ? 'Kargo Bilgisi' : 'Kargo Durumu' }}</h5>
+          <div class="ship-head-sub">{{ selectedCompany() }} · {{ s.trackingNumber }}</div>
+        </div>
+        <button type="button" class="ship-close" title="Kapat" (click)="close()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <div class="ship-body">
+        <section class="ship-section">
+          <h6 class="ship-section-title">Kargo Bilgileri</h6>
+          <dl class="ship-list">
+            <div class="ship-row">
+              <dt>Durum</dt>
+              <dd><span class="badge kt-status" [class]="statusBadge[s.status]">
+                <span class="material-symbols-outlined">{{ statusIcon[s.status] }}</span>
+                {{ s.statusName || statusLabels[s.status] }}
+              </span></dd>
+            </div>
+            <div class="ship-row"><dt>Gönderim Tarihi</dt><dd>{{ s.sentDate | date:'dd.MM.yyyy HH:mm' }}</dd></div>
+            <div class="ship-row"><dt>Kargoya Veren</dt><dd>{{ s.sentUserFullName || '-' }}</dd></div>
+            @if (s.externalInstitutionName || s.recipientName) {
+              <div class="ship-row"><dt>Alıcı</dt><dd>{{ s.externalInstitutionName || s.recipientName }}</dd></div>
+            }
+            @if (isFinal()) {
+              @if (s.deliveredDate) {
+                <div class="ship-row"><dt>Teslim Tarihi</dt><dd>{{ s.deliveredDate | date:'dd.MM.yyyy HH:mm' }}</dd></div>
+              }
+              @if (s.cost != null) {
+                <div class="ship-row"><dt>Ücret</dt><dd>{{ s.cost }} ₺</dd></div>
+              }
+              @if (s.notes) {
+                <div class="ship-row"><dt>Not</dt><dd class="is-multiline">{{ s.notes }}</dd></div>
+              }
+            }
+          </dl>
+        </section>
+
+        @if (!isFinal()) {
+          <section class="ship-section kt-form">
+            <h6 class="ship-section-title">Durumu Güncelle</h6>
+            <div class="kt-status-picker" role="radiogroup" aria-label="Kargo durumu">
+              @for (status of statusOptions; track status) {
+                <button type="button" class="kt-status-option" role="radio"
+                  [class.is-active]="formStatus() === status" [attr.aria-checked]="formStatus() === status"
+                  [disabled]="status === Status.KargoyaVerildi && s.status !== Status.KargoyaVerildi"
+                  (click)="onStatusChange(status)">
+                  <span class="material-symbols-outlined">{{ statusIcon[status] }}</span>
+                  {{ statusLabels[status] }}
+                </button>
+              }
+            </div>
+
+            @if (formStatus() === Status.TeslimEdildi) {
+              <label class="form-label" for="kt-delivered">Teslim Tarihi</label>
+              <input id="kt-delivered" type="datetime-local" class="form-control"
+                [ngModel]="formDeliveredDate()" (ngModelChange)="formDeliveredDate.set($event)">
+            }
+            @if (formStatus() === Status.TeslimEdildi || formStatus() === Status.Iade) {
+              <p class="kt-hint">
+                <span class="material-symbols-outlined">info</span>
+                Bu durum paketteki evrakların işlem geçmişine yazılır ve sonradan değiştirilemez.
+              </p>
+            }
+
+            <div class="kt-form-row">
+              <div>
+                <label class="form-label" for="kt-cost">Ücret (₺)</label>
+                <input id="kt-cost" type="number" min="0" step="0.01" class="form-control"
+                  [ngModel]="formCost()" (ngModelChange)="formCost.set($event === '' ? null : $event)">
+              </div>
+            </div>
+            <label class="form-label" for="kt-notes">Not</label>
+            <textarea id="kt-notes" class="form-control" rows="2"
+              [ngModel]="formNotes()" (ngModelChange)="formNotes.set($event)"></textarea>
+
+            @if (saveError()) {
+              <div class="kt-save-error">
+                <span class="material-symbols-outlined">error</span>
+                {{ saveError() }}
+              </div>
+            }
+          </section>
+        }
+
+        <section class="ship-section">
+          <h6 class="ship-section-title">
+            Paketteki Evraklar <span class="ship-count">{{ s.items.length }}</span>
+          </h6>
+          @if (s.items.length) {
+            <ul class="ship-docs">
+              @for (item of s.items; track item.distributionId) {
+                <li>
+                  <button type="button" class="ship-doc" title="Evrak detayına git"
+                    (click)="goToOutgoingDocument(item.outgoingDocumentId)">
+                    <span class="material-symbols-outlined">description</span>
+                    <span class="ship-doc-no">{{ item.documentNumber || '-' }}</span>
+                    @if (item.subject) {
+                      <span class="ship-doc-subject" [title]="item.subject">{{ item.subject }}</span>
+                    }
+                    <span class="material-symbols-outlined ship-doc-go">chevron_right</span>
+                  </button>
+                </li>
+              }
+            </ul>
+          } @else {
+            <div class="ship-state">
+              <span class="material-symbols-outlined">inventory_2</span>
+              Pakette evrak bulunamadı.
+            </div>
+          }
+        </section>
+      </div>
+
+      <div class="ship-foot">
+        <button type="button" class="btn btn-secondary" (click)="close()">{{ isFinal() ? 'Kapat' : 'Vazgeç' }}</button>
+        @if (!isFinal()) {
+          <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save()">
+            @if (saving()) {
+              <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+            }
+            Kaydet
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+}

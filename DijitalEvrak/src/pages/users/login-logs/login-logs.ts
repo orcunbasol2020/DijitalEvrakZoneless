@@ -31,6 +31,27 @@ type ResultFilter = 'all' | 'success' | 'fail';
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100, 200] as const;
 
+/** Tarih seçilmediğinde listelenen son giriş sayısı. */
+const LATEST_COUNT = 10;
+
+/** Tarih aralığı en fazla bu kadar ay olabilir. */
+const MAX_RANGE_MONTHS = 1;
+
+/** Bugünün yerel tarihi, date input biçiminde (yyyy-MM-dd). */
+function todayIso(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/** yyyy-MM-dd tarihini ay kadar kaydırır; gün, hedef ayın son gününü aşarsa ona çekilir (31 Ocak + 1 ay = 28/29 Şubat). */
+function shiftMonths(iso: string, months: number): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  const target = new Date(Date.UTC(y, m - 1 + months, 1));
+  const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+  target.setUTCDate(Math.min(d, lastDay));
+  return target.toISOString().slice(0, 10);
+}
+
 /** Tarayıcı / işletim sistemi bilgisini userAgent'tan kısa bir etikete indirger. */
 function describeUserAgent(ua: string | null | undefined): { browser: string; os: string } {
   const s = ua ?? '';
@@ -86,6 +107,31 @@ export default class LoginLogs {
   readonly isFiltering = computed(() =>
     !!this.userName().trim() || this.resultFilter() !== 'all' || !!this.startDate() || !!this.endDate());
 
+  readonly LATEST_COUNT = LATEST_COUNT;
+  readonly today = todayIso();
+
+  /** Tarih seçilmemişse yalnız son LATEST_COUNT giriş gösterilir; tarih seçilince aralık sayfalı listelenir. */
+  readonly isDateSearch = computed(() => !!this.startDate() || !!this.endDate());
+
+  /** Tarih seçicilerin sınırları: aralık en fazla MAX_RANGE_MONTHS ay, bitiş bugünü geçemez. */
+  readonly startMin = computed(() => this.endDate() ? shiftMonths(this.endDate(), -MAX_RANGE_MONTHS) : null);
+  readonly startMax = computed(() => this.endDate() || this.today);
+  readonly endMax = computed(() => {
+    if (!this.startDate()) return this.today;
+    const limit = shiftMonths(this.startDate(), MAX_RANGE_MONTHS);
+    return limit < this.today ? limit : this.today;
+  });
+
+  /** Elle yazılan tarih seçici sınırlarını aşabilir; geçersiz aralıkta istek atılmaz, uyarı gösterilir. */
+  readonly rangeError = computed(() => {
+    const start = this.startDate();
+    const end = this.endDate();
+    if (!start || !end) return null;
+    if (end < start) return 'Bitiş tarihi başlangıç tarihinden önce olamaz.';
+    if (end > shiftMonths(start, MAX_RANGE_MONTHS)) return 'Tarih aralığı en fazla 1 ay olabilir.';
+    return null;
+  });
+
   /** Sonuç filtresi hariç ortak sorgu parçası; sayım kaynakları da bunu kullanır. */
   readonly #baseQuery = computed(() => {
     const p = new URLSearchParams();
@@ -104,11 +150,13 @@ export default class LoginLogs {
 
   // ---- Liste ----
   readonly result = httpResource<PagedResultDto<LoginLogRow>>(() => {
+    if (this.rangeError()) return undefined;
     const filter = this.resultFilter();
+    const dateSearch = this.isDateSearch();
     return this.#buildUrl({
       isSuccess: filter === 'all' ? '' : String(filter === 'success'),
-      page: String(this.currentPage()),
-      pageSize: String(this.pageSize())
+      page: dateSearch ? String(this.currentPage()) : '1',
+      pageSize: dateSearch ? String(this.pageSize()) : String(LATEST_COUNT)
     });
   });
 
@@ -120,9 +168,9 @@ export default class LoginLogs {
 
   // ---- İstatistik kutuları: başarılı / başarısız sayıları (pageSize=1 ile sadece totalCount alınır) ----
   readonly #successCount = httpResource<PagedResultDto<LoginLogRow>>(() =>
-    this.#buildUrl({ isSuccess: 'true', page: '1', pageSize: '1' }));
+    this.rangeError() ? undefined : this.#buildUrl({ isSuccess: 'true', page: '1', pageSize: '1' }));
   readonly #failCount = httpResource<PagedResultDto<LoginLogRow>>(() =>
-    this.#buildUrl({ isSuccess: 'false', page: '1', pageSize: '1' }));
+    this.rangeError() ? undefined : this.#buildUrl({ isSuccess: 'false', page: '1', pageSize: '1' }));
 
   readonly successCount = computed(() =>
     this.#successCount.hasValue() ? (this.#successCount.value().totalCount ?? 0) : 0);
@@ -184,13 +232,30 @@ export default class LoginLogs {
     this.currentPage.set(1);
   }
 
+  /** Yalnız başlangıç seçilirse bitiş, 1 ay sonrası (bugünü geçmeden) olarak doldurulur. */
   setStartDate(value: string): void {
-    this.startDate.set(value ?? '');
+    const start = value ?? '';
+    this.startDate.set(start);
+    if (start && !this.endDate()) {
+      const limit = shiftMonths(start, MAX_RANGE_MONTHS);
+      this.endDate.set(limit < this.today ? limit : this.today);
+    }
     this.currentPage.set(1);
   }
 
+  /** Yalnız bitiş seçilirse başlangıç, 1 ay öncesi olarak doldurulur. */
   setEndDate(value: string): void {
-    this.endDate.set(value ?? '');
+    const end = value ?? '';
+    this.endDate.set(end);
+    if (end && !this.startDate()) {
+      this.startDate.set(shiftMonths(end, -MAX_RANGE_MONTHS));
+    }
+    this.currentPage.set(1);
+  }
+
+  clearDates(): void {
+    this.startDate.set('');
+    this.endDate.set('');
     this.currentPage.set(1);
   }
 
@@ -223,14 +288,5 @@ export default class LoginLogs {
 
   osOf(row: LoginLogRow): string {
     return describeUserAgent(row.userAgent).os;
-  }
-
-  initialsOf(row: LoginLogRow): string {
-    const source = (row.fullName ?? row.userName ?? '').trim();
-    if (!source) return '?';
-    const parts = source.split(/\s+/);
-    const first = parts[0]?.charAt(0) ?? '';
-    const last = parts.length > 1 ? parts[parts.length - 1].charAt(0) : '';
-    return `${first}${last}`.toLocaleUpperCase('tr');
   }
 }

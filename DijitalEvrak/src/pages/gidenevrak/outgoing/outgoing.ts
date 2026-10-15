@@ -1,3 +1,4 @@
+import { DepartmentId, idKey } from '../../../models/ids';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -27,8 +28,8 @@ import { DocumentTypeLabels } from '../../../models/documenttype.model';
 import { Common } from '../../../services/common';
 import { RoleService } from '../../../services/role-service';
 
-// Guid eşlemeleri harf duyarsız: kayıtlardaki Id'ler listelerdekinden farklı harfle gelebilir
-const key = (id: string) => id.toLowerCase();
+// Kimlik eşlemeleri harf duyarsız (Guid) ve sayı / metin farkı gözetmez (birim)
+const key = (id: string | number) => idKey(id)!;
 
 @Component({
   imports: [
@@ -76,12 +77,6 @@ export default class Outgoing {
     return map;
   });
 
-  readonly externalInstitutionNameMap = computed(() => {
-    const map: Record<string, string> = {};
-    for (const i of this.externalInstitutions()) map[key(i.id)] = i.name;
-    return map;
-  });
-
   // Grid sütun filtreleri "Nereden"/"Nereye"/"Türü"/"Giz. Der."/"İvedilik" için
   // ham (id/enum) değer yerine ekranda gösterilen metin üzerinden filtrelenebilsin
   // diye satırlara bu türetilmiş alanlar ekleniyor; görünüm (ikon/rozet) hâlâ
@@ -89,12 +84,11 @@ export default class Outgoing {
   readonly gridData = computed(() => {
     const deptMap = this.departmentNameMap();
     const deptShortMap = this.departmentShortNameMap();
-    const instMap = this.externalInstitutionNameMap();
     return this.scanListData().map(doc => {
       // Hücrede kısa biçim (iç birimler kısa adla) virgülle ayrılmış tek
       // satırda; üzerine gelince tam adlar alt alta gösterilir.
-      const recipientNames = this.recipientNames(doc, deptShortMap, instMap);
-      const recipientFullNames = this.recipientNames(doc, deptMap, instMap);
+      const recipientNames = this.recipientNames(doc, deptShortMap);
+      const recipientFullNames = this.recipientNames(doc, deptMap);
       return {
         ...doc,
         documentTypeLabel: (doc.type != null && this.documentTypeLabelMap[doc.type]) || '-',
@@ -115,8 +109,7 @@ export default class Outgoing {
   // dış kurumlar her iki durumda da tam adla gösterilir.
   private recipientNames(
     doc: OutgoingDocumentModel,
-    deptMap: Record<string, string>,
-    instMap: Record<string, string>
+    deptMap: Record<string, string>
   ): string[] {
     const names = (doc.distributions ?? [])
       .map(d => {
@@ -124,13 +117,13 @@ export default class Outgoing {
           const name = deptMap[key(d.departmentId)] || d.departmentName || '';
           return name;
         }
-        return d.externalInstitutionName
-          || (d.externalInstitutionId && instMap[key(d.externalInstitutionId)])
-          || distributionRecipientName(d);
+        // Dağıtım satırında kurum adı cevapta gelir
+        return distributionRecipientName(d);
       })
       .filter(n => n && n !== '-');
     if (names.length) return names;
-    const legacy = doc.externalInstitutonId && instMap[key(doc.externalInstitutonId)];
+    // Eski kayıt: evrak üzerindeki tek alıcı; adı cevapta gelir
+    const legacy = doc.externalInstitutonId && doc.externalInstitutionName;
     return legacy ? [legacy] : [];
   }
 
@@ -164,7 +157,7 @@ export default class Outgoing {
 
   showFilters = false;
 
-  readonly isBirimEvrakSorumlusu = computed(() => this.roleService.has('Birim Evrak Sorumlusu'));
+  readonly isBirimEvrakSorumlusu = computed(() => this.roleService.hasBirimEvrakRole());
 
   private emptyToastShown = false;
 
@@ -174,7 +167,6 @@ export default class Outgoing {
 
     // Liste ekranındaki "Nereden"/"Nereye" sütunları için birim/kurum adları lazım.
     this.loadDepartments();
-    this.loadExternalInstitutions();
   }
 
   private setupDocumentsEffect(): void {
@@ -202,8 +194,8 @@ export default class Outgoing {
   // (tüm kayıtları görür); diğer kullanıcılar kendi departmentId'siyle
   // sınırlanır, böylece aynı birimdeki herkesin oluşturduğu evrakları görür
   // (sadece kendi oluşturduklarını değil).
-  private get departmentFilterId(): string | undefined {
-    return this.roleService.hasAny(['Yönetici', 'Giden Evrak']) ? undefined : this.common.user()?.departmentId;
+  private get departmentFilterId(): DepartmentId | undefined {
+    return this.roleService.hasAny(['Yönetici', 'Giden Evrak']) ? undefined : this.common.user()?.departmentId ?? undefined;
   }
 
   // Kayıt tarihine göre en yeni en üstte; kayıt tarihi eşit olan kayıtlarda belge tarihi ile kırılır.
@@ -356,13 +348,4 @@ export default class Outgoing {
     });
   }
 
-  private loadExternalInstitutions(): void {
-    this.externalInstitutionService.getExternalInstitutions().subscribe({
-      next: (res) => this.externalInstitutions.set(res),
-      error: (err) => {
-        console.error(err);
-        this.#toast.showToast('Hata', 'Dış kurumlar yüklenemedi', 'error');
-      }
-    });
-  }
 }

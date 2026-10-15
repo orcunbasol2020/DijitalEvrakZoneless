@@ -302,43 +302,6 @@
   outline-offset: 1px;
 }
 
-/* ---------- Seçenekler ---------- */
-.login-options {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 4px 0 16px;
-}
-
-.login-remember {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--login-text);
-  cursor: pointer;
-  user-select: none;
-}
-
-.login-remember .form-check-input {
-  margin: 0;
-  width: 17px;
-  height: 17px;
-  cursor: pointer;
-  border-color: var(--login-input-border-hover);
-}
-
-.login-remember .form-check-input:checked {
-  background-color: var(--login-accent);
-  border-color: var(--login-accent);
-}
-
-.login-remember .form-check-input:focus {
-  box-shadow: 0 0 0 3px var(--login-accent-soft);
-  border-color: var(--login-accent-strong);
-}
-
 /* ---------- Genel hata kutusu ---------- */
 .login-alert {
   display: flex;
@@ -417,6 +380,94 @@
   opacity: 0.75;
   cursor: progress;
   transform: none;
+}
+
+/* ---------- Windows girişi: ikincil düğme ve "veya" ayırıcı ---------- */
+.btn-login-secondary {
+  color: var(--login-accent);
+  background: transparent;
+  border: 1px solid var(--login-input-border);
+  box-shadow: none;
+}
+
+.btn-login-secondary .material-symbols-outlined,
+.btn-login-secondary .spinner-border {
+  color: var(--login-accent);
+}
+
+.btn-login-secondary:hover:not(:disabled) {
+  color: var(--login-accent);
+  background: var(--login-input-bg);
+  border-color: var(--login-input-border-hover);
+  box-shadow: none;
+}
+
+/* ---------- Durum ekranları (doğrulanıyor, tanımsız kullanıcı, çıkış ...) ---------- */
+.login-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  animation: loginFadeIn 0.2s ease-out;
+}
+
+.login-status .login-lead {
+  margin-bottom: 22px;
+}
+
+.login-status-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 18px;
+  border-radius: 16px;
+  color: var(--login-accent);
+  background: var(--login-accent-soft);
+}
+
+.login-status-icon .material-symbols-outlined {
+  font-size: 30px;
+}
+
+.login-status-icon .spinner-border {
+  width: 26px;
+  height: 26px;
+  border-width: 3px;
+}
+
+.login-status-icon.is-danger {
+  color: var(--login-danger);
+  background: var(--login-danger-bg);
+}
+
+.login-status-icon.is-warning {
+  color: var(--login-hint);
+  background: var(--login-hint-bg);
+}
+
+.login-link {
+  align-self: center;
+  margin-top: 14px;
+  padding: 4px 6px;
+  border: 0;
+  background: transparent;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--login-accent);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.login-link:focus-visible {
+  outline: 2px solid var(--login-accent-strong);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-status { animation: none; }
 }
 
 /* ---------- Sağ panel: marka ---------- */

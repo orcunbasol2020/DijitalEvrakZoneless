@@ -1,3 +1,4 @@
+import { DepartmentId } from '../models/ids';
 import { Injectable, inject } from '@angular/core';
 import { HttpService } from './http';
 import { OutgoingDocumentModel } from '../models/outgoingdocument.model';
@@ -42,7 +43,7 @@ export class OutgoingDocumentService {
 
   // status verilmezse tüm kayıtlar, verilirse OutgoingDocumentStatus'a göre filtrelenir
   // departmentId verilirse (admin olmayan kullanıcılar için) sadece o birime ait kayıtlar döner
-  getAll(status?: number, departmentId?: string) {
+  getAll(status?: number, departmentId?: DepartmentId | null) {
     const params: string[] = [];
     if (status != null) params.push(`status=${status}`);
     if (departmentId) params.push(`departmentId=${encodeURIComponent(departmentId)}`);

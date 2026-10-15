@@ -101,10 +101,10 @@
     }
 }
 
-.idd-status.is-retry {
-    color: #b45309;
-    background: #fffbeb;
-    border-color: #fde68a;
+.idd-status.is-failed {
+    color: #b91c1c;
+    background: #fef2f2;
+    border-color: #fecaca;
 }
 
 .idd-status.is-inprocess {
@@ -165,10 +165,10 @@
     border-color: rgba(56, 189, 248, 0.35);
 }
 
-[data-theme="dark"] .idd-status.is-retry {
-    color: #fcd34d;
-    background: rgba(245, 158, 11, 0.16);
-    border-color: rgba(251, 191, 36, 0.35);
+[data-theme="dark"] .idd-status.is-failed {
+    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.16);
+    border-color: rgba(248, 113, 113, 0.35);
 }
 
 [data-theme="dark"] .idd-status.is-inprocess {

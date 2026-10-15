@@ -1,4 +1,5 @@
-import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, inject, OnInit, OnDestroy, signal, ViewChild, ViewEncapsulation, computed } from '@angular/core';
+import { DepartmentId, idKey, sameId } from '../../models/ids';
+import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, inject, OnInit, OnDestroy, signal, ViewChild, ViewEncapsulation, computed, effect } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { firstValueFrom } from 'rxjs';
 import GenericModel from '../../../components/generic-model/generic-model';
@@ -6,8 +7,11 @@ import { CommonModule } from '@angular/common';
 import { FlexiToastService } from 'flexi-toast';
 import { FormsModule, FormControl, ReactiveFormsModule } from '@angular/forms';
 import { DocumentAllocation } from '../../services/documentallocation';
+import { AllocationRequestService } from '../../services/allocationrequest';
+import { AllocationRequestActionResultEnum, AllocationRequestModel, AllocationRequestStatusEnum, allocationRequestOperationLabel } from '../../models/allocationrequest.model';
 import { Common } from '../../services/common';
 import { IncomingDocumentService } from '../../services/incomingdocument';
+import { IncomingDocumentModel, incomingRecipientNames } from '../../models/incoming-document/incoming-document.model';
 import { AllocationFlowComponent } from '../dynamics/allocation-flow/allocation-flow';
 import { DocumentAllocationModel } from '../../models/documentallocation.model';
 import { AllocationStatusEnum, AllocationStatusLabels } from '../../models/allocationstatus.model';
@@ -31,18 +35,38 @@ export interface ScannedDoc {
   qrCode: string;
   detail: any;
   allocations: DocumentAllocationModel[];
+  // Evrakın alıcı onayı bekleyen zimmet talebi; varken backend her türlü yeni zimmeti reddeder
+  pendingRequest?: AllocationRequestModel | null;
 }
 
 // Kayıt sonrası gösterilen sonuç popup'ının içeriği. Toast yerine kullanılır;
-// hangi evrakın zimmetlendiği, hangisinin zaten hedef kişide olduğu için
-// atlandığı ve hangisinin hata aldığı sayılarıyla birlikte listelenir.
+// hangi evrakın zimmetlendiği, hangisinin alıcının onayına gönderildiği, hangisinin
+// zaten hedef kişide olduğu için atlandığı ve hangisinin hata aldığı listelenir.
 export interface ZimmetResult {
   targetName: string;
   actionLabel: string;
   succeeded: ScannedDoc[];
+  // Kurum içi başka kullanıcıya Devir / Teslim: zimmet alıcı onaylayana kadar devredende kalır
+  pending: ScannedDoc[];
   skipped: ScannedDoc[];
   failed: ScannedDoc[];
+  // Backend'in hata mesajı (ör. evrakın bekleyen onay talebi var), evrak Id'sine göre
+  failReasons: Record<string, string>;
+  // Teslim Et'te teslim edilen / onaya gönderilen evrakların düzenlenebilir bilgileri
+  edits: ResultDocEdit[];
 }
+
+// Teslim sonrası popup'ta düzenlenen evrak bilgileri; original ile karşılaştırılıp
+// yalnızca değişen evraklar kaydedilir.
+export interface ResultDocEdit {
+  doc: ScannedDoc;
+  pageCount: number | null;
+  hasAttachment: boolean | null;
+  attachmentDescription: string;
+  original: { pageCount: number | null; hasAttachment: boolean | null; attachmentDescription: string };
+}
+
+const ATTACHMENT_DESCRIPTION_MAX = 1000;
 
 @Component({
   standalone: true,
@@ -91,18 +115,95 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
   private incomingDocumentService = inject(IncomingDocumentService);
   private departmentService = inject(Department);
   private externalInstitutionService = inject(ExternalInstitution);
+  private allocationRequestService = inject(AllocationRequestService);
+
+  // === ONAY BEKLEYEN ZİMMET TALEPLERİ ===
+  // Evrak kurum içi birine devredilmiş / teslim edilmiş ve alıcı henüz onaylamamışsa yeni
+  // zimmet yapılamaz; ekranda uyarı çıkar. Talebi devreden ya da işlemi yapan geri çekebilir.
+  readonly operationLabel = allocationRequestOperationLabel;
+  readonly pendingDocs = computed(() => this.docs().filter(d => d.pendingRequest));
+  readonly allDocsPending = computed(() =>
+    this.docs().length > 0 && this.pendingDocs().length === this.docs().length);
+  readonly cancellablePendingDocs = computed(() =>
+    this.pendingDocs().filter(d => this.canCancelRequest(d.pendingRequest!)));
+  readonly cancellingRequests = signal(false);
+
+  canCancelRequest(req: AllocationRequestModel): boolean {
+    const userId = this.user()?.id?.toLowerCase();
+    return !!userId && (req.requestedByUserId?.toLowerCase() === userId || req.fromUserId?.toLowerCase() === userId);
+  }
+
+  pendingRequestText(req: AllocationRequestModel): string {
+    return `${req.toUserFullName} kişisinin zimmet onayı bekleniyor; yeni zimmet için önce talep geri çekilmeli.`;
+  }
+
+  loadPendingRequest(documentId: string) {
+    this.allocationRequestService.getByDocumentId(documentId).subscribe({
+      next: list => {
+        const pending = list.find(r => Number(r.status) === AllocationRequestStatusEnum.Beklemede) ?? null;
+        this.docs.update(docs => docs.map(d => d.id === documentId ? { ...d, pendingRequest: pending } : d));
+        this.cdr.markForCheck();
+      },
+      error: err => console.error('Zimmet talebi bilgisi alınamadı:', err)
+    });
+  }
+
+  // Listedeki, kullanıcının geri çekebileceği bekleyen talepler tek seferde geri çekilir.
+  // Başarılı olan evrakın uyarısı kalkar; geri çekilemeyenin nedeni uyarı olarak gösterilir.
+  cancelPendingRequests() {
+    const userId = this.user()?.id;
+    const docs = this.cancellablePendingDocs();
+    if (!userId || !docs.length || this.cancellingRequests()) return;
+
+    this.cancellingRequests.set(true);
+    this.allocationRequestService.cancelBulk(docs.map(d => d.pendingRequest!.id), userId, null).subscribe({
+      next: res => {
+        this.cancellingRequests.set(false);
+        const failed = (res?.data ?? []).filter(r => Number(r.result) !== AllocationRequestActionResultEnum.Basarili);
+        if (failed.length) {
+          this.#toast.showToast('Uyarı', failed.map(r => r.message).join(' '), 'warning');
+        }
+        for (const d of docs) {
+          this.loadPendingRequest(d.id);
+          this.loadAllocations(d.id);
+        }
+        this.cdr.markForCheck();
+      },
+      error: err => {
+        this.cancellingRequests.set(false);
+        console.error('Zimmet talebi geri çekilemedi:', err);
+        this.#toast.showToast('Hata', 'Talep geri çekilemedi', 'error');
+        this.cdr.markForCheck();
+      }
+    });
+  }
 
   // Nereden / Nereye: evraktaki id'ler kurum ve birim adına çevrilir (Süreçler ekranıyla aynı yaklaşım).
   readonly departments = signal<DepartmentModel[]>([]);
-  readonly externalInstitutions = signal<ExternalInstitutionModel[]>([]);
 
-  departmentNameOf(id?: string | null): string {
-    return (id && this.departments().find(d => d.id?.toLowerCase() === id.toLowerCase())?.name) || '-';
+  departmentNameOf(id?: DepartmentId | null): string {
+    return this.departments().find(d => sameId(d.id, id))?.name || '-';
   }
 
-  externalInstitutionNameOf(id?: string | null): string {
-    return (id && this.externalInstitutions().find(i => i.id?.toLowerCase() === id.toLowerCase())?.name) || '-';
+  // Nereye: evrak birden fazla birime gidebilir; Bilgi alıcıları "(B)" ekiyle
+  recipientNamesOf(doc: IncomingDocumentModel): string {
+    return incomingRecipientNames(doc, id => this.departments().find(d => sameId(d.id, id))?.name)
+      .join(', ') || '-';
   }
+
+  // GetById / GetByQrCode alıcıları döndürmez; "Nereye" listesi GetDistributions'tan eklenir.
+  // Okunamazsa evraktaki ana birim (departmentId) gösterilmeye devam eder.
+  private loadDistributions(documentId: string) {
+    this.incomingDocumentService.getDistributions(documentId, false).subscribe({
+      next: (distributions) => {
+        this.docs.update(list => list.map(d => d.id === documentId
+          ? { ...d, detail: { ...d.detail, distributions: distributions ?? [] } } : d));
+        this.cdr.markForCheck();
+      },
+      error: (err) => console.error('Alıcılar yüklenemedi:', err)
+    });
+  }
+
 
   // === OKUTULAN EVRAKLAR ===
   // Arka arkaya okutulan evraklar burada birikir. Tek evrak varken sol panelde
@@ -127,6 +228,9 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
 
   // Kayıt sonrası sonuç popup'ı (toast yerine).
   readonly saveResult = signal<ZimmetResult | null>(null);
+  // Sonuç popup'ındaki evrak bilgileri kaydedilirken
+  readonly savingEdits = signal(false);
+  readonly attachmentDescriptionMax = ATTACHMENT_DESCRIPTION_MAX;
 
   id!: string | null;
   // Sol paneldeki sekme (Evrak Bilgileri / Zimmet Geçmişi) ve zimmet türü.
@@ -148,7 +252,9 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
   // Autocomplete seçimi; şablonda seçili personel kartı ve buton durumları için.
   readonly selectedPerson = toSignal(this.personControl.valueChanges, { initialValue: this.personControl.value });
 
-  readonly usersResult = httpResource<UserModel[]>(() => "api/Users/GetAll");
+  // Kaynakta ~10.000 kullanıcı var, süzgeçsiz liste 200 ile sınırlı: "tüm personel" araması bu
+  // sistemde rolü olanlar arasında yapılır; birim kartları birimin kullanıcılarını ayrıca çeker.
+  readonly usersResult = httpResource<UserModel[]>(() => "api/Users/GetAll?onlyWithRoles=true");
   readonly personList = computed(() =>
     (this.usersResult.value() ?? [])
       .filter(x => !x.isDeleted && x.isActive)
@@ -156,11 +262,83 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
   readonly personOptions = computed(() =>
     this.personList()
       .filter((p): p is UserModel & { id: string } => !!p.id)
-      .map(p => ({
-        id: p.id,
-        name: `${p.name} ${p.surname} (${p.departmentShortName})`
-      }))
+      // Unvan seçeneğin altında küçük gösterilir (hint); aramaya katılmaz
+      .map(p => ({ id: p.id, name: this.personOptionName(p), hint: p.titleName }))
   );
+
+  // "Ad Soyad (BDHD)"; birimi tanımsızsa yalnızca ad soyad
+  private personOptionName(p: UserModel): string {
+    const short = p.departmentShortName?.trim();
+    return short ? `${p.name} ${p.surname} (${short})` : `${p.name} ${p.surname}`;
+  }
+
+  // Personel kartından seçim: autocomplete ile aynı { id, name } biçiminde yazılır ki
+  // seçili personel kartı, özet şeridi ve kayıt akışı değişmeden çalışsın.
+  selectPerson(p: UserModel): void {
+    if (!p.id) return;
+    this.personControl.setValue({ id: p.id, name: this.personOptionName(p) });
+  }
+
+  isPersonSelected(p: UserModel): boolean {
+    return !!p.id && this.selectedPerson()?.id?.toLowerCase() === p.id.toLowerCase();
+  }
+
+  // === BİRİME GÖRE PERSONEL ===
+  // Devret'te önce birim seçilir, altında o birimin personeli kart olarak listelenir.
+  // Birim, evrağın Nereye birimiyle açılır; kullanıcı başka bir birim seçebilir.
+  readonly departmentControl = new FormControl<{ id: DepartmentId, name: string } | null>(null);
+  readonly selectedDepartment = toSignal(this.departmentControl.valueChanges, { initialValue: this.departmentControl.value });
+
+  readonly departmentOptions = computed(() =>
+    [...this.departments()]
+      .filter(d => !!d.id)
+      .sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '', 'tr'))
+      .map(d => ({ id: d.id, name: d.shortName ? `${d.name} (${d.shortName})` : d.name }))
+  );
+
+  // Seçilen birimin kullanıcıları (sunucuda birime göre süzülür)
+  readonly departmentUsersResult = httpResource<UserModel[]>(() => {
+    const id = this.selectedDepartment()?.id;
+    return id != null ? `api/Users/GetAll?departmentId=${id}` : undefined;
+  });
+
+  readonly departmentPersons = computed(() => {
+    if (this.selectedDepartment()?.id == null) return [];
+    return (this.departmentUsersResult.value() ?? [])
+      .filter(p => !!p.id && !p.isDeleted && p.isActive)
+      .sort((a, b) => `${a.name} ${a.surname}`.localeCompare(`${b.name} ${b.surname}`, 'tr'));
+  });
+
+  // Devret'te personel seçim yolu: birime göre kartlardan ya da tüm personelde arama.
+  // Sekme değişse de seçili personel korunur.
+  readonly personPickMode = signal<'birim' | 'tum'>('birim');
+
+  // Seçili personel açık birim listesinde görünüyorsa ayrıca seçili kartı gösterilmez.
+  readonly selectedInDeptList = computed(() => {
+    const id = this.selectedPerson()?.id?.toLowerCase();
+    return !!id && this.departmentPersons().some(p => p.id?.toLowerCase() === id);
+  });
+
+  // Evrağın Nereye birimi: tek evrakta o evrağınki; çoklu listede tüm evraklar aynı
+  // birime gidiyorsa o birim, farklıysa boş (kullanıcı kendisi seçer).
+  readonly docsTargetDepartmentId = computed<string | null>(() => {
+    const ids = new Set(this.docs()
+      .map(d => idKey(d.detail?.departmentId))
+      .filter((id): id is string => !!id));
+    return ids.size === 1 ? [...ids][0] : null;
+  });
+
+  // Hedef birim yalnızca evrak listesi değişip Nereye birimi farklılaştığında yeniden
+  // atanır; kullanıcının elle seçtiği birim aynı listede korunur.
+  private appliedTargetDepartmentId: string | null | undefined = undefined;
+
+  private readonly syncTargetDepartment = effect(() => {
+    const target = this.docsTargetDepartmentId();
+    const options = this.departmentOptions();
+    if (!options.length || target === this.appliedTargetDepartmentId) return;
+    this.appliedTargetDepartmentId = target;
+    this.departmentControl.setValue(target ? options.find(o => idKey(o.id) === target) ?? null : null);
+  });
 
   activeAllocationOf(doc: ScannedDoc): DocumentAllocationModel | null {
     return doc.allocations.find(a => a.isActive) ?? null;
@@ -182,11 +360,13 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
   });
 
   // Listedeki evraklardan birinin zimmet geçmişinde (yalnızca aktif kayıt değil, tüm kayıtlar)
-  // "Teslim Edildi" varsa evrak tekrar teslim edilemez; "Teslim Et" pasifleşir.
+  // "Teslim Edildi" ya da "Teslim Alındı" varsa evrak tekrar teslim edilemez; "Teslim Et" pasifleşir.
+  // Onaylı teslimde backend Teslim (3) kaydı açmaz, alıcı onaylayınca doğrudan Teslim Alındı (5) yazar.
   readonly hasDeliveredDoc = computed(() => this.docs().some(d => this.isDelivered(d)));
 
   isDelivered(doc: ScannedDoc): boolean {
-    return doc.allocations.some(a => a.status === AllocationStatusEnum.Teslim);
+    return doc.allocations.some(a =>
+      a.status === AllocationStatusEnum.Teslim || a.status === AllocationStatusEnum.TeslimAlindi);
   }
 
   // Zimmet sahibinin birim kısa adı; allocation kaydında gelmediği için kullanıcı listesinden bulunur.
@@ -218,10 +398,6 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     this.departmentService.getDepartments().subscribe({
       next: (res) => this.departments.set(res ?? []),
       error: (err) => console.error('Birimler yüklenemedi:', err)
-    });
-    this.externalInstitutionService.getExternalInstitutions().subscribe({
-      next: (res) => this.externalInstitutions.set(res ?? []),
-      error: (err) => console.error('Dış kurumlar yüklenemedi:', err)
     });
 
     if (this.id) {
@@ -404,6 +580,8 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     const isFirst = this.docs().length === 0;
     this.docs.update(list => [...list, { id: doc.id, qrCode, detail: doc, allocations: [] }]);
     this.loadAllocations(doc.id);
+    this.loadPendingRequest(doc.id);
+    this.loadDistributions(doc.id);
 
     // Zimmet türü ve personel seçimi yalnızca ilk evrakta sıfırlanır; sonraki
     // okutmalarda kullanıcının sağ panelde yaptığı seçim korunur.
@@ -442,10 +620,107 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     if (!this.scanCollapsed) this.focusQrInputSoon();
   }
 
-  closeResult() {
+  // force: Kapat butonu; değişiklikler atılır. Dışarı tıklama / Escape kaydedilmemiş
+  // değişiklik varken popup'ı kapatmaz.
+  closeResult(force = false) {
+    if (this.savingEdits()) return;
+    if (!force && this.hasDirtyEdits()) return;
     this.saveResult.set(null);
     this.cdr.markForCheck();
     if (!this.scanCollapsed) this.focusQrInputSoon();
+  }
+
+  // === SONUÇ POPUP'INDA EVRAK BİLGİLERİ ===
+  private buildEdit(doc: ScannedDoc): ResultDocEdit {
+    const d = doc.detail ?? {};
+    const original = {
+      pageCount: d.pageCount != null && String(d.pageCount) !== '' ? Number(d.pageCount) : null,
+      hasAttachment: d.hasAttachment ?? null,
+      attachmentDescription: d.attachmentDescription ?? ''
+    };
+    return { doc, ...original, original };
+  }
+
+  isEditDirty(e: ResultDocEdit): boolean {
+    const desc = e.hasAttachment === true ? (e.attachmentDescription ?? '').trim() : '';
+    const origDesc = e.original.hasAttachment === true ? e.original.attachmentDescription.trim() : '';
+    return this.normalizedPageCount(e) !== e.original.pageCount
+      || e.hasAttachment !== e.original.hasAttachment
+      || desc !== origDesc;
+  }
+
+  // Sayfa sayısı boş bırakılamaz (önceden boşsa boş kalabilir) ve negatif olamaz.
+  isEditInvalid(e: ResultDocEdit): boolean {
+    const pc = this.normalizedPageCount(e);
+    if (pc === null) return e.original.pageCount !== null;
+    return pc < 0 || !Number.isInteger(pc)
+      || (e.attachmentDescription ?? '').length > ATTACHMENT_DESCRIPTION_MAX;
+  }
+
+  private normalizedPageCount(e: ResultDocEdit): number | null {
+    return e.pageCount == null || String(e.pageCount) === '' ? null : Number(e.pageCount);
+  }
+
+  hasDirtyEdits(): boolean {
+    return (this.saveResult()?.edits ?? []).some(e => this.isEditDirty(e));
+  }
+
+  hasInvalidEdits(): boolean {
+    return (this.saveResult()?.edits ?? []).some(e => this.isEditInvalid(e));
+  }
+
+  // Değişen evraklar güncel hâliyle sunucudan alınır, yalnızca bu üç alan değiştirilip
+  // Update'e tam model olarak gönderilir (eksik alan Update'te boşalabilir).
+  async saveResultEdits() {
+    const userId = this.user()?.id;
+    const dirty = (this.saveResult()?.edits ?? []).filter(e => this.isEditDirty(e));
+    if (!userId || !dirty.length || this.savingEdits()) return;
+    if (this.hasInvalidEdits()) {
+      this.#toast.showToast('Uyarı', 'Sayfa sayısı ve ek açıklamasını kontrol edin.', 'warning');
+      return;
+    }
+
+    this.savingEdits.set(true);
+    this.cdr.markForCheck();
+
+    const failedNos: string[] = [];
+    for (const e of dirty) {
+      try {
+        const fresh = await firstValueFrom(this.incomingDocumentService.getIncomingDocumentByDocumentId(e.doc.id));
+        // Ek açıklaması yalnızca "Var" seçiliyken gönderilir; "Yok" seçilince sunucu siler,
+        // belirtilmemişse (null) mevcut değer korunur. (Evrak Kayıt ekranıyla aynı kural)
+        const updated = {
+          ...fresh,
+          pageCount: this.normalizedPageCount(e) as number,
+          hasAttachment: e.hasAttachment,
+          attachmentDescription: e.hasAttachment === true
+            ? (e.attachmentDescription ?? '').trim()
+            : e.hasAttachment === false ? '' : null,
+          userId
+        };
+        // departmentId (ana alıcı) recipients'sız gönderilirse backend "Nereye" listesini o tek
+        // birime indirger; alıcılara dokunulmaması için ikisi de gönderilmez.
+        const { departmentId: _primary, distributions: _list, recipients: _recipients, ...payload } = updated;
+        await firstValueFrom(this.incomingDocumentService.updateIncomingDocument(payload));
+        this.docs.update(list => list.map(d => d.id === e.doc.id ? { ...d, detail: { ...d.detail, ...updated, distributions: d.detail?.distributions } } : d));
+        e.original = {
+          pageCount: this.normalizedPageCount(e),
+          hasAttachment: e.hasAttachment,
+          attachmentDescription: (e.attachmentDescription ?? '').trim()
+        };
+      } catch (err) {
+        console.error(`Evrak bilgileri kaydedilemedi (${e.doc.qrCode}):`, err);
+        failedNos.push(e.doc.qrCode);
+      }
+    }
+
+    this.savingEdits.set(false);
+    if (failedNos.length) {
+      this.#toast.showToast('Kayıt Başarısız', `Evrak bilgileri kaydedilemedi: ${failedNos.join(', ')}`, 'error');
+      this.cdr.markForCheck();
+      return;
+    }
+    this.closeResult(true);
   }
 
   getir(id: string) {
@@ -478,6 +753,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     this.lookupErrorMessage.set(null);
     this.personControl.setValue(null);
     this.zimmetType.set('other');
+    this.personPickMode.set('birim');
     this.activeTab.set('bilgi');
     this.id = null;
     this.buffer = '';
@@ -527,10 +803,18 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     // Hedef kişi evrakın zaten aktif zimmet sahibiyse aynı kişiye ikinci bir
     // zimmet kaydı açılmaz; o evrak atlanır ve sonuç popup'ında gösterilir.
     const skipped = allDocs.filter(d => this.activeAllocationOf(d)?.userId === personId);
-    const docs = allDocs.filter(d => !skipped.includes(d));
+
+    // Onay bekleyen talebi olan evrak backend'e gönderilmez (her türlü zimmeti reddeder);
+    // doğrudan başarısız sayılır ve nedeni sonuç popup'ında yazılır.
+    const blocked = allDocs.filter(d => !skipped.includes(d) && d.pendingRequest);
+    const failed: ScannedDoc[] = [...blocked];
+    const failReasons: Record<string, string> = {};
+    for (const d of blocked) failReasons[d.id] = this.pendingRequestText(d.pendingRequest!);
+
+    const docs = allDocs.filter(d => !skipped.includes(d) && !blocked.includes(d));
 
     if (docs.length === 0) {
-      this.saveResult.set({ targetName, actionLabel, succeeded: [], skipped, failed: [] });
+      this.saveResult.set({ targetName, actionLabel, succeeded: [], pending: [], skipped, failed, failReasons, edits: [] });
       this.cdr.markForCheck();
       return;
     }
@@ -539,18 +823,24 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     this.cdr.markForCheck();
 
     const succeeded: ScannedDoc[] = [];
-    const failed: ScannedDoc[] = [];
+    const pending: ScannedDoc[] = [];
 
     for (const doc of docs) {
       try {
-        await firstValueFrom(this.allocationService.createAllocation({
+        const res = await firstValueFrom(this.allocationService.createAllocation({
           incomingDocumentId: doc.id,
           userId: personId,
           createdUserId: user.id,
           status,
           userType: 1,
         }));
-        succeeded.push(doc);
+        const outcome = DocumentAllocation.classifyCreateResponse(res);
+        if (outcome.kind === 'allocated') succeeded.push(doc);
+        else if (outcome.kind === 'pending') pending.push(doc);
+        else {
+          failed.push(doc);
+          failReasons[doc.id] = outcome.reason;
+        }
       } catch (err) {
         console.error(`Zimmetleme başarısız (${doc.qrCode}):`, err);
         failed.push(doc);
@@ -560,12 +850,18 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     this.saving.set(false);
 
     // Sonuç toast yerine popup'ta gösterilir: sayılar ve her gruptaki evraklar.
-    this.saveResult.set({ targetName, actionLabel, succeeded, skipped, failed });
+    // Teslim Et'te teslim edilen / onaya gönderilen evrakların sayfa sayısı ve ek bilgisi
+    // popup'ta düzenlenebilir.
+    const edits = status === AllocationStatusEnum.Teslim
+      ? [...succeeded, ...pending].map(d => this.buildEdit(d))
+      : [];
+    this.saveResult.set({ targetName, actionLabel, succeeded, pending, skipped, failed, failReasons, edits });
 
-    if (succeeded.length > 0) {
+    if (succeeded.length + pending.length > 0) {
       this.personControl.setValue(null);
       this.zimmetType.set('other');
       for (const doc of succeeded) this.loadAllocations(doc.id);
+      for (const doc of pending) this.loadPendingRequest(doc.id);
     }
     this.cdr.markForCheck();
   }

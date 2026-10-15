@@ -47,12 +47,18 @@
       </span>
       <div>
         <h4 class="st-card-title">Giriş Kayıtları</h4>
-        <div class="st-card-sub">Sisteme yapılan başarılı ve başarısız giriş denemeleri, yeniden eskiye</div>
+        <div class="st-card-sub">
+          @if (isDateSearch()) {
+            Seçili tarih aralığındaki giriş denemeleri, yeniden eskiye
+          } @else {
+            Son {{ LATEST_COUNT }} giriş denemesi; daha eskileri için tarih aralığı seçin (en fazla 1 ay)
+          }
+        </div>
       </div>
       <div class="zl-head-tools ll-head-tools">
-        <span class="st-count" [class.is-none]="!loading() && totalCount() === 0">
+        <span class="st-count" [class.is-none]="!loading() && rows().length === 0">
           <span class="material-symbols-outlined">filter_list</span>
-          {{ totalCount() }} kayıt
+          {{ isDateSearch() ? totalCount() : rows().length }} kayıt
         </span>
         <button type="button" class="zl-icon-btn" title="Güncel Verileri Getir" (click)="refresh()">
           <span class="material-symbols-outlined">refresh</span>
@@ -85,7 +91,8 @@
         <label class="ll-filter-label" for="llStart">Başlangıç</label>
         <div class="zl-search ll-date">
           <span class="material-symbols-outlined">calendar_today</span>
-          <input id="llStart" type="date" [ngModel]="startDate()" (ngModelChange)="setStartDate($event)" [max]="endDate() || null" />
+          <input id="llStart" type="date" [ngModel]="startDate()" (ngModelChange)="setStartDate($event)"
+            [min]="startMin()" [max]="startMax()" />
         </div>
       </div>
 
@@ -93,21 +100,31 @@
         <label class="ll-filter-label" for="llEnd">Bitiş</label>
         <div class="zl-search ll-date">
           <span class="material-symbols-outlined">event</span>
-          <input id="llEnd" type="date" [ngModel]="endDate()" (ngModelChange)="setEndDate($event)" [min]="startDate() || null" />
+          <input id="llEnd" type="date" [ngModel]="endDate()" (ngModelChange)="setEndDate($event)"
+            [min]="startDate() || null" [max]="endMax()" />
         </div>
       </div>
 
-      <div class="ll-filter">
-        <label class="ll-filter-label" for="llPageSize">Sayfa Boyutu</label>
-        <div class="zl-search ll-select">
-          <span class="material-symbols-outlined">table_rows</span>
-          <select id="llPageSize" [ngModel]="pageSize()" (ngModelChange)="setPageSize($event)">
-            @for (size of pageSizeOptions; track size) {
-              <option [ngValue]="size">{{ size }}</option>
-            }
-          </select>
+      @if (isDateSearch()) {
+        <div class="ll-filter">
+          <label class="ll-filter-label" for="llPageSize">Sayfa Boyutu</label>
+          <div class="zl-search ll-select">
+            <span class="material-symbols-outlined">table_rows</span>
+            <select id="llPageSize" [ngModel]="pageSize()" (ngModelChange)="setPageSize($event)">
+              @for (size of pageSizeOptions; track size) {
+                <option [ngValue]="size">{{ size }}</option>
+              }
+            </select>
+          </div>
         </div>
-      </div>
+      }
+
+      @if (rangeError()) {
+        <div class="ll-range-error" role="alert">
+          <span class="material-symbols-outlined">error</span>
+          {{ rangeError() }}
+        </div>
+      }
 
       @if (isFiltering()) {
         <div class="ll-filter ll-filter-actions">
@@ -120,7 +137,21 @@
     </div>
 
     <div class="st-card-body zl-body">
-      @if (loading() && !rows().length) {
+      @if (rangeError()) {
+        <div class="zl-empty-wrap">
+          <div class="sp-empty">
+            <span class="sp-empty-icon">
+              <span class="material-symbols-outlined">date_range</span>
+            </span>
+            <div class="sp-empty-title">Tarih aralığını düzeltin</div>
+            <div class="sp-empty-text">{{ rangeError() }} Giriş kayıtları en fazla 1 aylık aralıkla aranabilir.</div>
+            <button type="button" class="sp-pill-btn" (click)="clearDates()">
+              <span class="material-symbols-outlined">restart_alt</span>
+              Son {{ LATEST_COUNT }} girişe dön
+            </button>
+          </div>
+        </div>
+      } @else if (loading() && !rows().length) {
         <div class="zl-loading">
           <span class="spinner-border" role="status"></span>
           Giriş kayıtları yükleniyor...
@@ -163,9 +194,8 @@
           <table class="zl-table ll-table">
             <thead>
               <tr>
-                <th>TARİH</th>
                 <th>KULLANICI ADI</th>
-                <th>AD SOYAD</th>
+                <th>TARİH</th>
                 <th>BİRİM</th>
                 <th class="zl-center">SONUÇ</th>
                 <th>IP ADRESİ</th>
@@ -176,24 +206,14 @@
             <tbody>
               @for (row of rows(); track row.id ?? $index) {
                 <tr class="ll-row" [class.is-fail]="!row.isSuccess">
+                  <td>
+                    <span class="zl-doc">
+                      <span class="zl-doc-no ll-username" [title]="row.fullName || 'Bu kullanıcı adıyla kayıtlı bir hesap bulunamadı'">{{ row.userName || '-' }}</span>
+                    </span>
+                  </td>
                   <td class="ll-date-cell">
                     <span class="ll-date-main">{{ toLocalDate(row.loginDate) | date:'dd.MM.yyyy' }}</span>
                     <span class="ll-date-time">{{ toLocalDate(row.loginDate) | date:'HH:mm:ss' }}</span>
-                  </td>
-                  <td>
-                    <span class="zl-doc">
-                      <span class="zl-doc-icon ll-avatar" [class.is-unknown]="!row.fullName">
-                        {{ initialsOf(row) }}
-                      </span>
-                      <span class="zl-doc-no ll-username">{{ row.userName || '-' }}</span>
-                    </span>
-                  </td>
-                  <td>
-                    @if (row.fullName) {
-                      {{ row.fullName }}
-                    } @else {
-                      <span class="ll-muted" title="Bu kullanıcı adıyla kayıtlı bir hesap bulunamadı">Kayıtlı değil</span>
-                    }
                   </td>
                   <td>
                     @if (row.departmentName) {
@@ -227,7 +247,15 @@
       }
     </div>
 
-    @if (!error() && totalCount() > 0) {
+    @if (!isDateSearch() && !error() && rows().length > 0) {
+      <div class="zl-footer">
+        <div class="zl-range">
+          Son <b>{{ rows().length }}</b> giriş gösteriliyor. Daha eski kayıtlar için tarih aralığı seçin.
+        </div>
+      </div>
+    }
+
+    @if (isDateSearch() && !rangeError() && !error() && totalCount() > 0) {
       <div class="zl-footer">
         <div class="zl-range">
           Toplam <b>{{ totalCount() }}</b> kayıttan <b>{{ pageRangeStart() }}-{{ pageRangeEnd() }}</b> arası gösteriliyor

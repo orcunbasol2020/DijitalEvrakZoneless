@@ -1,3 +1,4 @@
+import { ExternalInstitutionId, idKey } from '../../../models/ids';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, OnInit, signal, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
@@ -13,7 +14,7 @@ import { OutgoingDocumentAllocationModel } from '../../../models/outgoingdocumen
 import { AllocationStatusEnum } from '../../../models/allocationstatus.model';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { ExternalInstitutionModel } from '../../../services/external-institution';
+import { INSTITUTION_MIN_SEARCH, institutionSearch } from '../../../services/external-institution';
 import { DepartmentModel } from '../../../services/department';
 import { ExternalUserService, ExternalUserModel, initialExternalUser } from '../../../services/external-user';
 import { Common } from '../../../services/common';
@@ -25,7 +26,7 @@ import { OutgoingDocumentDistributionModel, distributionRecipientName } from '..
 // Zarf zimmet ekranıyla (gidenevrak/zimmet) aynı üç mod:
 // self: kendi üzerine alma, internal: iç kullanıcıya zimmet, external: dış kuruma teslim.
 type ZimmetMode = 'self' | 'internal' | 'external';
-type PersonListItem = { id: string; name: string; surname: string; identityNo?: string; email?: string };
+type PersonListItem = { id: string; name: string; surname: string; identityNo?: string; email?: string; titleName?: string | null };
 
 @Component({
   imports: [
@@ -95,9 +96,9 @@ export default class Outgoingzimmet implements OnInit {
   readonly mode = signal<ZimmetMode>('self');
   readonly selectedPersonId = signal<string | null>(null);
   readonly personSearch = signal('');
-  readonly selectedInstitutionId = signal<string | null>(null);
+  readonly selectedInstitutionId = signal<ExternalInstitutionId | null>(null);
 
-  readonly usersResult = httpResource<UserModel[]>(() => "api/Users/GetAll");
+  readonly usersResult = httpResource<UserModel[]>(() => "api/Users/GetAll?onlyWithRoles=true");
   readonly internalUserList = computed<PersonListItem[]>(() =>
     (this.usersResult.value() ?? []).filter((x): x is UserModel & { id: string } => !!x.id && !x.isDeleted && x.isActive)
   );
@@ -106,7 +107,8 @@ export default class Outgoingzimmet implements OnInit {
   readonly internalUserControl = new FormControl<{ id: string, name: string } | null>(null);
   readonly internalUserOptions = computed(() =>
     this.internalUserList()
-      .map(u => ({ id: u.id, name: `${u.name} ${u.surname}`.trim() }))
+      // Unvan seçeneğin altında küçük gösterilir (hint); aramaya katılmaz
+      .map(u => ({ id: u.id, name: `${u.name} ${u.surname}`.trim(), hint: u.titleName }))
       .sort((a, b) => a.name.localeCompare(b.name, 'tr'))
   );
   readonly selectedInternalUser = computed<PersonListItem | null>(() => {
@@ -120,38 +122,14 @@ export default class Outgoingzimmet implements OnInit {
     return `${u?.name?.charAt(0) ?? ''}${u?.surname?.charAt(0) ?? ''}`.toLocaleUpperCase('tr');
   });
 
-  readonly institutionsResult = httpResource<ExternalInstitutionModel[]>(() => "api/ExternalInstitutions/GetAll");
-  readonly institutionList = computed(() =>
-    (this.institutionsResult.value() ?? []).filter(x => !x.isDeleted)
-  );
-
-  // Kurumlar parentId ile hiyerarşik olabildiğinden, autocomplete listesinde
-  // üst kurumun hemen altına alt kurumlar girintili şekilde sıralanır.
-  readonly institutionOptions = computed(() => {
-    const list = this.institutionList();
-    const byParent = new Map<string | null, ExternalInstitutionModel[]>();
-
-    for (const inst of list) {
-      const key = list.some(p => p.id === inst.parentId) ? inst.parentId! : null;
-      if (!byParent.has(key)) byParent.set(key, []);
-      byParent.get(key)!.push(inst);
-    }
-    for (const group of byParent.values()) {
-      group.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
-    }
-
-    const result: { id: string; name: string; level: number }[] = [];
-    const addChildren = (parentId: string | null, level: number) => {
-      for (const inst of byParent.get(parentId) ?? []) {
-        result.push({ id: inst.id, name: inst.name, level });
-        addChildren(inst.id, level + 1);
-      }
-    };
-    addChildren(null, 0);
-
-    return result;
-  });
-  readonly institutionControl = new FormControl<{ id: string, name: string } | null>(null);
+  // Dış kurumlar (~160.000) indirilmez: kurum seçici sunucuda arar. Seçili kurumun adı seçimden,
+  // arama sonucundan ya da evrak / zarf cevabından bilinir (bkz. institutionNameOf).
+  readonly institutionSearch = institutionSearch();
+  readonly institutionMinSearch = INSTITUTION_MIN_SEARCH;
+  readonly institutionOptions = computed(() =>
+    this.institutionSearch.options().map(i => ({ id: i.id, name: i.name })));
+  private readonly pickedInstitution = signal<{ id: ExternalInstitutionId; name: string } | null>(null);
+  readonly institutionControl = new FormControl<{ id: ExternalInstitutionId, name: string } | null>(null);
 
   // Belgenin gönderen/alan birim bilgilerini isim olarak göstermek için.
   readonly departmentsResult = httpResource<DepartmentModel[]>(() => "api/Departments/GetAll");
@@ -169,21 +147,19 @@ export default class Outgoingzimmet implements OnInit {
     const dist = this.distributions();
     if (dist.length) {
       const deptMap: Record<string, string> = {};
-      for (const d of this.departmentsResult.value() ?? []) deptMap[d.id] = d.name;
-      const instMap: Record<string, string> = {};
-      for (const i of this.institutionList()) instMap[i.id] = i.name;
-      return dist.map(d => distributionRecipientName(d, deptMap, instMap));
+      for (const d of this.departmentsResult.value() ?? []) deptMap[idKey(d.id)!] = d.name;
+      // Dağıtım satırında kurum adı cevapta gelir
+      return dist.map(d => distributionRecipientName(d, deptMap));
     }
-    const institutionId = this.document()?.externalInstitutonId;
-    if (!institutionId) return [];
-    const name = this.institutionList().find(i => i.id === institutionId)?.name;
+    // Eski kayıt: evrak üzerindeki tek alıcı; adı cevapta gelir
+    const name = this.document()?.externalInstitutonId && this.document()?.externalInstitutionName;
     return name ? [name] : [];
   });
 
   // "Dış Kurum" modunda otomatik seçilecek kurum: dağıtım listesindeki ilk dış
   // kurum, yoksa eski tek alıcı alanı. Birden fazla dış kurum varsa kullanıcı
   // autocomplete'ten diğerini seçebilir.
-  readonly primaryExternalInstitutionId = computed<string | null>(() =>
+  readonly primaryExternalInstitutionId = computed<ExternalInstitutionId | null>(() =>
     this.distributions().find(d => d.externalInstitutionId)?.externalInstitutionId
     ?? this.document()?.externalInstitutonId
     ?? null
@@ -215,9 +191,18 @@ export default class Outgoingzimmet implements OnInit {
 
   readonly selectedInstitutionName = computed(() => {
     const id = this.selectedInstitutionId();
-    if (!id) return null;
-    return this.institutionList().find(i => i.id === id)?.name ?? null;
+    return id !== null ? this.institutionNameOf(id) : null;
   });
+
+  private institutionNameOf(id: ExternalInstitutionId): string | null {
+    const picked = this.pickedInstitution();
+    if (picked?.id === id) return picked.name;
+    const fromDistribution = this.distributions().find(d => d.externalInstitutionId === id)?.externalInstitutionName;
+    if (fromDistribution) return fromDistribution;
+    const doc = this.document();
+    if (doc?.externalInstitutonId === id && doc.externalInstitutionName) return doc.externalInstitutionName;
+    return this.institutionSearch.options().find(i => i.id === id)?.name ?? null;
+  }
 
   // Alt özet şeridinde "Evrak No → Ad Soyad" biçiminde gösterilecek hedef.
   readonly selectedTargetLabel = computed<string | null>(() => {
@@ -238,7 +223,7 @@ export default class Outgoingzimmet implements OnInit {
   });
 
   // Tek personelli kurum için otomatik seçimin hangi kurumda yapıldığını tutar.
-  private autoSelectedInstitutionId: string | null = null;
+  private autoSelectedInstitutionId: ExternalInstitutionId | null = null;
 
   readonly quickAddModalVisible = signal(false);
   readonly quickAddSaving = signal(false);
@@ -259,7 +244,7 @@ export default class Outgoingzimmet implements OnInit {
     // kutusunda gösterilen seçimi de eşitle.
     effect(() => {
       const id = this.selectedInstitutionId();
-      const match = id ? this.institutionOptions().find(o => o.id === id) ?? null : null;
+      const match = id !== null ? { id, name: this.institutionNameOf(id) ?? '' } : null;
       if (this.institutionControl.value?.id !== match?.id) {
         this.institutionControl.setValue(match, { emitEvent: false });
       }
@@ -278,6 +263,7 @@ export default class Outgoingzimmet implements OnInit {
     });
 
     this.institutionControl.valueChanges.subscribe(value => {
+      if (value) this.pickedInstitution.set(value);
       this.selectInstitution(value?.id ?? null);
     });
 
@@ -370,7 +356,7 @@ export default class Outgoingzimmet implements OnInit {
     }
   }
 
-  selectInstitution(id: string | null): void {
+  selectInstitution(id: ExternalInstitutionId | null): void {
     this.selectedInstitutionId.set(id);
     this.selectedPersonId.set(null);
     this.autoSelectedInstitutionId = null;

@@ -13,13 +13,7 @@ const routes: Routes = [
         data: { roles: USER_MANAGEMENT_ROLES }
     },
     {
-        path: 'create',
-        loadComponent: () => import('./create/create'),
-        canActivate: [roleGuard],
-        canDeactivate: [canDeactivateCreate],
-        data: { roles: USER_MANAGEMENT_ROLES }
-    },
-    {
+        // Kullanıcılar kaynak sistemden gelir (ekleme / güncelleme yok); bu sayfada yalnızca roller atanır
         path: 'edit/:id',
         loadComponent: () => import('./create/create'),
         canActivate: [roleGuard],

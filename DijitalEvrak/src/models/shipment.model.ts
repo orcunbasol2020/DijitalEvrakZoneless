@@ -1,3 +1,4 @@
+import { DepartmentId, ExternalInstitutionId } from './ids';
 // Giden evrakların kargo / posta ile gönderimi (OutgoingDocumentShipments).
 // Bir paket birden fazla dağıtım satırını (aynı kuruma giden birkaç evrak)
 // kapsayabilir; bu yüzden kayıt evraka değil dağıtım satırlarına bağlanır.
@@ -73,9 +74,9 @@ export interface OutgoingDocumentShipmentItemModel {
   outgoingDocumentId: string;
   documentNumber?: string | null;
   subject?: string | null;
-  departmentId?: string | null;
+  departmentId?: DepartmentId | null;
   departmentName?: string | null;
-  externalInstitutionId?: string | null;
+  externalInstitutionId?: ExternalInstitutionId | null;
   externalInstitutionName?: string | null;
 }
 
@@ -89,7 +90,7 @@ export interface OutgoingDocumentShipmentModel {
   // Kargoya veren (zimmetli) kullanıcı
   sentUserId: string;
   sentUserFullName?: string | null;
-  externalInstitutionId?: string | null;
+  externalInstitutionId?: ExternalInstitutionId | null;
   externalInstitutionName?: string | null;
   // Paket üzerindeki alıcı adı
   recipientName?: string | null;
@@ -116,7 +117,7 @@ export interface OutgoingDocumentShipmentCreateInput {
   // Boş bırakılırsa sunucu saati kullanılır.
   sentDate?: string | null;
   // Boş bırakılırsa tüm satırlar aynı dış kuruma gidiyorsa oradan alınır.
-  externalInstitutionId?: string | null;
+  externalInstitutionId?: ExternalInstitutionId | null;
   recipientName?: string | null;
   cost?: number | null;
   notes?: string | null;

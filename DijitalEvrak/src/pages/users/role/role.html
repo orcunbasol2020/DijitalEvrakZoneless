@@ -3,42 +3,6 @@
 </app-generic>
 
 <div class="st-page">
-  <!-- İstatistik kutuları: aynı zamanda durum (aktif / pasif) filtresi -->
-  <div class="zl-stats">
-    <button type="button" class="zl-stat" [class.is-active]="statusFilter() === 'all'" (click)="setStatusFilter('all')">
-      <span class="zl-stat-icon is-total">
-        <span class="material-symbols-outlined">shield_person</span>
-      </span>
-      <span class="zl-stat-body">
-        <span class="zl-stat-label d-block">TOPLAM ROL</span>
-        <span class="zl-stat-value d-block">{{ totalCount() }}</span>
-      </span>
-      <span class="material-symbols-outlined zl-stat-check">{{ statusFilter() === 'all' ? 'check_circle' : 'radio_button_unchecked' }}</span>
-    </button>
-
-    <button type="button" class="zl-stat" [class.is-active]="statusFilter() === 'active'" (click)="setStatusFilter('active')">
-      <span class="zl-stat-icon rl-stat-active">
-        <span class="material-symbols-outlined">verified_user</span>
-      </span>
-      <span class="zl-stat-body">
-        <span class="zl-stat-label d-block">AKTİF</span>
-        <span class="zl-stat-value d-block">{{ activeCount() }}</span>
-      </span>
-      <span class="material-symbols-outlined zl-stat-check">{{ statusFilter() === 'active' ? 'check_circle' : 'radio_button_unchecked' }}</span>
-    </button>
-
-    <button type="button" class="zl-stat" [class.is-active]="statusFilter() === 'passive'" (click)="setStatusFilter('passive')">
-      <span class="zl-stat-icon rl-stat-passive">
-        <span class="material-symbols-outlined">remove_moderator</span>
-      </span>
-      <span class="zl-stat-body">
-        <span class="zl-stat-label d-block">PASİF</span>
-        <span class="zl-stat-value d-block">{{ passiveCount() }}</span>
-      </span>
-      <span class="material-symbols-outlined zl-stat-check">{{ statusFilter() === 'passive' ? 'check_circle' : 'radio_button_unchecked' }}</span>
-    </button>
-  </div>
-
   <!-- Liste -->
   <section class="st-card">
     <div class="st-card-head rl-head">
@@ -63,10 +27,18 @@
             </button>
           }
         </div>
-        <span class="st-count">
-          <span class="material-symbols-outlined">filter_list</span>
-          {{ filteredRoles().length }} kayıt
-        </span>
+        <!-- Durum süzgeci: Tümü / Aktif / Pasif (sayılarla) -->
+        <div class="rl-seg" role="group" aria-label="Duruma göre süz">
+          <button type="button" [class.is-on]="statusFilter() === 'all'" [attr.aria-pressed]="statusFilter() === 'all'" (click)="setStatusFilter('all')">
+            Tümü <span class="rl-seg-n">{{ totalCount() }}</span>
+          </button>
+          <button type="button" [class.is-on]="statusFilter() === 'active'" [attr.aria-pressed]="statusFilter() === 'active'" (click)="setStatusFilter('active')">
+            Aktif <span class="rl-seg-n">{{ activeCount() }}</span>
+          </button>
+          <button type="button" [class.is-on]="statusFilter() === 'passive'" [attr.aria-pressed]="statusFilter() === 'passive'" (click)="setStatusFilter('passive')">
+            Pasif <span class="rl-seg-n">{{ passiveCount() }}</span>
+          </button>
+        </div>
         <button type="button" class="zl-icon-btn" title="Güncel Verileri Getir" (click)="refresh()">
           <span class="material-symbols-outlined">refresh</span>
         </button>
@@ -120,49 +92,54 @@
                 <th class="zl-th-sort is-active" (click)="toggleSort()">
                   <span class="zl-th-inner">ROL ADI <span class="material-symbols-outlined zl-sort-icon">{{ sortDirection() === 'asc' ? 'arrow_upward' : 'arrow_downward' }}</span></span>
                 </th>
-                <th class="zl-center">DURUM</th>
-                <th class="zl-center">AKTİF</th>
-                <th class="zl-center">GÜNCELLE</th>
+                <th class="rl-th-status">DURUM</th>
+                <th class="zl-center rl-th-act"></th>
               </tr>
             </thead>
 
             <tbody>
               @for (item of pagedRoles(); track item.id) {
-                <tr class="zl-row" (click)="openEditModal(item)">
+                <tr class="zl-row rl-row" [class.is-passive]="!isActive(item)" (click)="openEditModal(item)">
                   <td>
-                    <span class="zl-doc">
-                      <span class="zl-doc-icon">
-                        <span class="material-symbols-outlined">shield_person</span>
-                      </span>
-                      <span class="zl-doc-no">{{ item.name || '-' }}</span>
-                      @if (item.isDeleted) {
-                        <span class="rl-deleted">
-                          <span class="material-symbols-outlined">delete</span>
-                          Silindi
+                    <span class="rl-role">
+                      <span class="rl-role-icon material-symbols-outlined" aria-hidden="true"
+                        [class.is-admin]="label(item) === 'Yönetici'"
+                        [class.is-unit-manager]="label(item) === 'Birim Yöneticisi'">{{ icon(item) }}</span>
+                      <span class="rl-role-text">
+                        <span class="rl-role-name">
+                          {{ label(item) || '-' }}
+                          @if (!visible(item)) {
+                            <span class="rl-tag" title="Rol atama ekranında ve rol süzgecinde gösterilmez">Atamada gizli</span>
+                          }
                         </span>
-                      }
+                      </span>
                     </span>
                   </td>
-                  <td class="zl-center">
-                    <span class="rl-status" [class.is-on]="isActive(item)">
-                      <span class="rl-status-dot"></span>
-                      {{ isActive(item) ? 'Aktif' : 'Pasif' }}
-                    </span>
-                  </td>
-                  <td class="zl-center">
-                    <button type="button" class="rl-switch" role="switch"
+                  <td>
+                    <!-- Minimal anahtar: tıklayınca durum anında değişir (sunucu hatasında geri alınır) -->
+                    <button type="button" class="rl-toggle" role="switch"
                       [class.is-on]="isActive(item)"
                       [attr.aria-checked]="isActive(item)"
+                      [attr.aria-label]="label(item) + ' rolü ' + (isActive(item) ? 'aktif' : 'pasif')"
                       [title]="isActive(item) ? 'Pasif yap' : 'Aktif yap'"
                       (click)="toggleActive(item); $event.stopPropagation()">
-                      <span class="rl-switch-knob"></span>
+                      <span class="rl-toggle-track"><span class="rl-toggle-knob"></span></span>
+                      <span class="rl-toggle-label">{{ isActive(item) ? 'Aktif' : 'Pasif' }}</span>
                     </button>
                   </td>
                   <td class="zl-center">
-                    <button type="button" class="zl-act" title="Güncelle"
-                      (click)="openEditModal(item); $event.stopPropagation()">
-                      <span class="material-symbols-outlined">edit</span>
-                    </button>
+                    <span class="rl-acts">
+                      <button type="button" class="zl-act" title="Güncelle"
+                        (click)="openEditModal(item); $event.stopPropagation()">
+                        <span class="material-symbols-outlined">edit</span>
+                      </button>
+                      <button type="button" class="zl-act rl-act-delete"
+                        [disabled]="!deletable(item)"
+                        [title]="deletable(item) ? 'Sil' : 'Menü ve sayfa yetkilerinde kullanılan rol silinemez'"
+                        (click)="deleteRole(item); $event.stopPropagation()">
+                        <span class="material-symbols-outlined">delete</span>
+                      </button>
+                    </span>
                   </td>
                 </tr>
               }
@@ -226,23 +203,30 @@
 
       <div class="zl-modal-body">
         <label class="rl-label" for="roleNameInput">Rol Adı</label>
-        <div class="zl-search">
-          <span class="material-symbols-outlined">badge</span>
+        <div class="zl-search" [class.rl-locked]="nameLocked()">
+          <span class="material-symbols-outlined">{{ nameLocked() ? 'lock' : 'badge' }}</span>
           <input
             id="roleNameInput"
             type="text"
             placeholder="Örn. Yönetici"
+            [readOnly]="nameLocked()"
+            [attr.aria-describedby]="nameLocked() ? 'roleNameLockHint' : null"
             [(ngModel)]="form.name"
             (keydown.enter)="save()" />
         </div>
+        @if (nameLocked()) {
+          <div class="rl-lock-hint" id="roleNameLockHint">
+            Sistem rolü: menü ve sayfa yetkileri bu adla eşleştiği için adı değiştirilemez.
+          </div>
+        }
 
         <button type="button" class="rl-toggle-row" (click)="form.isActive = !form.isActive">
           <span class="rl-toggle-text">
             <span class="rl-toggle-title d-block">Aktif</span>
             <span class="rl-toggle-sub d-block">Rolün kullanımda olup olmadığını belirler</span>
           </span>
-          <span class="rl-switch" role="switch" [class.is-on]="form.isActive" [attr.aria-checked]="form.isActive">
-            <span class="rl-switch-knob"></span>
+          <span class="rl-toggle" role="switch" [class.is-on]="form.isActive" [attr.aria-checked]="form.isActive">
+            <span class="rl-toggle-track"><span class="rl-toggle-knob"></span></span>
           </span>
         </button>
       </div>

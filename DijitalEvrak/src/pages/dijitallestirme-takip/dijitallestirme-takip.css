@@ -6,11 +6,6 @@
    hatalı adımlar Anlık Durum çubuklarının amber/kırmızı tonunu alır.
    ============================================================ */
 
-/* Başlık panelinkinden uzun; panelin geniş harf aralığı burada fazla açık duruyor */
-.dt-page .ad-hero-kicker {
-    letter-spacing: 0.06em;
-}
-
 /* ---------- Özet kartları: buton olarak filtre seçer ---------- */
 .dt-page .ad-stat {
     width: 100%;

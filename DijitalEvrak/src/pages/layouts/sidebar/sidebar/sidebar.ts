@@ -7,6 +7,7 @@ import { RoleService } from '../../../../services/role-service';
 import { SearchMenuPipe } from '../../../../pipes/search-menu-pipe';
 import { NavigationModel } from '../../../../navigation';
 import { Common } from '../../../../services/common';
+import { AllocationRequestService } from '../../../../services/allocationrequest';
 
 interface NavGroup {
   category: string | null;
@@ -33,6 +34,7 @@ export class Sidebar {
   private roleService = inject(RoleService);
   private common = inject(Common);
   private router = inject(Router);
+  private readonly allocationRequests = inject(AllocationRequestService);
   private readonly searchPipe = new SearchMenuPipe();
 
   /** Header'daki bildirim sayacıyla aynı kaynak; "Gelen Evraklar" menüsünün yanında rozet olarak gösterilir. */
@@ -55,9 +57,10 @@ export class Sidebar {
     return `${first}${last}`.toLocaleUpperCase('tr') || '?';
   });
   readonly isAdmin = computed(() => this.roleService.has('Yönetici'));
-  readonly isBirimEvrakSorumlusu = computed(() => this.roleService.has('Birim Evrak Sorumlusu'));
+  readonly isBirimEvrakSorumlusu = computed(() => this.roleService.hasBirimEvrakRole());
   readonly userRoleLabel = computed(() => {
     if (this.isAdmin()) return 'Yönetici';
+    if (this.roleService.has('Birim Yöneticisi')) return 'Birim Yöneticisi';
     if (this.isBirimEvrakSorumlusu()) return 'Birim Evrak Sorumlusu';
     return this.roleService.roles[0] ?? '';
   });
@@ -88,7 +91,7 @@ export class Sidebar {
 
   // Birim Evrak Sorumlusu'nun menüsü kısa olduğundan tüm kategoriler açık başlar
   // ve kategoriler birbirinden bağımsız açılıp kapanır (akordeon davranışı yok).
-  private readonly expandAllByDefault = this.roleService.has('Birim Evrak Sorumlusu');
+  private readonly expandAllByDefault = this.roleService.hasBirimEvrakRole();
 
   private collapsedCategories = signal<Set<string>>(
     this.expandAllByDefault
@@ -179,7 +182,10 @@ export class Sidebar {
   }
 
   badgeFor(item: NavigationModel): number {
-    return item.url === '/scanlist' ? this.pendingCount() : 0;
+    if (item.url === '/scanlist') return this.pendingCount();
+    // Zimmet onayı bekleyen evrak sayısı (zil menüsüyle aynı liste)
+    if (item.url === '/zimmet-onaylari') return this.allocationRequests.pendingForMe().length;
+    return 0;
   }
 
   // ----- Mini (yalnız ikon) mod tooltip'i -----

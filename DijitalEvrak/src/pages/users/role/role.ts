@@ -1,9 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal, ViewEncapsulation } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { HttpClient, httpResource } from '@angular/common/http';
+import { HttpClient, HttpContext, httpResource } from '@angular/common/http';
 import GenericModel from '../../../../components/generic-model/generic-model';
 import { FlexiToastService } from 'flexi-toast';
+import { isRoleVisible, isSystemRole, normalizeRoleName, roleIcon } from '../../../services/role-service';
+import { SKIP_ERROR_TOAST } from '../../../interceptors/error-interceptor';
+import { incomingErrorMessage } from '../../../services/incomingdocument';
 
 export interface RoleModel {
   id?: string;
@@ -21,6 +24,9 @@ export const initialRole: RoleModel = {
   createdDate: '',
   updateDate: '',
 };
+
+// Hata mesajını sayfa kendisi gösterir (backend'in Message / Errors alanı); genel toast çıkmaz
+const quiet = () => ({ context: new HttpContext().set(SKIP_ERROR_TOAST, true) });
 
 type StatusFilter = 'all' | 'active' | 'passive';
 
@@ -44,7 +50,8 @@ type StatusFilter = 'all' | 'active' | 'passive';
 })
 export default class Role {
   readonly result = httpResource<RoleModel[]>(() => "api/Roles/GetAll", {});
-  readonly data = computed(() => this.result.value() ?? []);
+  // Silinmiş roller listelenmez (backend GetAll onları da döner)
+  readonly data = computed(() => (this.result.value() ?? []).filter(r => !r.isDeleted));
   readonly loading = computed(() => this.result.isLoading());
   readonly #toast = inject(FlexiToastService);
   readonly #http = inject(HttpClient);
@@ -58,8 +65,28 @@ export default class Role {
     return override ?? item.isActive;
   }
 
+  // ---- Rol görünümü: Kullanıcılar ve rol atama ekranlarıyla aynı ad, simge ve açıklama ----
+  label(item: RoleModel): string {
+    return normalizeRoleName(item.name ?? '');
+  }
+
+  icon(item: RoleModel): string {
+    return roleIcon(this.label(item));
+  }
+
+  /** Rol atama ekranında ve rol süzgecinde gösterilir mi (Admin gizli) */
+  visible(item: RoleModel): boolean {
+    return isRoleVisible(this.label(item));
+  }
+
+  /** Menü / sayfa yetkilerinde kullanılan roller silinemez */
+  deletable(item: RoleModel): boolean {
+    return !isSystemRole(this.label(item));
+  }
+
   // ---- Filtre / arama ----
-  readonly statusFilter = signal<StatusFilter>('all');
+  // Sayfa aktif rollerle açılır; Tümü / Pasif başlıktaki süzgeçten seçilir
+  readonly statusFilter = signal<StatusFilter>('active');
   readonly searchQuery = signal('');
   readonly sortDirection = signal<'asc' | 'desc'>('asc');
 
@@ -76,8 +103,8 @@ export default class Role {
 
     return this.data()
       .filter(r => status === 'all' || (status === 'active') === this.isActive(r))
-      .filter(r => !q || (r.name ?? '').toLocaleLowerCase('tr-TR').includes(q))
-      .sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '', 'tr-TR') * dir);
+      .filter(r => !q || this.label(r).toLocaleLowerCase('tr-TR').includes(q))
+      .sort((a, b) => this.label(a).localeCompare(this.label(b), 'tr-TR') * dir);
   });
 
   setStatusFilter(value: StatusFilter): void {
@@ -143,17 +170,21 @@ export default class Role {
   readonly modalVisible = signal(false);
   readonly saving = signal(false);
   readonly editingId = signal<string | null>(null);
+  /** Sistem rolünün adı değiştirilemez: menü ve sayfa yetkileri rol adıyla eşleşir */
+  readonly nameLocked = signal(false);
 
   form: RoleModel = { ...initialRole };
 
   openCreateModal() {
     this.editingId.set(null);
+    this.nameLocked.set(false);
     this.form = { ...initialRole };
     this.modalVisible.set(true);
   }
 
   openEditModal(item: RoleModel) {
     this.editingId.set(item.id ?? null);
+    this.nameLocked.set(isSystemRole(item.name ?? ''));
     this.form = { ...item, isActive: this.isActive(item) };
     this.modalVisible.set(true);
   }
@@ -173,8 +204,8 @@ export default class Role {
     const id = this.editingId();
 
     const request$ = id
-      ? this.#http.post('api/Roles/Update', { id, name: this.form.name, isActive: this.form.isActive })
-      : this.#http.post('api/Roles/Create', { name: this.form.name, isActive: this.form.isActive });
+      ? this.#http.post('api/Roles/Update', { id, name: this.form.name, isActive: this.form.isActive }, quiet())
+      : this.#http.post('api/Roles/Create', { name: this.form.name, isActive: this.form.isActive }, quiet());
 
     request$.subscribe({
       next: () => {
@@ -183,9 +214,9 @@ export default class Role {
         this.modalVisible.set(false);
         this.refresh();
       },
-      error: () => {
+      error: (err) => {
         this.saving.set(false);
-        this.#toast.showToast('Hata', 'İşlem sırasında bir hata oluştu', 'error');
+        this.#toast.showToast('Hata', incomingErrorMessage(err, 'İşlem sırasında bir hata oluştu'), 'error');
       }
     });
   }
@@ -198,11 +229,26 @@ export default class Role {
 
     this.#activeOverrides.update(o => ({ ...o, [id]: next }));
 
-    this.#http.post('api/Roles/Update', { id, isActive: next }).subscribe({
-      error: () => {
+    this.#http.post('api/Roles/Update', { id, name: item.name, isActive: next }, quiet()).subscribe({
+      error: (err) => {
         this.#activeOverrides.update(o => ({ ...o, [id]: previous }));
-        this.#toast.showToast('Hata', 'Durum güncellenemedi', 'error');
+        this.#toast.showToast('Hata', incomingErrorMessage(err, 'Durum güncellenemedi'), 'error');
       }
+    });
+  }
+
+  /** Silme sunucuda işaretlemedir (isDeleted); role sahip kullanıcı varsa sunucu reddeder. */
+  deleteRole(item: RoleModel) {
+    if (!item.id || !this.deletable(item)) return;
+    const id = item.id;
+    this.#toast.showSwal('Rolü Sil', `"${this.label(item)}" rolü silinsin mi? Silinen rol atama ekranında görünmez.`, 'Sil', () => {
+      this.#http.post('api/Roles/Delete', { id }, quiet()).subscribe({
+        next: () => {
+          this.#toast.showToast('Başarılı', 'Rol silindi', 'success');
+          this.refresh();
+        },
+        error: (err) => this.#toast.showToast('Hata', incomingErrorMessage(err, 'Rol silinemedi'), 'error')
+      });
     });
   }
 }

@@ -1290,3 +1290,44 @@
     background: linear-gradient(135deg, #10b981 0%, #047857 100%);
     box-shadow: none;
 }
+
+/* ---- İşleme Al hücresi: işleme alınamayan evrakta "Bilgi" bağlantısı ---- */
+.sl-process-cell {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.sl-info-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #0369a1;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.sl-info-link:hover {
+    background: #e0f2fe;
+    color: #075985;
+}
+
+.sl-info-link .material-symbols-outlined {
+    font-size: 20px;
+}
+
+[data-theme="dark"] .sl-info-link {
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .sl-info-link:hover {
+    background: rgba(125, 211, 252, 0.1);
+    color: #bae6fd;
+}
+

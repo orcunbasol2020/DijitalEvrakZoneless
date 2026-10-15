@@ -200,8 +200,12 @@
                     [control]="row.control"
                     [options]="row.kind === 'department' ? departments() : externalInstitutionOptions()"
                     [loading]="row.kind === 'department' ? departmentFieldLoading() : externalInstitutionFieldLoading()"
-                    [loadingText]="row.kind === 'department' ? 'Birimler yükleniyor...' : 'Kurumlar yükleniyor...'"
-                    [placeholder]="row.kind === 'department' ? 'Birim seçiniz' : 'Kurum seçiniz'">
+                    [loadingText]="row.kind === 'department' ? 'Birimler yükleniyor...' : 'Yükleniyor...'"
+                    [remote]="row.kind === 'institution'"
+                    [minChars]="row.kind === 'institution' ? institutionMinSearch : 0"
+                    [searching]="row.kind === 'institution' && institutionSearch.loading()"
+                    (search)="institutionSearch.search($event)"
+                    [placeholder]="row.kind === 'department' ? 'Birim seçiniz' : 'Kurum, misyon ya da DETSİS no arayın'">
                   </app-simple-autocomplete>
                 </div>
               }

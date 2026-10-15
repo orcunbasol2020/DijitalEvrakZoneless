@@ -1,0 +1,564 @@
+<app-generic pageTitle="Atlas Aktarım"
+    [breadcrumbs]="[{title: 'Atlas Aktarım', url: 'atlas-aktarim', icon:''}]" />
+
+<div class="aa-page">
+
+<!-- Üst şerit: Kontrol Paneli ile aynı mavi gradyan -->
+<section class="ad-hero">
+    <div class="ad-hero-glow ad-hero-glow-a"></div>
+    <div class="ad-hero-glow ad-hero-glow-b"></div>
+
+    <div class="ad-hero-text">
+        <div class="ad-hero-kicker">
+            <span class="material-symbols-outlined">cloud_sync</span>
+            Atlas Aktarım
+        </div>
+        <div class="ad-hero-sub">
+            <span>Yayınlanan gelen evrakların EYP paketi olarak Atlas'a aktarımı</span>
+            @if (lastUpdated(); as updated) {
+                <span class="ad-hero-dot"></span>
+                <span>Son güncelleme {{ updated | date:'HH:mm:ss' }}</span>
+            }
+        </div>
+    </div>
+
+    <div class="ad-hero-actions">
+        <button type="button" class="ad-hero-btn" (click)="infoOpen.set(true)">
+            <span class="material-symbols-outlined">help</span>
+            Nasıl çalışır?
+        </button>
+        <button type="button" class="ad-hero-btn aa-run-btn" [disabled]="running()" (click)="run()"
+            title="Sıradaki evraklar için hemen bir tur çalıştır (otomatik aktarım kapalı olsa da)">
+            @if (running()) {
+                <span class="spinner-border aa-spinner" aria-hidden="true"></span>
+                Çalışıyor…
+            } @else {
+                <span class="material-symbols-outlined">play_arrow</span>
+                Şimdi Çalıştır
+            }
+        </button>
+        <button type="button" class="ad-hero-btn ad-hero-btn-icon" title="Güncel Verileri Getir"
+            [class.is-spinning]="statusLoading()" (click)="refresh()">
+            <span class="material-symbols-outlined">refresh</span>
+        </button>
+    </div>
+</section>
+
+<!-- Aktarımı durduran ön koşul eksikleri: her zaman görünür -->
+@for (c of failedChecks(); track c.code) {
+    <div class="aa-alert" role="alert">
+        <span class="material-symbols-outlined">report</span>
+        <span>Aktarım şu anda çalışamıyor: <strong>{{ c.name }}</strong> — {{ c.message }}</span>
+    </div>
+}
+
+@if (statusError() && !status()) {
+    <div class="aa-state is-error mb-3">
+        <span class="material-symbols-outlined">cloud_off</span>
+        <span>{{ statusError() }}</span>
+        <button type="button" class="aa-link-btn" (click)="loadStatus()">Tekrar dene</button>
+    </div>
+}
+
+<!-- Servis durumu: tek satır özet, ayrıntılar aç/kapa -->
+@if (status(); as s) {
+    <section class="card premium-card aa-summary mb-3">
+        <div class="aa-summary-bar">
+            <div class="aa-summary-main">
+                @if (s.isRunning) {
+                    <span class="aa-badge aa-badge-info">
+                        <span class="spinner-border aa-spinner" aria-hidden="true"></span>
+                        Tur çalışıyor
+                    </span>
+                } @else if (s.autoTransferEnabled) {
+                    <span class="aa-badge aa-badge-ok"><span class="aa-dot"></span>Otomatik aktarım açık</span>
+                } @else {
+                    <span class="aa-badge aa-badge-muted"><span class="aa-dot"></span>Otomatik aktarım kapalı</span>
+                }
+
+                <span class="aa-summary-item">
+                    <span class="aa-summary-key">Sonraki tur</span>
+                    @if (s.nextRunAt) {
+                        <strong>{{ utc(s.nextRunAt) | date:'HH:mm' }}</strong>
+                    } @else {
+                        <span class="aa-muted">{{ s.autoTransferEnabled ? 'Belirlenmedi' : 'Elle çalıştırılır' }}</span>
+                    }
+                </span>
+
+                <span class="aa-summary-item">
+                    <span class="aa-summary-key">Son başarılı</span>
+                    @if (s.lastSuccessAt) {
+                        <strong>{{ utc(s.lastSuccessAt) | date:'dd.MM HH:mm' }}</strong>
+                    } @else {
+                        <span class="aa-muted">Henüz yok</span>
+                    }
+                </span>
+
+                <!-- Yalnızca dikkat gerektiren durumlar özette görünür -->
+                @if (lastRunTone() === 'error' || lastRunTone() === 'warn') {
+                    <span class="aa-badge" [class]="'aa-badge aa-badge-' + lastRunTone()">
+                        <span class="material-symbols-outlined">history</span>
+                        {{ lastRunTone() === 'error' ? 'Son tur hatalı' : 'Son turda hata var' }}
+                    </span>
+                }
+                @if (checkWarnings() > 0) {
+                    <span class="aa-badge aa-badge-warn">
+                        <span class="material-symbols-outlined">warning</span>
+                        {{ checkWarnings() }} kontrol uyarısı
+                    </span>
+                }
+            </div>
+
+            <button type="button" class="aa-toggle" [attr.aria-expanded]="detailsOpen()" aria-controls="aa-details"
+                (click)="toggleDetails()">
+                {{ detailsOpen() ? 'Gizle' : 'Ayrıntılar' }}
+                <span class="material-symbols-outlined" [class.is-open]="detailsOpen()">expand_more</span>
+            </button>
+        </div>
+
+        @if (detailsOpen()) {
+            <div id="aa-details" class="aa-details">
+                <dl class="aa-details-grid">
+                    <div>
+                        <dt>Çalışma aralığı</dt>
+                        <dd>
+                            @if (s.autoTransferEnabled) {
+                                {{ s.intervalSeconds }} sn'de bir, en fazla {{ s.batchSize }} evrak
+                            } @else {
+                                Yalnızca "Şimdi Çalıştır" ile
+                            }
+                        </dd>
+                    </div>
+                    <div>
+                        <dt>Şu an</dt>
+                        <dd>
+                            @if (s.isRunning) {
+                                Çalışıyor @if (s.runningSince) { ({{ utc(s.runningSince) | date:'HH:mm:ss' }}'den beri) }
+                            } @else {
+                                Beklemede
+                            }
+                        </dd>
+                    </div>
+                    <div>
+                        <dt>Son başarılı aktarım</dt>
+                        <dd>{{ s.lastSuccessAt ? (utc(s.lastSuccessAt) | date:'dd.MM.yyyy HH:mm') : 'Henüz yok' }}</dd>
+                    </div>
+                    <div>
+                        <dt>Yayınlanmamış evrak</dt>
+                        <dd>{{ counts()?.notPublished ?? '—' }}</dd>
+                    </div>
+                </dl>
+
+                <div class="aa-lastrun" [class]="'aa-lastrun aa-lastrun-' + lastRunTone()">
+                    <span class="material-symbols-outlined">history</span>
+                    @if (s.lastRun; as run) {
+                        <div class="aa-lastrun-body">
+                            <div class="aa-lastrun-head">
+                                Son tur: {{ utc(run.finishedAt) | date:'dd.MM.yyyy HH:mm:ss' }}
+                                <span class="aa-sep">·</span>
+                                {{ run.manual ? 'elle' : 'otomatik' }}
+                            </div>
+                            <div class="aa-lastrun-msg">{{ run.error || run.result?.message || 'Sonuç bildirilmedi.' }}</div>
+                        </div>
+                    } @else {
+                        <div class="aa-lastrun-body">
+                            <div class="aa-lastrun-head">Son tur</div>
+                            <div class="aa-lastrun-msg">
+                                Sunucu yeniden başladıktan sonra henüz çalışmadı.
+                                @if (s.lastAttemptAt) {
+                                    Son gönderim denemesi: {{ utc(s.lastAttemptAt) | date:'dd.MM.yyyy HH:mm' }}.
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                @if (s.checks.length) {
+                    <div class="aa-checks">
+                        <span class="aa-details-key">Kontroller</span>
+                        @for (c of s.checks; track c.code) {
+                            <span class="aa-badge" [class]="'aa-badge aa-badge-' + checkTone(c)" [title]="c.message" tabindex="0">
+                                <span class="material-symbols-outlined">{{ checkIcon(c) }}</span>
+                                {{ c.name }}
+                            </span>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </section>
+}
+
+<!-- Sayı kartları aynı zamanda liste sekmeleridir -->
+<div id="aa-tabs" class="ad-stats aa-stats" role="tablist" aria-label="Evrak listeleri">
+    <button type="button" class="ad-stat" role="tab" [class.is-active]="tab() === 'sirada'"
+        [attr.aria-selected]="tab() === 'sirada'" (click)="selectTab('sirada')">
+        <div class="ad-stat-body">
+            <div class="ad-stat-label">SIRADA</div>
+            <div class="ad-stat-value">{{ queueCount() ?? '—' }}</div>
+            <div class="ad-stat-foot">
+                <span class="ad-stat-period">
+                    @if ((counts()?.transferring ?? 0) > 0) {
+                        {{ counts()!.transferring }} evrak aktarılıyor
+                    } @else {
+                        Aktarım turunu bekliyor
+                    }
+                </span>
+            </div>
+        </div>
+        <span class="ad-stat-icon"><span class="material-symbols-outlined">hourglass_top</span></span>
+    </button>
+
+    <button type="button" class="ad-stat" role="tab" [class.is-active]="tab() === 'hatali'"
+        [class.is-alarm]="(counts()?.failed ?? 0) > 0"
+        [attr.aria-selected]="tab() === 'hatali'" (click)="selectTab('hatali')">
+        <div class="ad-stat-body">
+            <div class="ad-stat-label">HATALI</div>
+            <div class="ad-stat-value">{{ counts()?.failed ?? '—' }}</div>
+            <div class="ad-stat-foot"><span class="ad-stat-period">Müdahale bekliyor</span></div>
+        </div>
+        <span class="ad-stat-icon"><span class="material-symbols-outlined">cloud_off</span></span>
+    </button>
+
+    <button type="button" class="ad-stat" role="tab" [class.is-active]="tab() === 'denemeler'"
+        [attr.aria-selected]="tab() === 'denemeler'" (click)="selectTab('denemeler')">
+        <div class="ad-stat-body">
+            <div class="ad-stat-label">YAYINLANDI</div>
+            <div class="ad-stat-value">{{ counts()?.succeeded ?? '—' }}</div>
+            <div class="ad-stat-foot"><span class="ad-stat-period">Son denemeleri gör</span></div>
+        </div>
+        <span class="ad-stat-icon"><span class="material-symbols-outlined">verified</span></span>
+    </button>
+</div>
+
+<!-- Seçili liste -->
+<div class="card premium-card orders-card mb-4" role="tabpanel">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            @switch (tab()) {
+                <!-- ===== Sırada ===== -->
+                @case ('sirada') {
+                    @let q = queue();
+                    <table class="table orders-table aa-table align-middle">
+                        <thead>
+                            <tr>
+                                <th scope="col">EVRAK</th>
+                                <th scope="col">DURUM</th>
+                                <th scope="col" class="text-end">DENEME</th>
+                                <th scope="col">SON HATA</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (q.loading && !q.loaded) {
+                                <tr><td colspan="4" class="aa-cell-state">Yükleniyor…</td></tr>
+                            } @else if (q.error) {
+                                <tr><td colspan="4" class="aa-cell-state is-error">{{ q.error }}</td></tr>
+                            } @else {
+                                @for (row of q.rows; track row.documentId) {
+                                    <tr>
+                                        <td>
+                                            <div class="aa-doc-cell">
+                                                <button type="button" class="aa-doc-link" (click)="openDocument(row.documentId)"
+                                                    title="Aktarım detayını aç">{{ row.qrCode || '—' }}</button>
+                                                @if (row.subject) { <span class="aa-doc-subject" [title]="row.subject">{{ row.subject }}</span> }
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="aa-stack">
+                                                @if (row.status === 3) {
+                                                    <span class="aa-badge aa-badge-info">
+                                                        <span class="spinner-border aa-spinner" aria-hidden="true"></span>
+                                                        Aktarılıyor
+                                                    </span>
+                                                } @else {
+                                                    <span class="aa-badge aa-badge-info">
+                                                        <span class="material-symbols-outlined">hourglass_top</span>
+                                                        Sırada
+                                                    </span>
+                                                }
+                                                @if (row.nextAttemptAt) {
+                                                    <span class="aa-date" title="Geçici hata sonrası bekliyor">
+                                                        Sonraki deneme {{ utc(row.nextAttemptAt) | date:'dd.MM HH:mm' }}
+                                                    </span>
+                                                } @else if (row.statusUpdatedAt) {
+                                                    <span class="aa-date" [title]="row.status === 3 ? 'Aktarımın başladığı zaman' : 'Sıraya (yeniden) alınma zamanı'">
+                                                        {{ utc(row.statusUpdatedAt) | date:'dd.MM HH:mm' }}
+                                                    </span>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td class="text-end">{{ row.tryCount }}</td>
+                                        <td class="aa-error-cell">
+                                            @if (row.lastError) {
+                                                <span class="aa-clamp" [title]="row.lastError">{{ row.lastError }}</span>
+                                            } @else { <span class="aa-muted">—</span> }
+                                        </td>
+                                    </tr>
+                                } @empty {
+                                    <tr><td colspan="4"><div class="aa-empty">
+                                        <span class="material-symbols-outlined">task_alt</span>
+                                        Sırada bekleyen evrak yok.
+                                    </div></td></tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                }
+
+                <!-- ===== Hatalı ===== -->
+                @case ('hatali') {
+                    @let f = failed();
+                    <table class="table orders-table aa-table align-middle">
+                        <thead>
+                            <tr>
+                                <th scope="col">EVRAK</th>
+                                <th scope="col">HATA</th>
+                                <th scope="col" class="text-end">DENEME</th>
+                                <th scope="col" class="text-end"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (f.loading && !f.loaded) {
+                                <tr><td colspan="4" class="aa-cell-state">Yükleniyor…</td></tr>
+                            } @else if (f.error) {
+                                <tr><td colspan="4" class="aa-cell-state is-error">{{ f.error }}</td></tr>
+                            } @else {
+                                @for (row of f.rows; track row.documentId) {
+                                    <tr class="attention-row tone-critical">
+                                        <td>
+                                            <div class="aa-doc-cell">
+                                                <button type="button" class="aa-doc-link" (click)="openDocument(row.documentId)"
+                                                    title="Aktarım detayını aç">{{ row.qrCode || '—' }}</button>
+                                                @if (row.subject) { <span class="aa-doc-subject" [title]="row.subject">{{ row.subject }}</span> }
+                                            </div>
+                                        </td>
+                                        <td class="aa-error-cell"><span class="aa-clamp aa-error-text" [title]="row.lastError || ''">{{ row.lastError || 'Neden bildirilmedi.' }}</span></td>
+                                        <td class="text-end">
+                                            <div class="aa-stack is-end">
+                                                <span>{{ row.tryCount }}</span>
+                                                @if (row.lastAttemptAt) {
+                                                    <span class="aa-date" title="Son deneme">{{ utc(row.lastAttemptAt) | date:'dd.MM HH:mm' }}</span>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td class="text-end">
+                                            <button type="button" class="aa-retry" [disabled]="isRetrying(row.documentId)" (click)="retry(row)"
+                                                title="Evrakı güncel bilgileriyle yeni bir paketle yeniden Atlas aktarım sırasına al">
+                                                <span class="material-symbols-outlined" [class.aa-spin]="isRetrying(row.documentId)">replay</span>
+                                                Yeniden Dene
+                                            </button>
+                                        </td>
+                                    </tr>
+                                } @empty {
+                                    <tr><td colspan="4"><div class="aa-empty">
+                                        <span class="material-symbols-outlined">task_alt</span>
+                                        Aktarımı hatalı evrak yok.
+                                    </div></td></tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                }
+
+                <!-- ===== Son Denemeler ===== -->
+                @case ('denemeler') {
+                    @let a = attempts();
+                    <table class="table orders-table aa-table align-middle">
+                        <thead>
+                            <tr>
+                                <th scope="col">ZAMAN</th>
+                                <th scope="col">EVRAK</th>
+                                <th scope="col">SONUÇ</th>
+                                <th scope="col">ATLAS REFERANSI / HATA</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (a.loading && !a.loaded) {
+                                <tr><td colspan="4" class="aa-cell-state">Yükleniyor…</td></tr>
+                            } @else if (a.error) {
+                                <tr><td colspan="4" class="aa-cell-state is-error">{{ a.error }}</td></tr>
+                            } @else {
+                                @for (row of a.rows; track row.packageId + '-' + row.attemptNo) {
+                                    @let o = outcome(row);
+                                    <tr>
+                                        <td class="aa-date">{{ utc(row.attemptedAt) | date:'dd.MM.yyyy HH:mm' }}</td>
+                                        <td>
+                                            <div class="aa-doc-cell">
+                                                <button type="button" class="aa-doc-link" (click)="openDocument(row.documentId)"
+                                                    title="Aktarım detayını aç">{{ row.qrCode || '—' }}</button>
+                                                @if (row.subject) { <span class="aa-doc-subject" [title]="row.subject">{{ row.subject }}</span> }
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="aa-stack">
+                                                <span class="aa-badge" [class]="'aa-badge aa-badge-' + o.tone">{{ o.label }}</span>
+                                                @if (row.attemptNo > 1) { <span class="aa-date">{{ row.attemptNo }}. deneme</span> }
+                                            </div>
+                                        </td>
+                                        <td class="aa-error-cell">
+                                            @if (row.isSuccess) {
+                                                <span class="aa-mono">{{ row.atlasReferenceId || '—' }}</span>
+                                            } @else {
+                                                <span class="aa-clamp" [class.aa-error-text]="o.tone === 'error'" [title]="row.error || ''">{{ row.error || '—' }}</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                } @empty {
+                                    <tr><td colspan="4"><div class="aa-empty is-neutral">
+                                        <span class="material-symbols-outlined">schedule_send</span>
+                                        Henüz gönderim denemesi yok; ilk tur çalışınca dolar.
+                                    </div></td></tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                    @if (canLoadMoreAttempts()) {
+                        <div class="aa-more">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="a.loading" (click)="loadMoreAttempts()">
+                                Daha fazla
+                            </button>
+                        </div>
+                    }
+                }
+            }
+        </div>
+    </div>
+</div>
+
+
+</div>
+
+<!-- Evrak aktarım detayı -->
+@if (selectedDocumentId(); as docId) {
+    <div class="modal-overlay" (click)="closeDocument()">
+        <div class="modal-box ship-modal aa-modal" role="dialog" aria-modal="true" aria-labelledby="aa-detail-title"
+            (click)="$event.stopPropagation()">
+            <div class="ship-head">
+                <span class="ship-head-icon"><span class="material-symbols-outlined">package_2</span></span>
+                <div class="ship-head-text">
+                    <h5 id="aa-detail-title" class="ship-head-title">Evrak Aktarım Detayı</h5>
+                    <div class="ship-head-sub">EYP paketleri ve gönderim denemeleri</div>
+                </div>
+                <button type="button" class="ship-close" title="Kapat" (click)="closeDocument()">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="ship-body">
+                <app-atlas-transfer-detail [documentId]="docId" [editLink]="true" (changed)="afterDocumentChanged()" />
+            </div>
+            <div class="ship-foot">
+                <button type="button" class="btn btn-secondary" (click)="closeDocument()">Kapat</button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Nasıl çalışır? -->
+@if (infoOpen()) {
+    <div class="modal-overlay" (click)="infoOpen.set(false)">
+        <div class="modal-box ship-modal aa-modal aa-info" role="dialog" aria-modal="true" aria-labelledby="aa-info-title"
+            (click)="$event.stopPropagation()">
+            <div class="ship-head">
+                <span class="ship-head-icon"><span class="material-symbols-outlined">help</span></span>
+                <div class="ship-head-text">
+                    <h5 id="aa-info-title" class="ship-head-title">Atlas'a EYP aktarımı nasıl çalışır?</h5>
+                    <div class="ship-head-sub">Yayınlama, aktarım, durumlar ve ayarlar</div>
+                </div>
+                <button type="button" class="ship-close" title="Kapat" (click)="infoOpen.set(false)">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="ship-body aa-info-body">
+                <h6>Yayınlama</h6>
+                <p>
+                    Gelen evrak kaydedilirken veya güncellenirken <strong>Yayınla</strong> seçilirse evrak Atlas'a
+                    aktarılmak üzere sıraya alınır. Yayınlamadan önce evrakın bilgileri kontrol edilir. Şunlardan biri
+                    eksikse evrak yayınlanmaz ve eksikler ekranda listelenir:
+                </p>
+                <ul>
+                    <li>Evrak numarası (QR kod)</li>
+                    <li>Konu</li>
+                    <li>Evrak tarihi</li>
+                    <li>Gizlilik derecesi (Kişiye Özel'in EYP karşılığı henüz belirlenmediği için bu derecedeki evrak yayınlanamaz)</li>
+                    <li>Gönderen kurum</li>
+                </ul>
+
+                <h6>Aktarım</h6>
+                <p>
+                    Sistem, sıradaki evrakları belirli aralıklarla (varsayılan dakikada bir, her seferinde en fazla
+                    10 evrak) alır. Her evrak için:
+                </p>
+                <ol>
+                    <li>
+                        <strong>EYP paketi hazırlanır.</strong> EYP, kamu kurumları arasında resmî yazışma için kullanılan
+                        standart elektronik pakettir (e-Yazışma 2.0). Pakete şunlar konur:
+                        <ul>
+                            <li><strong>Üst yazı:</strong> evrakın taranmış/yüklenmiş dosyası. Dosyası olmayan evrakta (genelde
+                                gizlilik dereceli evraklar) yerine "Bu Belge Fiziki Olarak Gönderilecektir." yazan standart sayfa konur.</li>
+                            <li><strong>Ekler:</strong> yüklenen elektronik ekler (PDF) dosyalarıyla; fiziki ek varsa açıklamasıyla.</li>
+                            <li><strong>Evrak bilgileri:</strong> konu, evrak tarihi, gönderen kurumun evrak sayısı (girilmemişse
+                                Atlas evrak numarası), gizlilik derecesi, ivedilik.</li>
+                            <li><strong>Gönderen:</strong> gönderen kurum, DETSİS kodu ve iletişim bilgileri. DETSİS kodu olmayan
+                                gönderenlere (yabancı misyonlar, dilekçeler) <code>99999999</code> yazılır; bilinmeyen iletişim
+                                bilgisi <code>-</code> olarak geçer.</li>
+                            <li><strong>Dağıtım:</strong> evrakın <strong>Nereye</strong> listesindeki birimler, her biri kendi
+                                Bilgi/Gereği bilgisiyle. Nereye boşsa evrak Bakanlığa yazılır.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Paket Atlas'a gönderilir.</strong> Paket ayrıca arşiv için sistemde saklanır.</li>
+                </ol>
+
+                <h6>Durumlar</h6>
+                <dl class="aa-info-dl">
+                    <div><dt><span class="aa-badge aa-badge-muted">Yayınlanmadı</span></dt><dd>Evrak henüz yayınlanmadı.</dd></div>
+                    <div><dt><span class="aa-badge aa-badge-info">Aktarım Sırasında</span></dt><dd>Evrak sırada, ilk uygun turda aktarılacak. Geçici bir hatadan sonra da bu duruma döner.</dd></div>
+                    <div><dt><span class="aa-badge aa-badge-info">Aktarılıyor</span></dt><dd>Evrakın paketi şu anda hazırlanıyor veya gönderiliyor.</dd></div>
+                    <div><dt><span class="aa-badge aa-badge-ok">Yayınlandı</span></dt><dd>Atlas paketi kabul etti.</dd></div>
+                    <div><dt><span class="aa-badge aa-badge-error">Aktarım Hatalı</span></dt><dd>Evrak aktarılamadı; hata mesajı bu sayfada görünür. Düzeltilip yeniden sıraya alınmalı.</dd></div>
+                </dl>
+
+                <h6>Hatalar ve tekrar deneme</h6>
+                <ul>
+                    <li><strong>Geçici hata</strong> (ör. Atlas'a ulaşılamadı): evrak sıraya geri döner ve giderek uzayan
+                        aralıklarla (1, 5, 15, 60 dakika) yeniden denenir. Varsayılan 5 denemeden sonra <strong>Aktarım Hatalı</strong> olur.</li>
+                    <li><strong>Kalıcı hata</strong> (paket hazırlanamadı, örneğin evrak dosyası bulunamadı; ya da Atlas paketi
+                        reddetti): evrak hemen <strong>Aktarım Hatalı</strong> olur, tekrar denenmez.</li>
+                    <li><strong>Takılı kalan evrak:</strong> bir evrak 30 dakikadan uzun <strong>Aktarılıyor</strong> durumunda
+                        kalırsa (ör. sunucu işlem sırasında yeniden başladı) kendiliğinden sıraya geri alınır.</li>
+                </ul>
+                <p>
+                    <strong>Aktarım Hatalı evrak için:</strong> hatanın nedeni giderilir (ör. evrak bilgisi düzeltilir),
+                    ardından <strong>Yeniden Dene</strong> ile evrak, güncel bilgileriyle hazırlanacak yeni bir paketle
+                    tekrar sıraya alınır.
+                </p>
+
+                <h6>Ayarlar</h6>
+                <p>Ayarlar Uygulama Ayarları sayfasından değiştirilir. Değişiklik bir sonraki turda geçerli olur, yeniden başlatma gerekmez.</p>
+                <div class="table-responsive">
+                    <table class="table table-sm aa-info-table">
+                        <thead><tr><th>Ayar</th><th>Varsayılan</th><th>Açıklama</th></tr></thead>
+                        <tbody>
+                            <tr><td><code>AtlasTransferEnabled</code></td><td>kapalı</td><td>Otomatik aktarım. Kapalıyken sıradaki evraklar yalnızca "Şimdi Çalıştır" ile aktarılır.</td></tr>
+                            <tr><td><code>AtlasTransferIntervalSeconds</code></td><td>60</td><td>İki tur arası süre (en az 10 saniye).</td></tr>
+                            <tr><td><code>AtlasTransferBatchSize</code></td><td>10</td><td>Bir turda en fazla kaç evrak aktarılır (en fazla 100).</td></tr>
+                            <tr><td><code>AtlasTransferMaxTryCount</code></td><td>5</td><td>Geçici hatada kaç kez denendikten sonra Aktarım Hatalı olur.</td></tr>
+                            <tr><td><code>AtlasEypRecipientKkk</code> / <code>AtlasEypRecipientName</code></td><td>boş</td><td>Evrakı alan kurum (Bakanlık): DETSİS kodu ve adı. <strong>Boşken aktarım hiç çalışmaz.</strong></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h6>Şu anki sınırlamalar</h6>
+                <ul>
+                    <li><strong>Atlas'a gönderim henüz sahte.</strong> Atlas'ın paket teslim yöntemi netleşene kadar paketler
+                        hazırlanıp arşivlenir ama Atlas'a gönderilmez, gönderilmiş sayılır. Bu sayfadaki "Atlas'a gönderim"
+                        kontrolü bu durumu gösterir.</li>
+                    <li><strong>Paket imzası temsilidir.</strong> Evrak kayıt birimi dışarıdan gelen evrakı paketlediği için paket
+                        "Sistem Yöneticisi" adına, temsili bir imzayla hazırlanır; Atlas imzayı doğrulamaz.</li>
+                </ul>
+            </div>
+            <div class="ship-foot">
+                <button type="button" class="btn btn-secondary" (click)="infoOpen.set(false)">Kapat</button>
+            </div>
+        </div>
+    </div>
+}

@@ -1,0 +1,82 @@
+<app-generic pageTitle="Teslim Alınmayı Bekleyen Evraklar"
+    [breadcrumbs]="[{title: 'Teslim Alınmayı Bekleyen Evraklar', url: 'teslim-bekleyenler', icon:''}]" />
+
+<div class="tb-page">
+
+<!-- Üst şerit: Kontrol Paneli ve Dijitalleştirme Takip ile aynı mavi gradyan -->
+<section class="ad-hero">
+    <div class="ad-hero-glow ad-hero-glow-a"></div>
+    <div class="ad-hero-glow ad-hero-glow-b"></div>
+
+    <div class="ad-hero-text">
+        <div class="ad-hero-kicker">
+            <span class="material-symbols-outlined">pending_actions</span>
+            Teslim Alınmayı Bekleyen Evraklar
+        </div>
+        <div class="ad-hero-sub">
+            <span>Birimlere yönlendirilmiş, henüz teslim alınmamış gelen evraklar</span>
+            @if (list()?.lastUpdated(); as updated) {
+                <span class="ad-hero-dot"></span>
+                <span>Son güncelleme {{ updated | date:'HH:mm' }}</span>
+            }
+        </div>
+    </div>
+
+    <div class="ad-hero-actions">
+        <button type="button" class="ad-hero-btn ad-hero-btn-icon" title="Güncel Verileri Getir"
+            [class.is-spinning]="list()?.loading()" [disabled]="list()?.loading()" (click)="list()?.reload()">
+            <span class="material-symbols-outlined">refresh</span>
+        </button>
+    </div>
+</section>
+
+<!-- Özet kartlar -->
+<div class="ad-stats">
+    <div class="ad-stat">
+        <div class="ad-stat-body">
+            <div class="ad-stat-label">BEKLEYEN EVRAK</div>
+            <div class="ad-stat-value">{{ list()?.pendingTotal() ?? 0 }}</div>
+            <div class="ad-stat-foot">
+                <span class="ad-stat-period">Teslim alınmamış</span>
+            </div>
+        </div>
+        <span class="ad-stat-icon"><span class="material-symbols-outlined">pending_actions</span></span>
+    </div>
+
+    <div class="ad-stat">
+        <div class="ad-stat-body">
+            <div class="ad-stat-label">İVEDİ EVRAK</div>
+            <div class="ad-stat-value">{{ list()?.urgentTotal() ?? 0 }}</div>
+            <div class="ad-stat-foot">
+                <span class="ad-stat-period">Yıldırım, Günlüdür, Çok Acele, Acele</span>
+            </div>
+        </div>
+        <span class="ad-stat-icon"><span class="material-symbols-outlined">bolt</span></span>
+    </div>
+
+    <div class="ad-stat">
+        <div class="ad-stat-body">
+            <div class="ad-stat-label">BİRİM</div>
+            <div class="ad-stat-value">{{ list()?.unitCount() ?? 0 }}</div>
+            <div class="ad-stat-foot">
+                <span class="ad-stat-period">Bekleyen evrakı olan</span>
+            </div>
+        </div>
+        <span class="ad-stat-icon"><span class="material-symbols-outlined">apartment</span></span>
+    </div>
+
+    <div class="ad-stat">
+        <div class="ad-stat-body">
+            <div class="ad-stat-label">SORUMLUSUZ BİRİM</div>
+            <div class="ad-stat-value">{{ list()?.unitsWithoutOwner() ?? 0 }}</div>
+            <div class="ad-stat-foot">
+                <span class="ad-stat-period">Birim Evrak Sorumlusu tanımlı değil</span>
+            </div>
+        </div>
+        <span class="ad-stat-icon"><span class="material-symbols-outlined">person_off</span></span>
+    </div>
+</div>
+
+<delivery-pending class="d-block mb-4" [showAllLink]="false" [pageSize]="10" [sortable]="true" [searchable]="true"></delivery-pending>
+
+</div>

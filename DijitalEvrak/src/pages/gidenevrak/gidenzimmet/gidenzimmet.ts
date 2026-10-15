@@ -1,3 +1,4 @@
+import { sameId } from '../../../models/ids';
 import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
@@ -7,7 +8,6 @@ import { EnvelopeDocumentService } from '../../../services/envelopedocument';
 import { ZimmetStateService } from '../../../services/zimmet-state-service';
 import { EnvelopeModel, EnvelopeStatus, EnvelopeStatusBadgeClass, EnvelopeStatusLabels } from '../../../models/envelope.model';
 import { EnvelopeService } from '../../../services/envelope';
-import { ExternalInstitution, ExternalInstitutionModel } from '../../../services/external-institution';
 import { Department } from '../../../services/department';
 import { OutgoingDocumentAllocation } from '../../../services/outgoingdocumentallocation';
 import { OutgoingDocumentAllocationModel } from '../../../models/outgoingdocumentallocation.model';
@@ -34,7 +34,6 @@ import { EnvelopeLabelComponent } from '../../envelope/envelope-label/envelope-l
 })
 export default class Gidenzimmet implements OnInit {
   private envelopeService = inject(EnvelopeService);
-  private externalService = inject(ExternalInstitution);
   private departmentService = inject(Department);
   private state = inject(ZimmetStateService);
   private envelopeDocumentService = inject(EnvelopeDocumentService);
@@ -145,19 +144,16 @@ export default class Gidenzimmet implements OnInit {
           if (res.targetDepartmentName) {
             this.externalName.set(res.targetDepartmentName);
           } else {
-            const targetId = res.targetDepartmentId.toLowerCase();
+            const targetId = res.targetDepartmentId;
             this.departmentService.getDepartments().subscribe({
               next: (departments) => this.externalName.set(
-                departments?.find(d => d.id?.toLowerCase() === targetId)?.name ?? null
+                departments?.find(d => sameId(d.id, targetId))?.name ?? null
               )
             });
           }
-        } else if (res.externalInstitutionName) {
-          this.externalName.set(res.externalInstitutionName);
-        } else if (res.externalInstitutionId) {
-          this.externalService.getExternalInstitutionById(res.externalInstitutionId).subscribe({
-            next: (result: ExternalInstitutionModel) => this.externalName.set(result.name)
-          });
+        } else {
+          // Kurum adı zarf cevabında gelir (kapatılmış kurum için GetById 404 döner)
+          this.externalName.set(res.externalInstitutionName || null);
         }
       },
       error: () => {

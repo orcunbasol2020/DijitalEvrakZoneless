@@ -1,0 +1,252 @@
+/* Kargo Takip (kt-*). Popup iskeleti (ship-*) Zarflar'daki Kargo Bilgisi ile ortak, styles.css'te. */
+
+.kt-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.kt-search {
+  position: relative;
+  display: flex;
+  gap: 8px;
+  flex: 0 1 380px;
+  min-width: 0;
+}
+
+.kt-search .form-control {
+  padding-left: 38px;
+}
+
+.kt-search-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 20px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.kt-search .btn {
+  min-width: 64px;
+}
+
+.kt-search-miss {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--base-font-size);
+  color: #b45309;
+  flex-basis: 100%;
+  order: 1;
+}
+
+.kt-search-miss .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.kt-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.kt-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--card-bg);
+  color: var(--text-color);
+  font-size: var(--base-font-size);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--animation-speed), border-color var(--animation-speed), color var(--animation-speed);
+}
+
+.kt-chip .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.kt-chip:hover {
+  border-color: var(--primary-color);
+}
+
+.kt-chip.is-active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #fff;
+}
+
+.kt-chip-count {
+  min-width: 22px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.06);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.kt-chip.is-active .kt-chip-count {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.kt-info {
+  display: flex;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid #bae6fd;
+  border-radius: 10px;
+  background: #f0f9ff;
+  color: #075985;
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+}
+
+.kt-info.is-error {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.kt-info strong {
+  display: block;
+}
+
+.kt-tracking {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.badge.kt-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+}
+
+.badge.kt-status .material-symbols-outlined {
+  font-size: 15px;
+}
+
+/* ---- Popup: durum güncelleme formu ---- */
+.kt-form .form-label {
+  margin: 12px 0 4px;
+  font-size: var(--base-font-size);
+  font-weight: 600;
+}
+
+.kt-status-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.kt-status-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--card-bg);
+  color: var(--text-color);
+  font-size: var(--base-font-size);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.kt-status-option .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.kt-status-option:hover:not(:disabled) {
+  border-color: var(--primary-color);
+}
+
+.kt-status-option.is-active {
+  border-color: var(--primary-color);
+  background: rgba(67, 97, 238, 0.08);
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.kt-status-option:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.kt-form-row {
+  display: grid;
+  grid-template-columns: minmax(0, 200px);
+}
+
+.kt-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 10px 0 0;
+  color: #b45309;
+  font-size: 0.78rem;
+}
+
+.kt-hint .material-symbols-outlined {
+  font-size: 17px;
+}
+
+.kt-save-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  color: #dc2626;
+  font-size: var(--base-font-size);
+}
+
+.kt-save-error .material-symbols-outlined {
+  font-size: 18px;
+}
+
+@media (max-width: 768px) {
+  .kt-search {
+    flex-basis: 100%;
+  }
+
+  .kt-chips {
+    margin-left: 0;
+  }
+}
+
+/* ---- Koyu tema ---- */
+[data-theme="dark"] .kt-chip-count {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .kt-info {
+  border-color: rgba(56, 189, 248, 0.35);
+  background: rgba(14, 165, 233, 0.1);
+  color: #bae6fd;
+}
+
+[data-theme="dark"] .kt-info.is-error {
+  border-color: rgba(248, 113, 113, 0.35);
+  background: rgba(239, 68, 68, 0.1);
+  color: #fecaca;
+}
+
+[data-theme="dark"] .kt-search-miss,
+[data-theme="dark"] .kt-hint {
+  color: #fbbf24;
+}
+
+[data-theme="dark"] .kt-status-option.is-active {
+  background: rgba(125, 211, 252, 0.12);
+}

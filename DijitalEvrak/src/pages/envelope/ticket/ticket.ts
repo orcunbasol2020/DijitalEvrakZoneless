@@ -1,3 +1,4 @@
+import { ExternalInstitutionId, toDepartmentId, toExternalInstitutionId } from '../../../models/ids';
 import { ChangeDetectionStrategy, Component, ViewEncapsulation, OnInit, inject, computed, signal, ElementRef, ViewChild } from '@angular/core';
 import GenericModel from '../../../../components/generic-model/generic-model';
 import { FlexiGridModule } from 'flexi-grid';
@@ -5,7 +6,7 @@ import { RouterLink } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { SimpleAutocompleteComponent } from '../../simpleautocomplete/simpleautocomplete';
-import { ExternalInstitution, ExternalInstitutionModel, ExternalInstitutionType } from '../../../services/external-institution';
+import { ExternalInstitution, ExternalInstitutionModel, ExternalInstitutionType, INSTITUTION_MIN_SEARCH, institutionSearch } from '../../../services/external-institution';
 import { EnvelopeService } from '../../../services/envelope';
 import { FlexiToastService } from 'flexi-toast';
 import { EnvelopeModel, EnvelopeStatus, EnvelopeStatusBadgeClass, EnvelopeStatusLabels, EnvelopeTargetKind, EnvelopeTargetKindIcons, EnvelopeTargetKindLabels, envelopeTargetKind, envelopeTargetName, isEnvelopeClosed } from '../../../models/envelope.model';
@@ -51,8 +52,11 @@ interface DocumentEditForm {
   securityDegree: number;
   urgencyDegree: number;
   actionRequired: boolean | null;
-  externalInstitutionId: string | null;
+  externalInstitutionId: ExternalInstitutionId | null;
 }
+
+/** Gideceği yer seçeneği: birim ya da misyon / dış kurum (ikisinin de kimliği sayı) */
+type TargetOption = { id: number; name: string };
 
 @Component({
   standalone: true,
@@ -80,7 +84,6 @@ export default class Ticket implements OnInit {
   readonly #roleService = inject(RoleService);
   readonly #toast = inject(FlexiToastService);
   private externalInstitutionService = inject(ExternalInstitution);
-  externalInstitutions: ExternalInstitutionModel[] = [];
   readonly #common = inject(Common);
   readonly user = computed(() => this.#common.user());
   private cdr = inject(ChangeDetectorRef);
@@ -101,15 +104,29 @@ export default class Ticket implements OnInit {
   // Varsayılan sekme Yabancı Misyonlar: kayıtların büyük çoğunluğu misyon
   // olduğundan mevcut iş akışı (eskiden tek liste) en az tıklamayla korunur.
   readonly targetKind = signal<EnvelopeTargetKind>('mission');
-  targetControl = new FormControl<{ id: string; name: string } | null>(null);
+  targetControl = new FormControl<TargetOption | null>(null);
 
   // Autocomplete [options] her değişiklik algılamasında yeni dizi alırsa
   // yazılan metnin filtresi sıfırlanır; bu yüzden listeler yüklendiğinde bir kez
   // hesaplanıp sabit referans olarak tutulur. Evrak popup'larındaki "Nereye"
   // listeleri de aynı gruplardan (Yabancı Misyonlar / Dış Kurumlar) beslenir.
+  // Misyonların tamamı (~840) yüklenir; dış kurumlar (~160.000) yalnızca aranır
   missionOptions: ExternalInstitutionModel[] = [];
-  institutionOptions: ExternalInstitutionModel[] = [];
-  private static readonly EMPTY_OPTIONS: { id: string; name: string }[] = [];
+  readonly institutionSearch = institutionSearch();
+  readonly institutionMinSearch = INSTITUTION_MIN_SEARCH;
+
+  /** Evrak formlarındaki "Nereye" listesinin dış kurumları: zarfın ve evrakın mevcut kurumu (misyon değilse) */
+  get institutionOptions(): { id: ExternalInstitutionId; name: string }[] {
+    const missions = new Set(this.missionOptions.map(m => m.id));
+    const list = new Map<ExternalInstitutionId, string>();
+    const add = (id?: ExternalInstitutionId | null, name?: string | null) => {
+      if (id !== null && id !== undefined && !missions.has(id) && !list.has(id)) list.set(id, name || String(id));
+    };
+    add(this.previewEnvelope?.externalInstitutionId, this.previewEnvelope?.externalInstitutionName);
+    add(this.documentDetailRaw?.externalInstitutonId, this.documentDetailRaw?.externalInstitutionName);
+    return [...list].map(([id, name]) => ({ id, name }));
+  }
+  private static readonly EMPTY_OPTIONS: TargetOption[] = [];
 
   // ---- Süreç adımı: 1 Etiket Oluştur, 2 Evrak Ekle, 3 Yazdır ----
   get currentStep(): 1 | 2 | 3 {
@@ -150,27 +167,29 @@ export default class Ticket implements OnInit {
   // adresi elle değiştirmişse üzerine yazılmaz (yalnızca otomatik dolan değer değişir).
   private lastAutoAddress: string | null = null;
 
-  private applyTargetAddress(target: { id: string; name: string } | null) {
+  private applyTargetAddress(target: TargetOption | null) {
     const current = (this.model.address ?? '').trim();
     const untouched = !current || current === this.lastAutoAddress;
     if (!untouched) return;
 
     let next = '';
     if (target && this.targetKind() !== 'department') {
-      next = this.externalInstitutions.find(i => i.id === target.id)?.address?.trim() ?? '';
+      const pool = [...this.missionOptions, ...this.institutionSearch.options()];
+      next = pool.find(i => i.id === target.id)?.address?.trim() ?? '';
     }
     this.model.address = next;
     this.lastAutoAddress = next || null;
   }
 
-  get targetOptions(): { id: string; name: string }[] {
+  get targetOptions(): TargetOption[] {
     switch (this.targetKind()) {
       case 'department':
         return this.departments ?? Ticket.EMPTY_OPTIONS;
       case 'mission':
         return this.missionOptions;
       default:
-        return this.institutionOptions;
+        // Arama sonuçları; misyonlar kendi sekmesinde
+        return this.institutionSearch.options().filter(i => i.type !== ExternalInstitutionType.Misyon);
     }
   }
 
@@ -178,7 +197,7 @@ export default class Ticket implements OnInit {
     switch (this.targetKind()) {
       case 'department': return 'Birim seçiniz';
       case 'mission': return 'Misyon seçiniz';
-      default: return 'Kurum seçiniz';
+      default: return 'Kurum adı ya da DETSİS no arayın';
     }
   }
 
@@ -199,12 +218,13 @@ export default class Ticket implements OnInit {
 
   // Zarf özeti / etiket için gideceği yerin adı, türü ve ikonu.
   targetNameOf(env: EnvelopeModel | null): string {
-    return envelopeTargetName(env, this.departments ?? [], this.externalInstitutions);
+    return envelopeTargetName(env, this.departments ?? [], this.missionOptions);
   }
 
   targetKindOf(env: EnvelopeModel | null): EnvelopeTargetKind {
+    // Misyon listesinde yoksa dış kurumdur
     const institutionType = env?.externalInstitutionId
-      ? this.externalInstitutions.find(i => i.id === env.externalInstitutionId)?.type ?? null
+      ? (this.missionOptions.some(i => i.id === env.externalInstitutionId) ? ExternalInstitutionType.Misyon : ExternalInstitutionType.Kurum)
       : null;
     return envelopeTargetKind(env, institutionType);
   }
@@ -360,7 +380,7 @@ export default class Ticket implements OnInit {
 
     // Birim Evrak Sorumlusu: sadece kendi biriminin evrakını zarfa ekleyebilir;
     // girilen numaraya ait giden evrak yoksa manuel evrak ekleme popup'ı açılır.
-    if (this.#roleService.has('Birim Evrak Sorumlusu')) {
+    if (this.#roleService.hasBirimEvrakRole()) {
       await this.addDocumentByQrForBirimSorumlusu(qrCode, envelopeId, createdUserId);
       return;
     }
@@ -487,9 +507,10 @@ export default class Ticket implements OnInit {
   readonly manualEntrySaving = signal(false);
   private pendingManualEnvelopeId: string | null = null;
 
-  manualEntryForm: { qrCode: string; documentDate: string; subject: string; externalInstitutionId: string | null } = {
+  manualEntryForm: { qrCode: string; documentDate: string; securityDegree: number; subject: string; externalInstitutionId: ExternalInstitutionId | null } = {
     qrCode: '',
     documentDate: '',
+    securityDegree: SecurityDegreeEnum.ServiceUseOnly,
     subject: '',
     externalInstitutionId: null
   };
@@ -502,6 +523,7 @@ export default class Ticket implements OnInit {
     this.manualEntryForm = {
       qrCode,
       documentDate: '',
+      securityDegree: SecurityDegreeEnum.ServiceUseOnly,
       subject: '',
       externalInstitutionId: defaultInstitutionId
     };
@@ -541,6 +563,7 @@ export default class Ticket implements OnInit {
         this.outgoingDocumentService.createOutgoingDocument({
           qrCode: this.manualEntryForm.qrCode,
           documentDate: this.manualEntryForm.documentDate,
+          securityDegree: this.manualEntryForm.securityDegree,
           subject: this.manualEntryForm.subject.trim() || undefined,
           departmentId,
           externalInstitutonId: this.manualEntryForm.externalInstitutionId,
@@ -734,7 +757,7 @@ export default class Ticket implements OnInit {
 
   private buildDocumentDetailView(d: OutgoingDocumentModel): DocumentDetailView {
     const departmentName = this.departments?.find(x => x.id === d.departmentId)?.name;
-    const institutionName = this.externalInstitutions.find(x => x.id === d.externalInstitutonId)?.name;
+    const institutionName = d.externalInstitutionName || this.missionOptions.find(x => x.id === d.externalInstitutonId)?.name;
     const formatDate = (value?: string) => {
       if (!value) return '-';
       const date = new Date(value);
@@ -778,7 +801,7 @@ export default class Ticket implements OnInit {
   };
 
   ngOnInit(): void {
-    this.loadExternalInstitutions();
+    this.loadMissions();
     this.loadDepartments();
     this.subscribeTargetChanges();
 
@@ -799,19 +822,6 @@ export default class Ticket implements OnInit {
           this.cdr.markForCheck();
           this.focusQrInputSoon();
           this.loadEnvelopeDocuments(envelopeId);
-
-          // GetById uçları, GetAll'ın aksine kurum adını (externalInstitutionName)
-          // join'lemeden dönüyor; yalnızca id geldiği için burada ayrıca çekiyoruz.
-          if (!res.externalInstitutionName && res.externalInstitutionId) {
-            this.externalInstitutionService.getExternalInstitutionById(res.externalInstitutionId).subscribe({
-              next: (institution) => {
-                if (this.previewEnvelope === res) {
-                  this.previewEnvelope = { ...res, externalInstitutionName: institution.name };
-                  this.cdr.markForCheck();
-                }
-              }
-            });
-          }
         }
       },
       error: (err) => {
@@ -833,13 +843,10 @@ export default class Ticket implements OnInit {
     }
   }
 
-  private loadExternalInstitutions() {
-    this.externalInstitutionService.getExternalInstitutions().subscribe({
+  private loadMissions() {
+    this.externalInstitutionService.getMissions().subscribe({
       next: (res) => {
-        this.externalInstitutions = res ?? [];
-        const active = this.externalInstitutions.filter(i => !i.isDeleted);
-        this.missionOptions = active.filter(i => i.type === ExternalInstitutionType.Misyon);
-        this.institutionOptions = active.filter(i => i.type === ExternalInstitutionType.Kurum);
+        this.missionOptions = (res ?? []).filter(i => !i.isDeleted);
         this.cdr.markForCheck();
       },
       error: (err) => {
@@ -879,8 +886,8 @@ export default class Ticket implements OnInit {
 
     // Kurum içi birim -> targetDepartmentId; misyon / dış kurum -> externalInstitutionId.
     const kind = this.targetKind();
-    this.model.targetDepartmentId = kind === 'department' ? selectedTarget.id : null;
-    this.model.externalInstitutionId = kind === 'department' ? null : selectedTarget.id;
+    this.model.targetDepartmentId = kind === 'department' ? toDepartmentId(selectedTarget.id) : null;
+    this.model.externalInstitutionId = kind === 'department' ? null : toExternalInstitutionId(selectedTarget.id);
     this.model.createdByUserId = userId;
     // Gönderen birim (zarfı oluşturan kullanıcının birimi)
     this.model.departmentId = this.user()?.departmentId;

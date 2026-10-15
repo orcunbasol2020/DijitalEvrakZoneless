@@ -1,0 +1,541 @@
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, OnInit, signal, untracked, ViewEncapsulation } from '@angular/core';
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
+import { Observable, catchError, debounceTime, distinctUntilChanged, finalize, forkJoin, map, of, switchMap } from 'rxjs';
+import GenericModel from '../../../components/generic-model/generic-model';
+import { Common } from '../../services/common';
+import { AllocationRequestService } from '../../services/allocationrequest';
+import {
+  AllocationRequestActionResult,
+  AllocationRequestActionResultEnum,
+  AllocationRequestActionResultLabels,
+  AllocationRequestModel,
+  MessageResponse,
+  allocationRequestOperationLabel
+} from '../../models/allocationrequest.model';
+import { AllocationStatusEnum } from '../../models/allocationstatus.model';
+import { NotificationService } from '../../services/notification';
+import {
+  APPROVAL_REQUEST_NOTIFICATION_TYPES,
+  NotificationModel,
+  NotificationPageModel,
+  NotificationTypeEnum,
+  NotificationTypeIcons,
+  NotificationTypeTones
+} from '../../models/notification.model';
+
+// Onayımı bekleyenler (alıcı) / gönderdiklerim (devreden veya işlemi yapan)
+type ApprovalTab = 'bekleyen' | 'gonderilen' | 'bildirimler';
+type NoteAction = 'reject' | 'cancel';
+
+// Devredenin beyanı: onay penceresinde gösterilir, alıcı fiziksel evrakla karşılaştırır
+interface DocInfo {
+  pageCount: number | null;
+  hasAttachment: boolean | null;
+  attachmentDescription: string | null;
+}
+
+interface FailedRow {
+  label: string;
+  reason: string;
+}
+
+// Zimmet Onayları: kurum içi Devir / Teslim talepleri. Alıcı evrakları tek tek ya da
+// toplu onaylar / reddeder; devreden bekleyen taleplerini izler ve geri çeker.
+// Onaylanan satır listeden düşer; ayrıca başarı bildirimi gösterilmez.
+@Component({
+  imports: [GenericModel, CommonModule, FormsModule],
+  templateUrl: './zimmet-onaylari.html',
+  // Kart iskeleti (st-*), üst kart / arama / boş durum (sp-*) ve liste (zl-*) Zimmetlerim ile ortak
+  styleUrls: ['../settings/settings.css', '../support/support.css', '../zimmetlerim/zimmetlerim.css', './zimmet-onaylari.css'],
+  encapsulation: ViewEncapsulation.None,
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export default class ZimmetOnaylari implements OnInit {
+  private readonly common = inject(Common);
+  private readonly requestService = inject(AllocationRequestService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly notificationService = inject(NotificationService);
+
+  readonly operationLabel = allocationRequestOperationLabel;
+  readonly Teslim = AllocationStatusEnum.Teslim;
+
+  readonly activeTab = signal<ApprovalTab>('bekleyen');
+  readonly searchQuery = signal('');
+
+  // Onayımı bekleyenler ortak listeden gelir (zil ve sol menü rozetiyle aynı)
+  readonly incoming = this.requestService.pendingForMe;
+  readonly incomingLoading = signal(false);
+
+  readonly sent = signal<AllocationRequestModel[]>([]);
+  readonly sentLoading = signal(false);
+
+  readonly selectedIds = signal<ReadonlySet<string>>(new Set());
+  readonly processing = signal(false);
+
+  // İşlenemeyen talepler (sonuç kodu 1 dışındakiler) listenin üstünde gösterilir
+  readonly failedRows = signal<FailedRow[]>([]);
+
+  // Red / iptal penceresi: isteğe bağlı ortak gerekçe
+  readonly noteAction = signal<NoteAction | null>(null);
+  readonly noteIds = signal<string[]>([]);
+  readonly noteText = signal('');
+  static readonly NOTE_MAX = 1000;
+  readonly noteMax = ZimmetOnaylari.NOTE_MAX;
+
+  readonly loading = computed(() => {
+    const tab = this.activeTab();
+    if (tab === 'bekleyen') return this.incomingLoading();
+    if (tab === 'gonderilen') return this.sentLoading();
+    return this.notificationsLoading();
+  });
+
+  readonly currentList = computed<AllocationRequestModel[]>(() => {
+    const tab = this.activeTab();
+    if (tab === 'bekleyen') return this.incoming();
+    if (tab === 'gonderilen') return this.sent();
+    return [];
+  });
+
+  // ---- Bildirimler sekmesi: sunucuda sayfalanır ve aranır, okunmamışlar vurgulu ----
+  // Onay talebi / hatırlatma (tür 1, 2) bekleyen evrak listesinde olduğu için burada gösterilmez
+  private static readonly NOTIFICATION_PAGE_SIZE = 20;
+  readonly notifications = signal<NotificationModel[]>([]);
+  readonly notificationsLoading = signal(false);
+  readonly notificationPage = signal(1);
+  readonly notificationTotal = signal(0);
+  private readonly notificationReload = signal(0);
+  // Arama her tuşta değil, yazma bitince sunucuya gider
+  private readonly notificationSearch = toSignal(
+    toObservable(this.searchQuery).pipe(debounceTime(300), map(v => v.trim()), distinctUntilChanged()),
+    { initialValue: '' });
+  // Zil rozetiyle aynı okunmamış sayısı (onay talebi / hatırlatma hariç)
+  readonly unreadCount = computed(() => this.notificationService.unreadCount());
+  // Sekmeye girilince okunmamışların tümü okundu sayılır; bu ziyarette hangilerinin yeni
+  // olduğu görünsün diye okundu sayılanlar sayfa açık kaldıkça (sayfa değişse de) vurgulu kalır
+  private readonly freshIds = signal<ReadonlySet<string>>(new Set());
+  private readonly markReadOnView = effect(() => {
+    if (this.activeTab() !== 'bildirimler') return;
+    if (!this.unreadCount() && !this.notifications().some(n => !n.isRead)) return;
+    untracked(() => this.markAllRead());
+  });
+
+  readonly notificationTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.notificationTotal() / ZimmetOnaylari.NOTIFICATION_PAGE_SIZE)));
+
+  readonly notificationPageNumbers = computed(() => {
+    const total = this.notificationTotalPages();
+    const current = Math.min(this.notificationPage(), total);
+    const delta = 2;
+    const range: number[] = [];
+    for (let i = Math.max(1, current - delta); i <= Math.min(total, current + delta); i++) range.push(i);
+    return range;
+  });
+
+  readonly notificationRangeStart = computed(() =>
+    this.notificationTotal() === 0 ? 0 : (this.notificationPage() - 1) * ZimmetOnaylari.NOTIFICATION_PAGE_SIZE + 1);
+
+  readonly notificationRangeEnd = computed(() =>
+    Math.min(this.notificationPage() * ZimmetOnaylari.NOTIFICATION_PAGE_SIZE, this.notificationTotal()));
+
+  goToNotificationPage(page: number): void {
+    const clamped = Math.min(Math.max(page, 1), this.notificationTotalPages());
+    if (clamped !== this.notificationPage()) this.notificationPage.set(clamped);
+  }
+
+  // Sayfa, arama ya da yenileme değişince istek atılır; yenisi gelince eski istek iptal olur
+  private readonly notificationLoader = toObservable(computed(() => ({
+    page: this.notificationPage(),
+    search: this.notificationSearch(),
+    reload: this.notificationReload()
+  }))).pipe(
+    switchMap(q => this.fetchNotifications(q.page, q.search)),
+    takeUntilDestroyed()
+  ).subscribe(result => {
+    if (!result) return;
+    this.notifications.set(result.items ?? []);
+    this.notificationTotal.set(result.totalCount ?? 0);
+  });
+
+  isUnread(n: NotificationModel): boolean {
+    return this.freshIds().has(n.id);
+  }
+
+  notificationIcon(n: NotificationModel): string {
+    return NotificationTypeIcons[n.type as NotificationTypeEnum] ?? 'notifications';
+  }
+
+  notificationTone(n: NotificationModel): string {
+    return NotificationTypeTones[n.type as NotificationTypeEnum] ?? 'is-muted';
+  }
+
+  openNotification(n: NotificationModel): void {
+    const userId = this.userId;
+    if (!userId) return;
+    // Bildirimler sekmesine yönlendiren türlerde yalnızca okundu işaretlenir
+    this.notificationService.open(n, userId);
+  }
+
+  private markAllRead(): void {
+    const userId = this.userId;
+    if (!userId) return;
+    // Diğer sayfalardaki okunmamışlar ortak okunmamış listesinden (zil) alınır
+    const unreadIds = [
+      ...this.notificationService.unread().map(n => n.id),
+      ...this.notifications().filter(n => !n.isRead).map(n => n.id)
+    ];
+    this.freshIds.update(ids => new Set([...ids, ...unreadIds]));
+    this.notificationService.markAllAsRead(userId).subscribe();
+    this.notifications.update(list => list.map(x => ({ ...x, isRead: true })));
+  }
+
+  // Okunmamış listesi sayfayla birlikte gelir; böylece sekmede okundu sayma geç gelen
+  // eski sayımla ezilmez
+  private fetchNotifications(page: number, search: string): Observable<NotificationPageModel | null> {
+    const userId = this.userId;
+    if (!userId) return of(null);
+    this.notificationsLoading.set(true);
+    return forkJoin({
+      page: this.notificationService.getPage(userId, {
+        page,
+        pageSize: ZimmetOnaylari.NOTIFICATION_PAGE_SIZE,
+        search: search || undefined,
+        excludeTypes: APPROVAL_REQUEST_NOTIFICATION_TYPES
+      }),
+      unread: this.notificationService.refreshUnread(userId)
+    }).pipe(
+      map(r => r.page),
+      catchError(err => {
+        console.error('Bildirimler alınamadı:', err);
+        return of(null);
+      }),
+      finalize(() => this.notificationsLoading.set(false))
+    );
+  }
+
+  readonly filteredList = computed(() => {
+    const term = this.searchQuery().trim().toLocaleLowerCase('tr');
+    const list = this.currentList();
+    if (!term) return list;
+    return list.filter(r =>
+      [r.qrCode, r.orginalNo, r.subject, r.requestedByFullName, r.fromUserFullName, r.toUserFullName]
+        .some(v => (v ?? '').toLocaleLowerCase('tr').includes(term)));
+  });
+
+  readonly selectedInView = computed(() => {
+    const selected = this.selectedIds();
+    return this.filteredList().filter(r => selected.has(r.id));
+  });
+
+  readonly allInViewSelected = computed(() => {
+    const list = this.filteredList();
+    return list.length > 0 && this.selectedInView().length === list.length;
+  });
+
+  get userId(): string | undefined {
+    return this.common.user()?.id;
+  }
+
+  // ?sekme=gonderilen|bildirimler: zil menüsünden sayfa açıkken gelinirse de sekme değişir
+  ngOnInit(): void {
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
+      const sekme = params.get('sekme');
+      this.setTab(sekme === 'gonderilen' || sekme === 'bildirimler' ? sekme : 'bekleyen');
+    });
+    this.reload();
+  }
+
+  reload(): void {
+    this.loadIncoming();
+    this.loadSent();
+    this.notificationReload.update(v => v + 1);
+  }
+
+  private loadIncoming(): void {
+    const userId = this.userId;
+    if (!userId) return;
+    this.incomingLoading.set(true);
+    this.requestService.refreshPendingForMe(userId)
+      .pipe(finalize(() => this.incomingLoading.set(false)))
+      .subscribe();
+  }
+
+  private loadSent(): void {
+    const userId = this.userId;
+    if (!userId) return;
+    this.sentLoading.set(true);
+    this.requestService.getSentByUserId(userId, true)
+      .pipe(finalize(() => this.sentLoading.set(false)))
+      .subscribe({
+        next: list => this.sent.set(list),
+        error: err => console.error('Gönderilen zimmet talepleri alınamadı:', err)
+      });
+  }
+
+  setTab(tab: ApprovalTab): void {
+    if (this.activeTab() === tab) return;
+    this.activeTab.set(tab);
+    this.selectedIds.set(new Set());
+    this.failedRows.set([]);
+  }
+
+  setSearchQuery(value: string): void {
+    this.searchQuery.set(value ?? '');
+    this.notificationPage.set(1);
+  }
+
+  isSelected(row: AllocationRequestModel): boolean {
+    return this.selectedIds().has(row.id);
+  }
+
+  toggleRow(row: AllocationRequestModel): void {
+    this.selectedIds.update(set => {
+      const next = new Set(set);
+      if (next.has(row.id)) next.delete(row.id);
+      else next.add(row.id);
+      return next;
+    });
+  }
+
+  toggleAll(): void {
+    const all = this.allInViewSelected();
+    this.selectedIds.update(set => {
+      const next = new Set(set);
+      for (const r of this.filteredList()) {
+        if (all) next.delete(r.id);
+        else next.add(r.id);
+      }
+      return next;
+    });
+  }
+
+  docLabel(row: AllocationRequestModel): string {
+    return row.qrCode || row.orginalNo || row.documentName || '-';
+  }
+
+  // Kişi avatarı: ad-soyad baş harfleri
+  initials(fullName: string | null | undefined): string {
+    const parts = (fullName ?? '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '?';
+    const last = parts.length > 1 ? parts[parts.length - 1].charAt(0) : '';
+    return `${parts[0].charAt(0)}${last}`.toLocaleUpperCase('tr');
+  }
+
+  // Talebin ne kadar süredir beklediği (ör. "3 gün", "5 saat")
+  waitingText(date: string | Date | null | undefined): string {
+    const ms = this.waitingMs(date);
+    if (ms === null) return '';
+    const minutes = Math.floor(ms / 60000);
+    if (minutes < 1) return 'Az önce';
+    if (minutes < 60) return `${minutes} dk bekliyor`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} saat bekliyor`;
+    return `${Math.floor(hours / 24)} gün bekliyor`;
+  }
+
+  // 2 günden uzun bekleyen talep vurgulanır
+  isLongWaiting(date: string | Date | null | undefined): boolean {
+    const ms = this.waitingMs(date);
+    return ms !== null && ms >= 2 * 24 * 60 * 60 * 1000;
+  }
+
+  private waitingMs(date: string | Date | null | undefined): number | null {
+    if (!date) return null;
+    const t = new Date(date).getTime();
+    return Number.isNaN(t) ? null : Math.max(0, Date.now() - t);
+  }
+
+  // Devreden: talebi açan kişi; zimmet sahibi başkaysa (ör. Yönetici adına işlem) ayrıca gösterilir
+  showHolder(row: AllocationRequestModel): boolean {
+    return !!row.fromUserFullName && row.fromUserFullName !== row.requestedByFullName;
+  }
+
+  // ---- Onay: devredenin beyanı (sayfa sayısı, ek) gösterilir; alıcı isterse şerh koyar ----
+  readonly approveIds = signal<string[]>([]);
+  // Talep Id → şerh; yalnızca "Şerh koyarak kabul ediyorum" seçilen talepler
+  readonly discrepancies = signal<Record<string, string>>({});
+
+  readonly approveRows = computed(() => {
+    const ids = new Set(this.approveIds());
+    return this.currentList().filter(r => ids.has(r.id));
+  });
+
+  // Şerh seçilip açıklaması boş bırakılan talep varsa onay gönderilemez
+  readonly approveInvalid = computed(() =>
+    Object.values(this.discrepancies()).some(note => !note.trim()));
+
+  approve(ids: string[]): void {
+    if (!this.userId || !ids.length || this.processing()) return;
+    this.discrepancies.set({});
+    this.approveIds.set(ids);
+  }
+
+  declaration(row: AllocationRequestModel): DocInfo {
+    return {
+      pageCount: row.pageCount != null && String(row.pageCount) !== '' ? Number(row.pageCount) : null,
+      hasAttachment: row.hasAttachment ?? null,
+      attachmentDescription: row.attachmentDescription?.trim() || null
+    };
+  }
+
+  attachmentLabel(info: DocInfo): string {
+    return info.hasAttachment === true ? 'Var' : info.hasAttachment === false ? 'Yok' : 'Belirtilmemiş';
+  }
+
+  hasDiscrepancy(row: AllocationRequestModel): boolean {
+    return row.id in this.discrepancies();
+  }
+
+  discrepancyNote(row: AllocationRequestModel): string {
+    return this.discrepancies()[row.id] ?? '';
+  }
+
+  toggleDiscrepancy(row: AllocationRequestModel, on: boolean): void {
+    this.discrepancies.update(m => {
+      const next = { ...m };
+      if (on) next[row.id] = next[row.id] ?? '';
+      else delete next[row.id];
+      return next;
+    });
+  }
+
+  setDiscrepancyNote(row: AllocationRequestModel, note: string): void {
+    this.discrepancies.update(m => ({ ...m, [row.id]: (note ?? '').slice(0, ZimmetOnaylari.NOTE_MAX) }));
+  }
+
+  closeApprove(): void {
+    if (this.processing()) return;
+    this.approveIds.set([]);
+    this.discrepancies.set({});
+  }
+
+  // Şerhsiz talepler tek ApproveBulk ile, şerhli talepler tek tek Approve ile gönderilir
+  // (toplu onay şerhsizdir); sonuçlar tek listede birleştirilir.
+  confirmApprove(): void {
+    const userId = this.userId;
+    const ids = this.approveIds();
+    if (!userId || !ids.length || this.approveInvalid()) return;
+
+    const notes = this.discrepancies();
+    const plain = ids.filter(id => !(id in notes));
+    const flagged = ids.filter(id => id in notes);
+
+    const calls: Observable<AllocationRequestActionResult[]>[] = [];
+    if (plain.length) {
+      calls.push(this.requestService.approveBulk(plain, userId).pipe(
+        map(res => Array.isArray(res?.data) ? res.data : [])));
+    }
+    for (const id of flagged) {
+      calls.push(this.requestService.approve(id, userId, true, notes[id].trim()).pipe(
+        map(res => {
+          const data = res?.data;
+          if (Array.isArray(data)) return data;
+          if (data) return [data];
+          return [{ requestId: id, result: AllocationRequestActionResultEnum.Gecersiz, message: res?.message || 'Talep işlenemedi' }];
+        })));
+    }
+
+    const request$ = forkJoin(calls).pipe(
+      map(parts => ({ message: '', data: parts.flat() } as MessageResponse<AllocationRequestActionResult[]>)));
+    this.run(request$, ids, () => {
+      this.approveIds.set([]);
+      this.discrepancies.set({});
+    });
+  }
+
+  approveSelected(): void {
+    this.approve(this.selectedInView().map(r => r.id));
+  }
+
+  // ---- Red / iptal: gerekçe penceresi ----
+  openNote(action: NoteAction, ids: string[]): void {
+    if (!ids.length || this.processing()) return;
+    this.noteAction.set(action);
+    this.noteIds.set(ids);
+    this.noteText.set('');
+  }
+
+  openNoteForSelected(action: NoteAction): void {
+    this.openNote(action, this.selectedInView().map(r => r.id));
+  }
+
+  closeNote(): void {
+    if (this.processing()) return;
+    this.noteAction.set(null);
+    this.noteIds.set([]);
+    this.noteText.set('');
+  }
+
+  confirmNote(): void {
+    const userId = this.userId;
+    const action = this.noteAction();
+    const ids = this.noteIds();
+    if (!userId || !action || !ids.length) return;
+
+    const note = this.noteText().trim().slice(0, ZimmetOnaylari.NOTE_MAX) || null;
+    const request$ = action === 'reject'
+      ? this.requestService.rejectBulk(ids, userId, note)
+      : this.requestService.cancelBulk(ids, userId, note);
+
+    this.run(request$, ids, () => {
+      this.noteAction.set(null);
+      this.noteIds.set([]);
+      this.noteText.set('');
+    });
+  }
+
+  readonly noteTitle = computed(() => this.noteAction() === 'reject' ? 'Zimmeti Reddet' : 'Talebi Geri Çek');
+
+  readonly noteRows = computed(() => {
+    const ids = new Set(this.noteIds());
+    return this.currentList().filter(r => ids.has(r.id));
+  });
+
+  // Toplu işlem: talep başına sonuç kodu okunur. Başarılı ve zaten kapanmış talepler
+  // listeden düşer (liste yeniden çekilir); işlenemeyenler nedenleriyle üstte listelenir.
+  private run(
+    request$: Observable<MessageResponse<AllocationRequestActionResult[]>>,
+    ids: string[],
+    onDone?: () => void
+  ): void {
+    const rowsById = new Map(this.currentList().map(r => [r.id, r]));
+    this.processing.set(true);
+    this.failedRows.set([]);
+
+    request$.pipe(finalize(() => this.processing.set(false))).subscribe({
+      next: res => {
+        const results = Array.isArray(res?.data) ? res.data : [];
+        const failed: FailedRow[] = [];
+
+        if (!results.length) {
+          failed.push({ label: `${ids.length} talep`, reason: res?.message || 'Talepler işlenemedi' });
+        }
+
+        for (const r of results) {
+          if (Number(r.result) === AllocationRequestActionResultEnum.Basarili) continue;
+          const row = rowsById.get(r.requestId);
+          failed.push({
+            label: row ? this.docLabel(row) : r.requestId,
+            reason: r.message || AllocationRequestActionResultLabels[r.result as AllocationRequestActionResultEnum] || 'İşlenemedi'
+          });
+        }
+
+        this.failedRows.set(failed);
+        this.selectedIds.update(set => {
+          const next = new Set(set);
+          for (const id of ids) next.delete(id);
+          return next;
+        });
+        onDone?.();
+        this.reload();
+      },
+      error: err => {
+        console.error('Zimmet talebi işlemi başarısız:', err);
+        this.failedRows.set([{ label: `${ids.length} talep`, reason: 'Sunucuya ulaşılamadı; lütfen tekrar deneyin.' }]);
+      }
+    });
+  }
+}

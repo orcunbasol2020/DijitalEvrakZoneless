@@ -1,0 +1,125 @@
+/* Rol atama listesi: her rol bir satır (simge, ad + açıklama, anahtar). Simge renkleri Kullanıcılar
+   listesindeki rol rozetleriyle aynı: varsayılan gök mavisi, Yönetici amber. */
+
+.ra-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--bs-secondary-color);
+}
+
+.ra-dirty {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #b45309;
+}
+
+.ra-dirty-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.ra-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ra-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 12px;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color .15s, border-color .15s;
+}
+
+.ra-row:hover {
+    background: var(--bs-tertiary-bg);
+}
+
+.ra-row.is-on {
+    background: rgba(125, 211, 252, 0.12);
+    border-color: rgba(3, 105, 161, 0.45);
+}
+
+.ra-icon {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    font-size: 20px;
+    color: var(--bs-secondary-color);
+    background: var(--bs-tertiary-bg);
+    transition: color .15s, background-color .15s;
+}
+
+.ra-row.is-on .ra-icon {
+    color: #0369a1;
+    background: rgba(125, 211, 252, 0.25);
+}
+
+.ra-row.is-admin.is-on {
+    background: rgba(251, 191, 36, 0.12);
+    border-color: rgba(217, 119, 6, 0.45);
+}
+
+.ra-row.is-admin.is-on .ra-icon {
+    color: #d97706;
+    background: rgba(251, 191, 36, 0.25);
+}
+
+.ra-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.ra-name {
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.ra-desc {
+    font-size: 12px;
+    line-height: 1.35;
+    color: var(--bs-secondary-color);
+}
+
+.ra-row .form-check-input {
+    cursor: pointer;
+}
+
+[data-theme="dark"] .ra-dirty {
+    color: #fbbf24;
+}
+
+[data-theme="dark"] .ra-row.is-on {
+    background: rgba(125, 211, 252, 0.08);
+    border-color: rgba(125, 211, 252, 0.45);
+}
+
+[data-theme="dark"] .ra-row.is-on .ra-icon {
+    color: #7dd3fc;
+    background: rgba(125, 211, 252, 0.15);
+}
+
+[data-theme="dark"] .ra-row.is-admin.is-on {
+    background: rgba(251, 191, 36, 0.08);
+    border-color: rgba(251, 191, 36, 0.45);
+}
+
+[data-theme="dark"] .ra-row.is-admin.is-on .ra-icon {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.15);
+}

@@ -1,12 +1,25 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal, ViewEncapsulation } from '@angular/core';
 import { httpResource } from '@angular/common/http';
-import { ExternalInstitution, ExternalInstitutionModel, initialExternalInstitution } from '../../../services/external-institution';
-import { FlexiToastService } from 'flexi-toast';
+import {
+  EXTERNAL_INSTITUTION_TYPE_LABELS,
+  ExternalInstitution,
+  ExternalInstitutionModel,
+  ExternalInstitutionType,
+  INSTITUTION_MIN_SEARCH
+} from '../../../services/external-institution';
 import GenericModel from '../../../../components/generic-model/generic-model';
 import { FlexiGridModule } from 'flexi-grid';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 
+const SEARCH_DEBOUNCE_MS = 300;
+/** Kurum (DETSİS) aramasında getirilecek en fazla kayıt (sunucu sınırı 200) */
+const SEARCH_TAKE = 200;
+
+/**
+ * Dış kurumlar ve yabancı misyonlar kaynak sistemden (ComAgency) gelir; bu sayfa yalnızca arar ve listeler.
+ * Misyon, dilekçe ve uluslararası kuruluş listeleri küçüktür, tamamı gelir; ~160.000 DETSİS kurumu aramayla.
+ */
 @Component({
   imports: [
     GenericModel,
@@ -20,93 +33,48 @@ import { CommonModule } from '@angular/common';
 })
 export default class ExternalInstitutions {
   readonly #institutionService = inject(ExternalInstitution);
-  readonly #toast = inject(FlexiToastService);
 
-  readonly result = httpResource<ExternalInstitutionModel[]>(() => "api/ExternalInstitutions/GetAll");
-  readonly data = computed(() => this.result.value() ?? []);
+  readonly typeLabels = EXTERNAL_INSTITUTION_TYPE_LABELS;
+  readonly types = [
+    ExternalInstitutionType.Misyon,
+    ExternalInstitutionType.Kurum,
+    ExternalInstitutionType.UluslararasiKurulus,
+    ExternalInstitutionType.Dilekce,
+  ];
+  readonly minSearch = INSTITUTION_MIN_SEARCH;
+
+  readonly type = signal<ExternalInstitutionType>(ExternalInstitutionType.Misyon);
+  readonly search = signal('');
+  readonly #searchTerm = signal('');
+  #searchTimer?: ReturnType<typeof setTimeout>;
+
+  /** DETSİS kurumları yalnızca aramayla listelenir */
+  readonly needsSearch = computed(() =>
+    this.type() === ExternalInstitutionType.Kurum && this.#searchTerm().length < INSTITUTION_MIN_SEARCH);
+
+  readonly result = httpResource<ExternalInstitutionModel[]>(() => {
+    if (this.needsSearch()) return undefined;
+    const term = this.#searchTerm();
+    return this.#institutionService.listUrl({
+      type: this.type(),
+      search: term.length >= INSTITUTION_MIN_SEARCH ? term : null,
+      take: this.type() === ExternalInstitutionType.Kurum ? SEARCH_TAKE : null,
+    });
+  });
+  readonly data = computed(() => this.needsSearch() ? [] : (this.result.value() ?? []).filter(i => !i.isDeleted));
   readonly loading = computed(() => this.result.isLoading());
+  /** Kurum aramasında sunucu sınırına ulaşıldıysa aramanın daraltılması önerilir */
+  readonly truncated = computed(() => this.type() === ExternalInstitutionType.Kurum && this.data().length >= SEARCH_TAKE);
 
-  // Modal veya filtre açma durumu
   showFilters = false;
-  readonly modalVisible = signal(false);
-  readonly saving = signal(false);
-  readonly editingId = signal<string | null>(null);
 
-  form: ExternalInstitutionModel = { ...initialExternalInstitution };
-
-  typeMap: any = {
-    1: 'Misyon',
-    2: 'Kurum',
-    3: 'Şahıs'
-  };
-
-  // Ebeveyn seçiminde düzenlenen kaydın kendisi listelenmesin
-  readonly parentOptions = computed(() =>
-    this.data().filter(item => item.id !== this.editingId())
-  );
-
-  parentName(parentId?: string | null): string {
-    if (!parentId) return '-';
-    return this.data().find(item => item.id === parentId)?.name ?? '-';
+  setType(type: ExternalInstitutionType): void {
+    this.type.set(type);
   }
 
-  openCreateModal() {
-    this.editingId.set(null);
-    this.form = { ...initialExternalInstitution };
-    this.modalVisible.set(true);
-  }
-
-  openEditModal(item: ExternalInstitutionModel) {
-    this.editingId.set(item.id ?? null);
-    this.form = { ...item };
-    this.modalVisible.set(true);
-  }
-
-  closeModal() {
-    if (this.saving()) return;
-    this.modalVisible.set(false);
-  }
-
-  save() {
-    if (!this.form.name?.trim()) {
-      this.#toast.showToast('Uyarı', 'Kurum adı zorunludur', 'warning');
-      return;
-    }
-
-    this.saving.set(true);
-    const id = this.editingId();
-
-    const request$ = id
-      ? this.#institutionService.update({ id, name: this.form.name, type: this.form.type, address: this.form.address, parentId: this.form.parentId })
-      : this.#institutionService.create({ name: this.form.name, type: this.form.type, address: this.form.address, parentId: this.form.parentId });
-
-    request$.subscribe({
-      next: () => {
-        this.#toast.showToast('Başarılı', id ? 'Kurum güncellendi' : 'Kurum eklendi', 'success');
-        this.saving.set(false);
-        this.modalVisible.set(false);
-        this.result.reload();
-      },
-      error: () => {
-        this.saving.set(false);
-        this.#toast.showToast('Hata', 'İşlem sırasında bir hata oluştu', 'error');
-      }
-    });
-  }
-
-  delete(item: ExternalInstitutionModel) {
-    if (!item.id) return;
-
-    this.#toast.showSwal('Sil', `"${item.name}" kurumunu silmek istiyor musunuz?`, 'Sil', () => {
-      this.#institutionService.delete(item.id).subscribe({
-        next: () => {
-          this.#toast.showToast('Başarılı', 'Kurum silindi', 'success');
-          this.result.reload();
-        },
-        error: () => {
-          this.#toast.showToast('Hata', 'Silme işlemi başarısız', 'error');
-        }
-      });
-    });
+  onSearch(value: string): void {
+    this.search.set(value);
+    clearTimeout(this.#searchTimer);
+    this.#searchTimer = setTimeout(() => this.#searchTerm.set(value.trim()), SEARCH_DEBOUNCE_MS);
   }
 }

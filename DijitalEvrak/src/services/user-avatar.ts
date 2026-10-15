@@ -4,6 +4,7 @@ import { UserModel } from '../pages/users/users';
 // Öncelik userName'dedir; eski kayıtlar için ad (name) ile de eşleşir.
 const AVATARS_BY_USERNAME: Record<string, string> = {
   'gokce.gurkas': 'assets/images/personel/gokce.jpg',
+  'gizem.ergor': 'assets/images/personel/gizem.jpg',
 };
 
 const AVATARS_BY_NAME: Record<string, string> = {

@@ -106,7 +106,9 @@
                 </span>
                 <span class="pf-role-body">
                   <span class="pf-role-name d-block">{{ role.name }}</span>
-                  <span class="pf-role-status d-block">{{ role.hasRole ? 'Hesabınızda tanımlı' : 'Tanımlı değil' }}</span>
+                  @if (role.hasRole) {
+                    <span class="pf-role-status d-block">Hesabınızda tanımlı</span>
+                  }
                 </span>
                 <span class="material-symbols-outlined pf-role-check">
                   {{ role.hasRole ? 'check_circle' : 'radio_button_unchecked' }}

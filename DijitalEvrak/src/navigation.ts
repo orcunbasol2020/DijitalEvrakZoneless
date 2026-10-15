@@ -7,6 +7,12 @@ export interface NavigationModel {
     category?: string;
 }
 
+/**
+ * Havale (AI), parametre sayfaları ve Raporlar'ı görmeyen roller. Menü ve rota
+ * koruması (app.routes.ts) aynı listeyi kullanır; sayfa adres yazılarak da açılamaz.
+ */
+export const LIMITED_ROLES = ["Birim Evrak Sorumlusu", "Birim Yöneticisi", "Ön Kayıt"];
+
 export const navigations: NavigationModel[] = [
     {
         title: "Kontrol Paneli",
@@ -51,7 +57,7 @@ export const navigations: NavigationModel[] = [
         title: "Gelen Evraklar",
         url: "/incomingDepartmentDocument",
         icon: "add_notes",
-        roles: ["Birim Evrak Sorumlusu"],
+        roles: ["Birim Evrak Sorumlusu", "Birim Yöneticisi"],
         excludeRoles: ["Gelen Evrak", "Ön Kayıt"]
     },
     {
@@ -70,13 +76,19 @@ export const navigations: NavigationModel[] = [
         title: "Zimmet",
         url: "/zimmet",
         icon: "contract_edit",
-        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Ön Kayıt"]
+        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Birim Yöneticisi", "Ön Kayıt"]
+    },
+    {
+        // Rol kısıtı yok: her kullanıcıya evrak devredilebilir
+        title: "Zimmet Onayları",
+        url: "/zimmet-onaylari",
+        icon: "assignment_turned_in"
     },
     {
         title: "Havale (AI)",
         url: "/havale",
         icon: "neurology",
-        excludeRoles: ["Birim Evrak Sorumlusu", "Ön Kayıt"]
+        excludeRoles: LIMITED_ROLES
     },
     {
         title: "OCR Takip",
@@ -106,19 +118,25 @@ export const navigations: NavigationModel[] = [
         title: "Zarflar",
         url: "/envelope",
         icon: "stacked_email",
-        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Giden Evrak", "Ön Kayıt", "Yönetici"]
+        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Birim Yöneticisi", "Giden Evrak", "Ön Kayıt", "Yönetici"]
     },
     {
         title: "Zarf Etiketi",
         url: "/ticket",
         icon: "book",
-        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Giden Evrak", "Ön Kayıt"]
+        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Birim Yöneticisi", "Giden Evrak", "Ön Kayıt"]
     },
     {
         title: "Teslim Al / Zimmetle",
         url: "/gidenevrak/zimmet",
         icon: "approval_delegation",
         roles: ["Gelen Evrak", "Giden Evrak", "Ön Kayıt"]
+    },
+    {
+        title: "Kargo Takip",
+        url: "/kargo-takip",
+        icon: "local_shipping",
+        roles: ["Gelen Evrak", "Giden Evrak", "Ön Kayıt", "Yönetici"]
     },
 
     {
@@ -168,24 +186,49 @@ export const navigations: NavigationModel[] = [
         title: "Birimler",
         url: "/birimler",
         icon: "apartment",
-        excludeRoles: ["Birim Evrak Sorumlusu", "Ön Kayıt"]
+        excludeRoles: LIMITED_ROLES
     },
     {
         title: "Dış Kurumlar",
         url: "/externalinstitution",
         icon: "moving_ministry",
-        excludeRoles: ["Birim Evrak Sorumlusu", "Ön Kayıt"]
+        excludeRoles: LIMITED_ROLES
     },
     {
         title: "Diller",
         url: "/parameters/languages",
         icon: "language_chinese_array",
-        excludeRoles: ["Birim Evrak Sorumlusu", "Ön Kayıt"]
+        excludeRoles: LIMITED_ROLES
+    },
+    {
+        title: "Atlas Aktarım",
+        url: "/atlas-aktarim",
+        icon: "cloud_sync",
+        roles: ["Yönetici"]
+    },
+    {
+        title: "Uygulama Ayarları",
+        url: "/app-settings",
+        icon: "tune",
+        roles: ["Yönetici"]
+    },
+
+    {
+        category: "Raporlar",
+        title: undefined,
+        url: undefined,
+        icon: undefined
     },
     {
         title: "Raporlar",
         url: "/reports",
         icon: "monitoring",
-        excludeRoles: ["Birim Evrak Sorumlusu", "Ön Kayıt"]
+        excludeRoles: LIMITED_ROLES
+    },
+    {
+        title: "Nota Raporları",
+        url: "/nota-raporlari",
+        icon: "public",
+        excludeRoles: LIMITED_ROLES
     }
 ];
