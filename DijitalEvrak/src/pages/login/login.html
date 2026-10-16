@@ -22,7 +22,13 @@
                 <span class="spinner-border" aria-hidden="true"></span>
               </span>
               <h1 class="login-heading">Giriş yapılıyor</h1>
-              <p class="login-lead">Windows oturumunuz doğrulanıyor, lütfen bekleyin…</p>
+              <p class="login-lead">
+                @if (autoLogin() === 'keycloak') {
+                  Kurumsal hesabınız doğrulanıyor, lütfen bekleyin…
+                } @else {
+                  Windows oturumunuz doğrulanıyor, lütfen bekleyin…
+                }
+              </p>
             </div>
           }
 
@@ -33,10 +39,10 @@
               </span>
               <h1 class="login-heading">Sistemde tanımlı değilsiniz</h1>
               <p class="login-lead">
-                Windows hesabınız doğrulandı ancak bu sistemde tanımlı değilsiniz ya da hesabınız pasif.
-                Sistem yöneticisine başvurun.
+                {{ autoLogin() === 'keycloak' ? 'Kurumsal' : 'Windows' }} hesabınız doğrulandı ancak bu sistemde
+                tanımlı değilsiniz ya da hesabınız pasif. Sistem yöneticisine başvurun.
               </p>
-              <button type="button" class="btn-login btn-login-secondary" (click)="signInWithWindows()">
+              <button type="button" class="btn-login btn-login-secondary" (click)="retryAutoLogin()">
                 <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
                 <span>Tekrar dene</span>
               </button>
@@ -63,16 +69,38 @@
             </div>
           }
 
+          @case ('keycloak-failed') {
+            <div class="login-status" role="alert">
+              <span class="login-status-icon is-warning">
+                <span class="material-symbols-outlined" aria-hidden="true">gpp_maybe</span>
+              </span>
+              <h1 class="login-heading">Kurumsal giriş tamamlanamadı</h1>
+              <p class="login-lead">
+                Kimlik doğrulama sunucusuna ulaşılamadı ya da giriş yarıda kaldı.
+                Sorun sürerse Bilgi Teknolojileri ile iletişime geçin.
+              </p>
+              @if (keycloak()) {
+                <button type="button" class="btn-login" (click)="signInWithKeycloak()">
+                  <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
+                  <span>Tekrar dene</span>
+                </button>
+              }
+              @if (formEnabled()) {
+                <button type="button" class="login-link" (click)="showForm()">Kullanıcı adı ve şifreyle giriş yap</button>
+              }
+            </div>
+          }
+
           @case ('signed-out') {
             <div class="login-status">
               <span class="login-status-icon">
                 <span class="material-symbols-outlined" aria-hidden="true">logout</span>
               </span>
               <h1 class="login-heading">Oturumunuz kapatıldı</h1>
-              <p class="login-lead">Yeniden girmek için Windows hesabınızı kullanın.</p>
-              <button type="button" class="btn-login" (click)="signInWithWindows()">
+              <p class="login-lead">Yeniden girmek için {{ autoLogin() === 'keycloak' ? 'kurumsal' : 'Windows' }} hesabınızı kullanın.</p>
+              <button type="button" class="btn-login" (click)="retryAutoLogin()">
                 <span class="material-symbols-outlined" aria-hidden="true">badge</span>
-                <span>Windows hesabımla gir</span>
+                <span>{{ autoLogin() === 'keycloak' ? 'Kurumsal' : 'Windows' }} hesabımla gir</span>
               </button>
             </div>
           }
@@ -173,6 +201,10 @@
               </button>
 
             </form>
+
+            @if (keycloak()) {
+              <button type="button" class="login-link" (click)="signInWithKeycloak()">Kurumsal hesabımla gir</button>
+            }
           }
         }
       </div>

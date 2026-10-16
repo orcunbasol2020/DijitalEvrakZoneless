@@ -4,11 +4,16 @@ import { HttpContext } from '@angular/common/http';
 import { HttpService } from './http';
 import { UserModel } from '../pages/users/users';
 import { SKIP_ERROR_TOAST } from '../interceptors/error-interceptor';
+import { KeycloakCode } from './keycloak-auth';
 
-/** Sunucuda açık olan giriş yolları (canlıda yalnızca Windows, yerelde ikisi de) */
+/** Sunucuda açık olan giriş yolları (canlıda Keycloak ya da Windows, yerelde form da) */
 export interface LoginOptions {
     formLoginEnabled: boolean;
     windowsLoginEnabled: boolean;
+    keycloakEnabled?: boolean;
+    /** Keycloak realm adresi; yalnızca keycloakEnabled iken dolu */
+    keycloakAuthority?: string | null;
+    keycloakClientId?: string | null;
 }
 
 /** Users/GetAll süzgeçleri */
@@ -48,6 +53,14 @@ export class UserService {
      */
     windowsLogin() {
         return this.httpService.post<UserModel>(`${this.baseUrl}WindowsLogin`, null, { context: quiet(), withCredentials: true });
+    }
+
+    /**
+     * Keycloak dönüşündeki kodla giriş; sunucu kodu Keycloak'ta token'a çevirir (client secret sunucuda)
+     * ve Login ile aynı cevabı döner. 401: kod / token geçersiz, 403: kullanıcı tanımsız / pasif.
+     */
+    keycloakLogin(body: KeycloakCode) {
+        return this.httpService.post<UserModel>(`${this.baseUrl}KeycloakLogin`, body, { context: quiet() });
     }
 
     /**

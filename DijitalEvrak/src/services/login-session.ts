@@ -1,23 +1,23 @@
 import { UserModel } from '../pages/users/users';
 
-// Oturum, giriş cevabıyla (Login / WindowsLogin: token ve tokenExpiration dahil) "user" anahtarında tutulur;
-// Windows girişi localStorage'a, form girişi sessionStorage'a yazar.
+// Oturum, giriş cevabıyla (Login / WindowsLogin / KeycloakLogin: token ve tokenExpiration dahil) "user"
+// anahtarında tutulur; Windows ve Keycloak girişi localStorage'a, form girişi sessionStorage'a yazar.
 const USER_KEY = 'user';
-// Kullanıcı çıkış yaptıysa giriş ekranı otomatik Windows girişi yapmaz, "Oturumunuz kapatıldı" gösterir
+// Kullanıcı çıkış yaptıysa giriş ekranı otomatik (Windows / Keycloak) giriş yapmaz, "Oturumunuz kapatıldı" gösterir
 const SIGNED_OUT_KEY = 'loginSignedOut';
 
-export type LoginMethod = 'form' | 'windows';
+export type LoginMethod = 'form' | 'windows' | 'keycloak';
 
 export interface StoredUser extends UserModel {
   token?: string | null;
-  /** UTC; Windows oturumunda süresi dolunca yeniden (sessizce) Windows girişi yapılır */
+  /** UTC; Windows / Keycloak oturumunda süresi dolunca giriş ekranı yeniden otomatik girer */
   tokenExpiration?: string | null;
   loginMethod?: LoginMethod;
 }
 
 /**
- * Geçerli oturum; yoksa null. Süresi dolmuş Windows oturumu silinir ve null döner (giriş ekranı yeni
- * token'ı kullanıcıya bir şey göstermeden alır). Form oturumları bugünkü gibi süreye bakılmadan geçerli kalır.
+ * Geçerli oturum; yoksa null. Süresi dolmuş Windows / Keycloak oturumu silinir ve null döner (giriş ekranı
+ * yeni token'ı kendiliğinden alır). Form oturumları bugünkü gibi süreye bakılmadan geçerli kalır.
  */
 export function readStoredUser(): StoredUser | null {
   const raw = localStorage.getItem(USER_KEY) ?? sessionStorage.getItem(USER_KEY);
@@ -31,7 +31,7 @@ export function readStoredUser(): StoredUser | null {
     return null;
   }
 
-  if (user.loginMethod === 'windows' && isExpired(user.tokenExpiration)) {
+  if ((user.loginMethod === 'windows' || user.loginMethod === 'keycloak') && isExpired(user.tokenExpiration)) {
     clearStoredUser();
     return null;
   }
