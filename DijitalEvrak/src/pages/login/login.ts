@@ -14,17 +14,28 @@ import { FormsModule, NgForm } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { UserService } from '../../services/user';
 import { LoginMethod, readStoredUser, storeUser, wasSignedOut } from '../../services/login-session';
+import {
+  isKeycloakCallback,
+  KeycloakCallbackResult,
+  KeycloakOptions,
+  readKeycloakCallback,
+  startKeycloakLogin
+} from '../../services/keycloak-auth';
 import { UserModel } from '../users/users';
 
 /**
- * checking:       giriş seçenekleri alınıyor / otomatik Windows girişi deneniyor
- * form:           kullanıcı adı + şifre (yerelde)
- * denied:         Windows kimliği doğrulandı ama kullanıcı sistemde yok / silinmiş / pasif (403)
- * windows-failed: Windows kimliği doğrulanamadı (401 / ağ hatası) ve form girişi kapalı
- * signed-out:     kullanıcı çıkış yaptı; otomatik girilmez, düğmeyle yeniden girilir
- * unavailable:    sunucuda iki giriş yolu da kapalı
+ * checking:        giriş seçenekleri alınıyor / otomatik (Windows ya da Keycloak) giriş deneniyor
+ * form:            kullanıcı adı + şifre (yerelde)
+ * denied:          kimlik doğrulandı ama kullanıcı sistemde yok / silinmiş / pasif (403)
+ * windows-failed:  Windows kimliği doğrulanamadı (401 / ağ hatası) ve form girişi kapalı
+ * keycloak-failed: Keycloak girişi tamamlanamadı (Keycloak'a ulaşılamadı, token geçersiz, ağ hatası)
+ * signed-out:      kullanıcı çıkış yaptı; otomatik girilmez, düğmeyle yeniden girilir
+ * unavailable:     sunucuda hiçbir giriş yolu açık değil
  */
-type LoginMode = 'checking' | 'form' | 'denied' | 'windows-failed' | 'signed-out' | 'unavailable';
+type LoginMode = 'checking' | 'form' | 'denied' | 'windows-failed' | 'keycloak-failed' | 'signed-out' | 'unavailable';
+
+/** Otomatik giriş yolu; ekran metinleri ve "Tekrar dene" buna göre değişir */
+type AutoLogin = 'windows' | 'keycloak';
 
 @Component({
   imports: [FormsModule],
@@ -44,6 +55,9 @@ export default class Login {
   readonly mode = signal<LoginMode>('checking');
   readonly formEnabled = signal(true);
   readonly windowsEnabled = signal(false);
+  /** Sunucuda Keycloak girişi açıksa adresi ve client kimliği; kapalıysa null */
+  readonly keycloak = signal<KeycloakOptions | null>(null);
+  readonly autoLogin = signal<AutoLogin>('windows');
 
   readonly isLoading = signal(false);
   readonly windowsLoading = signal(false);
@@ -63,19 +77,39 @@ export default class Login {
       this.#router.navigateByUrl(this.#returnUrl());
       return;
     }
+    // Keycloak giriş sayfasından /login?code=...&state=... ile dönüldü
+    const query = new URLSearchParams(location.search);
+    if (isKeycloakCallback(query)) {
+      // Kod tek kullanımlık: yenilemede ya da geri tuşunda yeniden işlenmesin
+      history.replaceState(history.state, '', '/login');
+      this.#finishKeycloakLogin(query);
+      // Hata ekranındaki düğmeler için seçenekler; otomatik giriş yeniden başlatılmaz (döngü olmasın)
+      this.#loadOptions(false);
+      return;
+    }
     this.#loadOptions();
   }
 
   // ---- Giriş yolu seçimi (GetLoginOptions) ----
-  #loadOptions(): void {
+  #loadOptions(autoStart = true): void {
     this.#userService.getLoginOptions().subscribe({
       next: (options) => {
         this.formEnabled.set(!!options?.formLoginEnabled);
         this.windowsEnabled.set(!!options?.windowsLoginEnabled);
+        this.keycloak.set(
+          options?.keycloakEnabled && options.keycloakAuthority && options.keycloakClientId
+            ? { authority: options.keycloakAuthority, clientId: options.keycloakClientId }
+            : null
+        );
+        if (!autoStart) return;
+        this.autoLogin.set(this.keycloak() ? 'keycloak' : 'windows');
 
         if (this.formEnabled()) {
-          // Yerel geliştirme: başka kullanıcılarla test edilebilsin diye otomatik Windows girişi yapılmaz
+          // Yerel geliştirme: başka kullanıcılarla test edilebilsin diye otomatik giriş yapılmaz
           this.showForm();
+        } else if (this.keycloak()) {
+          if (wasSignedOut()) this.mode.set('signed-out');
+          else this.signInWithKeycloak();
         } else if (this.windowsEnabled()) {
           if (wasSignedOut()) this.mode.set('signed-out');
           else this.signInWithWindows();
@@ -85,6 +119,7 @@ export default class Login {
       },
       // Uç noktayı bilmeyen eski sunucu ya da ağ hatası: bugünkü form
       error: () => {
+        if (!autoStart) return;
         this.formEnabled.set(true);
         this.windowsEnabled.set(false);
         this.showForm();
@@ -97,9 +132,51 @@ export default class Login {
     afterNextRender(() => this.userNameInput()?.nativeElement.focus(), { injector: this.#injector });
   }
 
+  /** "Tekrar dene" / "... ile gir" düğmeleri: sunucunun açtığı otomatik giriş yolu */
+  retryAutoLogin(): void {
+    if (this.autoLogin() === 'keycloak') this.signInWithKeycloak();
+    else this.signInWithWindows();
+  }
+
+  // ---- Keycloak girişi ----
+  signInWithKeycloak(): void {
+    const options = this.keycloak();
+    if (!options) return;
+    this.autoLogin.set('keycloak');
+    this.errorMessage.set(null);
+    this.mode.set('checking');
+    // Sayfa Keycloak'a gider; yalnızca yönlendirme hazırlanamazsa (ör. https olmayan adreste crypto.subtle yok) hata
+    startKeycloakLogin(options, this.#returnUrl()).catch(() => this.mode.set('keycloak-failed'));
+  }
+
+  #finishKeycloakLogin(query: URLSearchParams): void {
+    this.autoLogin.set('keycloak');
+    this.mode.set('checking');
+
+    let callback: KeycloakCallbackResult;
+    try {
+      callback = readKeycloakCallback(query);
+    } catch {
+      this.mode.set('keycloak-failed');
+      return;
+    }
+
+    this.#userService.keycloakLogin(callback.code).subscribe({
+      next: (res) => {
+        if (!res?.isActive) {
+          this.mode.set('denied');
+          return;
+        }
+        this.#complete(res, 'keycloak', true, callback.returnUrl);
+      },
+      error: (err: HttpErrorResponse) => this.mode.set(err.status === 403 ? 'denied' : 'keycloak-failed')
+    });
+  }
+
   // ---- Windows girişi ----
   signInWithWindows(): void {
     if (this.windowsLoading()) return;
+    this.autoLogin.set('windows');
     this.errorMessage.set(null);
     this.windowsLoading.set(true);
     // Form ekranındaki düğmeden denenirken form yerinde kalır; diğer durumlarda bekleme ekranı görünür
@@ -181,17 +258,22 @@ export default class Login {
     });
   }
 
-  #complete(user: UserModel, method: LoginMethod, remember: boolean): void {
+  /** returnUrl: Keycloak dönüşünde adreste yoktur, yönlendirme öncesi saklanan değer verilir */
+  #complete(user: UserModel, method: LoginMethod, remember: boolean, returnUrl = this.#returnUrl()): void {
     storeUser(user, method, remember);
     // Girişteki hatırlatma popup'ı (zimmet onayları, birim teslim bekleyenler) her girişte
     // yalnızca bir kez açılır; popup bu bayrağı okuyup siler (bkz. LoginReminder).
     sessionStorage.setItem('loginReminderPopup', '1');
-    this.#router.navigateByUrl(this.#returnUrl());
+    this.#router.navigateByUrl(this.#safeUrl(returnUrl));
   }
 
-  /** Guard'ın verdiği dönüş adresi; yalnızca uygulama içi yollar kabul edilir */
+  /** Guard'ın verdiği dönüş adresi */
   #returnUrl(): string {
-    const url = this.#route.snapshot.queryParamMap.get('returnUrl');
+    return this.#safeUrl(this.#route.snapshot.queryParamMap.get('returnUrl'));
+  }
+
+  /** Yalnızca uygulama içi yollar kabul edilir */
+  #safeUrl(url: string | null): string {
     return url && url.startsWith('/') && !url.startsWith('//') && !url.startsWith('/login') ? url : '/';
   }
 }
