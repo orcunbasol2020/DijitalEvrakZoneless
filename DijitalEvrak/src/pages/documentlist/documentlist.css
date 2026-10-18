@@ -7,37 +7,196 @@
    olarak gösterecek biçimde düzenlenir.
    ============================================================ */
 
-/* ---- Aşama kartları: dört kart ---- */
-.dl-stages {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 0.85fr);
+/* ---- Üst kart ---- */
+.sp-hero.zl-hero.dl-hero::after {
+    content: "inbox";
 }
 
-.dl-stages .sq-queue[data-stage="preRegister"] { --sq-q: #0369a1; --sq-q-bg: #e0f2fe; }
-.dl-stages .sq-queue[data-stage="registered"] { --sq-q: #b45309; --sq-q-bg: #fef3c7; }
-.dl-stages .sq-queue[data-stage="published"] { --sq-q: #15803d; --sq-q-bg: #dcfce7; }
-.dl-stages .sq-queue[data-stage="all"] { --sq-q: #475569; --sq-q-bg: #e2e8f0; }
+/* Aktarımı hatalı evrak çipi: kırmızı vurgulu */
+.zl-hero-side .st-chip.dl-hero-failed {
+    background: rgba(220, 38, 38, 0.88);
+    border-color: rgba(255, 255, 255, 0.35);
+    color: #fff;
+}
 
-[data-theme="dark"] .dl-stages .sq-queue { --sq-q-bg: rgba(148, 163, 184, 0.14); }
-[data-theme="dark"] .dl-stages .sq-queue[data-stage="preRegister"] { --sq-q: #7dd3fc; }
-[data-theme="dark"] .dl-stages .sq-queue[data-stage="registered"] { --sq-q: #fbbf24; }
-[data-theme="dark"] .dl-stages .sq-queue[data-stage="published"] { --sq-q: #4ade80; }
-[data-theme="dark"] .dl-stages .sq-queue[data-stage="all"] { --sq-q: #cbd5e1; }
+/* İkincil başlık düğmeleri (Yenile, Excel'e Aktar): gradyan zemin üzerinde yarı saydam */
+.zl-hero-side .st-hero-btn.dl-hero-ghost {
+    background: rgba(255, 255, 255, 0.16);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+    color: #fff;
+}
 
-/* Seçili kartın renkleri sq-queue.is-active'ten gelir (premium gradyan) */
+.zl-hero-side .st-hero-btn.dl-hero-ghost:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.26);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55), 0 8px 18px rgba(3, 105, 161, 0.28);
+    color: #fff;
+}
+
+/* Excel'e Aktar yalnızca ikon: yuvarlak, diğer düğmelerle aynı yükseklikte */
+.zl-hero-side .st-hero-btn.dl-hero-export {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    justify-content: center;
+}
+
+.zl-hero-side .st-hero-btn.dl-hero-export:hover .material-symbols-outlined {
+    transform: translateY(2px);
+}
+
+/* Evrak Yükle ikonsuz: st-hero-btn'nin sondaki ikon için bıraktığı dar sağ boşluk eşitlenir.
+   Renkler ters: normalde yarı saydam (diğer başlık düğmeleri gibi), üzerine gelince beyaz. */
+.zl-hero-side .st-hero-btn.dl-hero-upload {
+    padding: 9px 16px;
+    background: rgba(255, 255, 255, 0.16);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+    color: #fff;
+}
+
+.zl-hero-side .st-hero-btn.dl-hero-upload:hover,
+.zl-hero-side .st-hero-btn.dl-hero-upload:focus-visible {
+    background: #fff;
+    box-shadow: 0 10px 22px rgba(3, 105, 161, 0.34);
+    color: #0369a1;
+}
+
+/* Aktarılacak satır yokken Excel düğmesi bekleme imleci yerine pasif görünür */
+.zl-hero-side .st-hero-btn.dl-hero-export:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+@media (max-width: 991.98px) {
+    .dl-hero .zl-hero-side { flex-wrap: wrap; }
+}
+
+/* ---- Birimim: onay kutulu aç/kapa düğmesi ---- */
+.dl-own-dept {
+    cursor: pointer;
+    user-select: none;
+}
+
+.dl-own-dept input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    margin: 0;
+    accent-color: var(--sq-info);
+    cursor: pointer;
+}
+
+.dl-own-dept-name {
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--sq-hover);
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+.dl-own-dept.is-on .dl-own-dept-name { background: rgba(3, 105, 161, 0.12); }
 
 /* ---- Arama: yönetici listesinde daha geniş ---- */
 .dl-search {
     max-width: 520px;
 }
 
-/* ---- Kriterler paneli: etiketli alanlar ---- */
+/* ---- Kriterler paneli ----
+   Üç grup kartı (Belge, Dağıtım ve Teslim, Belge Tarihi) yan yana; altta özet ve işlemler.
+   Dar ekranda kartlar alt alta iner. */
 .dl-criteria {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-    gap: 12px 14px;
-    padding: 14px 16px;
+    padding: 16px;
     border-bottom: 1px solid var(--sq-border);
     background: var(--sq-surface-2);
+    animation: dl-criteria-in 0.16s ease-out;
+}
+
+@keyframes dl-criteria-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: none; }
+}
+
+.dl-groups {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.dl-group {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--sq-border);
+    border-radius: 12px;
+    background: var(--sq-surface);
+    box-shadow: var(--sq-shadow);
+}
+
+/* legend kartın üst şeridi olarak kullanılır (fieldset'in kenarlığına gömülmez) */
+.dl-group-head {
+    float: left;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--sq-border);
+    font-size: inherit;
+    line-height: 1.2;
+}
+
+.dl-group-head + * { clear: both; }
+
+.dl-group-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: var(--sq-info-bg);
+    color: var(--sq-info);
+}
+
+.dl-group-icon .material-symbols-outlined { font-size: 16px; }
+
+.dl-group-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: var(--sq-text);
+}
+
+.dl-group-count {
+    margin-left: auto;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--sq-info);
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 20px;
+    text-align: center;
+}
+
+[data-theme="dark"] .dl-group-count { color: #0f172a; }
+
+.dl-group-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 14px 14px;
+}
+
+.dl-field-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
 }
 
 .dl-field {
@@ -48,18 +207,11 @@
     margin: 0;
 }
 
-.dl-field-wide {
-    grid-column: span 2;
-}
-
-.dl-field-dates {
-    grid-column: span 2;
-}
-
 .dl-field-label {
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     font-weight: 700;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
     color: var(--sq-muted);
 }
 
@@ -68,19 +220,158 @@
     min-width: 0;
 }
 
-.dl-dates {
-    display: flex;
+.dl-field input[type="date"].sq-select { padding-right: 8px; }
+
+/* Nereden: yazılabilir alan, sağda temizle düğmesi */
+.dl-input-wrap {
+    position: relative;
+    display: block;
+}
+
+.dl-field .sq-select.dl-input {
+    padding-right: 30px;
+    cursor: text;
+}
+
+.dl-input::-webkit-calendar-picker-indicator { display: none !important; }
+
+.dl-input-clear {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    display: inline-flex;
     align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--sq-muted);
+    transform: translateY(-50%);
+    cursor: pointer;
+}
+
+.dl-input-clear:hover { background: var(--sq-hover); color: var(--sq-text); }
+
+.dl-input-clear .material-symbols-outlined { font-size: 16px; }
+
+/* Araç çubuğunun sağı (Teslim durumu, Birimim); dar ekranda alt satıra kırılır */
+.dl-page .sq-toolbar .sq-tools { flex-wrap: wrap; }
+
+/* Teslim durumu (araç çubuğunda): segmentli seçim, sq-toggle ile aynı 36px yükseklik */
+.dl-segment {
+    display: flex;
+    flex: 0 0 auto;
+    padding: 3px;
+    border: 1px solid var(--sq-border);
+    border-radius: 10px;
+    background: var(--sq-surface-2);
+}
+
+.dl-segment button {
+    flex: 1 1 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 0;
+    height: 28px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--sq-text-2);
+    font-size: 0.76rem;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+/* Teslim edildi / Teslim bekliyor ~%15 daha geniş (~110px → ~127px): yan boşluklar 8px → 16.5px */
+.dl-segment button.dl-seg-wide { padding: 0 16.5px; }
+
+.dl-segment button:hover:not(.is-active) { background: var(--sq-hover); }
+
+.dl-segment button.is-active {
+    background: var(--sq-surface);
+    color: var(--sq-info);
+    font-weight: 700;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+}
+
+.dl-segment .dl-delivery-dot[data-tone="ok"] { background: #22c55e; }
+.dl-segment .dl-delivery-dot[data-tone="wait"] { background: #f59e0b; }
+
+/* Hazır tarih aralıkları */
+.dl-presets {
+    display: flex;
+    flex-wrap: wrap;
     gap: 6px;
 }
 
-.dl-dates .sq-select {
-    flex: 1 1 0;
-    padding-right: 8px;
+.dl-preset {
+    height: 28px;
+    padding: 0 11px;
+    border: 1px solid var(--sq-border);
+    border-radius: 999px;
+    background: var(--sq-surface);
+    color: var(--sq-text-2);
+    font-size: 0.74rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-.dl-dates-sep {
+.dl-preset:hover:not(.is-active) {
+    background: var(--sq-hover);
+    border-color: var(--sq-border-strong);
+}
+
+.dl-preset.is-active {
+    border-color: var(--sq-info);
+    background: var(--sq-info);
+    color: #fff;
+}
+
+[data-theme="dark"] .dl-preset.is-active { color: #0f172a; }
+
+/* Alt şerit */
+.dl-criteria-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--sq-border-strong);
+}
+
+.dl-criteria-summary {
+    font-size: 0.78rem;
     color: var(--sq-muted);
+}
+
+.dl-criteria-summary b { color: var(--sq-text); }
+
+.dl-criteria-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+@media (max-width: 1200px) {
+    .dl-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 768px) {
+    .dl-groups { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dl-criteria { animation: none; }
 }
 
 /* ---- Tablo ---- */
@@ -179,7 +470,8 @@
 .dl-table thead th:first-child { padding-left: 16px; }
 
 .dl-col-no { width: 150px; }
-.dl-col-unit { width: 120px; }
+/* Nereye tam birim adlarıyla yazılır; Personel sütunundan boşalan yer buraya verildi */
+.dl-col-unit { width: 240px; }
 .dl-col-date { width: 108px; }
 .dl-col-urgency { width: 90px; text-align: center; }
 .dl-table thead th.dl-col-urgency { text-align: center; }
@@ -232,7 +524,14 @@
 .dl-num { font-variant-numeric: tabular-nums; }
 
 /* Nereye (birim) kalın; birim seçilmemişse "—" soluk kalır */
-.dl-to {
+/* Uzun tam adlar en fazla iki satıra kırılır; fazlası üç noktayla kesilir (tam liste title'da) */
+.dl-text.dl-to {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    white-space: normal;
+    line-height: 1.3;
     font-weight: 700;
     color: var(--sq-text);
 }
@@ -604,21 +903,6 @@
 [data-theme="dark"] .dl-pg:hover:not(:disabled):not(.is-active) {
     background: rgba(45, 212, 191, 0.1);
     border-color: rgba(45, 212, 191, 0.35);
-}
-
-/* ---- Duyarlı yerleşim ---- */
-/* Dar ekranda Personel sütunu gizlenir (bilgi Evrak Bilgileri popupında da var) */
-@media (max-width: 1440px) {
-    .dl-table .dl-col-person { display: none; }
-}
-
-@media (max-width: 1280px) {
-    .dl-stages { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
-@media (max-width: 768px) {
-    .dl-field-wide,
-    .dl-field-dates { grid-column: auto; }
 }
 
 /* Evrak No altındaki belge türü kalın; orijinal belge no normal kalınlıkta */

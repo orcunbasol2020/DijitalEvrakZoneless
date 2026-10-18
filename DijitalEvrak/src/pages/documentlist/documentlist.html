@@ -3,27 +3,39 @@
 </app-generic>
 
 <div class="sq-page dl-page">
-  <!-- Aşamalar: her evrak tek bir aşamadadır; kart sayıları tüm listeye göredir -->
-  <nav class="sq-queues dl-stages" aria-label="Evrak aşamaları">
-    @for (s of stages; track s.key) {
-      <button type="button" class="sq-queue" [class.is-active]="activeStage() === s.key"
-        [attr.data-stage]="s.key" [attr.aria-pressed]="activeStage() === s.key" (click)="setStage(s.key)">
-        <span class="sq-queue-icon"><span class="material-symbols-outlined">{{ s.icon }}</span></span>
-        <span class="sq-queue-text">
-          <span class="sq-queue-label">{{ s.label }}</span>
-          <span class="sq-queue-hint">{{ s.hint }}</span>
+  <!-- Üst kart: solda sayfa kimliği, sağda evrak sayısı ve yenile (Birim Gelen Evrakları ile aynı düzen) -->
+  <section class="sp-hero zl-hero zl-hero-split zl-hero-slim dl-hero">
+    <div class="sp-hero-top">
+      <span class="sp-hero-icon">
+        <span class="material-symbols-outlined">inbox</span>
+      </span>
+      <div>
+        <h4 class="sp-hero-title">Gelen Evraklar</h4>
+        <div class="sp-hero-text">
+          Yayına gönderilen gelen evrakları izleyin; aktarım ve teslim durumlarını takip edin, evrak ayrıntılarına ulaşın.
+        </div>
+      </div>
+    </div>
+
+    <div class="zl-hero-side">
+      @if (failedCount()) {
+        <span class="st-chip dl-hero-failed" [title]="failedCount() + ' evrakın Atlas aktarımı hatalı'">
+          <span class="material-symbols-outlined">cloud_off</span>
+          {{ failedCount() }} hatalı
         </span>
-        <span class="sq-queue-count">
-          {{ loading() && !documents().length ? '–' : stageCounts()[s.key] }}
-          @if (s.key === 'published' && failedCount()) {
-            <span class="sq-queue-urgent" [title]="failedCount() + ' evrakın Atlas aktarımı hatalı'">
-              <span class="material-symbols-outlined">cloud_off</span>{{ failedCount() }}
-            </span>
-          }
-        </span>
+      }
+      <!-- Excel'e Aktar ve Yenile yarı saydam; Evrak Yükle beyaz, Yenile en sağda -->
+      <button type="button" class="st-hero-btn dl-hero-ghost dl-hero-export" title="Listeyi Excel'e aktar"
+        aria-label="Listeyi Excel'e aktar" [disabled]="!filteredRows().length" (click)="exportCsv()">
+        <span class="material-symbols-outlined">download</span>
       </button>
-    }
-  </nav>
+      <button type="button" class="st-hero-btn dl-hero-upload" (click)="openNewUpload()">Evrak Yükle</button>
+      <button type="button" class="st-hero-btn dl-hero-ghost" [disabled]="loading()" (click)="loadDocuments()">
+        Yenile
+        <span class="material-symbols-outlined" [class.zl-spin]="loading()">refresh</span>
+      </button>
+    </div>
+  </section>
 
   <section class="sq-panel">
     <!-- Araç çubuğu: arama ve süzgeçler solda, işlemler sağda -->
@@ -52,93 +64,178 @@
         }
       </div>
 
+      <!-- Araç çubuğunun sağı: Teslim durumu ve Birimim -->
       <div class="sq-tools">
-        <button type="button" class="sq-tool sq-icon-only" title="Yenile" [disabled]="loading()" (click)="loadDocuments()">
-          <span class="material-symbols-outlined" [class.sq-spin]="loading()">refresh</span>
-        </button>
-        <button type="button" class="sq-tool sq-icon-only" title="Listeyi Excel'e aktar"
-          [disabled]="!filteredRows().length" (click)="exportCsv()">
-          <span class="material-symbols-outlined">download</span>
-        </button>
-        <button type="button" class="sq-tool sq-tool-primary" (click)="openNewUpload()">
-          <span class="material-symbols-outlined">upload_file</span>
-          Evrak Yükle
-        </button>
+        <div class="dl-segment" role="radiogroup" aria-label="Teslim durumu">
+          @for (o of deliveryOptions; track o.value) {
+            <button type="button" role="radio" [class.is-active]="deliveryFilter() === o.value" [class.dl-seg-wide]="!!o.tone"
+              [attr.aria-checked]="deliveryFilter() === o.value" (click)="setFilter(deliveryFilter, o.value)">
+              @if (o.tone) {
+                <i class="dl-delivery-dot" [attr.data-tone]="o.tone"></i>
+              }
+              {{ o.label }}
+            </button>
+          }
+        </div>
+        <!-- Birimim: işaretliyken yalnızca kullanıcının birimine ve alt birimlerine gelen evraklar, kaldırılınca tümü -->
+        @if (ownDepartmentId()) {
+          <label class="sq-toggle dl-own-dept" [class.is-on]="ownDepartmentOnly()"
+            [title]="(ownDepartmentName() || 'Birimim') + (subDepartmentCount() ? ' ve bağlı ' + subDepartmentCount() + ' alt birime' : ' birimine') + ' gelen evrakları göster'">
+            <input type="checkbox" [ngModel]="ownDepartmentOnly()" (ngModelChange)="setFilter(ownDepartmentOnly, $event)" />
+            <span class="material-symbols-outlined">apartment</span>
+            Birimim
+            @if (ownDepartmentName(); as name) {
+              <span class="dl-own-dept-name">{{ name }}</span>
+            }
+          </label>
+        }
       </div>
     </div>
 
-    <!-- Kriterler: etiketli alanlar, Filtre düğmesiyle açılır -->
+    <!-- Kriterler paneli: Filtre düğmesiyle açılır. Alanlar üç grupta toplanır (Belge, Dağıtım,
+         Tarih); her grup başlığında o gruptaki seçim sayısı görünür. -->
     @if (filtersOpen()) {
-      <div class="dl-criteria" id="dl-criteria">
-        <label class="dl-field">
-          <span class="dl-field-label">İvedilik</span>
-          <select class="sq-select" [ngModel]="urgencyFilter()" (ngModelChange)="setFilter(urgencyFilter, $event)"
-            [class.is-set]="urgencyFilter() != null">
-            <option [ngValue]="null">Tümü</option>
-            @for (o of urgencyOptions; track o.value) {
-              <option [ngValue]="o.value">{{ o.label }}</option>
-            }
-          </select>
-        </label>
-        <label class="dl-field">
-          <span class="dl-field-label">Gizlilik</span>
-          <select class="sq-select" [ngModel]="securityFilter()" (ngModelChange)="setFilter(securityFilter, $event)"
-            [class.is-set]="securityFilter() != null">
-            <option [ngValue]="null">Tümü</option>
-            @for (o of securityOptions; track o.value) {
-              <option [ngValue]="o.value">{{ o.label }}</option>
-            }
-          </select>
-        </label>
-        <label class="dl-field">
-          <span class="dl-field-label">Türü</span>
-          <select class="sq-select" [ngModel]="typeFilter()" (ngModelChange)="setFilter(typeFilter, $event)"
-            [class.is-set]="typeFilter() != null">
-            <option [ngValue]="null">Tümü</option>
-            @for (o of typeOptions; track o.value) {
-              <option [ngValue]="o.value">{{ o.label }}</option>
-            }
-          </select>
-        </label>
-        <label class="dl-field dl-field-wide">
-          <span class="dl-field-label">Nereye</span>
-          <select class="sq-select" [ngModel]="departmentFilter()" (ngModelChange)="setFilter(departmentFilter, $event)"
-            [class.is-set]="!!departmentFilter()">
-            <option [ngValue]="null">Tümü</option>
-            @for (o of departmentOptions(); track o.id) {
-              <option [ngValue]="o.id">{{ o.label }}</option>
-            }
-          </select>
-        </label>
-        @if (activeStage() !== 'published') {
-          <label class="dl-field">
-            <span class="dl-field-label">Atanan personel</span>
-            <select class="sq-select" [ngModel]="personFilter()" (ngModelChange)="setFilter(personFilter, $event)"
-              [class.is-set]="!!personFilter()">
-              <option [ngValue]="null">Tümü</option>
-              @for (p of personOptions(); track p) {
-                <option [ngValue]="p">{{ p }}</option>
+      <!-- lang="tr": etiketler CSS ile büyük harfe çevrilir; sayfa lang="en" olduğundan "i" → "I" olmasın ("İVEDİLİK") -->
+      <div class="dl-criteria" id="dl-criteria" role="region" aria-label="Filtre kriterleri" lang="tr">
+        <div class="dl-groups">
+          <!-- Belge -->
+          <fieldset class="dl-group">
+            <legend class="dl-group-head">
+              <span class="dl-group-icon"><span class="material-symbols-outlined">description</span></span>
+              <span class="dl-group-title">Belge</span>
+              @if (groupCounts().document) {
+                <span class="dl-group-count">{{ groupCounts().document }}</span>
               }
-            </select>
-          </label>
-        }
-        <label class="dl-field">
-          <span class="dl-field-label">Teslim</span>
-          <select class="sq-select" [ngModel]="deliveryFilter()" (ngModelChange)="setFilter(deliveryFilter, $event)"
-            [class.is-set]="deliveryFilter() !== 'all'">
-            <option ngValue="all">Tümü</option>
-            <option ngValue="delivered">Teslim edildi</option>
-            <option ngValue="undelivered">Teslim edilmedi</option>
-          </select>
-        </label>
-        <div class="dl-field dl-field-dates">
-          <span class="dl-field-label">Belge tarihi</span>
-          <div class="dl-dates">
-            <input type="date" class="sq-select" [ngModel]="dateFrom()" (ngModelChange)="setFilter(dateFrom, $event || '')"
-              [class.is-set]="!!dateFrom()" [attr.max]="dateTo() || null" aria-label="Belge tarihi başlangıç" />
-            <span class="dl-dates-sep">–</span>
-            <input type="date" class="sq-select" [ngModel]="dateTo()" (ngModelChange)="setFilter(dateTo, $event || '')"
-              [class.is-set]="!!dateTo()" [attr.min]="dateFrom() || null" aria-label="Belge tarihi bitiş" />
+            </legend>
+            <div class="dl-group-body">
+              <label class="dl-field">
+                <span class="dl-field-label">Türü</span>
+                <select class="sq-select" [ngModel]="typeFilter()" (ngModelChange)="setFilter(typeFilter, $event)"
+                  [class.is-set]="typeFilter() != null">
+                  <option [ngValue]="null">Tümü</option>
+                  @for (o of typeOptions; track o.value) {
+                    <option [ngValue]="o.value">{{ o.label }}</option>
+                  }
+                </select>
+              </label>
+              <div class="dl-field-row">
+                <label class="dl-field">
+                  <span class="dl-field-label">İvedilik</span>
+                  <select class="sq-select" [ngModel]="urgencyFilter()" (ngModelChange)="setFilter(urgencyFilter, $event)"
+                    [class.is-set]="urgencyFilter() != null">
+                    <option [ngValue]="null">Tümü</option>
+                    @for (o of urgencyOptions; track o.value) {
+                      <option [ngValue]="o.value">{{ o.label }}</option>
+                    }
+                  </select>
+                </label>
+                <label class="dl-field">
+                  <span class="dl-field-label">Gizlilik</span>
+                  <select class="sq-select" [ngModel]="securityFilter()" (ngModelChange)="setFilter(securityFilter, $event)"
+                    [class.is-set]="securityFilter() != null">
+                    <option [ngValue]="null">Tümü</option>
+                    @for (o of securityOptions; track o.value) {
+                      <option [ngValue]="o.value">{{ o.label }}</option>
+                    }
+                  </select>
+                </label>
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- Dağıtım ve Teslim -->
+          <fieldset class="dl-group">
+            <legend class="dl-group-head">
+              <span class="dl-group-icon"><span class="material-symbols-outlined">alt_route</span></span>
+              <span class="dl-group-title">Dağıtım</span>
+              @if (groupCounts().routing) {
+                <span class="dl-group-count">{{ groupCounts().routing }}</span>
+              }
+            </legend>
+            <div class="dl-group-body">
+              <!-- Nereden: yazdıkça listedeki kurumlar önerilir; kurum adında geçen metne göre süzer -->
+              <label class="dl-field">
+                <span class="dl-field-label">Nereden</span>
+                <span class="dl-input-wrap">
+                  <input type="text" class="sq-select dl-input" list="dl-from-options" placeholder="Tüm kurumlar"
+                    autocomplete="off" [ngModel]="fromFilter()" (ngModelChange)="setFilter(fromFilter, $event ?? '')"
+                    [class.is-set]="!!fromFilter().trim()" />
+                  @if (fromFilter()) {
+                    <button type="button" class="dl-input-clear" title="Temizle" aria-label="Nereden süzgecini temizle"
+                      (click)="setFilter(fromFilter, '')">
+                      <span class="material-symbols-outlined">close</span>
+                    </button>
+                  }
+                </span>
+                <datalist id="dl-from-options">
+                  @for (n of fromOptions(); track n) {
+                    <option [value]="n"></option>
+                  }
+                </datalist>
+              </label>
+              <label class="dl-field">
+                <span class="dl-field-label">Nereye</span>
+                <select class="sq-select" [ngModel]="departmentFilter()" (ngModelChange)="setFilter(departmentFilter, $event)"
+                  [class.is-set]="!!departmentFilter()">
+                  <option [ngValue]="null">Tüm birimler</option>
+                  @for (o of departmentOptions(); track o.id) {
+                    <option [ngValue]="o.id">{{ o.label }}</option>
+                  }
+                </select>
+              </label>
+            </div>
+          </fieldset>
+
+          <!-- Tarih -->
+          <fieldset class="dl-group">
+            <legend class="dl-group-head">
+              <span class="dl-group-icon"><span class="material-symbols-outlined">calendar_month</span></span>
+              <span class="dl-group-title">Belge Tarihi</span>
+              @if (groupCounts().date) {
+                <span class="dl-group-count">{{ groupCounts().date }}</span>
+              }
+            </legend>
+            <div class="dl-group-body">
+              <div class="dl-presets" role="group" aria-label="Hazır tarih aralıkları">
+                @for (p of datePresets; track p.key) {
+                  <button type="button" class="dl-preset" [class.is-active]="activeDatePreset() === p.key"
+                    (click)="setDatePreset(p.key)">{{ p.label }}</button>
+                }
+              </div>
+              <div class="dl-field-row">
+                <label class="dl-field">
+                  <span class="dl-field-label">Başlangıç</span>
+                  <input type="date" class="sq-select" [ngModel]="dateFrom()" (ngModelChange)="setFilter(dateFrom, $event || '')"
+                    [class.is-set]="!!dateFrom()" [attr.max]="dateTo() || null" />
+                </label>
+                <label class="dl-field">
+                  <span class="dl-field-label">Bitiş</span>
+                  <input type="date" class="sq-select" [ngModel]="dateTo()" (ngModelChange)="setFilter(dateTo, $event || '')"
+                    [class.is-set]="!!dateTo()" [attr.min]="dateFrom() || null" />
+                </label>
+              </div>
+            </div>
+          </fieldset>
+        </div>
+
+        <!-- Alt şerit: sonuç sayısı, temizle ve kapat -->
+        <div class="dl-criteria-foot">
+          <span class="dl-criteria-summary">
+            @if (selectFilterCount()) {
+              <b>{{ selectFilterCount() }}</b> kriter uygulandı · <b>{{ filteredRows().length }}</b> evrak
+            } @else {
+              Kriter seçilmedi
+            }
+          </span>
+          <div class="dl-criteria-actions">
+            @if (selectFilterCount()) {
+              <button type="button" class="sq-link" (click)="clearCriteria()">
+                <span class="material-symbols-outlined">filter_alt_off</span>Kriterleri temizle
+              </button>
+            }
+            <button type="button" class="sq-tool" (click)="filtersOpen.set(false)">
+              <span class="material-symbols-outlined">expand_less</span>Kapat
+            </button>
           </div>
         </div>
       </div>
@@ -148,21 +245,19 @@
       <span class="sq-listhead-count">
         <strong>{{ filteredRows().length }}</strong> {{ hasActiveFilters() ? 'sonuç' : 'evrak' }}
       </span>
-      <!-- Yayınlanan aşamasında yayın durumuna göre ikinci düzey süzgeç -->
-      @if (activeStage() === 'published') {
-        <div class="sq-subtabs" role="tablist" aria-label="Yayın durumu">
-          <button type="button" role="tab" [class.is-active]="publishFilter() === 'all'" (click)="setFilter(publishFilter, 'all')">Tümü</button>
-          <button type="button" role="tab" [class.is-active]="publishFilter() === 'done'" (click)="setFilter(publishFilter, 'done')">
-            <i class="sq-dot is-ok"></i>Yayınlandı
-          </button>
-          <button type="button" role="tab" [class.is-active]="publishFilter() === 'progress'" (click)="setFilter(publishFilter, 'progress')">
-            <i class="sq-dot is-wait"></i>Aktarımda
-          </button>
-          <button type="button" role="tab" [class.is-active]="publishFilter() === 'failed'" (click)="setFilter(publishFilter, 'failed')">
-            <i class="sq-dot is-err"></i>Aktarım Hatalı
-          </button>
-        </div>
-      }
+      <!-- Yayın durumuna göre süzgeç -->
+      <div class="sq-subtabs" role="tablist" aria-label="Yayın durumu">
+        <button type="button" role="tab" [class.is-active]="publishFilter() === 'all'" (click)="setFilter(publishFilter, 'all')">Tümü</button>
+        <button type="button" role="tab" [class.is-active]="publishFilter() === 'done'" (click)="setFilter(publishFilter, 'done')">
+          <i class="sq-dot is-ok"></i>Yayınlandı
+        </button>
+        <button type="button" role="tab" [class.is-active]="publishFilter() === 'progress'" (click)="setFilter(publishFilter, 'progress')">
+          <i class="sq-dot is-wait"></i>Aktarımda
+        </button>
+        <button type="button" role="tab" [class.is-active]="publishFilter() === 'failed'" (click)="setFilter(publishFilter, 'failed')">
+          <i class="sq-dot is-err"></i>Aktarım Hatalı
+        </button>
+      </div>
       <label class="sq-sort">
         <span>Sırala</span>
         <select [ngModel]="sortPreset()" (ngModelChange)="setSortPreset($event)" aria-label="Sıralama">
@@ -234,11 +329,6 @@
               <th scope="col" class="dl-col-status" [attr.aria-sort]="sortAria('status')">
                 <ng-container *ngTemplateOutlet="sortHead; context: { key: 'status', label: 'DURUM' }" />
               </th>
-              @if (showPersonColumn()) {
-                <th scope="col" class="dl-col-person" [attr.aria-sort]="sortAria('person')">
-                  <ng-container *ngTemplateOutlet="sortHead; context: { key: 'person', label: 'PERSONEL' }" />
-                </th>
-              }
               <th scope="col" class="dl-col-actions"><span class="visually-hidden">İşlemler</span></th>
             </tr>
           </thead>
@@ -301,17 +391,6 @@
                     <span class="envelope-status-text">{{ st.label }}</span>
                   </span>
                 </td>
-                @if (showPersonColumn()) {
-                  <td class="dl-col-person">
-                    @if (stageOf(item) === 'published') {
-                      <span class="dl-text is-empty">—</span>
-                    } @else {
-                      <span class="dl-text" [class.is-empty]="!item.currentAssignmentUser" [title]="item.currentAssignmentUser || ''">
-                        {{ item.currentAssignmentUser || 'Atanmamış' }}
-                      </span>
-                    }
-                  </td>
-                }
                 <td class="dl-col-actions" (click)="$event.stopPropagation()">
                   <div class="dl-actions">
                     <button type="button" class="dl-btn" title="Evrak Kayıt ekranında aç" (click)="goToDetail(item.id!)">

@@ -7,8 +7,6 @@ import {
   ViewEncapsulation,
   computed,
   inject,
-  effect,
-  untracked,
   HostListener
 } from '@angular/core';
 import { Router } from '@angular/router';
@@ -57,33 +55,12 @@ const OCR_STATUS_LABELS: Record<number, string> = {
 };
 
 const STATUS_DELIVERED = 3;
-const STATUS_PRE_REGISTER = 1;
 
-// Yönetici listesi evrakları aşamalara ayırır; bir evrak yalnızca bir aşamadadır:
-//  - preRegister Ön Kayıt: ön kaydı yapılmış, kaydı tamamlanmamış
-//  - registered  Kayıt Tamamlandı: kaydı tamamlanmış, henüz yayına gönderilmemiş
-//  - published   Yayınlanan: yayına gönderilmiş (Yayınlandı / Aktarımda / Aktarım Hatalı)
-// "all" aşama değil, hepsini birlikte gösteren görünümdür.
-type StageKey = 'preRegister' | 'registered' | 'published';
-type StageView = StageKey | 'all';
-
-interface StageDef {
-  key: StageView;
-  label: string;
-  hint: string;
-  icon: string;
-}
-
-const STAGES: readonly StageDef[] = [
-  { key: 'preRegister', label: 'Ön Kayıt', hint: 'Kaydı tamamlanmamış', icon: 'app_registration' },
-  { key: 'registered', label: 'Kayıt Tamamlandı', hint: 'Yayına gönderilmemiş', icon: 'pending_actions' },
-  { key: 'published', label: 'Yayınlanan', hint: 'Atlas\'a yayına gönderildi', icon: 'task_alt' },
-  { key: 'all', label: 'Tümü', hint: 'Bütün gelen evraklar', icon: 'select_all' }
-];
-
+// Yönetici listesi yalnızca yayına gönderilmiş evrakları gösterir (Yayınlandı / Aktarımda /
+// Aktarım Hatalı); ön kayıttaki ve kaydı tamamlanıp yayına gönderilmemiş evraklar listelenmez.
 type PublishView = 'all' | 'done' | 'progress' | 'failed';
 type DeliveryView = 'all' | 'delivered' | 'undelivered';
-type SortKey = 'created' | 'no' | 'from' | 'to' | 'documentDate' | 'urgency' | 'security' | 'status' | 'delivery' | 'person';
+type SortKey = 'created' | 'no' | 'from' | 'to' | 'documentDate' | 'urgency' | 'security' | 'status' | 'delivery';
 type SortDir = 'asc' | 'desc';
 
 // "Sırala" seçimindeki hazır sıralamalar (değer: "anahtar:yön")
@@ -109,12 +86,25 @@ const ATTENTION_URGENCIES: ReadonlySet<number> = new Set([
   UrgencyDegreeEnum.Lightning, UrgencyDegreeEnum.Dated, UrgencyDegreeEnum.VeryUrgent, UrgencyDegreeEnum.Urgent
 ]);
 
+// Kriterler panelindeki hazır belge tarihi aralıkları (bugün dahil)
+type DatePresetKey = 'today' | 'week' | 'month' | 'year';
+const DATE_PRESETS: readonly { key: DatePresetKey; label: string }[] = [
+  { key: 'today', label: 'Bugün' },
+  { key: 'week', label: 'Son 7 gün' },
+  { key: 'month', label: 'Son 30 gün' },
+  { key: 'year', label: 'Bu yıl' }
+];
+
+// <input type="date"> değeri: yerel saatle yyyy-MM-dd
+function toDateInput(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 const PAGE_SIZE = 10;
 // Sayfalamada aynı anda gösterilen sayfa numarası düğmesi
 const PAGE_WINDOW = 5;
 const SUBJECT_WORD_LIMIT = 12;
-// Seçili aşama sekme oturumu boyunca hatırlanır (Evrak Kayıt'tan dönüşte aynı sekme açılır)
-const STAGE_STORAGE_KEY = 'documentlist.stage';
 
 type DocumentRow = IncomingDocumentModel & { currentAssignmentUser?: string | null };
 
@@ -132,7 +122,11 @@ type DocumentRow = IncomingDocumentModel & { currentAssignmentUser?: string | nu
   templateUrl: './documentlist.html',
   // scanlist.css: Süreç ve Zimmet Geçmişi popup'ları (zh-, sp-); incoming-info-modal.css: Evrak Bilgileri (ei-);
   // scanlist-queue.css: kuyruk kartları, araç çubuğu, satır ve sayfalama (sq-).
+  // settings/support/zimmetlerim.css: üst kart (sp-hero, zl-hero, st-chip), Birim Gelen Evrakları ile ortak.
   styleUrls: [
+    '../settings/settings.css',
+    '../support/support.css',
+    '../zimmetlerim/zimmetlerim.css',
     '../scanlist/scanlist.css',
     '../../../components/incoming-info-modal/incoming-info-modal.css',
     '../scanlist/scanlist-queue.css',
@@ -178,6 +172,8 @@ export default class Documentlist {
   // ---- Nereden / Nereye adları ----
   // Bakanlık birimi satırda kısa adıyla (yoksa tam adıyla), dış kurum tam adıyla yazılır
   private readonly departmentNames = signal<Record<string, { name: string; short: string }>>({});
+  // Üst birim -> doğrudan alt birimler (Birimim süzgecinde alt birimleri de kapsamak için)
+  private readonly departmentChildren = signal<Record<string, string[]>>({});
 
   readonly departmentOptions = computed(() =>
     Object.entries(this.departmentNames())
@@ -204,24 +200,57 @@ export default class Documentlist {
     return this.toNames(d, compact).join(', ');
   }
 
-  // Satır hücresi: çok alıcıda "X ve N birim daha"; tam liste title'da alt alta
+  // Satır hücresi tam adlarla: çok alıcıda "X ve N birim daha"; tam liste title'da alt alta
   toCell(d: IncomingDocumentModel): string {
-    return summarizeRecipientNames(this.toNames(d, true));
+    return summarizeRecipientNames(this.toNames(d, false));
   }
 
   toTitle(d: IncomingDocumentModel): string {
     return this.toNames(d, false).join('\n');
   }
 
-  // ---- Aşamalar ve süzgeçler ----
-  readonly stages = STAGES;
-  readonly activeStage = signal<StageView>(this.readStoredStage());
+  // ---- Süzgeçler ----
   readonly search = signal('');
   readonly urgencyFilter = signal<number | null>(null);
   readonly securityFilter = signal<number | null>(null);
   readonly typeFilter = signal<number | null>(null);
   readonly departmentFilter = signal<string | null>(null);
-  readonly personFilter = signal<string | null>(null);
+  // Nereden: kurum adında geçen metin (büyük/küçük harf duyarsız)
+  readonly fromFilter = signal('');
+  // Nereden önerileri: listedeki evrakların kurumları (kurum listesi ~160.000 kayıt, ayrıca çekilmez)
+  readonly fromOptions = computed(() => {
+    const names = new Set<string>();
+    for (const d of this.documents()) {
+      const n = this.fromName(d).trim();
+      if (n) names.add(n);
+    }
+    return [...names].sort((a, b) => a.localeCompare(b, 'tr'));
+  });
+  // "Birimim": yalnızca kullanıcının birimine ya da ona bağlı alt birimlere (alıcılarından
+  // biri olarak) gelen evraklar
+  readonly ownDepartmentOnly = signal(false);
+  readonly ownDepartmentId = computed(() => idKey(this.user()?.departmentId) ?? null);
+  // Kullanıcının birimi ve tüm alt birimleri (her derinlikte); döngüye karşı ziyaret edilenler atlanır
+  readonly ownDepartmentScope = computed(() => {
+    const scope = new Set<string>();
+    const root = this.ownDepartmentId();
+    if (!root) return scope;
+    const children = this.departmentChildren();
+    const queue = [root];
+    while (queue.length) {
+      const id = queue.pop()!;
+      if (scope.has(id)) continue;
+      scope.add(id);
+      queue.push(...(children[id] ?? []));
+    }
+    return scope;
+  });
+  readonly subDepartmentCount = computed(() => Math.max(0, this.ownDepartmentScope().size - 1));
+  readonly ownDepartmentName = computed(() => {
+    const id = this.ownDepartmentId();
+    const d = id ? this.departmentNames()[id] : undefined;
+    return d ? (d.short || d.name) : '';
+  });
   readonly deliveryFilter = signal<DeliveryView>('all');
   readonly dateFrom = signal('');
   readonly dateTo = signal('');
@@ -229,37 +258,8 @@ export default class Documentlist {
   readonly page = signal(1);
   readonly filtersOpen = signal(false);
 
-  stageOf(d: IncomingDocumentModel): StageKey {
-    if (isSentToPublish(d)) return 'published';
-    return d.status === STATUS_PRE_REGISTER ? 'preRegister' : 'registered';
-  }
-
-  readonly stageCounts = computed(() => {
-    const counts: Record<StageView, number> = { preRegister: 0, registered: 0, published: 0, all: 0 };
-    for (const d of this.documents()) {
-      counts[this.stageOf(d)]++;
-      counts.all++;
-    }
-    return counts;
-  });
-
-  // Yayınlanan aşamasında aktarımı hatalı evrak sayısı: kartta uyarı sinyali olarak gösterilir
+  // Aktarımı hatalı evrak sayısı: üst kartta uyarı çipi olarak gösterilir
   readonly failedCount = computed(() => this.documents().filter(d => isPublishFailed(d)).length);
-
-  private readonly stageRows = computed(() => {
-    const s = this.activeStage();
-    const rows = this.documents();
-    return s === 'all' ? rows : rows.filter(d => this.stageOf(d) === s);
-  });
-
-  readonly personOptions = computed(() => {
-    const names = new Set<string>();
-    for (const d of this.stageRows()) {
-      const n = d.currentAssignmentUser?.trim();
-      if (n) names.add(n);
-    }
-    return [...names].sort((a, b) => a.localeCompare(b, 'tr'));
-  });
 
   readonly filteredRows = computed(() => {
     const terms = this.search().trim().toLocaleLowerCase('tr').split(/\s+/).filter(Boolean);
@@ -267,19 +267,21 @@ export default class Documentlist {
     const security = this.securityFilter();
     const type = this.typeFilter();
     const department = this.departmentFilter();
-    const person = this.personFilter();
+    const fromTerm = this.fromFilter().trim().toLocaleLowerCase('tr');
+    const ownScope = this.ownDepartmentOnly() && this.ownDepartmentId() ? this.ownDepartmentScope() : null;
     const delivery = this.deliveryFilter();
     const from = this.dateFrom() ? new Date(this.dateFrom() + 'T00:00:00').getTime() : null;
     const to = this.dateTo() ? new Date(this.dateTo() + 'T23:59:59').getTime() : null;
-    const publish = this.activeStage() === 'published' ? this.publishFilter() : 'all';
+    const publish = this.publishFilter();
 
-    const rows = this.stageRows().filter(d => {
+    const rows = this.documents().filter(d => {
       if (urgency != null && d.urgencyDegree !== urgency) return false;
       if (security != null && d.securityDegree !== security) return false;
       if (type != null && d.documentTypeId !== type) return false;
       // Birim süzgeci backend'deki gibi: birim evrakın alıcılarından biri mi
       if (department && !incomingRecipientsOf(d).some(r => idKey(r.departmentId) === department)) return false;
-      if (person && (d.currentAssignmentUser?.trim() ?? '') !== person) return false;
+      if (fromTerm && !this.fromName(d).toLocaleLowerCase('tr').includes(fromTerm)) return false;
+      if (ownScope &&!incomingRecipientsOf(d).some(r => ownScope.has(idKey(r.departmentId)!))) return false;
       if (delivery === 'delivered' && d.status !== STATUS_DELIVERED) return false;
       if (delivery === 'undelivered' && d.status === STATUS_DELIVERED) return false;
       if (from != null || to != null) {
@@ -308,12 +310,77 @@ export default class Documentlist {
   readonly selectFilterCount = computed(() =>
     (this.urgencyFilter() != null ? 1 : 0) + (this.securityFilter() != null ? 1 : 0)
     + (this.typeFilter() != null ? 1 : 0) + (this.departmentFilter() ? 1 : 0)
-    + (this.personFilter() ? 1 : 0) + (this.deliveryFilter() !== 'all' ? 1 : 0)
+    + (this.fromFilter().trim() ? 1 : 0)
     + (this.dateFrom() || this.dateTo() ? 1 : 0));
 
+  // Kriterler panelinde grup başlıklarındaki seçim sayıları
+  readonly groupCounts = computed(() => ({
+    document: (this.typeFilter() != null ? 1 : 0) + (this.urgencyFilter() != null ? 1 : 0)
+      + (this.securityFilter() != null ? 1 : 0),
+    routing: (this.fromFilter().trim() ? 1 : 0) + (this.departmentFilter() ? 1 : 0),
+    date: this.dateFrom() || this.dateTo() ? 1 : 0
+  }));
+
+  readonly deliveryOptions: readonly { value: DeliveryView; label: string; tone?: 'ok' | 'wait' }[] = [
+    { value: 'all', label: 'Tümü' },
+    { value: 'delivered', label: 'Teslim edildi', tone: 'ok' },
+    { value: 'undelivered', label: 'Teslim bekliyor', tone: 'wait' }
+  ];
+
+  // ---- Hazır belge tarihi aralıkları ----
+  readonly datePresets = DATE_PRESETS;
+
+  private presetRange(key: DatePresetKey): { from: string; to: string } {
+    const today = new Date();
+    const start = new Date(today);
+    switch (key) {
+      case 'today': break;
+      case 'week': start.setDate(today.getDate() - 6); break;
+      case 'month': start.setDate(today.getDate() - 29); break;
+      case 'year': start.setMonth(0, 1); break;
+    }
+    return { from: toDateInput(start), to: toDateInput(today) };
+  }
+
+  // Seçili tarih aralığı hazır aralıklardan biriyle birebir aynıysa o düğme seçili görünür
+  readonly activeDatePreset = computed<DatePresetKey | null>(() => {
+    const from = this.dateFrom(), to = this.dateTo();
+    if (!from || !to) return null;
+    return DATE_PRESETS.find(p => {
+      const r = this.presetRange(p.key);
+      return r.from === from && r.to === to;
+    })?.key ?? null;
+  });
+
+  // Seçili hazır aralığa tekrar tıklanınca tarih süzgeci kaldırılır
+  setDatePreset(key: DatePresetKey): void {
+    if (this.activeDatePreset() === key) {
+      this.dateFrom.set('');
+      this.dateTo.set('');
+    } else {
+      const r = this.presetRange(key);
+      this.dateFrom.set(r.from);
+      this.dateTo.set(r.to);
+    }
+    this.page.set(1);
+  }
+
+  // Paneldeki "Kriterleri temizle": yalnızca paneldeki alanlar; arama, yayın durumu, teslim
+  // durumu ve Birimim (araç çubuğundakiler) korunur
+  clearCriteria(): void {
+    this.urgencyFilter.set(null);
+    this.securityFilter.set(null);
+    this.typeFilter.set(null);
+    this.departmentFilter.set(null);
+    this.fromFilter.set('');
+    this.dateFrom.set('');
+    this.dateTo.set('');
+    this.page.set(1);
+  }
+
   readonly hasActiveFilters = computed(() =>
-    !!this.search().trim() || this.selectFilterCount() > 0
-    || (this.activeStage() === 'published' && this.publishFilter() !== 'all'));
+    !!this.search().trim() || this.selectFilterCount() > 0 || this.publishFilter() !== 'all'
+    || this.deliveryFilter() !== 'all' || this.ownDepartmentOnly());
 
   readonly pageCount = computed(() => Math.max(1, Math.ceil(this.filteredRows().length / PAGE_SIZE)));
   readonly currentPage = computed(() => Math.min(this.page(), this.pageCount()));
@@ -335,12 +402,7 @@ export default class Documentlist {
 
   readonly emptyText = computed(() => {
     if (this.hasActiveFilters()) return { title: 'Kriterlere uyan evrak yok', desc: 'Arama metnini ya da kriterleri değiştirip yeniden deneyin.' };
-    switch (this.activeStage()) {
-      case 'preRegister': return { title: 'Ön kayıtta evrak yok', desc: 'Ön kaydı yapılıp kaydı tamamlanmayan evraklar burada görünür.' };
-      case 'registered': return { title: 'Yayın bekleyen evrak yok', desc: 'Kaydı tamamlanıp henüz yayına gönderilmeyen evraklar burada görünür.' };
-      case 'published': return { title: 'Yayınlanan evrak yok', desc: 'Yayına gönderilen evraklar burada görünür.' };
-      default: return { title: 'Gelen evrak bulunamadı', desc: 'Listelenecek gelen evrak yok.' };
-    }
+    return { title: 'Yayınlanan evrak yok', desc: 'Yayına gönderilen evraklar burada görünür.' };
   });
 
   // Sıralama: sütun başlığına tıklanınca o sütuna göre, aynı başlığa tekrar tıklanınca ters
@@ -357,7 +419,7 @@ export default class Documentlist {
       created: { empty: d => !d.createdDate, cmp: (a, b) => created(a) - created(b) },
       no: { empty: d => !d.qrCode, cmp: (a, b) => text(a.qrCode ?? '', b.qrCode ?? '') },
       from: { empty: d => !this.fromName(d), cmp: (a, b) => text(this.fromName(a), this.fromName(b)) },
-      to: { empty: d => !this.toName(d), cmp: (a, b) => text(this.toName(a), this.toName(b)) },
+      to: { empty: d => !this.toName(d, false), cmp: (a, b) => text(this.toName(a, false), this.toName(b, false)) },
       documentDate: {
         empty: d => !d.documentDate,
         cmp: (a, b) => new Date(a.documentDate).getTime() - new Date(b.documentDate).getTime()
@@ -365,11 +427,7 @@ export default class Documentlist {
       urgency: { empty: d => d.urgencyDegree == null, cmp: (a, b) => this.urgencyRank(a) - this.urgencyRank(b) },
       security: { empty: d => d.securityDegree == null, cmp: (a, b) => (b.securityDegree ?? 0) - (a.securityDegree ?? 0) },
       status: { empty: () => false, cmp: (a, b) => this.statusRank(a) - this.statusRank(b) },
-      delivery: { empty: () => false, cmp: (a, b) => this.deliveryRank(a) - this.deliveryRank(b) },
-      person: {
-        empty: d => !d.currentAssignmentUser?.trim() || this.stageOf(d) === 'published',
-        cmp: (a, b) => text(a.currentAssignmentUser ?? '', b.currentAssignmentUser ?? '')
-      }
+      delivery: { empty: () => false, cmp: (a, b) => this.deliveryRank(a) - this.deliveryRank(b) }
     };
     const { empty, cmp } = spec[key];
 
@@ -381,13 +439,10 @@ export default class Documentlist {
     });
   }
 
-  // Durum sütununun iş akışı sırası: Ön Kayıt, Kayıt Tamamlandı, Aktarımda, Aktarım Hatalı, Yayınlandı
+  // Durum sütununun sırası: Aktarımda, Aktarım Hatalı, Yayınlandı
   private statusRank(d: IncomingDocumentModel): number {
-    if (isSentToPublish(d)) {
-      if (isPublished(d)) return 4;
-      return isPublishFailed(d) ? 3 : 2;
-    }
-    return d.status === STATUS_PRE_REGISTER ? 0 : 1;
+    if (isPublished(d)) return 2;
+    return isPublishFailed(d) ? 1 : 0;
   }
 
   readonly sortKey = signal<SortKey>('created');
@@ -450,35 +505,23 @@ export default class Documentlist {
     return d.status === STATUS_DELIVERED;
   }
 
-  // Durum sütunu tek etiket gösterir: yayına gönderilmiş evrakta yayın durumu (altında teslim
-  // bilgisi), diğerlerinde akış durumu. Rozet Zarflar sayfasındaki durum rozetiyle aynıdır
+  // Durum sütunu yayın durumunu gösterir. Rozet Zarflar sayfasındaki durum rozetiyle aynıdır
   // (envelope-status-pill, styles.css); cls rengini, icon ikon çipini belirler.
   statusView(d: IncomingDocumentModel): { label: string; cls: string; icon: string } {
-    if (isSentToPublish(d)) {
-      if (isPublished(d)) return { label: 'Yayınlandı', cls: 'envelope-status-teslim', icon: 'cloud_done' };
-      if (isPublishFailed(d)) return { label: 'Aktarım Hatalı', cls: 'envelope-status-iade', icon: 'cloud_off' };
-      return { label: 'Aktarımda', cls: 'envelope-status-birimde', icon: 'cloud_sync' };
-    }
-    if (d.status === STATUS_PRE_REGISTER) return { label: 'Ön Kayıt', cls: 'dl-status-onkayit', icon: 'app_registration' };
-    return { label: 'Kayıt Tamamlandı', cls: 'dl-status-kayit', icon: 'fact_check' };
+    if (isPublished(d)) return { label: 'Yayınlandı', cls: 'envelope-status-teslim', icon: 'cloud_done' };
+    if (isPublishFailed(d)) return { label: 'Aktarım Hatalı', cls: 'envelope-status-iade', icon: 'cloud_off' };
+    return { label: 'Aktarımda', cls: 'envelope-status-birimde', icon: 'cloud_sync' };
   }
 
-  // Teslim sütunu: evrak birime teslim edildi mi (akış durumu 3). Yayına gönderilmiş ama
-  // teslim edilmemiş evrak "Teslim bekliyor"dur; kaydı süren evrak henüz teslim aşamasında değildir.
-  deliveryView(d: IncomingDocumentModel): { label: string; tone: 'ok' | 'wait' | 'none' } {
-    if (this.isDelivered(d)) return { label: 'Teslim edildi', tone: 'ok' };
-    if (isSentToPublish(d)) return { label: 'Teslim bekliyor', tone: 'wait' };
-    return { label: 'Teslim edilmedi', tone: 'none' };
+  // Teslim sütunu: evrak birime teslim edildi mi (akış durumu 3); edilmediyse "Teslim bekliyor"
+  deliveryView(d: IncomingDocumentModel): { label: string; tone: 'ok' | 'wait' } {
+    return this.isDelivered(d) ? { label: 'Teslim edildi', tone: 'ok' } : { label: 'Teslim bekliyor', tone: 'wait' };
   }
 
-  // Teslim sütununun sırası: teslim edildi, teslim bekliyor, teslim edilmedi
+  // Teslim sütununun sırası: teslim edildi, teslim bekliyor
   private deliveryRank(d: IncomingDocumentModel): number {
-    const tone = this.deliveryView(d).tone;
-    return tone === 'ok' ? 0 : tone === 'wait' ? 1 : 2;
+    return this.isDelivered(d) ? 0 : 1;
   }
-
-  // Atanan personel yayına gönderilmiş evrakta anlamsız: Yayınlanan aşamasında sütun yok
-  readonly showPersonColumn = computed(() => this.activeStage() !== 'published');
 
   // ---- Satır menüsü (Süreç, Zimmet Geçmişi, Zimmetleme) ----
   readonly menu = signal<{ id: string; item: DocumentRow; top: number; left: number } | null>(null);
@@ -516,28 +559,6 @@ export default class Documentlist {
     if (this.menu()) this.menu.set(null);
   }
 
-  setStage(s: StageView): void {
-    this.activeStage.set(s);
-    this.personFilter.set(null);
-    // Yayınlanan aşamasında Personel sütunu yok; o sütuna göre sıralıysa varsayılana dönülür
-    if (s === 'published' && this.sortKey() === 'person') {
-      this.sortKey.set('created');
-      this.sortDir.set('desc');
-    }
-    this.publishFilter.set('all');
-    this.page.set(1);
-    try { sessionStorage.setItem(STAGE_STORAGE_KEY, s); } catch { /* depolama kapalı olabilir */ }
-  }
-
-  // Yöneticiler sayfayı ilk açtığında yayınlanan evrakları görür
-  private readStoredStage(): StageView {
-    try {
-      const v = sessionStorage.getItem(STAGE_STORAGE_KEY);
-      if (v && STAGES.some(s => s.key === v)) return v as StageView;
-    } catch { /* depolama kapalı olabilir */ }
-    return 'published';
-  }
-
   // Süzgeç değişince ilk sayfaya dönülür
   setFilter<T>(target: { set(v: T): void }, value: T): void {
     target.set(value);
@@ -550,7 +571,8 @@ export default class Documentlist {
     this.securityFilter.set(null);
     this.typeFilter.set(null);
     this.departmentFilter.set(null);
-    this.personFilter.set(null);
+    this.fromFilter.set('');
+    this.ownDepartmentOnly.set(false);
     this.deliveryFilter.set('all');
     this.dateFrom.set('');
     this.dateTo.set('');
@@ -565,31 +587,19 @@ export default class Documentlist {
   constructor() {
     this.loadDocuments();
     this.loadLookups();
-
-    // Üst menüdeki "işlem bekleyenler" yönlendirmesi Kayıt Tamamlandı aşamasını açar;
-    // istek bir kez tüketilir ki sonraki ziyaretler seçilen sekmede açılsın.
-    effect(() => {
-      const type = this.incomingDocumentService.currentIncomingDocumentSearchType;
-      if (type !== 'pending') return;
-      untracked(() => {
-        this.clearFilters();
-        this.setStage('registered');
-        this.incomingDocumentService.setIncomingDocumentSearchType(null);
-      });
-    });
   }
 
   get currentUserId(): string | undefined {
     return this.user()?.id;
   }
 
-  // Tüm gelen evraklar tek istekte çekilir; aşamalara ayırma ve süzme istemcide yapılır
+  // Tüm gelen evraklar tek istekte çekilir; yayına gönderilmemişler ayıklanır, süzme istemcide yapılır
   loadDocuments(): void {
     this.loading.set(true);
     this.loadFailed.set(false);
     this.incomingDocumentService.getAllIncomingDocuments().subscribe({
       next: (docs) => {
-        this.documents.set((docs ?? []).filter(d => !d.isDeleted));
+        this.documents.set((docs ?? []).filter(d => !d.isDeleted && isSentToPublish(d)));
         this.loading.set(false);
       },
       error: (err) => {
@@ -602,8 +612,18 @@ export default class Documentlist {
 
   private loadLookups(): void {
     this.departmentService.getDepartments().subscribe({
-      next: (list) => this.departmentNames.set(Object.fromEntries((list ?? []).filter(x => x.id)
-        .map(x => [idKey(x.id)!, { name: x.name, short: x.shortName?.trim() || '' }]))),
+      next: (list) => {
+        const depts = (list ?? []).filter(x => x.id);
+        this.departmentNames.set(Object.fromEntries(depts
+          .map(x => [idKey(x.id)!, { name: x.name, short: x.shortName?.trim() || '' }])));
+        const children: Record<string, string[]> = {};
+        for (const x of depts) {
+          const parent = idKey(x.parentId);
+          const id = idKey(x.id)!;
+          if (parent && parent !== id) (children[parent] ??= []).push(id);
+        }
+        this.departmentChildren.set(children);
+      },
       error: (err) => console.error('Birimler alınamadı:', err)
     });
   }
@@ -634,9 +654,8 @@ export default class Documentlist {
     const blob = new Blob(['﻿' + [header.map(cell).join(';'), ...lines].join('\r\n')], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    const stage = STAGES.find(s => s.key === this.activeStage())?.label ?? 'Tümü';
     a.href = url;
-    a.download = `Gelen Evraklar - ${stage}.csv`;
+    a.download = 'Gelen Evraklar - Yayınlanan.csv';
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -715,8 +734,8 @@ export default class Documentlist {
       },
 
       from: text(this.fromName(d)),
-      // Nereye: kısa adlar; üzerine gelince tam adlar alt alta
-      to: text(this.toName(d)),
+      // Nereye: tam adlar; üzerine gelince alt alta
+      to: text(this.toName(d, false)),
       toTitle: this.toTitle(d),
 
       pageCount: d.pageCount != null && String(d.pageCount) !== '' ? String(d.pageCount) : '-',
