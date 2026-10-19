@@ -13,6 +13,18 @@
         </div>
 
         <div class="sd-nav">
+          <div class="sd-view-toggle sd-source-filter" role="group" aria-label="Kaynak">
+            <button type="button" [class.is-active]="sourceFilter() === ''" [attr.aria-pressed]="sourceFilter() === ''"
+              [disabled]="isLoading()" (click)="setSourceFilter('')">Tümü</button>
+            @for (source of sources(); track source) {
+              <button type="button" [class.is-active]="sourceFilter() === source" [attr.aria-pressed]="sourceFilter() === source"
+                [disabled]="isLoading()" (click)="setSourceFilter(source)">{{ sourceLabel(source) }}</button>
+            }
+          </div>
+
+          @if (viewMode() === 'single' && currentDocument(); as doc) {
+            <span class="sd-source-badge" [attr.data-source]="doc.source" [title]="doc.fileName">{{ sourceLabel(doc.source) }}</span>
+          }
           @if (viewMode() === 'single' && scannedDocuments().length) {
             <button type="button" class="zm-icon-btn" title="Önceki evrak"
               (click)="prev()" [disabled]="currentIndex() === 0 || isLoading()">
@@ -44,6 +56,10 @@
             (click)="loadDocuments()" [disabled]="isLoading()">
             <span class="material-symbols-outlined">refresh</span>
           </button>
+          <button type="button" class="zm-icon-btn" title="Nasıl çalışır?" aria-label="Nasıl çalışır?"
+            (click)="infoOpen.set(true)">
+            <span class="material-symbols-outlined">help</span>
+          </button>
         </div>
       </div>
 
@@ -59,7 +75,7 @@
         } @else if (viewMode() === 'grid' && scannedDocuments().length) {
           <!-- Küçük resimler: seçilen evrak tek evrak görünümünde açılır -->
           <div class="sd-grid">
-            @for (item of gridItems(); track item.doc.id) {
+            @for (item of gridItems(); track item.doc.source + '/' + item.doc.fileName) {
               <button type="button" class="sd-grid-item" [class.is-current]="item.index === currentIndex()"
                 [attr.aria-label]="(item.index + 1) + '. evrakı aç'" (click)="selectFromGrid(item.index)">
                 <span class="sd-thumb">
@@ -68,6 +84,7 @@
                   @if (item.index === currentIndex()) {
                     <span class="sd-thumb-badge">Son açılan</span>
                   }
+                  <span class="sd-source-badge sd-thumb-source" [attr.data-source]="item.doc.source">{{ sourceLabel(item.doc.source) }}</span>
                 </span>
               </button>
             }
@@ -140,12 +157,16 @@
               } @else if (qrActive) {
                 <span class="zm-ready-dot"></span>
               }
-              {{ saving() ? 'Eşleştiriliyor' : (qrActive ? 'Hazır' : 'Pasif') }}
+              {{ saving() ? 'Aktarılıyor' : (qrActive ? 'Hazır' : 'Pasif') }}
             </span>
           </div>
           <div class="zm-scan-hint-row">
             <div class="zm-scan-hint">
-              Okutulan numarayı kontrol edip soldaki evrağa eşleştirin.
+              @if (saving()) {
+                Belge evrak takibe aktarılıyor, bu birkaç saniye sürebilir.
+              } @else {
+                Okutulan numarayı kontrol edip soldaki evrağa eşleştirin.
+              }
             </div>
           </div>
         </div>
@@ -205,7 +226,7 @@
             [disabled]="!currentDocument() || !qrEditable().trim() || saving()">
             @if (savingAction() === 'next') {
               <span class="spinner-border spinner-border-sm"></span>
-              Eşleştiriliyor
+              Aktarılıyor
             } @else {
               Eşleştir
               <span class="material-symbols-outlined">arrow_forward</span>
@@ -215,7 +236,7 @@
             [disabled]="!currentDocument() || !qrEditable().trim() || saving()">
             @if (savingAction() === 'register') {
               <span class="spinner-border spinner-border-sm"></span>
-              Eşleştiriliyor
+              Aktarılıyor
             } @else {
               <span class="material-symbols-outlined">edit_document</span>
               Evrak Kaydet
@@ -227,3 +248,5 @@
   </div>
   }
 </div>
+
+<app-scan-info-modal [open]="infoOpen()" (closed)="infoOpen.set(false)" />

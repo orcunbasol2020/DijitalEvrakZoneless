@@ -32,6 +32,7 @@ import { forkJoin, map, of, catchError, switchMap } from 'rxjs';
 import { httpResource } from '@angular/common/http';
 import { UPLOAD_DOCUMENT_ROLES, UploadDocumentModal } from '../../../components/upload-document-modal/upload-document-modal';
 import { DocumentNumberUploadError, DocumentUploadFlow } from '../../services/document-upload-flow';
+import { ScanPoolPullModal } from '../../../components/scan-pool-pull-modal/scan-pool-pull-modal';
 import { isPublished, isPublishFailed, isPublishing, isSentToPublish, publishStatusLabel } from '../../models/publishstatus.model';
 import { FormsModule } from '@angular/forms';
 import { DocumentTypeLabels } from '../../models/documenttype.model';
@@ -125,7 +126,8 @@ const QUEUE_STORAGE_KEY = 'scanlist.queue';
     GenericModel,
     CommonModule,
     FormsModule,
-    UploadDocumentModal
+    UploadDocumentModal,
+    ScanPoolPullModal
   ],
   templateUrl: './scanlist.html',
   // scanlist.css popup stilleri (pa-, zh-, ei-) Yönetici ve Birim listeleriyle ortaktır;
@@ -793,6 +795,29 @@ export default class Scanlist {
       error: (err: DocumentNumberUploadError) => {
         this.newUploadLoading.set(false);
         if (err?.userMessage) this.#toast.showToast('Uyarı', err.userMessage, 'warning');
+      }
+    });
+  }
+
+  // ---- Taranandan Çek: evrak numarasıyla taranan belge havuzundan belge çekilir ----
+  // Belge pencerede evraka bağlanır (numarada evrak yoksa backend yeni gelen evrak açar);
+  // ardından evrak, Evrak Yükle'deki gibi İşleme Al akışıyla Evrak Kayıt'ta açılır.
+  readonly scanPullOpen = signal(false);
+
+  openScanPull(): void {
+    if (!this.canUploadDocument()) return;
+    this.scanPullOpen.set(true);
+  }
+
+  onScanPulled(documentNumber: string): void {
+    this.scanPullOpen.set(false);
+    this.#toast.showToast('Başarılı', `Taranmış belge ${documentNumber} numaralı evraka bağlandı.`, 'success');
+    this.incomingDocumentService.GetByQrCode(documentNumber).pipe(catchError(() => of(null))).subscribe(doc => {
+      if (doc?.id) {
+        this.goToDetail(doc.id);
+      } else {
+        // Bağlama tamam ama evrak çekilemedi; listede görünsün
+        this.loadDocuments();
       }
     });
   }

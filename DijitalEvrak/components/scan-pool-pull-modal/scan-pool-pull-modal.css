@@ -1,0 +1,256 @@
+/* ============================================================
+   Taranandan Çek penceresi
+   İskelet (udm-*) Belge Yükle penceresinden gelir; burada yalnızca
+   arama satırı, sonuç listesi ve önizleme (spm-*) tanımlıdır.
+   ============================================================ */
+
+/* Sonuç gelince pencere önizleme için genişler */
+.modal-box.udm-modal.spm-modal.has-preview {
+    width: 980px;
+}
+
+.spm-search {
+    display: flex;
+    gap: 8px;
+}
+
+.spm-search .udm-input {
+    flex: 1 1 auto;
+}
+
+.spm-search-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+}
+
+.spm-search-btn .material-symbols-outlined {
+    font-size: 18px;
+}
+
+/* Sonuç yok */
+.spm-empty {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px dashed #cbd5e1;
+    background: #f8fafc;
+    font-size: 13px;
+    color: #475569;
+}
+
+.spm-empty .material-symbols-outlined {
+    font-size: 22px;
+    color: #94a3b8;
+}
+
+.spm-empty span:not(.material-symbols-outlined) {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+/* Sonuçlar: solda (birden fazla ise) liste, sağda önizleme */
+.spm-results {
+    display: flex;
+    gap: 12px;
+    min-height: 0;
+}
+
+.spm-list {
+    flex: 0 0 280px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.spm-list-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    font-size: 12px;
+    color: #92400e;
+}
+
+.spm-list-note .material-symbols-outlined {
+    font-size: 16px;
+}
+
+.spm-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 11px;
+    background: #fff;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.spm-item:hover:not(:disabled) {
+    border-color: #bae6fd;
+    background: #f8fafc;
+}
+
+.spm-item.is-selected {
+    border-color: #0ea5e9;
+    background: #f0f9ff;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14);
+}
+
+.spm-item-icon {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.spm-item-icon .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.spm-item-body {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.spm-item-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.spm-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    color: #94a3b8;
+    font-variant-numeric: tabular-nums;
+}
+
+.spm-source {
+    padding: 1px 7px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #475569;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+}
+
+.spm-source[data-source="evrak"] {
+    color: #0369a1;
+    background: #e0f2fe;
+    border-color: rgba(3, 105, 161, 0.18);
+}
+
+.spm-source[data-source="nota"] {
+    color: #7c3aed;
+    background: #ede9fe;
+    border-color: rgba(124, 58, 237, 0.2);
+}
+
+.spm-preview {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    background: #f1f5f9;
+    overflow: hidden;
+}
+
+.spm-preview-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #fff;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.spm-preview iframe {
+    flex: 1 1 auto;
+    width: 100%;
+    height: 60vh;
+    border: 0;
+    background: #fff;
+}
+
+.spm-preview-empty {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 60vh;
+    font-size: 13px;
+    color: #94a3b8;
+}
+
+.spm-preview-empty .material-symbols-outlined {
+    font-size: 30px;
+}
+
+@media (max-width: 767.98px) {
+    .spm-results {
+        flex-direction: column;
+    }
+
+    .spm-list {
+        flex-basis: auto;
+        max-height: 30vh;
+    }
+
+    .spm-preview iframe,
+    .spm-preview-empty {
+        height: 50vh;
+        min-height: 50vh;
+    }
+}
+
+[data-theme="dark"] .spm-empty,
+[data-theme="dark"] .spm-item,
+[data-theme="dark"] .spm-preview-head {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(148, 163, 184, 0.25);
+}
+
+[data-theme="dark"] .spm-item.is-selected {
+    background: rgba(14, 165, 233, 0.12);
+    border-color: #0ea5e9;
+}
+
+[data-theme="dark"] .spm-item-name {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .spm-preview {
+    border-color: rgba(148, 163, 184, 0.25);
+    background: rgba(255, 255, 255, 0.02);
+}
