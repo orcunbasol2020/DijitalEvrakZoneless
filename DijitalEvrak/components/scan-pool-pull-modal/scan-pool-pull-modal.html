@@ -1,0 +1,117 @@
+@if (open()) {
+  <div class="modal-overlay" (click)="cancel()">
+    <div class="modal-box udm-modal spm-modal" [class.has-preview]="hasResults()" (click)="$event.stopPropagation()">
+      <div class="udm-head">
+        <span class="udm-head-icon">
+          <span class="material-symbols-outlined">document_scanner</span>
+        </span>
+        <div>
+          <h4 class="udm-title">Taranandan Çek</h4>
+          <div class="udm-sub">Evrak numarasıyla taranmış belgeyi bulup evraka bağlayın</div>
+        </div>
+      </div>
+
+      <div class="udm-body">
+        <div class="udm-field">
+          <span class="udm-field-label">Evrak Numarası</span>
+          <div class="spm-search">
+            <input #qrInput type="text" class="udm-input" autocomplete="off" placeholder="QR kodu okutun ya da numarayı yazın"
+              aria-label="Evrak numarası" [value]="qrCode()" [disabled]="transferring()"
+              (input)="onQrInput($event)" (keydown.enter)="search()">
+            <button type="button" class="udm-btn-ghost spm-search-btn" [disabled]="busy() || !qrCode().trim()" (click)="search()">
+              @if (searching()) {
+                <span class="spinner-border spinner-border-sm"></span>
+              } @else {
+                <span class="material-symbols-outlined">search</span>
+              }
+              Ara
+            </button>
+          </div>
+        </div>
+
+        @if (results(); as files) {
+          @if (!files.length) {
+            <div class="spm-empty">
+              <span class="material-symbols-outlined">search_off</span>
+              <div>
+                <strong>{{ searchedCode() }}</strong> numarasına ait taranmış belge bulunamadı
+                <span>(henüz taranmamış ya da etiketsiz taranmış).</span>
+              </div>
+            </div>
+          } @else {
+            <div class="spm-results">
+              @if (files.length > 1) {
+                <div class="spm-list">
+                  <div class="spm-list-note">
+                    <span class="material-symbols-outlined">content_copy</span>
+                    Bu evrak {{ files.length }} kez taranmış. Önizleyip bağlanacak belgeyi seçin.
+                  </div>
+                  @for (f of files; track fileKey(f)) {
+                    <button type="button" class="spm-item" [class.is-selected]="fileKey(f) === selectedKey()"
+                      [attr.aria-pressed]="fileKey(f) === selectedKey()" [disabled]="transferring()" (click)="select(f)">
+                      <span class="spm-item-icon"><span class="material-symbols-outlined">picture_as_pdf</span></span>
+                      <span class="spm-item-body">
+                        <span class="spm-item-name" [title]="f.fileName">{{ f.fileName }}</span>
+                        <span class="spm-item-meta">
+                          <span class="spm-source" [attr.data-source]="f.source">{{ sourceLabel(f.source) }}</span>
+                          {{ f.scannedAtUtc | date: 'dd.MM.yyyy HH:mm' }} · {{ sizeLabel(f.sizeBytes) }}
+                        </span>
+                      </span>
+                    </button>
+                  }
+                </div>
+              }
+
+              <div class="spm-preview">
+                @if (selected(); as f) {
+                  @if (files.length === 1) {
+                    <div class="spm-preview-head">
+                      <span class="spm-source" [attr.data-source]="f.source">{{ sourceLabel(f.source) }}</span>
+                      <span class="spm-item-name" [title]="f.fileName">{{ f.fileName }}</span>
+                      <span class="spm-item-meta">{{ f.scannedAtUtc | date: 'dd.MM.yyyy HH:mm' }}</span>
+                    </div>
+                  }
+                  <iframe [src]="previewUrl()" title="Taranmış belge önizlemesi"></iframe>
+                } @else {
+                  <div class="spm-preview-empty">
+                    <span class="material-symbols-outlined">touch_app</span>
+                    Önizlemek için soldan bir belge seçin.
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        }
+
+        @if (error()) {
+          <div class="udm-error">
+            <span class="material-symbols-outlined">error</span>
+            {{ error() }}
+          </div>
+        }
+
+        <div class="udm-hint">
+          <span class="material-symbols-outlined">info</span>
+          @if (transferring()) {
+            Belge evrak takibe aktarılıyor, bu birkaç saniye sürebilir.
+          } @else {
+            Onaylayınca belge evraka bağlanır ve kaydı tamamlamak için Evrak Kayıt ekranına geçilir.
+          }
+        </div>
+      </div>
+
+      <div class="udm-foot">
+        <button type="button" class="udm-btn-ghost" [disabled]="transferring()" (click)="cancel()">İptal</button>
+        <button type="button" class="udm-btn-primary" [disabled]="!selected() || busy()" (click)="confirm()">
+          @if (transferring()) {
+            <span class="spinner-border"></span>
+            Aktarılıyor
+          } @else {
+            <span class="material-symbols-outlined">edit_document</span>
+            Bağla ve Kayda Geç
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

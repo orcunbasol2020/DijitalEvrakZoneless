@@ -9,6 +9,10 @@
       <div class="card-header dashboard-header d-flex align-items-center">
         <span class="material-symbols-outlined me-2 text-info">qr_code</span>
         <h5 class="card-title mb-0 fw-semibold">Evrak Kayıt</h5>
+        <button type="button" class="zm-icon-btn ms-auto" title="Taranmış belgeler nasıl çalışır?"
+          aria-label="Taranmış belgeler nasıl çalışır?" (click)="infoOpen.set(true)">
+          <span class="material-symbols-outlined">help</span>
+        </button>
       </div>
 
       <div class="card-body zm-body">
@@ -28,7 +32,7 @@
             <span class="zm-scan-status" [class.is-active]="qrActive && !loading()" [class.is-loading]="loading()">
               <span class="spinner-border spinner-border-sm" *ngIf="loading()"></span>
               <span class="zm-ready-dot" *ngIf="qrActive && !loading()"></span>
-              {{ loading() ? 'Aranıyor' : (qrActive ? 'Okumaya Hazır' : 'Pasif') }}
+              {{ loading() ? (loadingStep() === 'transfer' ? 'Aktarılıyor' : 'Aranıyor') : (qrActive ? 'Okumaya Hazır' : 'Pasif') }}
             </span>
           </div>
           <div class="zm-scan-hint-row">
@@ -43,8 +47,13 @@
           <div class="zm-empty-icon">
             <div class="spinner-border text-primary"></div>
           </div>
-          <div class="zm-empty-title">Aranıyor...</div>
-          <div class="zm-empty-text">{{ lastCode() }} numaralı evrak sorgulanıyor.</div>
+          @if (loadingStep() === 'transfer') {
+            <div class="zm-empty-title">Taranmış belge aktarılıyor...</div>
+            <div class="zm-empty-text">{{ lastCode() }} numaralı evrakın taranmış belgesi bağlanıyor, ardından kayıt ekranı açılacak.</div>
+          } @else {
+            <div class="zm-empty-title">Aranıyor...</div>
+            <div class="zm-empty-text">{{ lastCode() }} numaralı evrak sorgulanıyor.</div>
+          }
         </div>
 
         <!-- Son okutma sonucu (yönlendirme yapılamadıysa) -->
@@ -168,3 +177,14 @@
   [loading]="uploadLoading()"
   (confirmed)="confirmUpload($event)"
   (cancelled)="closeUpload()" />
+
+<!-- Okutulan numaranın taranmış belgesi havuzdaysa: önizle ve evraka bağla -->
+<app-scan-pool-pull-modal
+  [open]="!!scanPullCode()"
+  [initialCode]="scanPullCode() ?? ''"
+  [userId]="currentUserId()"
+  (transferred)="onScanPulled($event)"
+  (cancelled)="closeScanPull()" />
+
+<!-- Taranmış belgeler nasıl çalışır? -->
+<app-scan-info-modal [open]="infoOpen()" (closed)="infoOpen.set(false); focusQrInputSoon()" />

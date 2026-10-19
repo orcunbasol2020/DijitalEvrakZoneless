@@ -1,0 +1,233 @@
+@if (open()) {
+  <div class="modal-overlay" (click)="close()">
+    <div class="modal-box ship-modal si-modal" role="dialog" aria-modal="true" aria-labelledby="si-title"
+      (click)="$event.stopPropagation()">
+      <div class="ship-head">
+        <span class="ship-head-icon"><span class="material-symbols-outlined">help</span></span>
+        <div class="ship-head-text">
+          <h5 id="si-title" class="ship-head-title">Taranmış belgeler nasıl çalışır?</h5>
+          <div class="ship-head-sub">Belgenin sisteme gelişi, evraka bağlanması ve sonrası</div>
+        </div>
+        <button type="button" class="ship-close" title="Kapat" (click)="close()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <div class="ship-body si-body">
+        <!-- Özet: canlı değerler -->
+        <div class="si-summary">
+          <div class="si-stat">
+            <span class="material-symbols-outlined">inbox</span>
+            <span>
+              <span class="si-stat-label">Bekleyen belge</span>
+              <strong>
+                @if (pool() === null) { … } @else { {{ poolCounts().total }} }
+              </strong>
+              @if (poolCounts().parts) { <span class="si-stat-sub">({{ poolCounts().parts }})</span> }
+            </span>
+          </div>
+          <div class="si-stat">
+            <span class="material-symbols-outlined">schedule</span>
+            <span>
+              <span class="si-stat-label">Kontrol</span>
+              <strong>{{ intervalSeconds() }} sn'de bir</strong>
+            </span>
+          </div>
+        </div>
+
+        <!-- Akış şeridi -->
+        <ol class="si-flow">
+          <li><span class="si-flow-no">1</span><strong>Tarama</strong><span>Belge barkoduyla taranır</span></li>
+          <li><span class="si-flow-no">2</span><strong>Taranmış Evraklar</strong><span>Kendiliğinden listeye gelir</span></li>
+          <li><span class="si-flow-no">3</span><strong>Bağlama</strong><span>QR okutarak ya da seçerek</span></li>
+          <li><span class="si-flow-no">4</span><strong>Evrak kaydı</strong><span>Bilgiler tamamlanır</span></li>
+          <li><span class="si-flow-no">5</span><strong>Yayınla</strong><span>Atlas'a aktarılır</span></li>
+        </ol>
+
+        <details class="si-section" [open]="isOpen('arrive')" (toggle)="toggle('arrive', $event)">
+          <summary>Taranan belge sisteme nasıl gelir?</summary>
+          <ol>
+            <li>Belge, üzerindeki <strong>evrak numarası etiketiyle</strong> (barkod) birlikte taranır.</li>
+            <li>Tarama sistemi barkodu okur ve belgeyi bekleyen belgeler arasına alır.</li>
+            <li>
+              Evrak takip sistemi bekleyen belgeleri <strong>{{ intervalSeconds() }} saniyede bir</strong> kendiliğinden
+              alır ve <strong>Taranmış Evraklar</strong> listesine ekler. Yeni taranan bir belge genellikle
+              <strong>yarım dakika içinde</strong> listede görünür.
+            </li>
+          </ol>
+          <p>Belgeler önceden alındığı için listeyi açtığınızda ya da QR okuttuğunuzda beklemezsiniz.</p>
+        </details>
+
+        <details class="si-section" [open]="isOpen('register')" (toggle)="toggle('register', $event)">
+          <summary>Belgeyi nasıl kaydederim?</summary>
+          <ul>
+            <li>
+              <strong>QR okutarak (Evrak Kayıt):</strong> Belgenin üzerindeki evrak numarasını okutun. Bu numaraya ait
+              taranmış belge bulunursa belge evraka bağlanır ve kayıt ekranı hemen açılır.
+              <ul>
+                <li>Belge az önce taranmış ve henüz listeye düşmemişse sistem onu o anda getirir; bu durumda birkaç
+                  saniye beklemeniz gerekebilir.</li>
+                <li>Aynı evrak birden fazla kez taranmışsa hepsi listelenir; önizleyerek doğru olanı <strong>siz
+                  seçersiniz</strong>.</li>
+              </ul>
+            </li>
+            <li>
+              <strong>Listeden seçerek (Taranmış Evraklar):</strong> Bekleyen belgelerden birini seçin, evrak numarasını
+              okutun ya da yazın ve kaydedin. Etiketi olmayan ya da barkodu okunamayan belgeler bu yolla kaydedilir.
+            </li>
+            <li>
+              <strong>Numarayla arayarak (Gelen Evraklar → Taranandan Çek):</strong> Evrak numarasını yazın; bulunan
+              belgeyi önizleyip onayladığınızda evraka bağlanır.
+            </li>
+          </ul>
+          <p>
+            Barkodu okunan belgeler bile <strong>kendiliğinden bir evraka bağlanmaz</strong>; her belge sizin okutmanız
+            ya da seçiminizle bağlanır. Böylece yanlış okunan bir barkod belgeyi yanlış evraka bağlayamaz.
+          </p>
+        </details>
+
+        <details class="si-section" [open]="isOpen('after')" (toggle)="toggle('after', $event)">
+          <summary>Bağladıktan sonra ne olur?</summary>
+          <ul>
+            <li>Belge evrakın elektronik kopyası olur ve <strong>Taranmış Evraklar</strong> listesinden düşer.</li>
+            <li>Bu numarada evrak yoksa yeni gelen evrak kaydı açılır.</li>
+            <li>Evrak henüz kimseye zimmetli değilse size zimmetlenir.</li>
+            <li>
+              Evrakın kaydını tamamlayıp <strong>Yayınla</strong> dediğinizde evrak, bu taranmış belge üst yazı olarak
+              kullanılarak Atlas'a aktarılmak üzere sıraya alınır (ayrıntı: Atlas Aktarım → Nasıl çalışır?).
+            </li>
+          </ul>
+        </details>
+
+        <details class="si-section" [open]="isOpen('messages')" (toggle)="toggle('messages', $event)">
+          <summary>Karşılaşabileceğiniz mesajlar</summary>
+          <div class="table-responsive">
+            <table class="table table-sm si-table">
+              <thead><tr><th>Mesaj</th><th>Anlamı</th><th>Ne yapmalı</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td>Belge bulunamadı; başka bir kullanıcı tarafından alınmış olabilir</td>
+                  <td>Siz seçerken başka bir kullanıcı aynı belgeyi kaydetti</td>
+                  <td>Liste yenilenir; belge artık o kullanıcının kaydettiği evrakta</td>
+                </tr>
+                <tr>
+                  <td>… numaralı evraka daha önce bir dosya bağlanmış</td>
+                  <td>Bu numaraya zaten bir belge bağlı</td>
+                  <td>Numarayı kontrol edin; yanlışsa doğru numarayla tekrar deneyin</td>
+                </tr>
+                <tr>
+                  <td>Bu numaraya ait taranmış belge bulunamadı</td>
+                  <td>Belge henüz taranmamış ya da etiketsiz taranmış</td>
+                  <td>Biraz bekleyip tekrar deneyin ya da Taranmış Evraklar listesinden seçin</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+
+        <details class="si-section" [open]="isOpen('retention')" (toggle)="toggle('retention', $event)">
+          <summary>Bekleyen belgeler ne kadar kalır?</summary>
+          @if (cleanupEnabled()) {
+            <p>
+              Hiçbir evraka bağlanmayan belge listede <strong>{{ retentionDays() }} gün</strong> bekler. Bu süre dolunca
+              listeden kaldırılır ve arşive alınır; belge silinmez, gerekirse sistem yöneticisi tarafından geri getirilebilir.
+            </p>
+          } @else {
+            <p>Bağlanmayan belgeler listede bekler.</p>
+          }
+        </details>
+
+        <!-- Yalnızca Yönetici -->
+        @if (isAdmin()) {
+          <div class="si-admin-sep"><span>Yönetici</span></div>
+
+          <details class="si-section" [open]="isOpen('admin')" (toggle)="toggle('admin', $event)">
+            <summary>
+              Ayarlar ve bakım
+              @if (candidates()?.length) {
+                <span class="si-badge">Arşive alınacak {{ candidates()!.length }}</span>
+              }
+            </summary>
+
+            <div class="si-actions">
+              <button type="button" class="btn btn-sm btn-outline-primary" [disabled]="importing()" (click)="importNow()"
+                title="Tarama sistemindeki yeni belgeleri beklemeden al">
+                @if (importing()) { <span class="spinner-border spinner-border-sm"></span> }
+                @else { <span class="material-symbols-outlined">sync</span> }
+                Şimdi kontrol et
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="!candidates()?.length"
+                (click)="candidatesVisible.set(!candidatesVisible())">
+                <span class="material-symbols-outlined">list</span>
+                {{ candidatesVisible() ? 'Listeyi gizle' : 'Arşive alınacakları listele' }} ({{ candidates()?.length ?? '–' }})
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-danger" [disabled]="!candidates()?.length || cleaning()"
+                (click)="confirmCleanup()">
+                @if (cleaning()) { <span class="spinner-border spinner-border-sm"></span> }
+                @else { <span class="material-symbols-outlined">inventory_2</span> }
+                Şimdi temizle
+              </button>
+            </div>
+
+            @if (lastJobMessage()) {
+              <div class="si-job">
+                <span class="material-symbols-outlined">info</span>
+                {{ lastJobMessage() }}
+              </div>
+            }
+
+            @if (candidatesVisible() && candidates()?.length) {
+              <div class="table-responsive si-candidates">
+                <table class="table table-sm si-table">
+                  <thead><tr><th>Kaynak</th><th>Dosya</th><th>Taranma</th><th>Okunan numara</th></tr></thead>
+                  <tbody>
+                    @for (f of candidates(); track f.source + '/' + f.fileName) {
+                      <tr>
+                        <td>{{ sourceLabel(f.source) }}</td>
+                        <td class="si-file" [title]="f.fileName">{{ f.fileName }}</td>
+                        <td>{{ f.scannedAtUtc | date: 'dd.MM.yyyy HH:mm' }}</td>
+                        <td>{{ f.qrCodes?.length ? f.qrCodes!.join(', ') : '—' }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+
+            <h6>Ayarlar (Uygulama Ayarları)</h6>
+            <div class="table-responsive">
+              <table class="table table-sm si-table">
+                <thead><tr><th>Ayar</th><th>Şu an</th><th>Varsayılan</th><th>Açıklama</th></tr></thead>
+                <tbody>
+                  @for (row of settingRows(); track row.key) {
+                    <tr>
+                      <td><code>{{ row.key }}</code></td>
+                      <td>{{ row.value ?? '—' }}</td>
+                      <td>{{ row.defaultValue }}</td>
+                      <td>{{ row.text }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <h6>Bilgi</h6>
+            <ul>
+              <li>Belge tarama sisteminden alındıktan sonra orada silinir; tek kopyası evrak takiptedir. Alınırken içeriği
+                doğrulanır; aktarım yarıda kalırsa belge tarama sistemine geri bırakılır, kaybolmaz.</li>
+              <li>Aynı belge (aynı içerik) iki kez taranırsa ikinci kopya alınmaz.</li>
+              <li>Tarama sistemine ulaşılamazsa kullanıcılar daha önce gelen belgelerle çalışmaya devam eder (liste, arama
+                ve kaydetme etkilenmez); yalnızca yeni taramalar gelmez. Durum Hata Kayıtları'nda
+                <code>ScanPoolImport</code> kaynağıyla görünür.</li>
+              <li>Arşive alınan belgeler sunucuda ayrı bir klasörde durur; uygulama oradan hiçbir şey silmez.</li>
+            </ul>
+          </details>
+        }
+      </div>
+
+      <div class="ship-foot">
+        <button type="button" class="btn btn-secondary" (click)="close()">Kapat</button>
+      </div>
+    </div>
+  </div>
+}

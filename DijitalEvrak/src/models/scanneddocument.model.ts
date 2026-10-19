@@ -1,9 +1,13 @@
-export interface ScannedDocumentModel {
-  id: string;
+/** Taranan Belge API havuzundaki belge; evrak takip backend'i üzerinden gelir (api/ScannedDocuments/GetScanPool) */
+export interface ScanFileModel {
+  source: string;          // "evrak" | "nota"
   fileName: string;
-  originalPath: string;
-  newPath: string;
-  isDeleted: boolean;
-  createdDate: string;  
-  updateDate?: string; 
+  sizeBytes: number;
+  scannedAtUtc: string;
+  state: string;
+  /** Barkoddan okunan evrak numaraları; [] = etiket yok/okunamadı */
+  qrCodes: string[] | null;
+  readAtUtc: string | null;
+  error: string | null;
+  sha256: string | null;
 }

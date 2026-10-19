@@ -10,6 +10,11 @@ import { Common } from '../../services/common';
 import { UPLOAD_DOCUMENT_ROLES, UploadDocumentModal } from '../../../components/upload-document-modal/upload-document-modal';
 import { DocumentUploadFlow } from '../../services/document-upload-flow';
 import { INCOMING_STATUS_ON_KAYIT } from '../../services/incomingdocument';
+import { ScannedDocumentService, scanPoolErrorMessage } from '../../services/scanneddocument';
+import { ScanFileModel } from '../../models/scanneddocument.model';
+import { ScanPoolPullModal } from '../../../components/scan-pool-pull-modal/scan-pool-pull-modal';
+import { ScanInfoModal } from '../../../components/scan-info-modal/scan-info-modal';
+import { catchError, firstValueFrom, of, throwError } from 'rxjs';
 
 type ScanResult = { code: string; kind: 'notfound' | 'notscanned' };
 
@@ -18,7 +23,9 @@ type ScanResult = { code: string; kind: 'notfound' | 'notscanned' };
     GenericModel,
     CommonModule,
     RouterModule,
-    UploadDocumentModal
+    UploadDocumentModal,
+    ScanPoolPullModal,
+    ScanInfoModal
   ],
   templateUrl: './qrokut.html',
   // Görsel dil Ön Kayıt / Giden Evrak Teslim Al ekranlarıyla aynı; ortak zm-*
@@ -46,6 +53,7 @@ export default class Qrokut implements OnInit, AfterViewInit, OnDestroy {
   private readonly roleService = inject(RoleService);
   private readonly common = inject(Common);
   private readonly uploadFlow = inject(DocumentUploadFlow);
+  private readonly scannedDocumentService = inject(ScannedDocumentService);
   private cdr = inject(ChangeDetectorRef);
   private buffer: string = '';
   private keydownHandler: any;
@@ -148,8 +156,8 @@ export default class Qrokut implements OnInit, AfterViewInit, OnDestroy {
   // Odak bir form alanındayken (QR alanının kendisi dahil) tuşlar tampona
   // alınmaz; alan kendi keydown olayıyla Enter'ı işler.
   private handleKeydown(e: KeyboardEvent) {
-    // Belge Yükle penceresi açıkken okuyucu tamponu devre dışıdır
-    if (this.uploadDoc()) return;
+    // Belge Yükle / Taranandan Çek penceresi açıkken okuyucu tamponu devre dışıdır
+    if (this.uploadDoc() || this.scanPullCode() || this.infoOpen()) return;
 
     const target = e.target as HTMLElement | null;
     const tag = target?.tagName;
@@ -163,7 +171,7 @@ export default class Qrokut implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  private focusQrInputSoon() {
+  focusQrInputSoon() {
     setTimeout(() => this.qrInput?.nativeElement.focus());
   }
 
@@ -206,13 +214,39 @@ export default class Qrokut implements OnInit, AfterViewInit, OnDestroy {
     this.lastCode.set(result);
     this.lastResult.set(null);
     this.lastDoc.set(null);
+    this.loadingStep.set('search');
     this.loading.set(true);
     // QR okuyucu native window 'keydown' olayı üzerinden tetiklendiğinde OnPush
     // bileşen otomatik işaretlenmiyor; spinner'ın hemen görünmesi için elle bildirilir.
     this.cdr.markForCheck();
 
-    this.incomingDocumentService.GetByQrCode(result).subscribe({
-      next: doc => {
+    // Havuz araması evrak sorgusuyla aynı anda başlatılır (sırayla beklenmez); sonucu yalnızca
+    // evrakın dosyası yoksa kullanılır.
+    const poolSearch = this.searchScanPool(result);
+
+    this.incomingDocumentService.GetByQrCode(result).pipe(
+      // Numaraya ait evrak yoksa (404) taranan belge havuzuna yine bakılır
+      catchError(err => err?.status === 404 ? of(null) : throwError(() => err))
+    ).subscribe({
+      next: async (doc: IncomingDocumentModel | null) => {
+        // Dosyası olmayan (ya da hiç olmayan) evrakın taranmış belgesi havuzda bekliyor olabilir.
+        // Tek tarama varsa onay sorulmadan evraka bağlanır ve Evrak Kayıt açılır; aynı evrak birden
+        // fazla taranmışsa hangisinin bağlanacağını kullanıcı seçer (otomatik seçilmez).
+        if (!doc?.documentName) {
+          const files = await poolSearch;
+          if (files.length > 1) {
+            this.scanPullCode.set(result);
+            this.finishLoading();
+            return;
+          }
+          if (files.length === 1 && await this.transferFromScanPool(files[0], result)) {
+            this.openEvrakKayit(result);
+            return;
+          }
+          // Aktarım yapılamadıysa (hata gösterildi) eski akışla devam edilir
+          this.loadingStep.set('search');
+        }
+
         if (!doc) {
           this.lastResult.set({ code: result, kind: 'notfound' });
           this.#toast.showToast(
@@ -250,6 +284,57 @@ export default class Qrokut implements OnInit, AfterViewInit, OnDestroy {
         this.finishLoading();
       }
     });
+  }
+
+  // ---- Taranan belge havuzu ----
+  // Taranan belgeler artık evraka kendiliğinden bağlanmaz; Taranan Belge API havuzunda bekler.
+  // Okutulan numaranın tek taraması varsa doğrudan bağlanır; birden fazla taraması varsa
+  // Taranandan Çek penceresi açılır, kullanıcı önizleyip seçer.
+  readonly scanPullCode = signal<string | null>(null);
+  readonly infoOpen = signal(false);
+  readonly currentUserId = computed(() => this.common.user()?.id);
+  // Yükleme göstergesinin metni: evrak aranıyor / taranmış belge aktarılıyor
+  readonly loadingStep = signal<'search' | 'transfer'>('search');
+
+  private async searchScanPool(code: string): Promise<ScanFileModel[]> {
+    try {
+      return await firstValueFrom(this.scannedDocumentService.searchScanPool(code)) ?? [];
+    } catch (err) {
+      // Tarama servisine ulaşılamazsa eski akışla (taranmamış / bulunamadı) devam edilir
+      console.error('Taranan belge havuzu aranamadı:', err);
+      return [];
+    }
+  }
+
+  private async transferFromScanPool(file: ScanFileModel, code: string): Promise<boolean> {
+    const userId = this.currentUserId();
+    if (!userId) {
+      this.#toast.showToast('Hata', 'Kullanıcı bulunamadı', 'error');
+      return false;
+    }
+
+    this.loadingStep.set('transfer');
+    this.cdr.markForCheck();
+    try {
+      // Belge havuzdan alınıp evrak takibe kopyalanır; numarada evrak yoksa backend yeni gelen evrak açar
+      await firstValueFrom(this.scannedDocumentService.transferScannedDocument(file.source, file.fileName, code, userId));
+      return true;
+    } catch (err) {
+      console.error(err);
+      this.#toast.showToast('Taranmış belge bağlanamadı', scanPoolErrorMessage(err), 'error');
+      return false;
+    }
+  }
+
+  onScanPulled(code: string): void {
+    this.scanPullCode.set(null);
+    this.#toast.showToast('Başarılı', `Taranmış belge ${code} numaralı evraka bağlandı.`, 'success');
+    this.openEvrakKayit(code);
+  }
+
+  closeScanPull(): void {
+    this.scanPullCode.set(null);
+    this.focusQrInputSoon();
   }
 
   private finishLoading() {

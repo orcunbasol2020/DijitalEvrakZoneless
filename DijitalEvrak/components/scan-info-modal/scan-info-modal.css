@@ -1,0 +1,282 @@
+/* ============================================================
+   "Taranmış belgeler nasıl çalışır?" penceresi
+   İskelet (ship-*) styles.css'ten gelir; metin dili Atlas Aktarım'daki
+   "Nasıl çalışır?" penceresiyle (aa-info) aynıdır.
+   ============================================================ */
+
+.modal-box.ship-modal.si-modal {
+    width: 800px;
+    max-width: calc(100vw - 32px);
+}
+
+.si-body {
+    gap: 12px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: #334155;
+}
+
+.si-body p,
+.si-body ul,
+.si-body ol {
+    margin: 0;
+}
+
+.si-body ul,
+.si-body ol {
+    padding-left: 20px;
+}
+
+.si-body li + li {
+    margin-top: 3px;
+}
+
+.si-body li > ul {
+    margin-top: 3px;
+}
+
+.si-body h6 {
+    margin: 4px 0 0;
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+/* ---- Özet ---- */
+.si-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.si-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+}
+
+.si-stat > .material-symbols-outlined {
+    font-size: 20px;
+    color: #0369a1;
+}
+
+.si-stat-label {
+    margin-right: 6px;
+    color: #64748b;
+}
+
+.si-stat strong {
+    color: #0f172a;
+    font-variant-numeric: tabular-nums;
+}
+
+.si-stat-sub {
+    margin-left: 4px;
+    color: #94a3b8;
+    font-size: 12px;
+}
+
+/* ---- Akış şeridi ---- */
+.si-flow {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px;
+    padding: 0 !important;
+    list-style: none;
+}
+
+.si-flow li {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0 !important;
+    padding: 10px 10px 10px 12px;
+    border-radius: 12px;
+    background: #f0f9ff;
+    border: 1px solid #e0f2fe;
+}
+
+.si-flow li strong {
+    font-size: 12.5px;
+    color: #0c4a6e;
+}
+
+.si-flow li span:not(.si-flow-no) {
+    font-size: 11.5px;
+    color: #64748b;
+    line-height: 1.35;
+}
+
+.si-flow-no {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #0284c7;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+/* ---- Açılır bölümler ---- */
+.si-section {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #fff;
+}
+
+.si-section > summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    font-weight: 700;
+    color: #0f172a;
+    cursor: pointer;
+    list-style: none;
+}
+
+.si-section > summary::-webkit-details-marker {
+    display: none;
+}
+
+.si-section > summary::before {
+    content: 'chevron_right';
+    font-family: 'Material Symbols Outlined';
+    font-size: 18px;
+    font-weight: 400;
+    color: #94a3b8;
+    transition: transform 0.15s ease;
+}
+
+.si-section[open] > summary::before {
+    transform: rotate(90deg);
+}
+
+.si-section > :not(summary) {
+    margin: 0 14px 12px !important;
+}
+
+.si-section > :not(summary) + :not(summary) {
+    margin-top: 0 !important;
+}
+
+.si-table {
+    margin: 0;
+    font-size: 12.5px;
+}
+
+.si-table code {
+    white-space: nowrap;
+}
+
+/* ---- Yönetici ---- */
+.si-admin-sep {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 4px;
+    font-size: 11.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #94a3b8;
+}
+
+.si-admin-sep::after {
+    content: '';
+    flex: 1 1 auto;
+    border-top: 1px solid #e2e8f0;
+}
+
+.si-badge {
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #92400e;
+    background: #fef3c7;
+}
+
+.si-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.si-actions .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 9px;
+}
+
+.si-actions .material-symbols-outlined {
+    font-size: 17px;
+}
+
+.si-job {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: #f0f9ff;
+    color: #0c4a6e;
+}
+
+.si-job .material-symbols-outlined {
+    font-size: 17px;
+}
+
+.si-candidates {
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.si-file {
+    max-width: 260px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+@media (max-width: 767.98px) {
+    .si-flow {
+        grid-template-columns: 1fr;
+    }
+}
+
+[data-theme="dark"] .si-body {
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .si-body h6,
+[data-theme="dark"] .si-section > summary,
+[data-theme="dark"] .si-stat strong {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .si-section,
+[data-theme="dark"] .si-stat {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(148, 163, 184, 0.25);
+}
+
+[data-theme="dark"] .si-flow li,
+[data-theme="dark"] .si-job {
+    background: rgba(14, 165, 233, 0.08);
+    border-color: rgba(14, 165, 233, 0.2);
+}
+
+[data-theme="dark"] .si-flow li strong,
+[data-theme="dark"] .si-job {
+    color: #bae6fd;
+}

@@ -12,8 +12,8 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import GenericModel from '../../../components/generic-model/generic-model';
-import { ScannedDocumentService } from '../../services/scanneddocument';
-import { ScannedDocumentModel } from '../../models/scanneddocument.model';
+import { SCAN_FILE_TAKEN_TEXT, ScannedDocumentService, scanPoolErrorMessage, scanSourceLabel } from '../../services/scanneddocument';
+import { ScanFileModel } from '../../models/scanneddocument.model';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { FlexiToastService } from 'flexi-toast';
 import { Common } from '../../services/common';
@@ -21,12 +21,13 @@ import { firstValueFrom } from 'rxjs';
 import { Router } from '@angular/router';
 import { IncomingDocumentService } from '../../services/incomingdocument';
 import { ScanThumb } from './scan-thumb';
+import { ScanInfoModal } from '../../../components/scan-info-modal/scan-info-modal';
 
 /** Küçük resim görünümünde bir sayfadaki evrak sayısı */
 const GRID_PAGE_SIZE = 10;
 
 @Component({
-  imports: [CommonModule, GenericModel, ScanThumb],
+  imports: [CommonModule, GenericModel, ScanThumb, ScanInfoModal],
   templateUrl: './scanneddocument.html',
   // Görsel dil Ön Kayıt / Evrak Kayıt ekranlarıyla aynı; ortak zm-* sınıfları
   // zimmet.css'ten gelir, görüntüleyici ve eşleştirme özeti (sd-*) bu ekrana özgüdür.
@@ -46,18 +47,32 @@ export default class Scanneddocument implements OnInit, OnDestroy {
 
   readonly user = computed(() => this.#common.user());
 
-  readonly scannedDocuments = signal<ScannedDocumentModel[]>([]);
+  readonly scannedDocuments = signal<ScanFileModel[]>([]);
   readonly currentIndex = signal(0);
   readonly currentDocument = computed(() => this.scannedDocuments()[this.currentIndex()] ?? null);
-  readonly currentDocumentId = computed(() => this.currentDocument()?.id ?? null);
+
+  // Evrak ve nota aynı listede gelir; '' = tümü
+  readonly sources = signal<string[]>(['evrak', 'nota']);
+  readonly sourceFilter = signal('');
+  readonly infoOpen = signal(false);
 
   readonly pdfUrl = computed<SafeResourceUrl>(() => {
     const doc = this.currentDocument();
     if (!doc?.fileName) return '';
     return this.sanitizer.bypassSecurityTrustResourceUrl(
-      this.service.getPdfUrl(doc.fileName) + '#zoom=100'
+      this.service.getPdfUrl(doc.source, doc.fileName) + '#zoom=100'
     );
   });
+
+  sourceLabel(source: string): string {
+    return scanSourceLabel(source);
+  }
+
+  setSourceFilter(source: string) {
+    if (source === this.sourceFilter()) return;
+    this.sourceFilter.set(source);
+    this.loadDocuments();
+  }
 
   // ---- Görünüm: tek evrak (solda büyük evrak, sağda eşleştirme) ya da küçük resim ızgarası ----
   readonly viewMode = signal<'single' | 'grid'>('single');
@@ -68,7 +83,7 @@ export default class Scanneddocument implements OnInit, OnDestroy {
     const start = this.gridPage() * GRID_PAGE_SIZE;
     return this.scannedDocuments()
       .slice(start, start + GRID_PAGE_SIZE)
-      .map((doc, i) => ({ doc, index: start + i, url: this.service.getPdfUrl(doc.fileName) }));
+      .map((doc, i) => ({ doc, index: start + i, url: this.service.getPdfUrl(doc.source, doc.fileName) }));
   });
   readonly gridRangeLabel = computed(() => {
     const total = this.scannedDocuments().length;
@@ -115,6 +130,9 @@ export default class Scanneddocument implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.loadDocuments();
+    this.service.getScanSources().then(sources => {
+      if (sources.length) this.sources.set(sources);
+    });
 
     // Odak bir form alanındayken (QR alanının kendisi dahil) tuşlar tampona alınmaz;
     // alan kendi keydown olayıyla Enter'ı işler. Aksi halde okuyucu girdisi tampona
@@ -124,7 +142,7 @@ export default class Scanneddocument implements OnInit, OnDestroy {
       const tag = target?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable) return;
       // Izgarada numara alanı yoktur; okutma tek evrak görünümünde yapılır
-      if (!this.currentDocument() || this.saving() || this.viewMode() === 'grid') return;
+      if (!this.currentDocument() || this.saving() || this.viewMode() === 'grid' || this.infoOpen()) return;
 
       if (e.key === 'Enter') {
         this.onQrScanned(this.buffer.trim());
@@ -148,11 +166,12 @@ export default class Scanneddocument implements OnInit, OnDestroy {
     this.isLoading.set(true);
 
     try {
-      const docs = await this.service.getScannedDocuments();
+      const docs = await this.service.getScannedDocuments(this.sourceFilter() || undefined);
       this.scannedDocuments.set(docs);
       // Eşleşen evrak listeden düştüğü için aynı sıra bir sonraki evrağı gösterir; eşleşen evrak
       // listenin sonundaysa önceki (zaten geçilmiş) evraka dönmek yerine baştan devam edilir.
       this.currentIndex.set(index < docs.length ? index : 0);
+      this.resetQr();
       // Liste kısaldıysa ızgara son sayfaya çekilir
       this.setGridPage(this.gridPage());
     } catch (err) {
@@ -204,7 +223,7 @@ export default class Scanneddocument implements OnInit, OnDestroy {
     const userId = this.user()?.id;
 
     if (!userId) return this.toast.showToast('Hata', 'Kullanıcı bilgisi alınamadı', 'error');
-    if (!doc?.id) return this.toast.showToast('Hata', 'Eşleştirilecek belge bulunamadı.', 'error');
+    if (!doc?.fileName) return this.toast.showToast('Hata', 'Eşleştirilecek belge bulunamadı.', 'error');
     if (!documentNumber) return this.toast.showToast('Uyarı', 'Belge numarası boş olamaz.', 'warning');
     if (this.saving()) return;
 
@@ -219,7 +238,8 @@ export default class Scanneddocument implements OnInit, OnDestroy {
         return;
       }
 
-      await firstValueFrom(this.service.updateScannedDocumentNumber(doc.id, documentNumber, userId));
+      // Belge havuzdan alınıp evrak takibe kopyalanır; PDF kopyalandığı için birkaç saniye sürebilir
+      await firstValueFrom(this.service.transferScannedDocument(doc.source, doc.fileName, documentNumber, userId));
 
       if (openRegistration) {
         this.incomingDocumentService.setSelectedIncomingDocument(documentNumber);
@@ -234,7 +254,12 @@ export default class Scanneddocument implements OnInit, OnDestroy {
       await this.loadDocuments(true);
     } catch (err) {
       console.error(err);
-      this.toast.showToast('Hata', 'Belge eşleştirilirken bir hata oluştu.', 'error');
+      const message = scanPoolErrorMessage(err, 'Belge eşleştirilirken bir hata oluştu.');
+      this.toast.showToast('Hata', message, 'error');
+      // Belge başka bir kullanıcı tarafından aktarılmışsa artık havuzda yoktur; liste yenilenir
+      if (message.includes(SCAN_FILE_TAKEN_TEXT)) {
+        await this.loadDocuments(true);
+      }
     } finally {
       this.saving.set(false);
       this.savingAction.set(null);
@@ -252,8 +277,11 @@ export default class Scanneddocument implements OnInit, OnDestroy {
     }
   }
 
+  // Belgenin barkodundan tek numara okunduysa alan onunla doldurulur; kullanıcı yine onaylar ya da
+  // değiştirir. Numara okunamadıysa (ya da birden fazlaysa) alan boş kalır, okutulur/yazılır.
   resetQr() {
-    this.qrEditable.set('');
+    const qrCodes = this.currentDocument()?.qrCodes ?? [];
+    this.qrEditable.set(qrCodes.length === 1 ? qrCodes[0] : '');
     this.buffer = '';
     this.focusQrInputSoon();
   }

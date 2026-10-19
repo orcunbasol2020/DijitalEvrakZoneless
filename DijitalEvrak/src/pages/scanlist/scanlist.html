@@ -112,6 +112,11 @@
           <span class="material-symbols-outlined">download</span>
         </button>
         @if (canUploadDocument()) {
+          <button type="button" class="sq-tool" title="Evrak numarasıyla taranmış belgeyi bulup evraka bağla"
+            (click)="openScanPull()">
+            <span class="material-symbols-outlined">document_scanner</span>
+            Taranandan Çek
+          </button>
           <button type="button" class="sq-tool sq-tool-primary" (click)="openNewUpload()">
             <span class="material-symbols-outlined">upload_file</span>
             Evrak Yükle
@@ -863,3 +868,9 @@
   [loading]="newUploadLoading()"
   (numberConfirmed)="confirmNewUpload($event)"
   (cancelled)="closeNewUpload()" />
+
+<app-scan-pool-pull-modal
+  [open]="scanPullOpen()"
+  [userId]="currentUserId"
+  (transferred)="onScanPulled($event)"
+  (cancelled)="scanPullOpen.set(false)" />
