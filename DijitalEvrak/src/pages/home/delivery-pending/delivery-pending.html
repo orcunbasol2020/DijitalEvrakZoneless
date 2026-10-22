@@ -241,32 +241,51 @@
                     <div class="dp-mail-field">
                         <dt>Alıcı</dt>
                         <dd>
-                            <div class="dp-mail-to">
-                                @for (address of mail.to; track address) {
-                                    <span class="dp-mail-address">{{ address }}</span>
-                                } @empty {
-                                    <span class="text-muted">-</span>
+                            @if (mail.allowManual) {
+                                <!-- Sunucu alıcı bulamadı: izinli alan adlarında en fazla 5 adres elle girilir -->
+                                @let manual = manualState(mail);
+                                @let manualError = mail.manualServerError ?? manual.error;
+                                <input type="text" class="form-control form-control-sm dp-mail-manual"
+                                    [class.is-invalid]="!!manualError" [value]="mail.manualInput"
+                                    [disabled]="mail.sending" aria-label="Alıcı e-posta adresleri"
+                                    [placeholder]="'ad.soyad@' + (mail.allowedDomains.at(0) ?? '')"
+                                    (input)="setManualInput($any($event.target).value)" />
+                                @if (manualError) {
+                                    <div class="dp-mail-manual-error">{{ manualError }}</div>
                                 }
-                            </div>
-                            <div class="dp-mail-source" [class.is-fallback]="mail.source !== 'owners'">
-                                @switch (mail.source) {
-                                    @case ('owners') {
-                                        Birim evrak sorumlusu / yöneticisi
+                                <div class="dp-mail-source is-fallback">
+                                    <span class="material-symbols-outlined">edit</span>
+                                    Birimde alıcı bulunamadı; en fazla 5 adres girin
+                                    ({{ mail.allowedDomains.join(', ') }}), virgülle ayırın
+                                </div>
+                            } @else {
+                                <div class="dp-mail-to">
+                                    @for (address of mail.to; track address) {
+                                        <span class="dp-mail-address">{{ address }}</span>
+                                    } @empty {
+                                        <span class="text-muted">-</span>
                                     }
-                                    @case ('department') {
-                                        <span class="material-symbols-outlined">info</span>
-                                        Birimde sorumlu tanımlı değil; birimin e-posta adresine gönderilir
+                                </div>
+                                <div class="dp-mail-source" [class.is-fallback]="mail.source !== 'owners'">
+                                    @switch (mail.source) {
+                                        @case ('owners') {
+                                            Birim evrak sorumlusu / yöneticisi
+                                        }
+                                        @case ('department') {
+                                            <span class="material-symbols-outlined">info</span>
+                                            Birimde sorumlu tanımlı değil; birimin e-posta adresine gönderilir
+                                        }
+                                        @case ('management') {
+                                            <span class="material-symbols-outlined">info</span>
+                                            Genel Müdür / Genel Müdür Yardımcısı (birimde e-posta adresi tanımlı sorumlu yok)
+                                        }
+                                        @default {
+                                            <span class="material-symbols-outlined">info</span>
+                                            Birimde e-posta adresi tanımlı değil
+                                        }
                                     }
-                                    @case ('management') {
-                                        <span class="material-symbols-outlined">info</span>
-                                        Genel Müdür / Genel Müdür Yardımcısı (birimde e-posta adresi tanımlı sorumlu yok)
-                                    }
-                                    @default {
-                                        <span class="material-symbols-outlined">info</span>
-                                        Birimde e-posta adresi tanımlı değil
-                                    }
-                                }
-                            </div>
+                                </div>
+                            }
                         </dd>
                     </div>
                     <div class="dp-mail-field">
@@ -299,7 +318,7 @@
                 <span class="dp-mail-hint">E-posta sunucu üzerinden gönderilir.</span>
                 <button type="button" class="btn btn-sm btn-light" (click)="closeReminder()">Vazgeç</button>
                 <button type="button" class="btn btn-sm btn-primary dp-mail-send"
-                    [disabled]="mail.loading || mail.sending || !mail.canSend" (click)="sendReminder(mail)">
+                    [disabled]="!canSubmit(mail)" (click)="sendReminder(mail)">
                     @if (mail.sending) {
                         <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
                     } @else {

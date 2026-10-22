@@ -29,6 +29,10 @@ export interface DeliveryReminderPreview {
   reason: string | null;
   /** Tekrar sınırı sürüyorsa kalan dakika */
   retryAfterMinutes: number | null;
+  /** Alıcı bulunamadı (none) ve tek engel bu: Send'e manualRecipients ile elle adres gönderilebilir */
+  allowManualRecipients: boolean;
+  /** Elle girilebilecek adreslerin alan adları; küçük harf, @'siz (ör. "mfa.gov.tr"), birebir eşleşir */
+  allowedEmailDomains: string[];
 }
 
 export interface DeliveryReminderSent {
@@ -52,7 +56,9 @@ export class DeliveryReminderService {
     return this.#http.get<DeliveryReminderPreview>(`${this.#baseUrl}/Preview?departmentId=${departmentId}`, this.#options);
   }
 
-  send(departmentId: DepartmentId) {
-    return this.#http.post<DeliveryReminderSent>(`${this.#baseUrl}/Send`, { departmentId }, this.#options);
+  /** manualRecipients yalnızca önizlemede allowManualRecipients true iken gönderilir (en fazla 5, izinli alan adı) */
+  send(departmentId: DepartmentId, manualRecipients?: string[]) {
+    return this.#http.post<DeliveryReminderSent>(`${this.#baseUrl}/Send`,
+      manualRecipients?.length ? { departmentId, manualRecipients } : { departmentId }, this.#options);
   }
 }

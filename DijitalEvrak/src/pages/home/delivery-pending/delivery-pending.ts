@@ -103,6 +103,40 @@ interface ReminderMail {
   message: string | null;
   lastSentAt: Date | null;
   lastSentBy: string | null;
+  /** Sunucu alıcı bulamadı: kullanıcı izinli alan adlarında adres girebilir */
+  allowManual: boolean;
+  allowedDomains: string[];
+  /** Elle alıcı kutusunun metni (virgül, noktalı virgül ya da boşlukla ayrılmış) */
+  manualInput: string;
+  /** Sunucunun elle alıcıya verdiği hata (400); kutuya yazınca silinir */
+  manualServerError: string | null;
+}
+
+// Send'in 400 mesajlarından ayrı ele alınan ikisi (sunucudaki metinle birebir)
+const NO_PENDING_MESSAGE = 'Birimde teslim alınmayı bekleyen evrak yok.';
+const MANUAL_NOT_ALLOWED_MESSAGE = 'Birimin tanımlı alıcısı var; elle alıcı girilemez.';
+
+/** Elle girilebilecek en fazla adres (sunucuyla aynı) */
+const MAX_MANUAL_RECIPIENTS = 5;
+const EMAIL_RE = /^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]+$/;
+
+/** Elle alıcı kutusundaki adresler: kırpılmış, tekrarsız (büyük / küçük harf duyarsız) ve ilk hatası */
+function parseManualRecipients(input: string, domains: string[]): { list: string[]; error: string | null } {
+  const seen = new Set<string>();
+  const list: string[] = [];
+  for (const part of input.split(/[\s,;]+/)) {
+    const address = part.trim();
+    if (!address || seen.has(address.toLocaleLowerCase('tr'))) continue;
+    seen.add(address.toLocaleLowerCase('tr'));
+    list.push(address);
+  }
+  if (!list.length) return { list, error: 'En az bir e-posta adresi giriniz.' };
+  if (list.length > MAX_MANUAL_RECIPIENTS) return { list, error: `En fazla ${MAX_MANUAL_RECIPIENTS} adres girilebilir.` };
+  const invalid = list.find(a => !EMAIL_RE.test(a));
+  if (invalid) return { list, error: `Geçersiz e-posta adresi: ${invalid}` };
+  const outside = list.find(a => !domains.includes(a.slice(a.lastIndexOf('@') + 1).toLowerCase()));
+  if (outside) return { list, error: `Yalnızca ${domains.map(d => '@' + d).join(', ')} adresleri girilebilir.` };
+  return { list, error: null };
 }
 
 /**
@@ -381,6 +415,10 @@ export class DeliveryPending {
       message: null,
       lastSentAt: null,
       lastSentBy: null,
+      allowManual: false,
+      allowedDomains: [],
+      manualInput: '',
+      manualServerError: null,
     });
 
     this.reminderService.preview(departmentId).subscribe({
@@ -392,9 +430,12 @@ export class DeliveryPending {
         body: p.body,
         pendingCount: p.pendingCount,
         canSend: p.canSend,
-        message: p.canSend ? null : p.reason,
+        // Elle girişe açıksa "adres tanımlı değil" nedeni kutunun yanında anlatılır, ayrıca gösterilmez
+        message: p.canSend || p.allowManualRecipients ? null : p.reason,
         lastSentAt: p.lastSentAt ? new Date(p.lastSentAt) : null,
         lastSentBy: p.lastSentBy,
+        allowManual: p.allowManualRecipients,
+        allowedDomains: p.allowedEmailDomains ?? [],
       }),
       error: (err: HttpErrorResponse) => {
         if (err.status === 401 || err.status === 403) {
@@ -415,14 +456,38 @@ export class DeliveryPending {
     this.reminder.set(null);
   }
 
+  setManualInput(value: string): void {
+    const mail = this.reminder();
+    if (mail) this.patchReminder(mail.row.departmentId, { manualInput: value, manualServerError: null });
+  }
+
+  /** Elle alıcı kutusunun durumu; kutu boşken hata gösterilmez */
+  manualState(mail: ReminderMail): { list: string[]; error: string | null } {
+    if (!mail.manualInput.trim()) return { list: [], error: null };
+    return parseManualRecipients(mail.manualInput, mail.allowedDomains);
+  }
+
+  canSubmit(mail: ReminderMail): boolean {
+    if (mail.loading || mail.sending) return false;
+    if (mail.canSend) return true;
+    if (!mail.allowManual) return false;
+    const state = this.manualState(mail);
+    return state.list.length > 0 && !state.error;
+  }
+
   sendReminder(mail: ReminderMail): void {
     const departmentId = toDepartmentId(mail.row.departmentId);
-    if (mail.loading || mail.sending || !mail.canSend || departmentId === null) return;
+    if (!this.canSubmit(mail) || departmentId === null) return;
+
+    // Sunucu alıcı bulamadıysa elle girilen adreslerle gönderilir (sunucu alan adını yeniden denetler)
+    const manual = !mail.canSend && mail.allowManual ? this.manualState(mail).list : undefined;
+    // 503'te e-posta programı da bu adreslerle açılır
+    const target: ReminderMail = manual ? { ...mail, to: manual } : mail;
 
     // SMTP zaman aşımı 30 sn'ye kadar sürebilir; bu sürede düğme pasif kalır
     const key = mail.row.departmentId;
-    this.patchReminder(key, { sending: true, message: null });
-    this.reminderService.send(departmentId).subscribe({
+    this.patchReminder(key, { sending: true, message: null, manualServerError: null });
+    this.reminderService.send(departmentId, manual).subscribe({
       next: sent => {
         this.closeReminder();
         this.toast.showToast('E-posta gönderildi',
@@ -430,6 +495,17 @@ export class DeliveryPending {
       },
       error: (err: HttpErrorResponse) => {
         const message: string | undefined = err.error?.message;
+        if (err.status === 400 && manual && message !== NO_PENDING_MESSAGE) {
+          // Önizlemeden sonra birime sorumlu atanmış: sunucunun alıcılarıyla önizleme yeniden çekilir
+          if (message === MANUAL_NOT_ALLOWED_MESSAGE) {
+            this.toast.showToast('Alıcılar güncellendi', message, 'info');
+            this.openReminder(mail.row);
+            return;
+          }
+          // Elle alıcı hatası: popup açık kalır, mesaj kutunun altında
+          this.patchReminder(key, { sending: false, manualServerError: message ?? 'Hatırlatma gönderilemedi.' });
+          return;
+        }
         switch (err.status) {
           case 401:
           case 403:
@@ -441,7 +517,7 @@ export class DeliveryPending {
             this.toast.showToast('E-posta sistemden gönderilemedi',
               `${(message ?? 'E-posta gönderimi şu an yapılamıyor.').replace(/\.$/, '')}; e-posta programınız açılıyor.`,
               'warning');
-            this.openMailClient(mail);
+            this.openMailClient(target);
             return;
           // 400: bekleyen evrak / adres kalmadı, 429: tekrar sınırı, 404: birim yok
           case 400:

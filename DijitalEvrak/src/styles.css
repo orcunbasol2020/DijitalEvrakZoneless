@@ -10199,6 +10199,22 @@ button:disabled {
     white-space: pre-wrap;
 }
 
+/* Alıcı bulunamayan birimde elle adres kutusu */
+.dp-mail-manual {
+    font-size: 0.82rem;
+}
+
+.dp-mail-manual-error {
+    margin-top: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #dc2626;
+}
+
+[data-theme="dark"] .dp-mail-manual-error {
+    color: #f87171;
+}
+
 /* Sunucu önizlemesi gelene kadar içerik soluk */
 .dp-mail-body.is-loading .dp-mail-fields,
 .dp-mail-body.is-loading .dp-mail-content {

@@ -33,6 +33,8 @@ interface SettingDef {
   digitsOnly?: boolean;
   /** Metin alanı sunucu adı / IP'dir: http:// ve :port yazılmaz */
   hostName?: boolean;
+  /** Metin alanı virgülle ayrılmış alan adlarıdır (@ ve http:// olmadan) */
+  domainList?: boolean;
   /** Uyarı tonunda not (ör. henüz açılmaması gereken ayar) */
   warn?: boolean;
   /** true yapılmadan önce onay penceresi */
@@ -116,6 +118,12 @@ const DEFS: SettingDef[] = [
   {
     key: 'DeliveryReminderAppUrl', group: 'deliveryReminder', label: 'Teslim alma bağlantısı', kind: 'url',
     note: 'Doluysa e-postanın sonuna bağlantı olarak eklenir (ör. https://…/teslim-alma).',
+  },
+  {
+    key: 'DeliveryReminderAllowedEmailDomains', group: 'deliveryReminder', label: 'Elle alıcı alan adları', kind: 'text',
+    domainList: true,
+    note: 'Alıcı bulunamayan birimde elle girilebilecek adreslerin alan adları, virgülle ayrılmış (ör. mfa.gov.tr). '
+      + 'Birebir eşleşir, alt alan adı kabul edilmez. Boşsa elle giriş kapalıdır.',
   },
 
   { key: 'SmtpEnabled', group: 'smtp', label: 'E-posta gönderimi', kind: 'bool' },
@@ -423,6 +431,10 @@ export default class AppSettings {
     if (def.required && !value.trim()) return 'Boş bırakılamaz.';
     if (def.digitsOnly && value.trim() && !/^\d+$/.test(value.trim())) return 'Yalnızca rakam girilebilir.';
     if (def.hostName && value.trim() && !HOST_RE.test(value.trim())) return 'Yalnızca sunucu adı ya da IP girin (http:// ve :port olmadan).';
+    if (def.domainList && value.trim()) {
+      const bad = value.split(',').map(d => d.trim()).find(d => !d || !HOST_RE.test(d) || !d.includes('.'));
+      if (bad !== undefined) return `Geçersiz alan adı${bad ? `: ${bad}` : ''}. Virgülle ayrılmış alan adları girin (ör. mfa.gov.tr).`;
+    }
     if (def.kind === 'email' && value.trim() && !EMAIL_RE.test(value.trim())) return 'Geçerli bir e-posta adresi girin.';
     if (def.kind === 'url' && value.trim() && !URL_RE.test(value.trim())) return 'http:// ya da https:// ile başlayan tam adres girin.';
     return null;
