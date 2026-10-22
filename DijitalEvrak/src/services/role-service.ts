@@ -35,7 +35,7 @@ export function roleIcon(name: string): string {
  * Uygulamada henüz ekranı olmayan roller (Misyon, Kurye) açıklamasız gösterilir.
  */
 const ROLE_DESCRIPTIONS: Record<string, string> = {
-  'Yönetici': 'Tüm gelen evraklar, kullanıcılar, roller, giriş kayıtları ve uygulama ayarları',
+  'Yönetici': 'Tüm gelen evraklar, kullanıcılar, roller, giriş / hata kayıtları ve uygulama ayarları',
   'Birim Yöneticisi': 'Birim evrak sorumlusu yetkileri; ana sayfada birim paneli',
   'Birim Evrak Sorumlusu': 'Birimine gelen evraklar, zimmet ve zarf işlemleri',
   'Gelen Evrak': 'Evrak kaydı, gelen ve taranmış evraklar, zimmet, kullanıcı yönetimi',

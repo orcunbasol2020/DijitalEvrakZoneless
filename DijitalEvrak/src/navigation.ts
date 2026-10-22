@@ -212,6 +212,12 @@ export const navigations: NavigationModel[] = [
         icon: "tune",
         roles: ["Yönetici"]
     },
+    {
+        title: "Hata Kayıtları",
+        url: "/error-logs",
+        icon: "bug_report",
+        roles: ["Yönetici"]
+    },
 
     {
         category: "Raporlar",

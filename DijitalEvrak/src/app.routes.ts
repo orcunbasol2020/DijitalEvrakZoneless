@@ -224,6 +224,13 @@ export const routes: Routes = [
                 data: { roles: ["Yönetici"] }
             },
             {
+                // Sunucu hataları (ErrorLogs): stack trace, dosya yolları ve SQL metinleri içerdiği için yalnızca yönetici
+                path: 'error-logs',
+                loadComponent: () => import('./pages/error-logs/error-logs'),
+                canActivate: [roleGuard],
+                data: { roles: ["Yönetici"] }
+            },
+            {
                 // Eski Atlas Aktarım Hataları sayfası: Atlas Aktarım'ın Hatalı sekmesine taşındı
                 path: 'atlas-aktarim-hatalari',
                 redirectTo: '/atlas-aktarim?tab=hatali'

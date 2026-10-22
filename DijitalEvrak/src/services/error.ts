@@ -13,8 +13,9 @@ export class ErrorService {
         this.toast.showToast("Geçersiz İstek", "Eksik veya hatalı bilgi gönderildi.", "error");
         break;
 
+      // Giriş istekleri bu toast'ı atlar (SKIP_ERROR_TOAST); buraya düşen 401 oturumun geçersiz olduğunu gösterir
       case 401:
-        this.toast.showToast("Hata", "Kullanıcı adı ya da şifre yanlış", "error");
+        this.toast.showToast("Oturum Sona Erdi", "Oturumunuzun süresi doldu, lütfen tekrar giriş yapın.", "error");
         this.router.navigate(['/login']);
         break;
 
