@@ -4,8 +4,11 @@ import { HttpService } from './http';
 import { DepartmentId } from '../models/ids';
 import { SKIP_ERROR_TOAST } from '../interceptors/error-interceptor';
 
-/** owners: Birim Evrak Sorumlusu / Birim Yöneticisi, department: birimin kurumsal e-postası, none: adres yok */
-export type ReminderRecipientSource = 'owners' | 'department' | 'none';
+/**
+ * Alıcının bulunduğu basamak, sırasıyla: owners (Birim Evrak Sorumlusu / Birim Yöneticisi), department (birimin
+ * kurumsal e-postası), management (birimin bağlı olduğu Genel Müdür ve kendi kolundaki GMY), none (adres yok).
+ */
+export type ReminderRecipientSource = 'owners' | 'department' | 'management' | 'none';
 
 /** api/DeliveryReminders/Preview: alıcı, konu ve gövde sunucuda hesaplanır. Tarihler UTC. */
 export interface DeliveryReminderPreview {

@@ -93,7 +93,7 @@ interface ReminderMail {
   loading: boolean;
   sending: boolean;
   to: string[];
-  /** owners: birim evrak sorumlusu / yöneticisi, department: birimin kurumsal adresi, none: adres yok */
+  /** Alıcının bulunduğu basamak: owners, department, management (Genel Müdür / GMY), none (adres yok) */
   source: ReminderRecipientSource;
   subject: string;
   body: string;
