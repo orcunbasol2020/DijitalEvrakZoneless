@@ -49,8 +49,13 @@ export class IncomingInfoModal {
 
   /** Gösterilecek evrak; null iken popup kapalıdır */
   readonly document = input<IncomingDocumentModel | null>(null);
-  /** Alt bilgi satırında "Evrak detayına git" düğmesi */
+  /** Alt bilgi satırında detay / kayıt ekranına götüren düğme */
   readonly showDetailLink = input(false);
+  readonly detailLabel = input('Evrak detayına git');
+  /** Doluysa düğme pasif, neden ipucunda gösterilir */
+  readonly detailBlockedReason = input<string | null>(null);
+  /** Düğmenin işi sürüyor (çift tıklamada ikinci istek gitmesin) */
+  readonly detailBusy = input(false);
 
   readonly closed = output<void>();
   readonly detail = output<string>();
@@ -181,7 +186,7 @@ export class IncomingInfoModal {
 
   openDetail(): void {
     const id = this.doc()?.id;
-    if (id) this.detail.emit(id);
+    if (id && !this.detailBlockedReason() && !this.detailBusy()) this.detail.emit(id);
   }
 
   @HostListener('document:keydown.escape')

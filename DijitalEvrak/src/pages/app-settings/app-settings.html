@@ -130,7 +130,7 @@
                     </div>
                   }
                   @default {
-                    <input class="form-control as-input" [type]="field.def.kind === 'email' ? 'email' : 'text'"
+                    <input class="form-control as-input" [type]="field.def.kind === 'email' || field.def.kind === 'url' ? field.def.kind : 'text'"
                       [id]="'as-' + field.def.key" [value]="field.value" [disabled]="saving()"
                       (input)="onInput(field, $event)">
                   }

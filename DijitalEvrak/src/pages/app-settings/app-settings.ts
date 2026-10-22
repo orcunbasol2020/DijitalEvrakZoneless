@@ -10,9 +10,9 @@ import { AtlasDocumentNumberService, AtlasNumberStock } from '../../services/atl
 import { AtlasTransferService, AtlasTransferStats } from '../../services/atlas-transfer';
 import { Common } from '../../services/common';
 
-type FieldKind = 'text' | 'email' | 'textarea' | 'bool' | 'int';
+type FieldKind = 'text' | 'email' | 'url' | 'textarea' | 'bool' | 'int';
 
-type GroupId = 'general' | 'scan' | 'zimmet' | 'atlas' | 'atlasTransfer' | 'session' | 'other';
+type GroupId = 'general' | 'scan' | 'zimmet' | 'deliveryReminder' | 'smtp' | 'atlas' | 'atlasTransfer' | 'session' | 'other';
 
 interface SettingDef {
   key: string;
@@ -31,6 +31,8 @@ interface SettingDef {
   note?: string;
   /** Metin alanı yalnızca rakam içerebilir (ör. DETSİS kodu) */
   digitsOnly?: boolean;
+  /** Metin alanı sunucu adı / IP'dir: http:// ve :port yazılmaz */
+  hostName?: boolean;
   /** Uyarı tonunda not (ör. henüz açılmaması gereken ayar) */
   warn?: boolean;
   /** true yapılmadan önce onay penceresi */
@@ -60,6 +62,8 @@ const MAX_LENGTH = 2000;
 const WORK_START = 'ZimmetReminderWorkStartHour';
 const WORK_END = 'ZimmetReminderWorkEndHour';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const URL_RE = /^https?:\/\/\S+$/i;
+const HOST_RE = /^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$/;
 
 const GROUPS: GroupDef[] = [
   { id: 'general', title: 'Genel Bilgiler', sub: '"Hakkında" ekranı ve destek bilgisi', icon: 'info' },
@@ -67,6 +71,14 @@ const GROUPS: GroupDef[] = [
   {
     id: 'zimmet', title: 'Zimmet Onayı ve Hatırlatmalar', sub: 'Kurum içi devir / teslim onayı ve hatırlatma e-postaları', icon: 'notifications_active',
     note: 'Hatırlatmalar yalnızca hafta içi ve aşağıdaki mesai saatleri arasında, sunucu saatine göre gönderilir.',
+  },
+  {
+    id: 'deliveryReminder', title: 'Teslim Hatırlatma E-postası',
+    sub: 'Teslim alınmayı bekleyen evrakı olan birime gönderilen bilgilendirme', icon: 'mail',
+  },
+  {
+    id: 'smtp', title: 'E-posta (SMTP)', sub: 'Sunucudan gönderilen e-postaların bağlantı ayarları', icon: 'outgoing_mail',
+    note: 'Gönderim için e-posta gönderimi açık, sunucu ve gönderen adresi dolu olmalı. Değişiklik bir sonraki gönderimde geçerli olur.',
   },
   { id: 'atlas', title: 'Atlas Evrak Numarası Havuzu', sub: 'QR kod numaralarının Atlas\'tan alınması', icon: 'qr_code_2' },
   { id: 'atlasTransfer', title: 'Atlas\'a Aktarım', sub: 'Yayınlanan evrakların EYP olarak Atlas\'a gönderilmesi', icon: 'cloud_upload' },
@@ -96,6 +108,30 @@ const DEFS: SettingDef[] = [
   },
   { key: WORK_START, group: 'zimmet', label: 'Mesai başlangıcı', kind: 'int', min: 0, max: 23, unit: 'saat' },
   { key: WORK_END, group: 'zimmet', label: 'Mesai bitişi', kind: 'int', min: 1, max: 24, unit: 'saat' },
+
+  {
+    key: 'DeliveryReminderMinIntervalMinutes', group: 'deliveryReminder', label: 'Tekrar gönderim aralığı', kind: 'int',
+    min: 0, max: 1440, unit: 'dk', note: 'Aynı birime bu süre dolmadan yeni hatırlatma gönderilemez; 0 girilirse sınır yoktur.',
+  },
+  {
+    key: 'DeliveryReminderAppUrl', group: 'deliveryReminder', label: 'Teslim alma bağlantısı', kind: 'url',
+    note: 'Doluysa e-postanın sonuna bağlantı olarak eklenir (ör. https://…/teslim-alma).',
+  },
+
+  { key: 'SmtpEnabled', group: 'smtp', label: 'E-posta gönderimi', kind: 'bool' },
+  { key: 'SmtpHost', group: 'smtp', label: 'SMTP sunucusu', kind: 'text', hostName: true, hint: 'Sunucu adı ya da IP, ör. smtp.kurum.gov.tr' },
+  { key: 'SmtpPort', group: 'smtp', label: 'Port', kind: 'int', min: 1, max: 65535 },
+  { key: 'SmtpEnableSsl', group: 'smtp', label: 'SSL / TLS', kind: 'bool' },
+  {
+    key: 'SmtpUserName', group: 'smtp', label: 'Kullanıcı adı', kind: 'text',
+    note: 'Boşsa kimlik doğrulamasız gönderilir. Parola bu ekranda tutulmaz; sunucu yapılandırmasında (Smtp__Password) verilir.',
+  },
+  { key: 'SmtpFromAddress', group: 'smtp', label: 'Gönderen adresi', kind: 'email' },
+  { key: 'SmtpFromName', group: 'smtp', label: 'Gönderen adı', kind: 'text' },
+  {
+    key: 'SmtpTestRecipientOverride', group: 'smtp', label: 'Test alıcısı', kind: 'email', warn: true,
+    note: 'Doluysa tüm e-postalar yalnızca bu adrese gider. Canlı ortamda boş bırakılmalı.',
+  },
 
   {
     key: 'AtlasNumberPoolEnabled', group: 'atlas', label: 'Havuzu otomatik doldur', kind: 'bool', warn: true,
@@ -386,7 +422,9 @@ export default class AppSettings {
 
     if (def.required && !value.trim()) return 'Boş bırakılamaz.';
     if (def.digitsOnly && value.trim() && !/^\d+$/.test(value.trim())) return 'Yalnızca rakam girilebilir.';
+    if (def.hostName && value.trim() && !HOST_RE.test(value.trim())) return 'Yalnızca sunucu adı ya da IP girin (http:// ve :port olmadan).';
     if (def.kind === 'email' && value.trim() && !EMAIL_RE.test(value.trim())) return 'Geçerli bir e-posta adresi girin.';
+    if (def.kind === 'url' && value.trim() && !URL_RE.test(value.trim())) return 'http:// ya da https:// ile başlayan tam adres girin.';
     return null;
   }
 

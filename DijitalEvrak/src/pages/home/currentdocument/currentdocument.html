@@ -7,7 +7,7 @@
             <h5 class="ad-head-title">{{ isAttention() ? 'Yüksek Öncelikli Evraklar' : 'Son Gelen Evraklar' }}</h5>
             @if (showSubtitle()) {
                 <div class="ad-head-sub">
-                    {{ isAttention() ? 'Yıldırım, Günlüdür, Çok Acele ve Acele evraklar' : 'Sisteme en son kaydedilen evraklar' }}
+                    {{ isAttention() ? 'Yıldırım, Günlüdür, Çok Acele ve Acele evraklar; azsa en uzun bekleyenler' : 'Sisteme en son kaydedilen evraklar' }}
                 </div>
             }
         </div>
@@ -25,6 +25,12 @@
                 <span class="material-symbols-outlined">chevron_right</span>
             </a>
         }
+        <!-- Son güncelleme saati; veri çekilirken ikon döner (60 sn'de bir otomatik yenilenir) -->
+        <span class="cd-updated" [class.is-fetching]="fetching()"
+            [title]="fetching() ? 'Güncel veriler getiriliyor' : 'Her dakika otomatik yenilenir'">
+            <span class="material-symbols-outlined">sync</span>
+            {{ fetching() && !lastUpdated() ? 'Yükleniyor' : (lastUpdated() ? getTime(lastUpdated()!) : '-') }}
+        </span>
     </div>
 
     <div class="card-body p-0">
@@ -132,8 +138,10 @@
     </div>
 }
 
-<!-- Yönetici: satıra tıklanınca Evrak Bilgileri (Tümünü gör popup'ının da üstünde açılır) -->
-<app-incoming-info-modal [document]="infoDoc()" [showDetailLink]="true"
+<!-- Satıra tıklanınca Evrak Bilgileri (Tümünü gör popup'ının da üstünde açılır);
+     kayıt ekranına geçiş düğmesi yalnızca Gelen Evrak rolüne -->
+<app-incoming-info-modal [document]="infoDoc()" [showDetailLink]="canRegister"
+    detailLabel="Kayıt ekranına git" [detailBlockedReason]="infoBlockedReason()" [detailBusy]="infoBusy()"
     (closed)="closeInfo()" (detail)="openInfoDetail($event)" />
 
 <ng-template #attentionTable let-list>
@@ -164,9 +172,9 @@
                 </tr>
             } @else {
                 @for (doc of list; track doc.id) {
-                    <tr class="attention-row tone-{{ doc.tone }}" [class.clickable-row]="isRowClickable(doc)"
+                    <tr class="attention-row tone-{{ doc.tone }} clickable-row"
                         [class.is-busy]="processingId() === doc.id"
-                        [attr.tabindex]="isRowClickable(doc) ? 0 : null" [title]="getRowTitle(doc)"
+                        tabindex="0" title="Evrak bilgilerini göster"
                         (click)="onRowClick(doc)" (keydown.enter)="onRowClick(doc)">
                         <td>
                             <div class="attention-doc">
@@ -232,7 +240,7 @@
                     <tr>
                         <td [attr.colspan]="showRoute() ? 6 : 5" class="text-center text-muted py-5">
                             <span class="material-symbols-outlined d-block mb-2" style="font-size: 28px;">task_alt</span>
-                            Bekleyen ivedi evrak yok.
+                            Bekleyen evrak yok.
                         </td>
                     </tr>
                 }

@@ -1,5 +1,5 @@
-import { idKey } from '../../../models/ids';
-import { ChangeDetectionStrategy, Component, ViewEncapsulation, computed, inject, input, signal } from '@angular/core';
+import { idKey, toDepartmentId } from '../../../models/ids';
+import { ChangeDetectionStrategy, Component, HostListener, ViewEncapsulation, computed, inject, input, signal } from '@angular/core';
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
@@ -8,7 +8,11 @@ import { IncomingDocumentService } from '../../../services/incomingdocument';
 import { Department } from '../../../services/department';
 import { ExternalInstitution } from '../../../services/external-institution';
 import { UserService } from '../../../services/user';
-import { normalizeRoleName } from '../../../services/role-service';
+import { normalizeRoleName, RoleService } from '../../../services/role-service';
+import { DeliveryReminderPreview, DeliveryReminderService, ReminderRecipientSource } from '../../../services/delivery-reminder';
+import { ErrorService } from '../../../services/error';
+import { HttpErrorResponse } from '@angular/common/http';
+import { FlexiToastService } from 'flexi-toast';
 import { IncomingDocumentModel, incomingRecipientsOf } from '../../../models/incoming-document/incoming-document.model';
 import { UrgencyDegreeEnum, UrgencyDegreeLabels } from '../../../models/urgencydegree.model';
 import { SecurityDegreeEnum, SecurityDegreeLabels } from '../../../models/securitydegree.model';
@@ -77,8 +81,29 @@ function toDate(value: string | Date | null | undefined): Date | null {
 
 type SortColumn = 'unit' | 'people' | 'incoming' | 'pending';
 
-/** Teslim alınmayı bekleyen evrakın birimdeki muhatabı */
-const BIRIM_EVRAK_SORUMLUSU = 'Birim Evrak Sorumlusu';
+/** Teslim alınmayı bekleyen evrakın birimdeki muhatapları */
+const OWNER_ROLES = new Set(['Birim Evrak Sorumlusu', 'Birim Yöneticisi']);
+
+/** Hatırlatmayı gönderebilen roller; önizleme kullanıcı e-postalarını döndürdüğü için o da bunlara açık */
+const REMINDER_ROLES = ['Yönetici', 'Gelen Evrak'];
+
+/** Hatırlatma popup'ının durumu; içerik sunucunun önizlemesinden (Preview) gelir */
+interface ReminderMail {
+  row: ReminderRow;
+  loading: boolean;
+  sending: boolean;
+  to: string[];
+  /** owners: birim evrak sorumlusu / yöneticisi, department: birimin kurumsal adresi, none: adres yok */
+  source: ReminderRecipientSource;
+  subject: string;
+  body: string;
+  pendingCount: number;
+  canSend: boolean;
+  /** Gönderilemiyorsa nedeni ya da gönderim hatası */
+  message: string | null;
+  lastSentAt: Date | null;
+  lastSentBy: string | null;
+}
 
 /**
  * Teslim Alınmayı Bekleyen Evraklar kartı: Gelen Evrak panelinde ilk birkaç birimle,
@@ -98,6 +123,14 @@ export class DeliveryPending {
   private readonly departmentService = inject(Department);
   private readonly externalInstitutionService = inject(ExternalInstitution);
   private readonly userService = inject(UserService);
+  private readonly reminderService = inject(DeliveryReminderService);
+  private readonly errorService = inject(ErrorService);
+  private readonly toast = inject(FlexiToastService);
+
+  /** HATIRLAT sütunu yalnızca Yönetici ve Gelen Evrak rollerine gösterilir */
+  readonly canRemind = inject(RoleService).hasAny(REMINDER_ROLES);
+  /** Tablonun sütun sayısı (boş / yükleniyor satırları ve açılan evrak listesi için) */
+  readonly columnCount = this.canRemind ? 5 : 4;
 
   /** Gösterilecek birim sayısı; null ise tümü */
   readonly limit = input<number | null>(null);
@@ -245,7 +278,7 @@ export class DeliveryPending {
         const people = new Map<string, ReminderPerson[]>();
         for (const u of users ?? []) {
           if (u.isDeleted || !u.isActive || !u.departmentId) continue;
-          if (!(u.roles ?? []).some(r => normalizeRoleName(r.name) === BIRIM_EVRAK_SORUMLUSU)) continue;
+          if (!(u.roles ?? []).some(r => OWNER_ROLES.has(normalizeRoleName(r.name)))) continue;
           const key = idKey(u.departmentId)!;
           const list = people.get(key) ?? [];
           list.push({ name: `${u.name} ${u.surname}`.trim(), email: u.email });
@@ -265,8 +298,7 @@ export class DeliveryPending {
             departmentId: key,
             code: dep?.shortName?.trim() ?? '',
             fullName: dep?.name || dep?.shortName?.trim() || 'Bilinmeyen birim',
-            people: (people.get(key) ?? []).sort((a, b) => a.name.localeCompare(b.name, 'tr')),
-            incoming: c.incoming,
+            people: (people.get(key) ?? []).sort((a, b) => a.name.localeCompare(b.name, 'tr')),            incoming: c.incoming,
             pending: c.pending.length,
             ...this.toPendingDocs(c.pending, placeNames),
           });
@@ -320,13 +352,125 @@ export class DeliveryPending {
     this.expandedId.update(id => id === row.departmentId ? null : row.departmentId);
   }
 
-  /** Hatırlat: birimin evrak sorumlularına e-posta taslağı açar (gönderim için backend uç noktası yok). */
-  reminderMailto(row: ReminderRow): string | null {
-    const emails = row.people.map(p => p.email).filter(Boolean);
-    if (!emails.length) return null;
-    const subject = 'Teslim alınmayı bekleyen gelen evraklar';
-    const body = `Merhaba,\n\nBiriminize yönlendirilmiş ${row.pending} gelen evrak teslim alınmayı beklemektedir. `
-      + `Evrakları Dijital Evrak sisteminde teslim almanızı rica ederiz.\n\nİyi çalışmalar.`;
-    return `mailto:${emails.join(',')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  // ---- Hatırlat: e-posta önizleme popup'ı ----
+  // Alıcı, konu ve gövde sunucuda hesaplanır (api/DeliveryReminders/Preview), Gönder sunucudan yollar
+  // (Send). Yalnızca sunucu e-posta gönderemezse (503: SMTP kapalı / hatalı) uyarı gösterilip e-posta programı açılır.
+  // Alıcı kuralı ve tekrar sınırı: backend notu eposta_gonderim_servisi_frontend.md
+
+  readonly reminder = signal<ReminderMail | null>(null);
+
+  private patchReminder(departmentId: string, patch: Partial<ReminderMail>): void {
+    // Bu arada popup kapandı ya da başka birim açıldıysa eski yanıt yazılmaz
+    this.reminder.update(m => m && m.row.departmentId === departmentId ? { ...m, ...patch } : m);
+  }
+
+  openReminder(row: ReminderRow): void {
+    const departmentId = toDepartmentId(row.departmentId);
+    if (departmentId === null) return;
+
+    this.reminder.set({
+      row,
+      loading: true,
+      sending: false,
+      to: [],
+      source: 'none',
+      subject: '',
+      body: '',
+      pendingCount: row.pending,
+      canSend: false,
+      message: null,
+      lastSentAt: null,
+      lastSentBy: null,
+    });
+
+    this.reminderService.preview(departmentId).subscribe({
+      next: p => this.patchReminder(row.departmentId, {
+        loading: false,
+        to: p.to,
+        source: p.recipientSource,
+        subject: p.subject,
+        body: p.body,
+        pendingCount: p.pendingCount,
+        canSend: p.canSend,
+        message: p.canSend ? null : p.reason,
+        lastSentAt: p.lastSentAt ? new Date(p.lastSentAt) : null,
+        lastSentBy: p.lastSentBy,
+      }),
+      error: (err: HttpErrorResponse) => {
+        if (err.status === 401 || err.status === 403) {
+          this.closeReminder();
+          this.errorService.handle(err);
+          return;
+        }
+        console.error('Hatırlatma önizlemesi alınamadı:', err);
+        this.patchReminder(row.departmentId, {
+          loading: false,
+          message: err.status === 404 ? 'Birim bulunamadı.' : 'E-posta önizlemesi alınamadı, lütfen tekrar deneyin.',
+        });
+      },
+    });
+  }
+
+  closeReminder(): void {
+    this.reminder.set(null);
+  }
+
+  sendReminder(mail: ReminderMail): void {
+    const departmentId = toDepartmentId(mail.row.departmentId);
+    if (mail.loading || mail.sending || !mail.canSend || departmentId === null) return;
+
+    // SMTP zaman aşımı 30 sn'ye kadar sürebilir; bu sürede düğme pasif kalır
+    const key = mail.row.departmentId;
+    this.patchReminder(key, { sending: true, message: null });
+    this.reminderService.send(departmentId).subscribe({
+      next: sent => {
+        this.closeReminder();
+        this.toast.showToast('E-posta gönderildi',
+          `${mail.row.fullName}: ${sent.to.join(', ')} (${sent.pendingCount} evrak)`, 'success');
+      },
+      error: (err: HttpErrorResponse) => {
+        const message: string | undefined = err.error?.message;
+        switch (err.status) {
+          case 401:
+          case 403:
+            this.closeReminder();
+            this.errorService.handle(err);
+            return;
+          // SMTP kapalı / ulaşılamıyor: mailin sistemden gitmediği uyarılır, aynı içerikle e-posta programı açılır
+          case 503:
+            this.toast.showToast('E-posta sistemden gönderilemedi',
+              `${(message ?? 'E-posta gönderimi şu an yapılamıyor.').replace(/\.$/, '')}; e-posta programınız açılıyor.`,
+              'warning');
+            this.openMailClient(mail);
+            return;
+          // 400: bekleyen evrak / adres kalmadı, 429: tekrar sınırı, 404: birim yok
+          case 400:
+          case 404:
+          case 429:
+            this.patchReminder(key, {
+              sending: false,
+              canSend: false,
+              message: message ?? (err.status === 404 ? 'Birim bulunamadı.' : 'Hatırlatma gönderilemedi.'),
+              lastSentAt: err.status === 429 && err.error?.lastSentAt ? new Date(err.error.lastSentAt) : mail.lastSentAt,
+            });
+            return;
+          default:
+            console.error('Hatırlatma gönderilemedi:', err);
+            this.patchReminder(key, { sending: false, message: 'Hatırlatma gönderilemedi, lütfen tekrar deneyin.' });
+        }
+      },
+    });
+  }
+
+  /** Yalnızca sunucu gönderemediğinde (503): önizlemedeki alıcı, konu ve gövdeyle e-posta programı açılır */
+  openMailClient(mail: ReminderMail): void {
+    window.location.href =
+      `mailto:${mail.to.join(',')}?subject=${encodeURIComponent(mail.subject)}&body=${encodeURIComponent(mail.body)}`;
+    this.closeReminder();
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.reminder()) this.closeReminder();
   }
 }

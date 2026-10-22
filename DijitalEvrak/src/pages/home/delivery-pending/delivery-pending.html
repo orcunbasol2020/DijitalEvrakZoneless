@@ -46,17 +46,19 @@
                             *ngTemplateOutlet="headCell; context: { $implicit: 'incoming', label: 'GELEN', cls: 'text-end' }"></ng-container>
                         <ng-container
                             *ngTemplateOutlet="headCell; context: { $implicit: 'pending', label: 'BEKLEYEN', cls: 'text-end' }"></ng-container>
-                        <th scope="col" class="text-center">HATIRLAT</th>
+                        @if (canRemind) {
+                            <th scope="col" class="text-center">HATIRLAT</th>
+                        }
                     </tr>
                 </thead>
                 <tbody>
                     @if (loading()) {
                         <tr>
-                            <td colspan="5" class="text-center text-muted py-5">Yükleniyor…</td>
+                            <td [attr.colspan]="columnCount" class="text-center text-muted py-5">Yükleniyor…</td>
                         </tr>
                     } @else if (failed()) {
                         <tr>
-                            <td colspan="5" class="text-center text-muted py-5">
+                            <td [attr.colspan]="columnCount" class="text-center text-muted py-5">
                                 <span class="material-symbols-outlined d-block mb-2" style="font-size: 28px;">cloud_off</span>
                                 Evraklar alınamadı.
                             </td>
@@ -95,24 +97,20 @@
                                         <span class="material-symbols-outlined">expand_more</span>
                                     </button>
                                 </td>
-                                <td class="text-center">
-                                    @if (reminderMailto(row); as href) {
-                                        <a class="ad-reminder" [href]="href"
-                                            title="Evrak sorumlularına bilgilendirme e-postası yaz">
-                                            <span class="material-symbols-outlined">mail</span>
-                                        </a>
-                                    } @else {
-                                        <button type="button" class="ad-reminder" disabled
-                                            title="Birimde e-posta adresi olan evrak sorumlusu yok">
+                                @if (canRemind) {
+                                    <td class="text-center">
+                                        <!-- Alıcı sunucuda belirlenir: sorumlu / yönetici, yoksa birimin e-postası -->
+                                        <button type="button" class="ad-reminder" title="Bilgilendirme e-postası"
+                                            (click)="openReminder(row)">
                                             <span class="material-symbols-outlined">mail</span>
                                         </button>
-                                    }
-                                </td>
+                                    </td>
+                                }
                             </tr>
                             @if (expandedId() === row.departmentId) {
                                 <!-- Bekleyen evraklar: seçilen birimin hemen altına açılan satır -->
                                 <tr class="dp-detail-row tone-{{ row.tone }}">
-                                    <td colspan="5">
+                                    <td [attr.colspan]="columnCount">
                                         <div class="dp-docs">
                                             <table class="dp-docs-table">
                                                 <thead>
@@ -155,7 +153,7 @@
                             }
                         } @empty {
                             <tr>
-                                <td colspan="5">
+                                <td [attr.colspan]="columnCount">
                                     @if (searchQuery().trim() && pendingTotal()) {
                                         <div class="ad-pending-empty">
                                             <span class="material-symbols-outlined text-muted">search_off</span>
@@ -211,6 +209,104 @@
         }
     </div>
 </div>
+
+<!-- Hatırlatma e-postası önizlemesi: alıcı, konu ve içerik sunucudan; Gönder sunucudan yollar.
+     Önizleme alınamazsa ya da sunucu gönderemezse e-posta programı (mailto) kullanılır. -->
+@if (reminder(); as mail) {
+    <div class="modal-overlay" (click)="closeReminder()">
+        <div class="modal-box attention-modal dp-mail-modal" role="dialog" aria-modal="true"
+            aria-labelledby="dp-mail-title" (click)="$event.stopPropagation()">
+            <div class="attention-modal-head">
+                <span class="ad-head-icon">
+                    <span class="material-symbols-outlined">mail</span>
+                </span>
+                <div class="attention-modal-title" id="dp-mail-title">
+                    Bilgilendirme E-postası
+                    <span class="attention-modal-count">{{ mail.pendingCount }} evrak</span>
+                    @if (mail.loading) {
+                        <span class="spinner-border spinner-border-sm text-secondary" title="Güncel içerik getiriliyor"></span>
+                    }
+                </div>
+                <button type="button" class="attention-modal-close" title="Kapat" (click)="closeReminder()">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <div class="attention-modal-body dp-mail-body" [class.is-loading]="mail.loading">
+                <dl class="dp-mail-fields">
+                    <div class="dp-mail-field">
+                        <dt>Birim</dt>
+                        <dd>{{ mail.row.fullName }}</dd>
+                    </div>
+                    <div class="dp-mail-field">
+                        <dt>Alıcı</dt>
+                        <dd>
+                            <div class="dp-mail-to">
+                                @for (address of mail.to; track address) {
+                                    <span class="dp-mail-address">{{ address }}</span>
+                                } @empty {
+                                    <span class="text-muted">-</span>
+                                }
+                            </div>
+                            <div class="dp-mail-source" [class.is-fallback]="mail.source !== 'owners'">
+                                @switch (mail.source) {
+                                    @case ('owners') {
+                                        Birim evrak sorumlusu / yöneticisi
+                                    }
+                                    @case ('department') {
+                                        <span class="material-symbols-outlined">info</span>
+                                        Birimde sorumlu tanımlı değil; birimin e-posta adresine gönderilir
+                                    }
+                                    @default {
+                                        <span class="material-symbols-outlined">info</span>
+                                        Birimde e-posta adresi tanımlı değil
+                                    }
+                                }
+                            </div>
+                        </dd>
+                    </div>
+                    <div class="dp-mail-field">
+                        <dt>Konu</dt>
+                        <dd>{{ mail.subject }}</dd>
+                    </div>
+                    @if (mail.lastSentAt) {
+                        <div class="dp-mail-field">
+                            <dt>Son</dt>
+                            <dd class="dp-mail-last">
+                                {{ mail.lastSentAt | date:'dd.MM.yyyy HH:mm' }}
+                                @if (mail.lastSentBy) {
+                                    · {{ mail.lastSentBy }}
+                                }
+                            </dd>
+                        </div>
+                    }
+                </dl>
+                <div class="dp-mail-content">{{ mail.loading && !mail.body ? 'Yükleniyor…' : (mail.body || '-') }}</div>
+            </div>
+
+            @if (mail.message) {
+                <div class="dp-mail-alert" role="alert">
+                    <span class="material-symbols-outlined">error</span>
+                    {{ mail.message }}
+                </div>
+            }
+
+            <div class="dp-mail-foot">
+                <span class="dp-mail-hint">E-posta sunucu üzerinden gönderilir.</span>
+                <button type="button" class="btn btn-sm btn-light" (click)="closeReminder()">Vazgeç</button>
+                <button type="button" class="btn btn-sm btn-primary dp-mail-send"
+                    [disabled]="mail.loading || mail.sending || !mail.canSend" (click)="sendReminder(mail)">
+                    @if (mail.sending) {
+                        <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                    } @else {
+                        <span class="material-symbols-outlined">send</span>
+                    }
+                    Gönder
+                </button>
+            </div>
+        </div>
+    </div>
+}
 
 <!-- Sütun başlığı: sortable açıksa tıklanabilir (zl-th-sort, zimmetlerim.css), değilse düz başlık -->
 <ng-template #headCell let-column let-label="label" let-cls="cls">

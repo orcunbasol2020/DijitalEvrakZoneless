@@ -9890,6 +9890,20 @@ button:disabled {
     color: var(--att-tone);
 }
 
+/* İvedi olmayan, kartı 5'e tamamlayan uzun bekleyen evrak: sol çizgi ve ivedilik metni sönük */
+.orders-table tbody tr.attention-row.tone-none { --att-tone: #e2e8f0; }
+
+.orders-table tr.tone-none .attention-reason-main {
+    font-weight: 500;
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .orders-table tbody tr.attention-row.tone-none { --att-tone: #334155; }
+
+[data-theme="dark"] .orders-table tr.tone-none .attention-reason-main {
+    color: #64748b;
+}
+
 /* Yayın / Teslim sütunları: renkli nokta + kısa metin (rozet yok) */
 .orders-table .attention-state {
     --state-dot: #94a3b8;
@@ -9960,6 +9974,43 @@ button:disabled {
     border: 0;
     background: transparent;
     cursor: pointer;
+}
+
+/* Gelen evrak kartı başlığının en sağında son güncelleme saati; veri çekilirken ikon döner */
+.cd-updated {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #94a3b8;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.cd-updated .material-symbols-outlined {
+    font-size: 14px;
+}
+
+.cd-updated.is-fetching {
+    color: #0369a1;
+}
+
+.cd-updated.is-fetching .material-symbols-outlined {
+    animation: cd-updated-spin 0.9s linear infinite;
+}
+
+@keyframes cd-updated-spin {
+    to { transform: rotate(360deg); }
+}
+
+[data-theme="dark"] .cd-updated {
+    color: #64748b;
+}
+
+[data-theme="dark"] .cd-updated.is-fetching {
+    color: #7dd3fc;
 }
 
 /* Tüm yüksek öncelikli evraklar popup'ı: başlık sabit, liste uzarsa yalnız gövde kayar */
@@ -10059,6 +10110,190 @@ button:disabled {
 [data-theme="dark"] .attention-modal-close:hover {
     color: #e2e8f0;
     background: rgba(148, 163, 184, 0.14);
+}
+
+/* Teslim bekleyenler: hatırlatma e-postası önizlemesi (başlık / kapat attention-modal'dan) */
+.modal-box.attention-modal.dp-mail-modal {
+    width: 600px;
+}
+
+.dp-mail-body {
+    padding: 16px 18px;
+}
+
+.dp-mail-fields {
+    margin: 0 0 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.dp-mail-field {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: 12px;
+    align-items: baseline;
+}
+
+.dp-mail-field dt {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #94a3b8;
+}
+
+.dp-mail-field dd {
+    margin: 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #1e293b;
+    min-width: 0;
+}
+
+.dp-mail-to {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.dp-mail-address {
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #0369a1;
+    background: #e0f2fe;
+    overflow-wrap: anywhere;
+}
+
+.dp-mail-source {
+    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #64748b;
+}
+
+.dp-mail-source .material-symbols-outlined {
+    font-size: 15px;
+}
+
+.dp-mail-source.is-fallback {
+    color: #b45309;
+}
+
+/* Gönderilecek metin, satır sonları korunarak */
+.dp-mail-content {
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 12px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #f8fafc;
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: #334155;
+    white-space: pre-wrap;
+}
+
+/* Sunucu önizlemesi gelene kadar içerik soluk */
+.dp-mail-body.is-loading .dp-mail-fields,
+.dp-mail-body.is-loading .dp-mail-content {
+    opacity: 0.55;
+}
+
+.dp-mail-field dd.dp-mail-last {
+    font-weight: 500;
+    color: #64748b;
+}
+
+/* Gönderilemiyorsa nedeni (adres yok, tekrar sınırı, SMTP kapalı ...) */
+.dp-mail-alert {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin: 0 18px 12px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    color: #92400e;
+    background: #fef3c7;
+}
+
+.dp-mail-alert .material-symbols-outlined {
+    font-size: 17px;
+}
+
+[data-theme="dark"] .dp-mail-alert {
+    color: #fcd34d;
+    background: rgba(245, 158, 11, 0.14);
+}
+
+.dp-mail-foot {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 18px;
+    border-top: 1px solid #eef2f7;
+}
+
+.dp-mail-hint {
+    flex: 1 1 auto;
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+.dp-mail-send {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.dp-mail-send .material-symbols-outlined {
+    font-size: 16px;
+}
+
+[data-theme="dark"] .dp-mail-field dd {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .dp-mail-address {
+    color: #7dd3fc;
+    background: rgba(14, 165, 233, 0.16);
+}
+
+[data-theme="dark"] .dp-mail-source {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .dp-mail-source.is-fallback {
+    color: #fbbf24;
+}
+
+[data-theme="dark"] .dp-mail-content {
+    border-color: rgba(148, 163, 184, 0.18);
+    background: #0f172a;
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .dp-mail-foot {
+    border-top-color: rgba(148, 163, 184, 0.18);
+}
+
+@media (max-width: 575.98px) {
+    .dp-mail-field {
+        grid-template-columns: 1fr;
+        gap: 2px;
+    }
+
+    .dp-mail-hint {
+        display: none;
+    }
 }
 
 [data-theme="dark"] .orders-table .attention-idle.is-late {
