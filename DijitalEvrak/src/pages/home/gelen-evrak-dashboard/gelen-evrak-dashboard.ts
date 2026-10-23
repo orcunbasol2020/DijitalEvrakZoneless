@@ -1,3 +1,4 @@
+import DashboardSwitch from '../dashboard-switch/dashboard-switch';
 import { ChangeDetectionStrategy, Component, inject, signal, viewChild, ViewEncapsulation } from '@angular/core';
 import { IncomingDocumentTodayStats } from '../../../models/dashboard/IncomingDocumentTodayStats.model';
 import { IncomingDocumentService } from '../../../services/incomingdocument';
@@ -14,6 +15,7 @@ import { DeliveryPending } from '../delivery-pending/delivery-pending';
 
 @Component({
   imports: [
+    DashboardSwitch,
     DecimalPipe,
     DatePipe,
     CommonModule,

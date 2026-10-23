@@ -1,3 +1,4 @@
+import DashboardSwitch from '../dashboard-switch/dashboard-switch';
 import { idKey } from '../../../models/ids';
 import { Component, ChangeDetectionStrategy, ViewEncapsulation, computed, inject, signal, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
@@ -55,6 +56,7 @@ const BIRIM_EVRAK_SORUMLUSU = 'Birim Evrak Sorumlusu';
 
 @Component({
   imports: [
+    DashboardSwitch,
     CommonModule,
     DatePipe,
     RouterLink,

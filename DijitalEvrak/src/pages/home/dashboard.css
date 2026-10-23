@@ -133,7 +133,7 @@ app-admin-dashboard app-currentdocument .ad-head-title,
     top: 2px;
 }
 
-.ad-hero-kicker .material-symbols-outlined {
+.ad-hero-kicker > .material-symbols-outlined {
     grid-column: 1;
     grid-row: 1 / 3;
     align-self: center;
@@ -147,6 +147,56 @@ app-admin-dashboard app-currentdocument .ad-head-title,
     color: #fff;
     background: rgba(255, 255, 255, 0.16);
     border: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+/* Panel geçiş oku (yalnızca birden fazla paneli olan kullanıcıda): şeridin en sağında,
+   tam yükseklikte dikey bir şerit. Şerit içeriği okun altında kalmasın diye sağ boşluk açılır. */
+.ad-hero:has(.ad-hero-switch) {
+    padding-right: 62px;
+}
+
+/* Okun kapsayıcısı şeridin flex akışında yer kaplamasın; yoksa şeridin 16px gap'i
+   butonlarla ok arasına eklenir. */
+app-dashboard-switch {
+    display: contents;
+}
+
+.ad-hero-switch {
+    position: absolute;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 100%;
+    padding: 0;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.12);
+    border: 0;
+    border-left: 1px solid rgba(255, 255, 255, 0.3);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.ad-hero-switch .material-symbols-outlined {
+    font-size: 28px;
+    color: #fff;
+    transition: transform 0.15s;
+}
+
+.ad-hero-switch:hover {
+    background: rgba(255, 255, 255, 0.45);
+}
+
+.ad-hero-switch:hover .material-symbols-outlined {
+    transform: translateX(3px);
+}
+
+.ad-hero-switch:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: -4px;
 }
 
 .ad-hero-sub {
@@ -1072,6 +1122,10 @@ app-admin-dashboard app-currentdocument .ad-head-title,
         flex-direction: column;
         align-items: flex-start;
         padding: 18px 18px;
+    }
+
+    .ad-hero:has(.ad-hero-switch) {
+        padding-right: 60px;
     }
 
     .ad-hero-actions {
