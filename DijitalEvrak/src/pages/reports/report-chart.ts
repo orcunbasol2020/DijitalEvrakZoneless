@@ -1,5 +1,5 @@
 import { Directive, ElementRef, OnDestroy, afterNextRender, effect, inject, input, signal } from '@angular/core';
-import * as echarts from 'echarts';
+import { echarts } from '../../services/echarts';
 
 type Option = echarts.EChartsCoreOption & Record<string, any>;
 

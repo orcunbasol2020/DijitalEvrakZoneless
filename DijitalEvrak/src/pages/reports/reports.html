@@ -81,7 +81,7 @@
 <!-- ===================== Sekmeler ===================== -->
 <nav class="rp-tabs" role="tablist">
     @for (t of tabs; track t.id) {
-        <button type="button" role="tab" class="rp-tab" [class.is-active]="tab() === t.id" [attr.aria-selected]="tab() === t.id"
+        <button type="button" role="tab" class="rp-tab rp-tone-{{ toneOf(t.icon) }}" [class.is-active]="tab() === t.id" [attr.aria-selected]="tab() === t.id"
             (click)="tab.set(t.id)">
             <span class="material-symbols-outlined">{{ t.icon }}</span>
             {{ t.label }}
@@ -90,9 +90,34 @@
 </nav>
 
 @if (loading() && !data()) {
-    <div class="rp-state">
-        <span class="material-symbols-outlined rp-spin">progress_activity</span>
-        Rapor verileri yükleniyor…
+    <!-- Yükleme iskeleti: Genel Bakış'ın kart düzeninde gri yer tutucular -->
+    <div class="rp-skeleton" role="status" aria-label="Rapor verileri yükleniyor">
+        <div class="ad-stats">
+            @for (i of [1, 2, 3, 4, 5, 6, 7, 8]; track i) {
+                <div class="ad-stat rp-stat">
+                    <div class="ad-stat-body">
+                        <span class="rp-sk rp-sk-label"></span>
+                        <span class="rp-sk rp-sk-value"></span>
+                        <span class="rp-sk rp-sk-foot"></span>
+                    </div>
+                    <span class="rp-sk rp-sk-icon"></span>
+                </div>
+            }
+        </div>
+        <div class="row g-3 mb-3">
+            <div class="col-xl-8">
+                <div class="card premium-card rp-card"><div class="card-body">
+                    <span class="rp-sk rp-sk-title"></span>
+                    <span class="rp-sk rp-sk-chart"></span>
+                </div></div>
+            </div>
+            <div class="col-xl-4">
+                <div class="card premium-card rp-card"><div class="card-body">
+                    <span class="rp-sk rp-sk-title"></span>
+                    <span class="rp-sk rp-sk-chart"></span>
+                </div></div>
+            </div>
+        </div>
     </div>
 } @else if (failed() && !data()) {
     <div class="rp-state">
@@ -141,7 +166,7 @@
         <!-- ===================== Gelen Evrak ===================== -->
         @case ('incoming') {
             <div class="mb-3">
-                <ng-container *ngTemplateOutlet="chartCard; context: { title: 'Gelen Evrak Trendi', sub: incoming().length + ' evrak', icon: 'bar_chart', option: incomingTrendOption(), height: 260, granularity: true }"></ng-container>
+                <ng-container *ngTemplateOutlet="chartCard; context: { title: 'Gelen Evrak Trendi', sub: incoming().length + ' evrak', icon: 'bar_chart', tone: 'in', option: incomingTrendOption(), height: 260, granularity: true }"></ng-container>
             </div>
             <div class="rp-grid">
                 @for (b of incomingBreakdowns(); track b.id) {
@@ -153,7 +178,7 @@
         <!-- ===================== Giden Evrak ===================== -->
         @case ('outgoing') {
             <div class="mb-3">
-                <ng-container *ngTemplateOutlet="chartCard; context: { title: 'Giden Evrak Trendi', sub: outgoing().length + ' evrak', icon: 'bar_chart', option: outgoingTrendOption(), height: 260, granularity: true }"></ng-container>
+                <ng-container *ngTemplateOutlet="chartCard; context: { title: 'Giden Evrak Trendi', sub: outgoing().length + ' evrak', icon: 'bar_chart', tone: 'out', option: outgoingTrendOption(), height: 260, granularity: true }"></ng-container>
             </div>
             <div class="rp-grid">
                 @for (b of outgoingBreakdowns(); track b.id) {
@@ -169,7 +194,7 @@
                     <ng-container *ngTemplateOutlet="chartCard; context: { title: 'Birimlerin Teslim Durumu', sub: 'En yoğun 12 birim', icon: 'stacked_bar_chart', option: unitStackOption(), height: unitStackHeight() }"></ng-container>
                 </div>
                 <div class="col-xl-7">
-                    <div class="card premium-card rp-card h-100">
+                    <div class="card premium-card rp-card rp-tone-org h-100">
                         <div class="card-header dashboard-header ad-head">
                             <span class="ad-head-icon"><span class="material-symbols-outlined">compare</span></span>
                             <div class="ad-head-text">
@@ -188,7 +213,7 @@
                 </div>
             </div>
 
-            <div class="card premium-card rp-card mb-4">
+            <div class="card premium-card rp-card rp-tone-org mb-4">
                 <div class="card-header dashboard-header ad-head">
                     <span class="ad-head-icon"><span class="material-symbols-outlined">table_chart</span></span>
                     <div class="ad-head-text">
@@ -271,7 +296,7 @@
                     <ng-container *ngTemplateOutlet="chartCard; context: { title: 'Kayıt Yapan Personel', sub: 'En çok kayıt yapan 12 kişi', icon: 'badge', option: staffOption(), height: staffHeight() }"></ng-container>
                 </div>
                 <div class="col-xl-7">
-                    <div class="card premium-card rp-card h-100">
+                    <div class="card premium-card rp-card rp-tone-people h-100">
                         <div class="card-header dashboard-header ad-head">
                             <span class="ad-head-icon"><span class="material-symbols-outlined">groups</span></span>
                             <div class="ad-head-text">
@@ -582,7 +607,7 @@
 
 <!-- Özet kartı: değişim yüzdesi verilirse yükseliş / düşüş gösterilir -->
 <ng-template #kpi let-label="label" let-value="value" let-icon="icon" let-change="change" let-foot="foot">
-    <div class="ad-stat rp-stat">
+    <div class="ad-stat rp-stat rp-tone-{{ toneOf(icon) }}">
         <div class="ad-stat-body">
             <div class="ad-stat-label">{{ label }}</div>
             <div class="ad-stat-value">{{ value }}</div>
@@ -601,8 +626,8 @@
 </ng-template>
 
 <!-- Tek grafikli kart; granularity: Gün / Hafta / Ay seçimi başlıkta -->
-<ng-template #chartCard let-title="title" let-sub="sub" let-icon="icon" let-option="option" let-height="height" let-granularity="granularity">
-    <div class="card premium-card rp-card h-100">
+<ng-template #chartCard let-title="title" let-sub="sub" let-icon="icon" let-option="option" let-height="height" let-granularity="granularity" let-tone="tone">
+    <div class="card premium-card rp-card rp-tone-{{ tone || toneOf(icon) }} h-100">
         <div class="card-header dashboard-header ad-head">
             <span class="ad-head-icon"><span class="material-symbols-outlined">{{ icon }}</span></span>
             <div class="ad-head-text">
@@ -626,7 +651,7 @@
 
 <!-- Kırılım kartı: grafik ya da tablo, Excel'e aktarılabilir -->
 <ng-template #breakdown let-b>
-    <div class="card premium-card rp-card h-100">
+    <div class="card premium-card rp-card rp-tone-{{ toneOf(b.icon) }} h-100">
         <div class="card-header dashboard-header ad-head">
             <span class="ad-head-icon"><span class="material-symbols-outlined">{{ b.icon }}</span></span>
             <div class="ad-head-text">

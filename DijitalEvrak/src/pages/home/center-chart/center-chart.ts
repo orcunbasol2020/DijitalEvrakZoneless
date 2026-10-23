@@ -1,5 +1,5 @@
 import { Component, AfterViewInit, ElementRef, ViewChild } from '@angular/core';
-import * as echarts from 'echarts';
+import { echarts } from '../../../services/echarts';
 
 @Component({
   selector: 'center-chart',

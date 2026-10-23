@@ -1,5 +1,5 @@
 import { Component, ChangeDetectionStrategy, ElementRef, OnDestroy, afterNextRender, effect, input, signal, viewChild } from '@angular/core';
-import * as echarts from 'echarts';
+import { echarts } from '../../services/echarts';
 import worldMap from '../../assets/maps/world.json' assert { type: 'json' };
 import { MissionCountry } from './mission-countries';
 

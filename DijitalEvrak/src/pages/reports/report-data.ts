@@ -1,7 +1,7 @@
 import { ExternalInstitutionId, idKey } from '../../models/ids';
 import { Injectable, inject } from '@angular/core';
 import { forkJoin, Observable, of } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, shareReplay } from 'rxjs/operators';
 import { IncomingDocumentService } from '../../services/incomingdocument';
 import { Department } from '../../services/department';
 import { EXTERNAL_INSTITUTION_TYPE_LABELS, ExternalInstitution, ExternalInstitutionType } from '../../services/external-institution';
@@ -84,6 +84,8 @@ export interface ReportDataset {
 }
 
 const UNKNOWN = 'Belirtilmemiş';
+/** Rapor verisi bu süre boyunca yeniden çekilmez (sayfadan çıkıp geri dönüldüğünde) */
+const CACHE_MS = 5 * 60_000;
 /** "Dilekçe / Talep" göndereninin sabit kimliği */
 const DILEKCE_ID = -1;
 
@@ -143,8 +145,25 @@ export class ReportDataService {
   private readonly userService = inject(UserService);
   private readonly http = inject(HttpService);
 
+  private cache: { at: number; data$: Observable<ReportDataset> } | null = null;
+
+  /** Son yükleme CACHE_MS içindeyse aynı veri döner; force ile her zaman yeniden çekilir. Hata önbelleğe alınmaz. */
+  load(force = false): Observable<ReportDataset> {
+    if (!force && this.cache && Date.now() - this.cache.at < CACHE_MS) return this.cache.data$;
+
+    const data$: Observable<ReportDataset> = this.fetch().pipe(
+      catchError(err => {
+        if (this.cache?.data$ === data$) this.cache = null;
+        throw err;
+      }),
+      shareReplay(1),
+    );
+    this.cache = { at: Date.now(), data$ };
+    return data$;
+  }
+
   /** Tüm kaynaklar paralel alınır; yardımcı listelerden biri gelmezse rapor yine açılır (adlar "Belirtilmemiş" olur). */
-  load(): Observable<ReportDataset> {
+  private fetch(): Observable<ReportDataset> {
     const safe = <T>(obs: Observable<T[]>) => obs.pipe(catchError(() => of([] as T[])));
 
     return forkJoin({
