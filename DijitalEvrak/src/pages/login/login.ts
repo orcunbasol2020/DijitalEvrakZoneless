@@ -22,6 +22,7 @@ import {
   startKeycloakLogin
 } from '../../services/keycloak-auth';
 import { UserModel } from '../users/users';
+import { APP_VERSION } from '../../app-version';
 
 /**
  * checking:        giriş seçenekleri alınıyor / otomatik (Windows ya da Keycloak) giriş deneniyor
@@ -65,7 +66,7 @@ export default class Login {
   readonly showPassword = signal(false);
   readonly errorMessage = signal<string | null>(null);
 
-  readonly version = 'v1.0.0';
+  readonly version = APP_VERSION;
 
   /** Marka bloğu: başlık ve alt başlık harf harf dağıtılarak bakanlık adıyla aynı genişliğe yayılır. */
   readonly titleChars = 'DİJİTAL EVRAK'.split('').map((ch, i) => ({ ch, accent: i > 7 }));
