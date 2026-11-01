@@ -103,6 +103,12 @@ export const routes: Routes = [
                 data: { roles: ["Gelen Evrak", "Yönetici"] }
             },
             {
+                path: "tarama-klasorleri",
+                loadComponent: () => import("./pages/tarama-klasorleri/tarama-klasorleri"),
+                canActivate: [roleGuard],
+                data: { roles: ["Gelen Evrak", "Yönetici"] }
+            },
+            {
                 // Rol koruması alt rotalarda: /users/profile her kullanıcıya açık,
                 // kullanıcı listesi ve düzenleme sayfaları rol gerektirir (bkz. pages/users/route.ts).
                 path: 'users',
