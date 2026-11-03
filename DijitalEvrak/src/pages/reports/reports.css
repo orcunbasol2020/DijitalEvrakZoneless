@@ -99,9 +99,10 @@ select.rp-input {
     gap: 4px;
     margin-bottom: 18px;
     padding: 4px;
-    border: 1px solid var(--rp-border);
+    border: 1px solid #dbe5ef;
     border-radius: 14px;
-    background: #fff;
+    /* Sayfanın beyaz kartlarından ayrışsın diye hafif mavi-gri zemin */
+    background: #eaf0f6;
     overflow-x: auto;
     scrollbar-width: none;
 }
@@ -130,7 +131,8 @@ select.rp-input {
 
 .rp-tab:hover {
     color: #0f172a;
-    background: #f1f5f9;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
 }
 
 /* Etkin sekme: sitenin premium lacivert → petrol geçişi, açık turkuaz yazı */
@@ -761,6 +763,90 @@ select.rp-input {
     to { transform: rotate(360deg); }
 }
 
+/* ---------- Yükleme iskeleti: kartların yerinde soluk yanıp sönen gri bloklar ---------- */
+.rp-sk {
+    display: block;
+    border-radius: 6px;
+    background: #e8edf3;
+    animation: rp-sk-pulse 1.4s ease-in-out infinite;
+}
+
+.rp-sk-label { width: 45%; height: 10px; }
+.rp-sk-value { width: 35%; height: 26px; margin: 10px 0; }
+.rp-sk-foot { width: 60%; height: 10px; }
+.rp-sk-icon { flex-shrink: 0; width: 44px; height: 44px; border-radius: 12px; }
+.rp-sk-title { width: 30%; height: 14px; margin-bottom: 16px; }
+.rp-sk-chart { width: 100%; height: 290px; border-radius: 10px; }
+
+@keyframes rp-sk-pulse {
+    50% { opacity: 0.45; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .rp-sk { animation: none; }
+}
+
+[data-theme="dark"] .rp-sk {
+    background: #3a4558;
+}
+
+/* ---------- Anlamlı renk tonları ----------
+   Her konu tek bir renkle anlatılır (bkz. reports.ts Tone): sekme, özet kartı ve kart başlığı aynı tonu
+   paylaşır. Renk yalnızca ikon kutusu, ince vurgu şeridi ve etkin sekmede kullanılır; kart zeminleri beyaz kalır. */
+.rp-tone-in      { --tone: #0369a1; }
+.rp-tone-out     { --tone: #0d9488; }
+.rp-tone-warn    { --tone: #d97706; }
+.rp-tone-ok      { --tone: #16a34a; }
+.rp-tone-time    { --tone: #7c3aed; }
+.rp-tone-env     { --tone: #4f46e5; }
+.rp-tone-org     { --tone: #0891b2; }
+.rp-tone-people  { --tone: #db2777; }
+.rp-tone-secure  { --tone: #e11d48; }
+.rp-tone-neutral { --tone: #475569; }
+
+/* Özet kartı: tonlu ikon kutusu ve solda ince vurgu şeridi */
+.rp-page .rp-stat[class*="rp-tone-"]::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 16px;
+    bottom: 16px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--tone);
+}
+
+.rp-page .rp-stat[class*="rp-tone-"] .ad-stat-icon,
+.rp-page .rp-card[class*="rp-tone-"] .ad-head-icon {
+    color: var(--tone);
+    background: color-mix(in srgb, var(--tone) 11%, #fff);
+    border-color: color-mix(in srgb, var(--tone) 22%, #fff);
+}
+
+/* Sekmeler: pasif sekmenin ikonu tonlu, etkin sekme kendi renginde (Genel Bakış ve Detaylı Sorgu
+   nötr; onlarda sitenin lacivert geçişi kalır) */
+.rp-tab[class*="rp-tone-"]:not(.rp-tone-neutral):not(.is-active) .material-symbols-outlined {
+    color: var(--tone);
+}
+
+.rp-tab.is-active:not(.rp-tone-neutral) {
+    color: #fff;
+    background: linear-gradient(120deg, color-mix(in srgb, var(--tone) 75%, #0f172a) 0%, var(--tone) 100%);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--tone) 32%, transparent);
+}
+
+/* Koyu tema: ton biraz açılır, kutu zemini koyu kart rengine karışır */
+[data-theme="dark"] .rp-page .rp-stat[class*="rp-tone-"] .ad-stat-icon,
+[data-theme="dark"] .rp-page .rp-card[class*="rp-tone-"] .ad-head-icon {
+    color: color-mix(in srgb, var(--tone) 60%, #fff);
+    background: color-mix(in srgb, var(--tone) 22%, #2d3748);
+    border-color: color-mix(in srgb, var(--tone) 40%, #2d3748);
+}
+
+[data-theme="dark"] .rp-tab[class*="rp-tone-"]:not(.rp-tone-neutral):not(.is-active) .material-symbols-outlined {
+    color: color-mix(in srgb, var(--tone) 60%, #fff);
+}
+
 /* ---------- Dar ekran ---------- */
 @media (max-width: 767.98px) {
     .rp-field-wide {
@@ -808,7 +894,6 @@ select.rp-input {
 }
 
 [data-theme="dark"] .rp-filters,
-[data-theme="dark"] .rp-tabs,
 [data-theme="dark"] .rp-state,
 [data-theme="dark"] .rp-summary-item:not(.is-main) {
     background: #2d3748;
@@ -847,6 +932,11 @@ select.rp-input {
 
 [data-theme="dark"] .rp-ms-item:hover {
     background: rgba(14, 165, 233, 0.12);
+}
+
+[data-theme="dark"] .rp-tabs {
+    background: #1e2533;
+    border-color: #4a5568;
 }
 
 [data-theme="dark"] .rp-tab:hover {

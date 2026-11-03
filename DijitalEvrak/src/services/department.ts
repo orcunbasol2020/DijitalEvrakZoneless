@@ -28,6 +28,8 @@ export interface DepartmentModel {
   level?: number | null;
   /** Aynı seviyede makam sırası; çoğunda boş */
   sortOrder?: number | null;
+  /** Birimin kurumsal e-postası (ComDepartment.Email); kırpılmış, boşsa null */
+  email?: string | null;
 }
 
 /** "Bakan" birimi: Bakan Yardımcılıkları ve makam birimleri bunun altındadır (ağacın tepesi) */

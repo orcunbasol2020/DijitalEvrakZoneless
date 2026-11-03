@@ -584,14 +584,25 @@
   color: rgba(224, 242, 254, 0.78);
 }
 
+/* Sayfa altındaki bilgi çubuğundaki sürüm rozetiyle (.footer-version) aynı biçim;
+   koyu panel üzerinde olduğu için onun koyu tema renkleri kullanılır. */
 .login-version {
   position: absolute;
   bottom: 14px;
   right: 18px;
   z-index: 1;
-  font-size: 0.75rem;
-  letter-spacing: 0.04em;
-  color: rgba(224, 242, 254, 0.55);
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+  color: #67e8f9;
+  background-color: rgba(34, 211, 238, 0.14);
+  border: 1px solid rgba(34, 211, 238, 0.35);
 }
 
 /* ---------- Duyarlı düzen ---------- */

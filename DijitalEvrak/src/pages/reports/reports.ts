@@ -82,7 +82,27 @@ const HIGH_URGENCY = new Set<number>([
 const SECURITY_ORDER = [1, 2, 3, 4, 5, 6, 7] as SecurityDegreeEnum[];
 const SECURITY_COLORS = ['#94a3b8', '#38bdf8', '#0891b2', '#6366f1', '#f59e0b', '#ef4444', '#7c3aed'];
 
-const WEEKDAYS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+/**
+ * Anlamlı renk tonları (reports.css'te rp-tone-* sınıfları): aynı ton sayfa boyunca hep aynı şeyi anlatır.
+ * in gelen, out giden, warn bekleyen / ivedi, ok tamamlanan / yayın, time süre, env zarf,
+ * org birim / kurum, people personel, secure gizlilik, neutral genel.
+ */
+export type Tone = 'in' | 'out' | 'warn' | 'ok' | 'time' | 'env' | 'org' | 'people' | 'secure' | 'neutral';
+
+/** Kart başlığındaki ikon konuyu anlatır; ton ikondan çıkarılır (gerekirse şablonda tone ile ezilir). */
+const ICON_TONES: Record<string, Tone> = {
+  move_to_inbox: 'in', show_chart: 'in',
+  outbox: 'out',
+  pending_actions: 'warn', bolt: 'warn',
+  inventory_2: 'ok', cloud_done: 'ok', cloud_upload: 'ok', donut_large: 'ok', stacked_bar_chart: 'ok',
+  timer: 'time', calendar_view_week: 'time',
+  mail: 'env', stacks: 'env', location_on: 'env',
+  apartment: 'org', account_balance: 'org', public: 'org', compare: 'org', table_chart: 'org',
+  badge: 'people', groups: 'people',
+  lock: 'secure',
+};
+
+const WEEKDAYS =['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
 
 const fmtDay = new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'short' });
 const fmtMonth = new Intl.DateTimeFormat('tr-TR', { month: 'short', year: 'numeric' });
@@ -174,13 +194,15 @@ export default class Reports {
   readonly failed = signal(false);
 
   constructor() {
-    this.reload();
+    // Sayfaya kısa süre içinde geri dönülürse önbellekteki veri kullanılır
+    this.reload(true);
   }
 
-  reload(): void {
+  /** Yenile ve Tekrar dene düğmeleri önbelleği atlayıp verileri yeniden çeker. */
+  reload(useCache = false): void {
     this.loading.set(true);
     this.failed.set(false);
-    this.dataService.load().subscribe({
+    this.dataService.load(!useCache).subscribe({
       next: data => {
         this.data.set(data);
         this.loading.set(false);
@@ -205,6 +227,11 @@ export default class Reports {
   ];
   readonly tab = signal<Tab>('overview');
 
+  /** İkonun anlattığı konunun tonu; sekmeler, özet kartları ve kart başlıkları bunu kullanır. */
+  toneOf(icon: string): Tone {
+    return ICON_TONES[icon] ?? 'neutral';
+  }
+
   readonly presets: { id: Preset; label: string }[] = [
     { id: 'today', label: 'Bugün' },
     { id: '7', label: '7 Gün' },
@@ -214,7 +241,8 @@ export default class Reports {
     { id: 'all', label: 'Tümü' },
     { id: 'custom', label: 'Özel' },
   ];
-  readonly preset = signal<Preset>('30');
+  /** Sayfa bugünün verisiyle açılır */
+  readonly preset = signal<Preset>('today');
   readonly customFrom = signal(toInputDate(addDays(new Date(), -29)));
   readonly customTo = signal(toInputDate(new Date()));
   /** Dönem süzgeci kayıt tarihine mi belge tarihine mi uygulanır */

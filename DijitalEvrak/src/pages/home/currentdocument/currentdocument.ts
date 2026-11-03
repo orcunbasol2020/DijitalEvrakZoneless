@@ -1,9 +1,9 @@
 import { idKey } from '../../../models/ids';
-import { ChangeDetectionStrategy, Component, HostListener, ViewEncapsulation, computed, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, HostListener, ViewEncapsulation, computed, inject, input, signal } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { httpResource } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
-import { forkJoin, of } from 'rxjs';
+import { forkJoin, of, Subscription } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { IncomingDocumentService } from '../../../services/incomingdocument';
 import { Department } from '../../../services/department';
@@ -17,12 +17,11 @@ import { DocumentAssignmentService } from '../../../services/documentassignment'
 import { Common } from '../../../services/common';
 import { FlexiToastService } from 'flexi-toast';
 import { IncomingInfoModal } from '../../../../components/incoming-info-modal/incoming-info-modal';
+import { RoleService } from '../../../services/role-service';
 
 /** recent: en son kaydedilen evraklar (Gelen Evrak paneli)
  *  attention: işi bitmemiş evraklardan dikkat gerektirenler (Yönetici paneli) */
 export type CurrentDocumentMode = 'recent' | 'attention';
-
-export type AttentionRowAction = 'detail' | 'process';
 
 /** Ön kayıt / kayıt aşamaları (1, 2, 4): bu evraklarda İşleme Al kilidi geçerli */
 const IN_REGISTRATION = new Set<number>([1, 2, 4]);
@@ -58,6 +57,8 @@ interface DocRow {
   securityDegree: number;
   urgencyDegree: number | null;
   score: number;
+  /** İşi bitmemiş evrak (yayın + teslim tamamlanmamış) */
+  open: boolean;
   /** İvedilik adı ve (varsa) yüksek gizlilik derecesi */
   reason: string;
   reasonSub: string;
@@ -65,7 +66,8 @@ interface DocRow {
   tone: AttentionTone;
 }
 
-type AttentionTone = 'critical' | 'high' | 'medium' | 'low';
+/** none: ivedi olmayan, kartı 5'e tamamlamak için eklenen uzun bekleyen evrak */
+type AttentionTone = 'critical' | 'high' | 'medium' | 'low' | 'none';
 
 const URGENCY_TONE: Record<number, AttentionTone> = {
   [UrgencyDegreeEnum.Lightning]: 'critical',
@@ -75,6 +77,9 @@ const URGENCY_TONE: Record<number, AttentionTone> = {
 };
 
 const ROW_LIMIT = 6;
+
+/** Kart verisinin otomatik yenilenme aralığı */
+const AUTO_REFRESH_MS = 60_000;
 
 /** Yönetici kartında gösterilen yüksek öncelikli evrak sayısı; fazlası "Tümünü gör" popup'ında. */
 const ATTENTION_CARD_LIMIT = 5;
@@ -141,9 +146,8 @@ export class Currentdocument {
   /** Başlık altındaki açıklama satırı; Yönetici panelinde gösterilmez */
   readonly showSubtitle = input<boolean>(true);
 
-  /** Dikkat listesinde satıra tıklayınca ne olacağı.
-   *  detail: Evrak Bilgileri popup'ı, oradan kilitsiz belge detayı (Yönetici), process: Gelen Evraklar'daki İşleme Al akışı (evrak kayıt personeli) */
-  readonly rowAction = input<AttentionRowAction>('detail');
+  /** Evrak Bilgileri popup'ında kayıt ekranına götüren düğme yalnızca Gelen Evrak rolüne gösterilir */
+  readonly canRegister = inject(RoleService).has('Gelen Evrak');
 
   /** Evrak hücresinde Nereden (gönderen kurum) / Nereye (birim) satırı; evrak kayıt panelinde açık */
   readonly showRoute = input<boolean>(false);
@@ -192,9 +196,19 @@ export class Currentdocument {
       .sort((a, b) => b.score - a.score || b.idleMinutes - a.idleMinutes)
   );
 
+  /** İvedi olmayan açık evraklar, en uzun bekleyen önde: kart 5'ten az ivedi evrakla kalırsa bunlarla tamamlanır */
+  private readonly fillerRows = computed<DocRow[]>(() =>
+    this.allRows()
+      .filter(r => r.open && r.score === 0)
+      .sort((a, b) => b.idleMinutes - a.idleMinutes)
+  );
+
   /** Kartta gösterilen satırlar */
   readonly rows = computed<DocRow[]>(() => {
-    if (this.isAttention()) return this.attentionRows().slice(0, ATTENTION_CARD_LIMIT);
+    if (this.isAttention()) {
+      const urgent = this.attentionRows().slice(0, ATTENTION_CARD_LIMIT);
+      return [...urgent, ...this.fillerRows().slice(0, ATTENTION_CARD_LIMIT - urgent.length)];
+    }
     return [...this.allRows()].sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, ROW_LIMIT);
   });
 
@@ -217,8 +231,21 @@ export class Currentdocument {
     if (this.allOpen()) this.closeAll();
   }
 
-  // ---- Evrak Bilgileri popup'ı (Yönetici) ----
+  // ---- Evrak Bilgileri popup'ı ----
   readonly infoDoc = signal<IncomingDocumentModel | null>(null);
+
+  /** Popup'taki evrakın satırı: kayıt düğmesinin kilidi ve "sürüyor" durumu buradan */
+  private readonly infoRow = computed(() => {
+    const id = this.infoDoc()?.id;
+    return id ? this.allRows().find(r => r.id === id) ?? null : null;
+  });
+
+  readonly infoBlockedReason = computed(() => {
+    const row = this.infoRow();
+    return row ? this.blockReason(row) : null;
+  });
+
+  readonly infoBusy = computed(() => !!this.infoDoc() && this.processingId() === this.infoDoc()!.id);
 
   private openInfo(id: string): void {
     const doc = this.documents().find(d => d.id === id);
@@ -231,21 +258,42 @@ export class Currentdocument {
     this.infoDoc.set(null);
   }
 
+  /** Kayıt ekranına git: Gelen Evraklar'daki İşleme Al akışı (atama + Evrak Kayıt) */
   openInfoDetail(id: string): void {
-    this.closeInfo();
-    this.goDetail(id);
+    const row = this.infoRow();
+    if (row?.id === id) this.processRow(row);
   }
+
+  /** Veri çekiliyor (ilk yükleme, yenile butonu ya da otomatik yenileme) */
+  readonly fetching = signal(false);
+  /** Son başarılı yüklemenin zamanı; başlığın sağında gösterilir */
+  readonly lastUpdated = signal<Date | null>(null);
+  private fetchSub?: Subscription;
 
   constructor() {
     this.reload();
+
+    // Liste ve bekleme süreleri 60 sn'de bir sessizce tazelenir; açık popup'lar kapanmaz
+    const timer = setInterval(() => {
+      if (!this.fetching()) this.reload(true);
+    }, AUTO_REFRESH_MS);
+    inject(DestroyRef).onDestroy(() => {
+      clearInterval(timer);
+      this.fetchSub?.unsubscribe();
+    });
   }
 
-  reload(): void {
-    this.loading.set(true);
-    this.failed.set(false);
-    this.usersResult.reload();
+  /** silent: otomatik yenileme; tablo "Yükleniyor…" durumuna geçmez, hata olursa eldeki liste korunur */
+  reload(silent = false): void {
+    this.fetchSub?.unsubscribe();
+    this.fetching.set(true);
+    if (!silent) {
+      this.loading.set(true);
+      this.failed.set(false);
+      this.usersResult.reload();
+    }
 
-    forkJoin({
+    this.fetchSub = forkJoin({
       docs: this.incomingDocumentService.getAllIncomingDocuments(),
       departments: this.departmentService.getDepartments().pipe(catchError(() => of([]))),
     }).subscribe({
@@ -260,10 +308,15 @@ export class Currentdocument {
         this.placeNames.set(names);
         this.departmentShortNames.set(shortNames);
         this.documents.set(docs ?? []);
+        this.failed.set(false);
         this.loading.set(false);
+        this.fetching.set(false);
+        this.lastUpdated.set(new Date());
       },
       error: err => {
         console.error('Gelen evraklar alınamadı:', err);
+        this.fetching.set(false);
+        if (silent && !this.failed()) return;
         this.documents.set([]);
         this.failed.set(true);
         this.loading.set(false);
@@ -283,14 +336,16 @@ export class Currentdocument {
     // Önce ivedilik (binler basamağı), sonra gizlilik (50-70); eşitlikte en uzun bekleyen önde.
     const highSecurity = HIGH_SECURITY.has(doc.securityDegree);
     const listedUrgency = urgency != null && HIGH_URGENCY.has(urgency);
+    const open = isOpen(doc);
     let score = 0;
-    if (isOpen(doc) && listedUrgency) {
+    if (open && listedUrgency) {
       score = URGENCY_WEIGHT[urgency!] + (highSecurity ? doc.securityDegree * 10 : 0);
     }
 
-    const reason = listedUrgency ? UrgencyDegreeLabels[urgency as UrgencyDegreeEnum] : '';
+    // Tamamlayıcı satırlarda da evrakın kendi ivediliği (Normal, İvedi Süreli) yazılır
+    const reason = urgency != null ? UrgencyDegreeLabels[urgency as UrgencyDegreeEnum] ?? '-' : '-';
     const reasonSub = highSecurity ? SecurityDegreeLabels[doc.securityDegree as SecurityDegreeEnum] : '';
-    const tone: AttentionTone = listedUrgency ? URGENCY_TONE[urgency!] : 'low';
+    const tone: AttentionTone = listedUrgency ? URGENCY_TONE[urgency!] : 'none';
 
     return {
       id: doc.id!,
@@ -317,6 +372,7 @@ export class Currentdocument {
       securityDegree: doc.securityDegree,
       urgencyDegree: urgency,
       score,
+      open,
       reason,
       reasonSub,
       tone,
@@ -409,6 +465,10 @@ export class Currentdocument {
     return date.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   }
 
+  getTime(date: Date): string {
+    return date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+  }
+
   getFullDateTime(date: Date): string {
     return date.toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
@@ -419,9 +479,8 @@ export class Currentdocument {
     return !!id && !!me && id.toLowerCase() === me.toLowerCase();
   }
 
-  /** İşleme Al akışında açılamayan satır: belge taranmamış ya da kayıttaki evrak başka personelde */
+  /** Kayıt ekranına götüren düğmenin kilidi: belge taranmamış ya da kayıttaki evrak başka personelde */
   private blockReason(row: DocRow): string | null {
-    if (this.rowAction() !== 'process') return null;
     if (!row.scanned) return 'Belge henüz taranmadı';
     if (IN_REGISTRATION.has(row.docStatus) && row.assigneeId && !this.isMe(row.assigneeId)) {
       return `${row.assignee || 'Başka bir personel'} üzerinde işlemde`;
@@ -429,34 +488,12 @@ export class Currentdocument {
     return null;
   }
 
-  isRowClickable(row: DocRow): boolean {
-    return this.blockReason(row) === null;
-  }
-
-  /** Gelen Evraklar'daki İşleme Al düğmesinin başlıklarıyla aynı */
-  getRowTitle(row: DocRow): string {
-    if (this.rowAction() !== 'process') return 'Evrak bilgilerini göster';
-    const blocked = this.blockReason(row);
-    if (blocked) return blocked;
-    if (!IN_REGISTRATION.has(row.docStatus)) return 'Belge Detayına Git';
-    return this.isMe(row.assigneeId) ? 'İşleme Devam Et' : 'İşleme Al';
-  }
-
+  /** Satıra tıklanınca her iki panelde de Evrak Bilgileri açılır; kayıt ekranına geçiş popup'taki düğmeden */
   onRowClick(row: DocRow): void {
-    if (!this.isAttention() || !this.isRowClickable(row)) return;
-    if (this.rowAction() === 'process') this.processRow(row);
-    else this.openInfo(row.id);
+    if (this.isAttention()) this.openInfo(row.id);
   }
 
-  /** Yönetici: atama (işleme alma) ya da kilit kontrolü yapmadan belge detayına gider. */
-  private goDetail(id: string) {
-    this.closeAll();
-    this.incomingDocumentService.setSelectedIncomingDocument(id);
-    this.incomingDocumentService.setIncomingDocumentUpdateType('1');
-    this.router.navigate(['/evrakkayit']);
-  }
-
-  /** Evrak kayıt personeli: Gelen Evraklar'daki İşleme Al ile aynı akış. Evrak giriş yapan
+  /** Gelen Evrak rolü: Gelen Evraklar'daki İşleme Al ile aynı akış. Evrak giriş yapan
    *  kullanıcıya atanır, ardından Evrak Kayıt ekranı açılır. */
   private processRow(row: DocRow): void {
     if (this.processingId()) return;
@@ -470,6 +507,7 @@ export class Currentdocument {
     this.assignmentService.createAssignment({ documentId: row.id, userId }).subscribe({
       next: () => {
         this.processingId.set(null);
+        this.closeInfo();
         this.closeAll();
         this.incomingDocumentService.setSelectedIncomingDocument(row.id);
         this.incomingDocumentService.setIncomingDocumentUpdateType('1');

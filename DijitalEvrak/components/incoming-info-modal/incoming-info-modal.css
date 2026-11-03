@@ -84,6 +84,22 @@
     line-height: 1.2;
 }
 
+/* Ortak popup'ta başlık satırı yok; evrak no ve konu bir punto küçük,
+   yükleniyor göstergesi evrak no'nun yanında. Scanlist / evrak listesindeki kopyalar etkilenmez. */
+app-incoming-info-modal .ei-doc-no {
+    margin-top: 0;
+    font-size: 21px;
+}
+
+app-incoming-info-modal .ei-subject {
+    font-size: 12.5px;
+}
+
+.ei-doc-no .ei-spinner {
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
 .ei-subject {
     margin-top: 4px;
     font-size: 13.5px;
@@ -635,8 +651,11 @@
 }
 
 /* Alt bilgi satırının sağında belge detayına geçiş (panellerde açılan popup) */
-.ei-detail-btn {
+.ei-detail-wrap {
     margin-left: auto;
+}
+
+.ei-detail-btn {
     display: inline-flex;
     align-items: center;
     gap: 4px;

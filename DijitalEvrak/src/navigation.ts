@@ -102,6 +102,12 @@ export const navigations: NavigationModel[] = [
         icon: "cloud_sync",
         roles: ["Gelen Evrak", "Yönetici"]
     },
+    {
+        title: "Tarama Klasörleri",
+        url: "/tarama-klasorleri",
+        icon: "folder_open",
+        roles: ["Gelen Evrak", "Yönetici"]
+    },
 
     {
         category: "Giden Evrak",
@@ -210,6 +216,12 @@ export const navigations: NavigationModel[] = [
         title: "Uygulama Ayarları",
         url: "/app-settings",
         icon: "tune",
+        roles: ["Yönetici"]
+    },
+    {
+        title: "Hata Kayıtları",
+        url: "/error-logs",
+        icon: "bug_report",
         roles: ["Yönetici"]
     },
 

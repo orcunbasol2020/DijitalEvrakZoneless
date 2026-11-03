@@ -9,13 +9,12 @@
             <span class="material-symbols-outlined">description</span>
           </div>
           <div class="ei-head-text">
-            <div class="ei-overline">
-              Evrak Bilgileri
+            <div class="ei-doc-no">
+              {{ v.qrCode }}
               @if (loading()) {
                 <span class="spinner-border ei-spinner" title="Güncel bilgiler getiriliyor"></span>
               }
             </div>
-            <div class="ei-doc-no">{{ v.qrCode }}</div>
             <div class="ei-subject" [class.is-empty]="!v.subject" [title]="v.subject">
               {{ v.subject || 'Konu girilmemiş' }}
             </div>
@@ -157,10 +156,17 @@
             </span>
           }
           @if (showDetailLink()) {
-            <button type="button" class="btn btn-sm btn-outline-primary ei-detail-btn" (click)="openDetail()">
-              Evrak detayına git
-              <span class="material-symbols-outlined">arrow_forward</span>
-            </button>
+            <!-- Pasif düğmede title görünmediği için neden sarmalayıcıda -->
+            <span class="ei-detail-wrap" [title]="detailBlockedReason() ?? ''">
+              <button type="button" class="btn btn-sm btn-outline-primary ei-detail-btn"
+                [disabled]="!!detailBlockedReason() || detailBusy()" (click)="openDetail()">
+                @if (detailBusy()) {
+                  <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                }
+                {{ detailLabel() }}
+                <span class="material-symbols-outlined">arrow_forward</span>
+              </button>
+            </span>
           }
         </footer>
       }

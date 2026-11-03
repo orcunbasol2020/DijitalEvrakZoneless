@@ -1,0 +1,248 @@
+/* ============================================================
+   Hata Kayıtları sayfası
+   Görsel dil: Giriş Kayıtları ile aynı. Kart (st-*), boş durum (sp-*),
+   tablo / sayfalama (zl-*) ve filtre şeridi (ll-*) paylaşılır; burada
+   yalnızca bu ekrana özgü "el-" sınıfları var.
+   ============================================================ */
+
+/* ---- Tablo ---- */
+.el-row {
+    cursor: pointer;
+}
+
+.el-row:focus-visible td {
+    outline: none;
+    background: #f0f9ff;
+}
+
+.el-path {
+    display: inline-block;
+    max-width: 280px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+}
+
+/* Özet tek satıra sığdırılır; tamamı title ile görünür */
+.el-table td:last-child {
+    width: 100%;
+    max-width: 0;
+}
+
+.el-summary {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #475569;
+}
+
+/* Tür rozeti: HTTP metodu ya da "Arka plan" (gri) */
+.el-badge {
+    display: inline-block;
+    min-width: 52px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    color: #0369a1;
+    background: #e0f2fe;
+    border: 1px solid #bae6fd;
+}
+
+.el-badge.is-background {
+    font-family: inherit;
+    color: #475569;
+    background: #f1f5f9;
+    border-color: #e2e8f0;
+}
+
+/* Tekrar sayısı; 10 ve üstü turuncu */
+.el-count {
+    display: inline-block;
+    min-width: 38px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: #475569;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+}
+
+.el-count.is-high {
+    color: #c2410c;
+    background: #ffedd5;
+    border-color: #fdba74;
+}
+
+.el-section-note {
+    font-size: 12px;
+    font-weight: 500;
+    color: #94a3b8;
+}
+
+/* Kullanıcı adı: tıklayınca kullanıcı süzgeci dolar */
+.el-user {
+    padding: 0;
+    border: 0;
+    background: none;
+    font-weight: 600;
+    color: #0369a1;
+    cursor: pointer;
+}
+
+.el-user:hover {
+    text-decoration: underline;
+}
+
+.el-user-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 34px;
+    padding: 0 6px 0 10px;
+    border-radius: 10px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #0369a1;
+    background: #e0f2fe;
+    border: 1px solid #bae6fd;
+}
+
+.el-user-chip .material-symbols-outlined {
+    font-size: 17px;
+}
+
+.el-user-chip button {
+    display: inline-flex;
+    padding: 2px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+
+.el-user-chip button:hover {
+    background: rgba(3, 105, 161, 0.12);
+}
+
+/* ---- Detay penceresi ---- */
+.modal-box.ship-modal.el-modal {
+    width: 900px;
+}
+
+.el-meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px 16px;
+    margin: 0 0 16px;
+}
+
+.el-meta dt {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #64748b;
+}
+
+.el-meta dd {
+    margin: 2px 0 0;
+    word-break: break-all;
+    color: #1e293b;
+}
+
+.el-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.el-section-head h6 {
+    margin: 0;
+    font-weight: 700;
+}
+
+.el-pre {
+    max-height: 340px;
+    margin: 0;
+    padding: 10px 12px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #0f172a;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+}
+
+.el-details {
+    margin-top: 14px;
+}
+
+.el-details summary {
+    margin-bottom: 6px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+/* ============================================================
+   Koyu tema
+   ============================================================ */
+[data-theme="dark"] .el-row:focus-visible td {
+    background: rgba(14, 165, 233, 0.1);
+}
+
+[data-theme="dark"] .el-summary {
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .el-badge,
+[data-theme="dark"] .el-user-chip {
+    color: #7dd3fc;
+    background: rgba(14, 165, 233, 0.15);
+    border-color: rgba(14, 165, 233, 0.35);
+}
+
+[data-theme="dark"] .el-badge.is-background {
+    color: #cbd5e1;
+    background: rgba(148, 163, 184, 0.12);
+    border-color: rgba(148, 163, 184, 0.25);
+}
+
+[data-theme="dark"] .el-count {
+    color: #cbd5e1;
+    background: rgba(148, 163, 184, 0.12);
+    border-color: rgba(148, 163, 184, 0.25);
+}
+
+[data-theme="dark"] .el-count.is-high {
+    color: #fdba74;
+    background: rgba(249, 115, 22, 0.15);
+    border-color: rgba(249, 115, 22, 0.4);
+}
+
+[data-theme="dark"] .el-user {
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .el-meta dt {
+    color: #a0aec0;
+}
+
+[data-theme="dark"] .el-meta dd {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .el-pre {
+    color: #e2e8f0;
+    background: rgba(148, 163, 184, 0.08);
+    border-color: rgba(148, 163, 184, 0.2);
+}

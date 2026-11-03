@@ -20,6 +20,7 @@ import { NotificationModel, NotificationTypeEnum, NotificationTypeIcons, Notific
 import { isSentToPublish } from '../../models/publishstatus.model';
 
 import { DocumentSearchResult, DocumentSearchService } from '../../services/document-search';
+import { APP_VERSION } from '../../app-version';
 
 interface HighlightPart {
   text: string;
@@ -85,6 +86,7 @@ function highlightParts(text: string, words: string[]): HighlightPart[] {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export default class Layouts {
+  readonly appVersion = APP_VERSION;
   readonly search = signal<string>("");
   readonly showSearchResults = signal<boolean>(false);
   readonly activeResultIndex = signal<number>(-1);

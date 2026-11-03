@@ -18,7 +18,7 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { FlexiToastService } from 'flexi-toast';
 import { Common } from '../../services/common';
 import { firstValueFrom } from 'rxjs';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { IncomingDocumentService } from '../../services/incomingdocument';
 import { ScanThumb } from './scan-thumb';
 import { ScanInfoModal } from '../../../components/scan-info-modal/scan-info-modal';
@@ -43,7 +43,11 @@ export default class Scanneddocument implements OnInit, OnDestroy {
   private toast = inject(FlexiToastService);
   readonly #common = inject(Common);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private incomingDocumentService = inject(IncomingDocumentService);
+
+  // Dijitalleştirme Takip'ten gelindiyse (?source=&fileName=&qrCode=) ilk yüklemede o tarama açılır
+  private requestedScan: { source: string; fileName: string; qrCode: string } | null = null;
 
   readonly user = computed(() => this.#common.user());
 
@@ -129,6 +133,15 @@ export default class Scanneddocument implements OnInit, OnDestroy {
   private keydownHandler!: (e: KeyboardEvent) => void;
 
   ngOnInit() {
+    const params = this.route.snapshot.queryParamMap;
+    const fileName = params.get('fileName') ?? '';
+    const qrCode = params.get('qrCode') ?? '';
+    if (fileName || qrCode) {
+      this.requestedScan = { source: params.get('source') ?? '', fileName, qrCode };
+      // Yenilemede ya da geri dönüşte tekrar uygulanmasın
+      this.router.navigate([], { relativeTo: this.route, queryParams: {}, replaceUrl: true });
+    }
+
     this.loadDocuments();
     this.service.getScanSources().then(sources => {
       if (sources.length) this.sources.set(sources);
@@ -171,6 +184,7 @@ export default class Scanneddocument implements OnInit, OnDestroy {
       // Eşleşen evrak listeden düştüğü için aynı sıra bir sonraki evrağı gösterir; eşleşen evrak
       // listenin sonundaysa önceki (zaten geçilmiş) evraka dönmek yerine baştan devam edilir.
       this.currentIndex.set(index < docs.length ? index : 0);
+      this.openRequestedScan(docs);
       this.resetQr();
       // Liste kısaldıysa ızgara son sayfaya çekilir
       this.setGridPage(this.gridPage());
@@ -181,6 +195,28 @@ export default class Scanneddocument implements OnInit, OnDestroy {
     } finally {
       this.isLoading.set(false);
       this.focusQrInputSoon();
+    }
+  }
+
+  /** İstenen tarama listede varsa tek evrak görünümünde açılır; yoksa (bu arada eşleştirilmiş olabilir) bildirilir. */
+  private openRequestedScan(docs: ScanFileModel[]) {
+    const requested = this.requestedScan;
+    if (!requested) return;
+    this.requestedScan = null;
+
+    const sameSource = (d: ScanFileModel) => !requested.source || d.source === requested.source;
+    // Önce depodaki dosya adıyla (tekil), bulunamazsa barkoddan okunan numarayla aranır
+    let index = requested.fileName
+      ? docs.findIndex(d => d.fileName === requested.fileName && sameSource(d))
+      : -1;
+    if (index < 0 && requested.qrCode) {
+      index = docs.findIndex(d => sameSource(d) && (d.qrCodes ?? []).includes(requested.qrCode));
+    }
+    if (index >= 0) {
+      this.currentIndex.set(index);
+      this.viewMode.set('single');
+    } else {
+      this.toast.showToast('Bilgi', 'Tarama havuzda bulunamadı; evraka bağlanmış ya da arşivlenmiş olabilir.', 'warning');
     }
   }
 

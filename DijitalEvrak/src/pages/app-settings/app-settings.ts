@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, HostListener, ViewEncapsulation, computed, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { from, of } from 'rxjs';
 import { catchError, concatMap, map, toArray } from 'rxjs/operators';
 import { FlexiToastService } from 'flexi-toast';
@@ -10,9 +10,9 @@ import { AtlasDocumentNumberService, AtlasNumberStock } from '../../services/atl
 import { AtlasTransferService, AtlasTransferStats } from '../../services/atlas-transfer';
 import { Common } from '../../services/common';
 
-type FieldKind = 'text' | 'email' | 'textarea' | 'bool' | 'int';
+type FieldKind = 'text' | 'email' | 'url' | 'textarea' | 'bool' | 'int';
 
-type GroupId = 'general' | 'scan' | 'zimmet' | 'atlas' | 'atlasTransfer' | 'session' | 'other';
+type GroupId = 'general' | 'scan' | 'zimmet' | 'deliveryReminder' | 'smtp' | 'atlas' | 'atlasTransfer' | 'session' | 'other';
 
 interface SettingDef {
   key: string;
@@ -31,6 +31,10 @@ interface SettingDef {
   note?: string;
   /** Metin alanı yalnızca rakam içerebilir (ör. DETSİS kodu) */
   digitsOnly?: boolean;
+  /** Metin alanı sunucu adı / IP'dir: http:// ve :port yazılmaz */
+  hostName?: boolean;
+  /** Metin alanı virgülle ayrılmış alan adlarıdır (@ ve http:// olmadan) */
+  domainList?: boolean;
   /** Uyarı tonunda not (ör. henüz açılmaması gereken ayar) */
   warn?: boolean;
   /** true yapılmadan önce onay penceresi */
@@ -39,6 +43,8 @@ interface SettingDef {
 
 interface GroupDef {
   id: GroupId;
+  /** Sekmedeki kısa ad */
+  nav: string;
   title: string;
   sub: string;
   icon: string;
@@ -60,18 +66,28 @@ const MAX_LENGTH = 2000;
 const WORK_START = 'ZimmetReminderWorkStartHour';
 const WORK_END = 'ZimmetReminderWorkEndHour';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const URL_RE = /^https?:\/\/\S+$/i;
+const HOST_RE = /^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$/;
 
 const GROUPS: GroupDef[] = [
-  { id: 'general', title: 'Genel Bilgiler', sub: '"Hakkında" ekranı ve destek bilgisi', icon: 'info' },
-  { id: 'scan', title: 'Taranan Belgelerin Otomatik Aktarımı', sub: 'Sunucudaki klasörden belgelerin içeri alınması', icon: 'folder_open' },
+  { id: 'general', nav: 'Genel', title: 'Genel Bilgiler', sub: '"Hakkında" ekranı ve destek bilgisi', icon: 'info' },
+  { id: 'scan', nav: 'Taranan Belgeler', title: 'Taranan Belgelerin Otomatik Aktarımı', sub: 'Sunucudaki klasörden belgelerin içeri alınması', icon: 'folder_open' },
   {
-    id: 'zimmet', title: 'Zimmet Onayı ve Hatırlatmalar', sub: 'Kurum içi devir / teslim onayı ve hatırlatma e-postaları', icon: 'notifications_active',
+    id: 'zimmet', nav: 'Zimmet', title: 'Zimmet Onayı ve Hatırlatmalar', sub: 'Kurum içi devir / teslim onayı ve hatırlatma e-postaları', icon: 'notifications_active',
     note: 'Hatırlatmalar yalnızca hafta içi ve aşağıdaki mesai saatleri arasında, sunucu saatine göre gönderilir.',
   },
-  { id: 'atlas', title: 'Atlas Evrak Numarası Havuzu', sub: 'QR kod numaralarının Atlas\'tan alınması', icon: 'qr_code_2' },
-  { id: 'atlasTransfer', title: 'Atlas\'a Aktarım', sub: 'Yayınlanan evrakların EYP olarak Atlas\'a gönderilmesi', icon: 'cloud_upload' },
-  { id: 'session', title: 'Oturum Güvenliği', sub: 'İşlem yapılmayan oturumların otomatik kapanması', icon: 'lock_clock' },
-  { id: 'other', title: 'Diğer Ayarlar', sub: 'Bu ekranda henüz özel alanı olmayan ayarlar', icon: 'tune' },
+  {
+    id: 'deliveryReminder', nav: 'Teslim Hatırlatma', title: 'Teslim Hatırlatma E-postası',
+    sub: 'Teslim alınmayı bekleyen evrakı olan birime gönderilen bilgilendirme', icon: 'mail',
+  },
+  {
+    id: 'smtp', nav: 'E-posta (SMTP)', title: 'E-posta (SMTP)', sub: 'Sunucudan gönderilen e-postaların bağlantı ayarları', icon: 'outgoing_mail',
+    note: 'Gönderim için e-posta gönderimi açık, sunucu ve gönderen adresi dolu olmalı. Değişiklik bir sonraki gönderimde geçerli olur.',
+  },
+  { id: 'atlas', nav: 'Atlas Numara Havuzu', title: 'Atlas Evrak Numarası Havuzu', sub: 'QR kod numaralarının Atlas\'tan alınması', icon: 'qr_code_2' },
+  { id: 'atlasTransfer', nav: 'Atlas Aktarımı', title: 'Atlas\'a Aktarım', sub: 'Yayınlanan evrakların EYP olarak Atlas\'a gönderilmesi', icon: 'cloud_upload' },
+  { id: 'session', nav: 'Oturum', title: 'Oturum Güvenliği', sub: 'İşlem yapılmayan oturumların otomatik kapanması', icon: 'lock_clock' },
+  { id: 'other', nav: 'Diğer', title: 'Diğer Ayarlar', sub: 'Bu ekranda henüz özel alanı olmayan ayarlar', icon: 'tune' },
 ];
 
 const DEFS: SettingDef[] = [
@@ -96,6 +112,36 @@ const DEFS: SettingDef[] = [
   },
   { key: WORK_START, group: 'zimmet', label: 'Mesai başlangıcı', kind: 'int', min: 0, max: 23, unit: 'saat' },
   { key: WORK_END, group: 'zimmet', label: 'Mesai bitişi', kind: 'int', min: 1, max: 24, unit: 'saat' },
+
+  {
+    key: 'DeliveryReminderMinIntervalMinutes', group: 'deliveryReminder', label: 'Tekrar gönderim aralığı', kind: 'int',
+    min: 0, max: 1440, unit: 'dk', note: 'Aynı birime bu süre dolmadan yeni hatırlatma gönderilemez; 0 girilirse sınır yoktur.',
+  },
+  {
+    key: 'DeliveryReminderAppUrl', group: 'deliveryReminder', label: 'Teslim alma bağlantısı', kind: 'url',
+    note: 'Doluysa e-postanın sonuna bağlantı olarak eklenir (ör. https://…/teslim-alma).',
+  },
+  {
+    key: 'DeliveryReminderAllowedEmailDomains', group: 'deliveryReminder', label: 'Elle alıcı alan adları', kind: 'text',
+    domainList: true,
+    note: 'Alıcı bulunamayan birimde elle girilebilecek adreslerin alan adları, virgülle ayrılmış (ör. mfa.gov.tr). '
+      + 'Birebir eşleşir, alt alan adı kabul edilmez. Boşsa elle giriş kapalıdır.',
+  },
+
+  { key: 'SmtpEnabled', group: 'smtp', label: 'E-posta gönderimi', kind: 'bool' },
+  { key: 'SmtpHost', group: 'smtp', label: 'SMTP sunucusu', kind: 'text', hostName: true, hint: 'Sunucu adı ya da IP, ör. smtp.kurum.gov.tr' },
+  { key: 'SmtpPort', group: 'smtp', label: 'Port', kind: 'int', min: 1, max: 65535 },
+  { key: 'SmtpEnableSsl', group: 'smtp', label: 'SSL / TLS', kind: 'bool' },
+  {
+    key: 'SmtpUserName', group: 'smtp', label: 'Kullanıcı adı', kind: 'text',
+    note: 'Boşsa kimlik doğrulamasız gönderilir. Parola bu ekranda tutulmaz; sunucu yapılandırmasında (Smtp__Password) verilir.',
+  },
+  { key: 'SmtpFromAddress', group: 'smtp', label: 'Gönderen adresi', kind: 'email' },
+  { key: 'SmtpFromName', group: 'smtp', label: 'Gönderen adı', kind: 'text' },
+  {
+    key: 'SmtpTestRecipientOverride', group: 'smtp', label: 'Test alıcısı', kind: 'email', warn: true,
+    note: 'Doluysa tüm e-postalar yalnızca bu adrese gider. Canlı ortamda boş bırakılmalı.',
+  },
 
   {
     key: 'AtlasNumberPoolEnabled', group: 'atlas', label: 'Havuzu otomatik doldur', kind: 'bool', warn: true,
@@ -144,14 +190,15 @@ function saveErrorMessage(err: unknown): string {
 }
 
 /**
- * Uygulama ayarları (yalnızca Yönetici). Değişiklikler tek "Kaydet" ile, yalnızca değişen
- * ayarlar için ve her biri ayrı istekle gönderilir; kaydedildiği an geçerli olur.
+ * Uygulama ayarları (yalnızca Yönetici). Üstte grup sekmeleri, altında seçili grubun alanları. Değişiklikler
+ * gruplar arasında korunur; tek "Kaydet" ile, yalnızca değişen ayarlar için ve her biri ayrı istekle
+ * gönderilir; kaydedildiği an geçerli olur.
  */
 @Component({
   imports: [GenericModel, RouterLink],
   templateUrl: './app-settings.html',
-  // Kart iskeleti (st-*) Ayarlar, üst kart (sp-hero) Destek sayfasıyla ortak
-  styleUrls: ['../support/support.css', '../settings/settings.css', './app-settings.css'],
+  // Kart iskeleti ve sayaç hapı (st-*) Ayarlar sayfasıyla ortak
+  styleUrls: ['../settings/settings.css', './app-settings.css'],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -212,14 +259,37 @@ export default class AppSettings {
     const fields = this.fields();
     const order = new Map(DEFS.map((d, i) => [d.key, i]));
     return GROUPS
-      .map(group => ({
-        ...group,
-        fields: fields
+      .map(group => {
+        const groupFields = fields
           .filter(f => f.def.group === group.id)
-          .sort((a, b) => (order.get(a.def.key) ?? 999) - (order.get(b.def.key) ?? 999) || a.def.key.localeCompare(b.def.key)),
-      }))
+          .sort((a, b) => (order.get(a.def.key) ?? 999) - (order.get(b.def.key) ?? 999) || a.def.key.localeCompare(b.def.key));
+        // Grubun aç / kapa anahtarı (ör. SmtpEnabled): sekmede Açık / Kapalı olarak görünür
+        const toggle = groupFields.find(f => f.def.kind === 'bool' && f.def.key.endsWith('Enabled'));
+        return {
+          ...group,
+          fields: groupFields,
+          dirty: groupFields.filter(f => f.dirty).length,
+          invalid: groupFields.some(f => f.error || f.saveError),
+          enabled: toggle ? isTrue(toggle.value) : null,
+        };
+      })
       .filter(g => g.fields.length > 0);
   });
+
+  // ---- Sekmeler: seçili grup adres çubuğunda (?bolum=smtp), yenilemede ve paylaşılan bağlantıda korunur ----
+  readonly #router = inject(Router);
+  readonly #route = inject(ActivatedRoute);
+  readonly #requestedGroup = signal<string | null>(this.#route.snapshot.queryParamMap.get('bolum'));
+
+  readonly activeGroup = computed(() => {
+    const groups = this.groups();
+    return groups.find(g => g.id === this.#requestedGroup()) ?? groups.at(0) ?? null;
+  });
+
+  selectGroup(id: GroupId): void {
+    this.#requestedGroup.set(id);
+    this.#router.navigate([], { queryParams: { bolum: id }, queryParamsHandling: 'merge', replaceUrl: true });
+  }
 
   readonly dirtyCount = computed(() => this.fields().filter(f => f.dirty).length);
   readonly invalidCount = computed(() => this.fields().filter(f => f.error).length);
@@ -386,7 +456,13 @@ export default class AppSettings {
 
     if (def.required && !value.trim()) return 'Boş bırakılamaz.';
     if (def.digitsOnly && value.trim() && !/^\d+$/.test(value.trim())) return 'Yalnızca rakam girilebilir.';
+    if (def.hostName && value.trim() && !HOST_RE.test(value.trim())) return 'Yalnızca sunucu adı ya da IP girin (http:// ve :port olmadan).';
+    if (def.domainList && value.trim()) {
+      const bad = value.split(',').map(d => d.trim()).find(d => !d || !HOST_RE.test(d) || !d.includes('.'));
+      if (bad !== undefined) return `Geçersiz alan adı${bad ? `: ${bad}` : ''}. Virgülle ayrılmış alan adları girin (ör. mfa.gov.tr).`;
+    }
     if (def.kind === 'email' && value.trim() && !EMAIL_RE.test(value.trim())) return 'Geçerli bir e-posta adresi girin.';
+    if (def.kind === 'url' && value.trim() && !URL_RE.test(value.trim())) return 'http:// ya da https:// ile başlayan tam adres girin.';
     return null;
   }
 

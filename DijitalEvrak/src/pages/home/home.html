@@ -1,13 +1,11 @@
 <app-generic pageTitle="Ana Sayfa" [breadcrumbs]="[]" />
 
-<app-admin-dashboard *ngIf="roleService.has('Yönetici')" />
-
-<!-- Ön Kayıt rolü, Gelen Evrak sorumlusuyla aynı kontrol panelini görür. -->
-<app-gelen-evrak-dashboard *ngIf="roleService.hasAny(['Gelen Evrak', 'Ön Kayıt'])" />
-
-<app-on-kayit-dashboard *ngIf="roleService.has('Misyon')" />
-
-<!-- İki birim rolü birlikte verilmişse yönetici paneli gösterilir. -->
-<app-birim-yonetici-dashboard *ngIf="roleService.has('Birim Yöneticisi')" />
-
-<app-birim-dashboard *ngIf="roleService.has('Birim Evrak Sorumlusu') && !roleService.has('Birim Yöneticisi')" />
+<!-- Tek panel gösterilir: açılışta öncelikli rolünki, diğerlerine başlıktaki okla geçilir; bkz. HomeDashboards. -->
+@switch (dashboards.active()) {
+  @case ('admin') { <app-admin-dashboard /> }
+  <!-- Ön Kayıt rolü, Gelen Evrak sorumlusuyla aynı kontrol panelini görür. -->
+  @case ('gelen-evrak') { <app-gelen-evrak-dashboard /> }
+  @case ('on-kayit') { <app-on-kayit-dashboard /> }
+  @case ('birim-yonetici') { <app-birim-yonetici-dashboard /> }
+  @case ('birim') { <app-birim-dashboard /> }
+}

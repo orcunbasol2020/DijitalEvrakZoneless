@@ -4,35 +4,6 @@
 </app-generic>
 
 <div class="st-page as-page">
-  <!-- Üst kart: sayfa kimliği ve kaydedilmemiş değişiklik durumu -->
-  <section class="sp-hero st-hero-page as-hero">
-    <div class="sp-hero-top">
-      <span class="sp-hero-icon">
-        <span class="material-symbols-outlined">tune</span>
-      </span>
-      <div>
-        <h4 class="sp-hero-title">Uygulama Ayarları</h4>
-        <div class="sp-hero-text">
-          Değişiklikler kaydedildiği an geçerli olur; uygulamayı yeniden başlatmak gerekmez.
-        </div>
-      </div>
-    </div>
-
-    <div class="st-hero-side">
-      @if (dirtyCount()) {
-        <span class="st-chip">
-          <span class="material-symbols-outlined">edit</span>
-          {{ dirtyCount() }} kaydedilmemiş değişiklik
-        </span>
-      } @else if (!loading() && !failed()) {
-        <span class="st-chip">
-          <span class="material-symbols-outlined">check_circle</span>
-          Tüm ayarlar kayıtlı
-        </span>
-      }
-    </div>
-  </section>
-
   @if (loading()) {
     <section class="st-card as-state">
       <span class="material-symbols-outlined">hourglass_top</span>
@@ -48,73 +19,90 @@
       </button>
     </section>
   } @else {
-    <div class="as-grid">
+    <!-- Sekmeler (Raporlar sayfasıyla aynı dil): grup başına bir sekme; kaydedilmemiş değişiklik,
+         hata ya da açık / kapalı noktası. Sığmazsa alt satıra iner. -->
+    <nav class="as-nav" aria-label="Ayar grupları">
       @for (group of groups(); track group.id) {
-        <section class="st-card">
-          <div class="st-card-head">
-            <span class="st-card-icon">
-              <span class="material-symbols-outlined">{{ group.icon }}</span>
+        <button type="button" class="as-nav-item" [class.is-active]="activeGroup()?.id === group.id"
+          [attr.aria-current]="activeGroup()?.id === group.id ? 'page' : null" (click)="selectGroup(group.id)">
+          <span class="material-symbols-outlined as-nav-icon">{{ group.icon }}</span>
+          <span class="as-nav-label">{{ group.nav }}</span>
+          @if (group.invalid) {
+            <span class="as-nav-flag is-error" title="Hatalı alan var">
+              <span class="material-symbols-outlined">error</span>
             </span>
-            <div>
-              <h4 class="st-card-title">{{ group.title }}</h4>
-              <div class="st-card-sub">{{ group.sub }}</div>
-            </div>
-            @if (group.id === 'atlas' && stock(); as s) {
-              <span class="st-card-head-end st-count" [class.is-low]="s.available < s.minStock"
-                title="Havuzda boşta bekleyen numara / en az stok">
-                <span class="material-symbols-outlined">inventory_2</span>
-                Boşta: {{ s.available }} / En az: {{ s.minStock }}
+          } @else if (group.dirty) {
+            <span class="as-nav-flag is-dirty" [title]="group.dirty + ' kaydedilmemiş değişiklik'">{{ group.dirty }}</span>
+          } @else if (group.enabled !== null) {
+            <span class="as-nav-state" [class.is-on]="group.enabled" [title]="group.enabled ? 'Açık' : 'Kapalı'"></span>
+          }
+        </button>
+      }
+    </nav>
+
+    <!-- Seçili grubun başlığı ve alanları -->
+    <section class="st-card as-panel">
+      @if (activeGroup(); as group) {
+        <header class="as-panel-head">
+          <div class="as-panel-text">
+            <h4 class="as-panel-title">{{ group.title }}</h4>
+            <div class="as-panel-sub">{{ group.sub }}</div>
+          </div>
+          @if (group.id === 'atlas' && stock(); as s) {
+            <span class="st-count" [class.is-low]="s.available < s.minStock" title="Havuzda boşta bekleyen numara / en az stok">
+              <span class="material-symbols-outlined">inventory_2</span>
+              Boşta: {{ s.available }} / En az: {{ s.minStock }}
+            </span>
+          }
+          @if (group.id === 'atlasTransfer' && transferStats(); as t) {
+            @if (t.failed > 0) {
+              <a class="st-count is-failed" routerLink="/atlas-aktarim" [queryParams]="{ tab: 'hatali' }"
+                title="Aktarımı hatalı evrakların listesi">
+                <span class="material-symbols-outlined">cloud_off</span>
+                Hatalı: {{ t.failed }}
+              </a>
+            } @else {
+              <span class="st-count" title="Atlas aktarım sırasında bekleyen evrak">
+                <span class="material-symbols-outlined">hourglass_top</span>
+                Kuyrukta: {{ t.queued + t.transferring }}
               </span>
             }
-            @if (group.id === 'atlasTransfer' && transferStats(); as t) {
-              @if (t.failed > 0) {
-                <a class="st-card-head-end st-count is-failed" routerLink="/atlas-aktarim" [queryParams]="{ tab: 'hatali' }"
-                  title="Aktarımı hatalı evrakların listesi">
-                  <span class="material-symbols-outlined">cloud_off</span>
-                  Hatalı: {{ t.failed }}
-                </a>
-              } @else {
-                <span class="st-card-head-end st-count" title="Atlas aktarım sırasında bekleyen evrak">
-                  <span class="material-symbols-outlined">hourglass_top</span>
-                  Kuyrukta: {{ t.queued + t.transferring }}
-                </span>
-              }
-            }
+          }
+        </header>
+
+        @if (group.note) {
+          <div class="as-group-note">
+            <span class="material-symbols-outlined">info</span>
+            <span>{{ group.note }}</span>
           </div>
+        }
 
-          <div class="st-card-body as-fields">
-            @if (group.note) {
-              <div class="st-note">
-                <span class="material-symbols-outlined">schedule</span>
-                <span>{{ group.note }}</span>
+        <div class="as-rows">
+          @for (field of group.fields; track field.def.key) {
+            <!-- Satır: solda etiket ve açıklama, sağda kontrol; dar ekranda alt alta -->
+            <div class="as-row" [class.is-dirty]="field.dirty" [class.is-invalid]="field.error || field.saveError"
+              [class.is-bool]="field.def.kind === 'bool'">
+              <div class="as-row-text">
+                <label class="as-label" [for]="'as-' + field.def.key"
+                  [title]="field.updatedAt ? 'Son güncelleme: ' + formatDate(field.updatedAt) : ''">
+                  {{ field.def.label }}
+                  @if (field.dirty) {
+                    <span class="as-dirty-dot" title="Kaydedilmedi"></span>
+                  }
+                </label>
+                @if (helpText(field); as help) {
+                  <div class="as-help">{{ help }}</div>
+                }
               </div>
-            }
 
-            @for (field of group.fields; track field.def.key) {
-              <div class="as-field" [class.is-dirty]="field.dirty" [class.is-invalid]="field.error || field.saveError"
-                [class.is-bool]="field.def.kind === 'bool'">
-                <div class="as-field-head">
-                  <label class="as-label" [for]="'as-' + field.def.key">
-                    {{ field.def.label }}
-                    @if (field.dirty) {
-                      <span class="as-dirty-dot" title="Kaydedilmedi"></span>
-                    }
-                  </label>
-
-                  @if (field.def.kind === 'bool') {
+              <div class="as-row-control">
+                @switch (field.def.kind) {
+                  @case ('bool') {
                     <div class="form-check form-switch mb-0 as-switch">
                       <input class="form-check-input" type="checkbox" role="switch" [id]="'as-' + field.def.key"
                         [checked]="isOn(field)" [disabled]="saving()" (change)="onToggle(field, $event)">
                     </div>
                   }
-                </div>
-
-                @if (helpText(field); as help) {
-                  <div class="as-help">{{ help }}</div>
-                }
-
-                @switch (field.def.kind) {
-                  @case ('bool') { }
                   @case ('textarea') {
                     <textarea class="form-control as-input" rows="3" [id]="'as-' + field.def.key" [value]="field.value"
                       [disabled]="saving()" (input)="onInput(field, $event)"></textarea>
@@ -130,63 +118,66 @@
                     </div>
                   }
                   @default {
-                    <input class="form-control as-input" [type]="field.def.kind === 'email' ? 'email' : 'text'"
+                    <input class="form-control as-input"
+                      [type]="field.def.kind === 'email' || field.def.kind === 'url' ? field.def.kind : 'text'"
                       [id]="'as-' + field.def.key" [value]="field.value" [disabled]="saving()"
                       (input)="onInput(field, $event)">
                   }
                 }
-
-                @if (field.def.note) {
-                  <div class="as-note" [class.is-warn]="field.def.warn">
-                    <span class="material-symbols-outlined">{{ field.def.warn ? 'warning' : 'info' }}</span>
-                    <span>{{ field.def.note }}</span>
-                  </div>
-                }
-
-                @if (field.error) {
-                  <div class="as-error">
-                    <span class="material-symbols-outlined">error</span>
-                    {{ field.error }}
-                  </div>
-                } @else if (field.saveError) {
-                  <div class="as-error">
-                    <span class="material-symbols-outlined">cloud_off</span>
-                    {{ field.saveError }}
-                  </div>
-                }
-
-                @if (field.updatedAt) {
-                  <div class="as-meta">Son güncelleme: {{ formatDate(field.updatedAt) }}</div>
-                }
               </div>
-            }
-          </div>
-        </section>
-      }
-    </div>
 
-    <!-- Kaydet çubuğu: sayfa uzun olduğu için altta sabit -->
-    <div class="as-actions" [class.is-active]="dirtyCount() > 0">
-      <div class="as-actions-text">
-        @if (invalidCount()) {
-          <span class="material-symbols-outlined is-error">error</span>
-          {{ invalidCount() }} alanda hata var, düzeltmeden kaydedilemez.
-        } @else if (dirtyCount()) {
-          <span class="material-symbols-outlined">edit</span>
-          {{ dirtyCount() }} ayar değişti.
-        } @else {
-          <span class="material-symbols-outlined">check_circle</span>
-          Kaydedilmemiş değişiklik yok.
-        }
+              @if (field.def.note || field.error || field.saveError) {
+                <div class="as-row-foot">
+                  @if (field.def.note) {
+                    <div class="as-note" [class.is-warn]="field.def.warn">
+                      <span class="material-symbols-outlined">{{ field.def.warn ? 'warning' : 'info' }}</span>
+                      <span>{{ field.def.note }}</span>
+                    </div>
+                  }
+                  @if (field.error) {
+                    <div class="as-error">
+                      <span class="material-symbols-outlined">error</span>
+                      {{ field.error }}
+                    </div>
+                  } @else if (field.saveError) {
+                    <div class="as-error">
+                      <span class="material-symbols-outlined">cloud_off</span>
+                      {{ field.saveError }}
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+      <footer class="as-panel-foot">
+        <span class="material-symbols-outlined">bolt</span>
+        Kaydedilen ayar hemen geçerli olur; uygulamayı yeniden başlatmak gerekmez.
+      </footer>
+    </section>
+
+    <!-- Kaydet çubuğu: yalnızca kaydedilmemiş değişiklik varken; tüm gruplardaki değişiklikleri kaydeder -->
+    @if (dirtyCount() || saving()) {
+      <div class="as-actions">
+        <div class="as-actions-text">
+          @if (invalidCount()) {
+            <span class="material-symbols-outlined is-error">error</span>
+            {{ invalidCount() }} alanda hata var, düzeltmeden kaydedilemez.
+          } @else {
+            <span class="material-symbols-outlined">edit</span>
+            {{ dirtyCount() }} kaydedilmemiş değişiklik
+          }
+        </div>
+        <button type="button" class="as-btn as-btn-ghost" [disabled]="saving()" (click)="discard()">
+          Vazgeç
+        </button>
+        <button type="button" class="as-btn as-btn-primary" [disabled]="!canSave()" (click)="save()">
+          <span class="material-symbols-outlined">{{ saving() ? 'progress_activity' : 'save' }}</span>
+          {{ saving() ? 'Kaydediliyor…' : 'Kaydet' }}
+        </button>
       </div>
-      <button type="button" class="as-btn as-btn-ghost" [disabled]="saving() || !dirtyCount()" (click)="discard()">
-        Vazgeç
-      </button>
-      <button type="button" class="as-btn as-btn-primary" [disabled]="!canSave()" (click)="save()">
-        <span class="material-symbols-outlined">{{ saving() ? 'progress_activity' : 'save' }}</span>
-        {{ saving() ? 'Kaydediliyor…' : 'Kaydet' }}
-      </button>
-    </div>
+    }
   }
 </div>
 

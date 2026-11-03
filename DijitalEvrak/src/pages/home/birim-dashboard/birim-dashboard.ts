@@ -1,3 +1,4 @@
+import DashboardSwitch from '../dashboard-switch/dashboard-switch';
 import { ChangeDetectionStrategy, Component, computed, inject, input, OnInit, signal, ViewEncapsulation } from '@angular/core';
 import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import { httpResource } from '@angular/common/http';
@@ -14,7 +15,7 @@ import { normalizeRoleName, roleIcon } from '../../../services/role-service';
 @Component({
   selector: 'app-birim-dashboard',
   standalone: true,
-  imports: [CommonModule, DatePipe, DecimalPipe, RouterLink],
+  imports: [CommonModule, DatePipe, DecimalPipe, RouterLink, DashboardSwitch],
   templateUrl: './birim-dashboard.html',
   styleUrl: '../dashboard.css',
   encapsulation: ViewEncapsulation.None,

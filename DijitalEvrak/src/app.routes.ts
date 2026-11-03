@@ -103,6 +103,12 @@ export const routes: Routes = [
                 data: { roles: ["Gelen Evrak", "Yönetici"] }
             },
             {
+                path: "tarama-klasorleri",
+                loadComponent: () => import("./pages/tarama-klasorleri/tarama-klasorleri"),
+                canActivate: [roleGuard],
+                data: { roles: ["Gelen Evrak", "Yönetici"] }
+            },
+            {
                 // Rol koruması alt rotalarda: /users/profile her kullanıcıya açık,
                 // kullanıcı listesi ve düzenleme sayfaları rol gerektirir (bkz. pages/users/route.ts).
                 path: 'users',
@@ -220,6 +226,13 @@ export const routes: Routes = [
                 // Paket indirme evrak içeriğini verdiği için yalnızca yönetici.
                 path: 'atlas-aktarim',
                 loadComponent: () => import('./pages/atlas-aktarim/atlas-aktarim'),
+                canActivate: [roleGuard],
+                data: { roles: ["Yönetici"] }
+            },
+            {
+                // Sunucu hataları (ErrorLogs): stack trace, dosya yolları ve SQL metinleri içerdiği için yalnızca yönetici
+                path: 'error-logs',
+                loadComponent: () => import('./pages/error-logs/error-logs'),
                 canActivate: [roleGuard],
                 data: { roles: ["Yönetici"] }
             },

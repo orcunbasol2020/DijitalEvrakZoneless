@@ -1,0 +1,479 @@
+<app-generic pageTitle="Tarama Klasörleri"
+    [breadcrumbs]="[{title: 'Tarama Klasörleri', url: 'tarama-klasorleri', icon:''}]" />
+
+<div class="tk-page">
+
+<!-- Karşılama şeridi: Kontrol Paneli ile aynı mavi gradyan -->
+<section class="ad-hero tk-hero">
+    <div class="ad-hero-glow ad-hero-glow-a"></div>
+    <div class="ad-hero-glow ad-hero-glow-b"></div>
+
+    <div class="ad-hero-text">
+        <div class="ad-hero-kicker">
+            <span class="material-symbols-outlined">folder_open</span>
+            Tarama Klasörleri
+        </div>
+    </div>
+
+    <!-- Her çağrı paylaşımı baştan taradığı için otomatik yenileme yok -->
+    <div class="ad-hero-actions">
+        <button type="button" class="ad-hero-btn" title="Klasörleri yeniden tara"
+            [class.is-spinning]="loading()" [disabled]="loading()" (click)="refresh()">
+            <span class="material-symbols-outlined tk-refresh-icon">refresh</span>
+            Yenile
+        </button>
+    </div>
+</section>
+
+<!-- İstek tümden başarısız (backend hatası) ya da yalnızca tarama servisi okunamadı (çekilenler yine güncel) -->
+@if (requestError(); as message) {
+    <div class="tk-alert" role="alert">
+        <span class="material-symbols-outlined">error</span>
+        <span class="tk-alert-text">
+            {{ message }}
+            @if (lastUpdated()) {
+                <span class="tk-alert-sub">Aşağıdaki liste son başarılı taramaya aittir.</span>
+            }
+        </span>
+        <button type="button" class="btn btn-sm btn-outline-danger" [disabled]="loading()" (click)="refresh()">Yeniden dene</button>
+    </div>
+} @else if (foldersError(); as message) {
+    <div class="tk-alert" role="alert">
+        <span class="material-symbols-outlined">cloud_off</span>
+        <span class="tk-alert-text">
+            Klasörler okunamadı: {{ message }}
+            <span class="tk-alert-sub">Çekilenler (kaydı bekleyen) listesi günceldir.</span>
+        </span>
+        <button type="button" class="btn btn-sm btn-outline-danger" [disabled]="loading()" (click)="refresh()">Yeniden dene</button>
+    </div>
+}
+
+<div class="card premium-card tk-explorer">
+
+    <!-- Sol: klasör ağacı -->
+    <nav class="tk-tree" aria-label="Tarama klasörleri">
+        <div class="tk-tree-title">KLASÖRLER</div>
+
+        @if (!sources().length) {
+            @if (loading()) {
+                @for (i of [1, 2]; track i) {
+                    <div class="tk-skel tk-skel-root"></div>
+                    @for (j of [1, 2, 3, 4, 5]; track j) {
+                        <div class="tk-skel tk-skel-child"></div>
+                    }
+                }
+            } @else if (!requestError()) {
+                <div class="tk-tree-empty">Tanımlı tarama kaynağı yok.</div>
+            }
+        }
+
+        @for (source of sources(); track source) {
+            <div class="tk-node">
+                <div class="tk-row tk-row-root" [class.is-selected]="isSelected(source, null)">
+                    <button type="button" class="tk-caret" [attr.aria-expanded]="isExpanded(source)"
+                        [attr.aria-label]="(isExpanded(source) ? 'Daralt: ' : 'Genişlet: ') + sourceLabel(source)"
+                        (click)="toggleExpanded(source, $event)">
+                        <span class="material-symbols-outlined">{{ isExpanded(source) ? 'expand_more' : 'chevron_right' }}</span>
+                    </button>
+                    <button type="button" class="tk-row-main" [attr.aria-current]="isSelected(source, null) ? 'true' : null"
+                        (click)="selectSource(source)">
+                        <span class="material-symbols-outlined tk-folder-icon">{{ isExpanded(source) ? 'folder_open' : 'folder' }}</span>
+                        <span class="tk-row-label">{{ sourceLabel(source) }}</span>
+                        @if (sourceHasWarning(source)) {
+                            <span class="tk-dot" title="Dikkat gerektiren klasör var"></span>
+                        }
+                    </button>
+                </div>
+
+                @if (isExpanded(source)) {
+                    <div class="tk-children">
+                        @for (n of nodes; track n.key) {
+                            @let count = nodeCount(source, n.key);
+                            @let warning = nodeWarning(source, n.key);
+                            @let unreadable = isFolderNode(n.key) && !!foldersError();
+                            <button type="button" class="tk-row tk-row-child" [class.is-selected]="isSelected(source, n.key)"
+                                [class.is-missing]="isFolderNode(n.key) && count === null"
+                                [class.is-pulled]="n.key === 'Pulled'"
+                                [attr.aria-current]="isSelected(source, n.key) ? 'true' : null"
+                                (click)="selectNode(source, n.key)">
+                                <span class="material-symbols-outlined tk-state-icon" [class]="'tk-state-' + n.key">{{ n.icon }}</span>
+                                <span class="tk-row-label">
+                                    {{ n.label }}
+                                    @if (n.sub) {
+                                        <span class="tk-row-sub">({{ n.sub }})</span>
+                                    }
+                                </span>
+                                @if (unreadable) {
+                                    <span class="material-symbols-outlined tk-row-error" title="Klasör okunamadı">error</span>
+                                } @else if (count !== null) {
+                                    <span class="tk-count" [class.is-danger]="warning === 'danger'" [class.is-warn]="warning === 'warn'"
+                                        [class.is-accent]="n.key === 'Pulled' && count > 0">
+                                        {{ count }}
+                                    </span>
+                                }
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </nav>
+
+    <!-- Sağ: seçili klasörün içeriği -->
+    <section class="tk-pane" aria-live="polite">
+        @if (selection(); as sel) {
+
+            <!-- Adres çubuğu; arama (ve klasörlerde uzantı filtresi) en sağda -->
+            <div class="tk-path">
+                <span class="material-symbols-outlined tk-path-icon">folder</span>
+                <button type="button" class="tk-crumb" [class.is-current]="!sel.node" (click)="selectSource(sel.source)">
+                    {{ sourceLabel(sel.source) }}
+                </button>
+                @if (selectedNode(); as nd) {
+                    <span class="material-symbols-outlined tk-crumb-sep">chevron_right</span>
+                    <span class="tk-crumb is-current">{{ nd.label }}</span>
+                }
+                @if (hasRows()) {
+                    <div class="tk-filters">
+                        @if (!isPulledView()) {
+                            <select class="form-select form-select-sm tk-ext-select" aria-label="Uzantıya göre filtrele"
+                                (change)="setExtFilter($any($event.target).value)">
+                                @for (opt of extensionOptions(); track opt.value) {
+                                    <option [value]="opt.value" [selected]="extFilter() === opt.value">{{ opt.label }} ({{ opt.count }})</option>
+                                }
+                                <option value="" [selected]="extFilter() === ''">Tümü ({{ totalCount() }})</option>
+                            </select>
+                        }
+                        <div class="tk-search">
+                            <span class="material-symbols-outlined">search</span>
+                            <input type="search" class="form-control form-control-sm" autocomplete="off"
+                                [placeholder]="isPulledView() ? 'Dosya adı veya evrak no' : 'Dosya adında ara'"
+                                [attr.aria-label]="isPulledView() ? 'Dosya adı veya evrak numarasında ara' : 'Dosya adında ara'"
+                                [value]="search()" (input)="setSearch($any($event.target).value)">
+                        </div>
+                    </div>
+                }
+            </div>
+
+            @if (!sel.node) {
+                <!-- Kaynak seçili: alt klasörler -->
+                <div class="tk-grid">
+                    @for (item of subNodes(); track item.def.key) {
+                        @let warning = nodeWarning(sel.source, item.def.key);
+                        @let isFolder = isFolderNode(item.def.key);
+                        <button type="button" class="tk-tile" [class]="'tk-tile-' + item.def.key"
+                            [class.is-missing]="isFolder && (!item.folder || !item.folder.exists)"
+                            [class.is-danger]="warning === 'danger'" [class.is-warn]="warning === 'warn'"
+                            (click)="selectNode(sel.source, item.def.key)">
+                            <span class="tk-tile-icon"><span class="material-symbols-outlined">{{ item.def.icon }}</span></span>
+                            <span class="tk-tile-body">
+                                <span class="tk-tile-title">
+                                    {{ item.def.label }}
+                                    @if (item.def.sub) {
+                                        <span class="tk-tile-sub">({{ item.def.sub }})</span>
+                                    }
+                                </span>
+                                <span class="tk-tile-hint">{{ item.def.hint }}</span>
+                                <span class="tk-tile-meta">
+                                    @if (!isFolder) {
+                                        @if (item.pulled.length) {
+                                            <strong>{{ item.pulled.length }}</strong> belge
+                                            · son çekilen {{ relativeTime(item.pulled[0].pulledAtUtc) }}
+                                        } @else {
+                                            Kaydı bekleyen belge yok
+                                        }
+                                    } @else if (foldersError()) {
+                                        Klasör okunamadı
+                                    } @else if (!item.folder) {
+                                        —
+                                    } @else if (!item.folder.exists) {
+                                        Klasör henüz oluşmadı
+                                    } @else if (!item.folder.files.length) {
+                                        Boş
+                                    } @else {
+                                        <strong>{{ item.folder.files.length }}</strong> dosya
+                                        · en eski {{ relativeTime(item.folder.files[0].modifiedAtUtc) }}
+                                    }
+                                </span>
+                                @if (warning === 'danger') {
+                                    <span class="tk-tile-flag">İnceleme bekleyen dosya var</span>
+                                } @else if (warning === 'warn') {
+                                    <span class="tk-tile-flag">{{ staleCount(item.folder!) }} dosya {{ staleMinutes }} dakikadan uzun süredir bekliyor</span>
+                                }
+                            </span>
+                        </button>
+                    }
+                </div>
+
+            } @else if (isPulledView()) {
+                <!-- Çekilenler: backend'e alınmış, kaydı bekleyen belgeler -->
+                @if (!selectedPulled().length) {
+                    <div class="tk-empty">
+                        <span class="material-symbols-outlined">task_alt</span>
+                        <div class="tk-empty-title">Kaydı bekleyen belge yok</div>
+                        <div class="tk-empty-sub">Backend'e çekilen belgelerin hepsi evraka bağlanmış.</div>
+                    </div>
+                } @else {
+                    <div class="table-responsive">
+                        <table class="table tk-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        <button type="button" class="tk-sort" (click)="sort('fileName')">
+                                            Dosya adı <span class="material-symbols-outlined" [class.active]="sortBy() === 'fileName'">{{ sortIcon('fileName') }}</span>
+                                        </button>
+                                    </th>
+                                    <th class="tk-col-qr">Evrak no</th>
+                                    <th class="tk-col-size">
+                                        <button type="button" class="tk-sort" (click)="sort('sizeBytes')">
+                                            Boyut <span class="material-symbols-outlined" [class.active]="sortBy() === 'sizeBytes'">{{ sortIcon('sizeBytes') }}</span>
+                                        </button>
+                                    </th>
+                                    <th class="tk-col-date">
+                                        <button type="button" class="tk-sort" (click)="sort('scannedAtUtc')">
+                                            Taranma <span class="material-symbols-outlined" [class.active]="sortBy() === 'scannedAtUtc'">{{ sortIcon('scannedAtUtc') }}</span>
+                                        </button>
+                                    </th>
+                                    <th class="tk-col-date">
+                                        <button type="button" class="tk-sort" (click)="sort('pulledAtUtc')">
+                                            Çekilme <span class="material-symbols-outlined" [class.active]="sortBy() === 'pulledAtUtc'">{{ sortIcon('pulledAtUtc') }}</span>
+                                        </button>
+                                    </th>
+                                    <th class="tk-col-actions"><span class="visually-hidden">İşlemler</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (p of pagedPulled(); track p.fileName) {
+                                    <tr>
+                                        <td>
+                                            <div class="tk-file">
+                                                <span class="material-symbols-outlined tk-file-icon is-pdf">picture_as_pdf</span>
+                                                <span class="tk-file-name" [title]="p.fileName">{{ pulledName(p) }}</span>
+                                            </div>
+                                        </td>
+                                        <td class="tk-col-qr">
+                                            @if (p.qrCodes.length) {
+                                                @for (code of p.qrCodes; track code) {
+                                                    <span class="tk-qr">{{ code }}</span>
+                                                }
+                                            } @else {
+                                                <span class="tk-qr-missing">Etiket okunamadı</span>
+                                            }
+                                        </td>
+                                        <td class="tk-col-size">{{ formatSize(p.sizeBytes) }}</td>
+                                        <td class="tk-col-date">{{ p.scannedAtUtc | date:'dd.MM.yyyy HH:mm' }}</td>
+                                        <td class="tk-col-date">{{ p.pulledAtUtc | date:'dd.MM.yyyy HH:mm' }}</td>
+                                        <td class="tk-col-actions">
+                                            <button type="button" class="tk-icon-btn" title="Önizle" aria-label="Önizle" (click)="openPreview(p)">
+                                                <span class="material-symbols-outlined">visibility</span>
+                                            </button>
+                                            @if (canRegister) {
+                                                <button type="button" class="tk-icon-btn" title="Taranmış Evraklar ekranında kaydet"
+                                                    aria-label="Kaydet" (click)="register(p)">
+                                                    <span class="material-symbols-outlined">assignment_add</span>
+                                                </button>
+                                            }
+                                        </td>
+                                    </tr>
+                                } @empty {
+                                    <tr>
+                                        <td colspan="6" class="tk-no-match">"{{ search() }}" ile eşleşen belge yok.</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+
+                <div class="tk-foot">
+                    <div class="tk-foot-info">
+                        @if (totalCount()) {
+                            <span class="tk-summary">
+                                @if (filteredCount() !== totalCount()) {
+                                    {{ filteredCount() }} / {{ totalCount() }} belge gösteriliyor ·
+                                } @else {
+                                    {{ totalCount() }} belge ·
+                                }
+                                {{ formatSize(totalSize()) }}
+                            </span>
+                        }
+                        <ng-container *ngTemplateOutlet="pager" />
+                    </div>
+                </div>
+
+            } @else if (foldersError()) {
+                <div class="tk-empty">
+                    <span class="material-symbols-outlined">cloud_off</span>
+                    <div class="tk-empty-title">Klasör okunamadı</div>
+                    <div class="tk-empty-sub">{{ foldersError() }}</div>
+                </div>
+
+            } @else if (selectedFolder(); as folder) {
+
+                @if (!folder.exists) {
+                    <div class="tk-empty">
+                        <span class="material-symbols-outlined">folder_off</span>
+                        <div class="tk-empty-title">Klasör henüz oluşmadı</div>
+                        <div class="tk-empty-sub">İlk dosya geldiğinde tarama servisi klasörü kendisi açar.</div>
+                    </div>
+                } @else if (!folder.files.length) {
+                    <div class="tk-empty">
+                        <span class="material-symbols-outlined">folder</span>
+                        <div class="tk-empty-title">Klasör boş</div>
+                        <div class="tk-empty-sub">{{ selectedNode()?.hint }}</div>
+                    </div>
+                } @else {
+                    @if (folder.state === 'Inbox' && staleCount(folder); as n) {
+                        <div class="tk-note tk-note-warn">
+                            <span class="material-symbols-outlined">schedule</span>
+                            {{ n }} dosya {{ staleMinutes }} dakikadan uzun süredir gelen kutusunda. Tarama servisi dosyaları okumuyor olabilir.
+                        </div>
+                    } @else if (folder.state === 'Failed') {
+                        <div class="tk-note tk-note-danger">
+                            <span class="material-symbols-outlined">report</span>
+                            Bu dosyalar okunamadı (bozuk PDF ya da desteklenmeyen dosya) ve elle incelenmeli.
+                        </div>
+                    }
+
+                    <div class="table-responsive">
+                        <table class="table tk-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        <button type="button" class="tk-sort" (click)="sort('fileName')">
+                                            Dosya adı <span class="material-symbols-outlined" [class.active]="sortBy() === 'fileName'">{{ sortIcon('fileName') }}</span>
+                                        </button>
+                                    </th>
+                                    <th class="tk-col-size">
+                                        <button type="button" class="tk-sort" (click)="sort('sizeBytes')">
+                                            Boyut <span class="material-symbols-outlined" [class.active]="sortBy() === 'sizeBytes'">{{ sortIcon('sizeBytes') }}</span>
+                                        </button>
+                                    </th>
+                                    <th class="tk-col-date">
+                                        <button type="button" class="tk-sort" (click)="sort('modifiedAtUtc')">
+                                            Değiştirilme <span class="material-symbols-outlined" [class.active]="sortBy() === 'modifiedAtUtc'">{{ sortIcon('modifiedAtUtc') }}</span>
+                                        </button>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (file of pagedFiles(); track file.fileName) {
+                                    <tr [class.is-stale]="isStale(folder, file)">
+                                        <td>
+                                            <div class="tk-file">
+                                                <span class="material-symbols-outlined tk-file-icon" [class.is-pdf]="isPdf(file)">
+                                                    {{ isPdf(file) ? 'picture_as_pdf' : 'draft' }}
+                                                </span>
+                                                <span class="tk-file-name" [title]="file.fileName">{{ file.fileName }}</span>
+                                                @if (!isPdf(file)) {
+                                                    <span class="tk-ext">{{ file.extension || 'uzantısız' }}</span>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td class="tk-col-size">{{ formatSize(file.sizeBytes) }}</td>
+                                        <td class="tk-col-date">
+                                            <div>{{ file.modifiedAtUtc | date:'dd.MM.yyyy HH:mm' }}</div>
+                                            <div class="tk-ago">{{ relativeTime(file.modifiedAtUtc) }}</div>
+                                        </td>
+                                    </tr>
+                                } @empty {
+                                    <tr>
+                                        <td colspan="3" class="tk-no-match">
+                                            @if (search().trim()) {
+                                                "{{ search() }}" ile eşleşen {{ extFilter() ? extLabel(extFilter()) + ' ' : '' }}dosya yok.
+                                            } @else {
+                                                Bu klasörde {{ extLabel(extFilter()) }} dosyası yok.
+                                                <button type="button" class="btn btn-link btn-sm p-0 align-baseline" (click)="setExtFilter('')">Tüm dosyaları göster</button>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+
+                <!-- Alt bilgi: solda özet ve sayfalama, sağda klasörün paylaşımdaki yolu -->
+                <div class="tk-foot">
+                    <div class="tk-foot-info">
+                        @if (folder.files.length) {
+                            <span class="tk-summary">
+                                @if (filteredCount() !== totalCount()) {
+                                    {{ filteredCount() }} / {{ totalCount() }} dosya gösteriliyor ·
+                                } @else {
+                                    {{ totalCount() }} dosya ·
+                                }
+                                {{ formatSize(totalSize()) }}
+                            </span>
+                        }
+                        <ng-container *ngTemplateOutlet="pager" />
+                    </div>
+                    <code class="tk-path-raw" title="Paylaşım köküne göre klasör yolu">{{ folder.folder }}</code>
+                </div>
+            }
+
+        } @else if (loading()) {
+            <div class="tk-empty">
+                <div class="spinner-border tk-spinner" role="status"></div>
+                <div class="tk-empty-sub">Klasörler taranıyor…</div>
+            </div>
+        } @else {
+            <div class="tk-empty">
+                <span class="material-symbols-outlined">folder_off</span>
+                <div class="tk-empty-title">Gösterilecek klasör yok</div>
+            </div>
+        }
+    </section>
+</div>
+
+@if (lastUpdated(); as at) {
+    <div class="tk-updated">Son güncelleme: {{ at | date:'dd.MM.yyyy HH:mm:ss' }}</div>
+}
+
+</div>
+
+<ng-template #pager>
+    @if (totalPages() > 1) {
+        <div class="tk-pager">
+            <span class="tk-pager-info">{{ pageStart() }}–{{ pageEnd() }} / {{ filteredCount() }}</span>
+            <button type="button" class="btn btn-sm btn-outline-secondary" aria-label="Önceki sayfa"
+                [disabled]="page() === 1" (click)="goToPage(page() - 1)">
+                <span class="material-symbols-outlined">chevron_left</span>
+            </button>
+            <span class="tk-pager-page">{{ page() }} / {{ totalPages() }}</span>
+            <button type="button" class="btn btn-sm btn-outline-secondary" aria-label="Sonraki sayfa"
+                [disabled]="page() === totalPages()" (click)="goToPage(page() + 1)">
+                <span class="material-symbols-outlined">chevron_right</span>
+            </button>
+        </div>
+    }
+</ng-template>
+
+<!-- Çekilen belgenin önizlemesi: showModal() ile tarayıcının üst katmanında açılır, sol menünün
+     altında kalmaz. Esc ve arka plana tıklama pencereyi kapatır. -->
+<dialog #previewDialog class="tk-preview-dialog" aria-labelledby="tk-preview-title"
+    (close)="closePreview()" (click)="onDialogClick($event)">
+@if (preview(); as pv) {
+        <div class="tk-preview">
+            <div class="tk-preview-head">
+                <span class="material-symbols-outlined tk-file-icon is-pdf">picture_as_pdf</span>
+                <div class="tk-preview-title-wrap">
+                    <div id="tk-preview-title" class="tk-preview-title">{{ pulledName(pv.file) }}</div>
+                </div>
+                <button type="button" class="tk-icon-btn" title="Kapat" aria-label="Kapat" (click)="closePreview()">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="tk-preview-body">
+                @if (pv.url) {
+                    <iframe [src]="pv.url" title="Belge önizlemesi"></iframe>
+                } @else {
+                    <div class="tk-empty">
+                        <div class="spinner-border tk-spinner" role="status"></div>
+                        <div class="tk-empty-sub">Belge yükleniyor…</div>
+                    </div>
+                }
+            </div>
+        </div>
+}
+</dialog>

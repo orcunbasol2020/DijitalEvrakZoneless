@@ -9,6 +9,7 @@ import OnKayitDashboard from './on-kayit-dashboard/on-kayit-dashboard';
 import BirimDashboard from './birim-dashboard/birim-dashboard';
 import BirimYoneticiDashboard from './birim-yonetici-dashboard/birim-yonetici-dashboard';
 import { CommonModule } from '@angular/common';
+import { HomeDashboards } from './dashboard-switch/dashboard-switch';
 
 @Component({
   imports: [
@@ -21,11 +22,14 @@ import { CommonModule } from '@angular/common';
     CommonModule
   ],
   templateUrl: './home.html',
+  providers: [HomeDashboards],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export default class Home {
   //readonly #common = inject(Common);
+
+  readonly dashboards = inject(HomeDashboards);
 
   constructor(public roleService: RoleService) {
     //console.log(roleService.roles[0])

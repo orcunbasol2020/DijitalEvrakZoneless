@@ -1,3 +1,4 @@
+import DashboardSwitch from '../dashboard-switch/dashboard-switch';
 import { ChangeDetectionStrategy, Component, inject, signal, ViewEncapsulation } from '@angular/core';
 import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -43,7 +44,7 @@ interface ActivityRow {
 }
 
 @Component({
-  imports: [CommonModule, DatePipe, DecimalPipe, RouterLink],
+  imports: [CommonModule, DatePipe, DecimalPipe, RouterLink, DashboardSwitch],
   templateUrl: './on-kayit-dashboard.html',
   styleUrl: '../dashboard.css',
   selector: 'app-on-kayit-dashboard',
