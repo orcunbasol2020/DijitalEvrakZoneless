@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, HostListener, ViewEncapsulation, computed, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { from, of } from 'rxjs';
 import { catchError, concatMap, map, toArray } from 'rxjs/operators';
 import { FlexiToastService } from 'flexi-toast';
@@ -43,6 +43,8 @@ interface SettingDef {
 
 interface GroupDef {
   id: GroupId;
+  /** Sekmedeki kısa ad */
+  nav: string;
   title: string;
   sub: string;
   icon: string;
@@ -68,24 +70,24 @@ const URL_RE = /^https?:\/\/\S+$/i;
 const HOST_RE = /^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$/;
 
 const GROUPS: GroupDef[] = [
-  { id: 'general', title: 'Genel Bilgiler', sub: '"Hakkında" ekranı ve destek bilgisi', icon: 'info' },
-  { id: 'scan', title: 'Taranan Belgelerin Otomatik Aktarımı', sub: 'Sunucudaki klasörden belgelerin içeri alınması', icon: 'folder_open' },
+  { id: 'general', nav: 'Genel', title: 'Genel Bilgiler', sub: '"Hakkında" ekranı ve destek bilgisi', icon: 'info' },
+  { id: 'scan', nav: 'Taranan Belgeler', title: 'Taranan Belgelerin Otomatik Aktarımı', sub: 'Sunucudaki klasörden belgelerin içeri alınması', icon: 'folder_open' },
   {
-    id: 'zimmet', title: 'Zimmet Onayı ve Hatırlatmalar', sub: 'Kurum içi devir / teslim onayı ve hatırlatma e-postaları', icon: 'notifications_active',
+    id: 'zimmet', nav: 'Zimmet', title: 'Zimmet Onayı ve Hatırlatmalar', sub: 'Kurum içi devir / teslim onayı ve hatırlatma e-postaları', icon: 'notifications_active',
     note: 'Hatırlatmalar yalnızca hafta içi ve aşağıdaki mesai saatleri arasında, sunucu saatine göre gönderilir.',
   },
   {
-    id: 'deliveryReminder', title: 'Teslim Hatırlatma E-postası',
+    id: 'deliveryReminder', nav: 'Teslim Hatırlatma', title: 'Teslim Hatırlatma E-postası',
     sub: 'Teslim alınmayı bekleyen evrakı olan birime gönderilen bilgilendirme', icon: 'mail',
   },
   {
-    id: 'smtp', title: 'E-posta (SMTP)', sub: 'Sunucudan gönderilen e-postaların bağlantı ayarları', icon: 'outgoing_mail',
+    id: 'smtp', nav: 'E-posta (SMTP)', title: 'E-posta (SMTP)', sub: 'Sunucudan gönderilen e-postaların bağlantı ayarları', icon: 'outgoing_mail',
     note: 'Gönderim için e-posta gönderimi açık, sunucu ve gönderen adresi dolu olmalı. Değişiklik bir sonraki gönderimde geçerli olur.',
   },
-  { id: 'atlas', title: 'Atlas Evrak Numarası Havuzu', sub: 'QR kod numaralarının Atlas\'tan alınması', icon: 'qr_code_2' },
-  { id: 'atlasTransfer', title: 'Atlas\'a Aktarım', sub: 'Yayınlanan evrakların EYP olarak Atlas\'a gönderilmesi', icon: 'cloud_upload' },
-  { id: 'session', title: 'Oturum Güvenliği', sub: 'İşlem yapılmayan oturumların otomatik kapanması', icon: 'lock_clock' },
-  { id: 'other', title: 'Diğer Ayarlar', sub: 'Bu ekranda henüz özel alanı olmayan ayarlar', icon: 'tune' },
+  { id: 'atlas', nav: 'Atlas Numara Havuzu', title: 'Atlas Evrak Numarası Havuzu', sub: 'QR kod numaralarının Atlas\'tan alınması', icon: 'qr_code_2' },
+  { id: 'atlasTransfer', nav: 'Atlas Aktarımı', title: 'Atlas\'a Aktarım', sub: 'Yayınlanan evrakların EYP olarak Atlas\'a gönderilmesi', icon: 'cloud_upload' },
+  { id: 'session', nav: 'Oturum', title: 'Oturum Güvenliği', sub: 'İşlem yapılmayan oturumların otomatik kapanması', icon: 'lock_clock' },
+  { id: 'other', nav: 'Diğer', title: 'Diğer Ayarlar', sub: 'Bu ekranda henüz özel alanı olmayan ayarlar', icon: 'tune' },
 ];
 
 const DEFS: SettingDef[] = [
@@ -188,14 +190,15 @@ function saveErrorMessage(err: unknown): string {
 }
 
 /**
- * Uygulama ayarları (yalnızca Yönetici). Değişiklikler tek "Kaydet" ile, yalnızca değişen
- * ayarlar için ve her biri ayrı istekle gönderilir; kaydedildiği an geçerli olur.
+ * Uygulama ayarları (yalnızca Yönetici). Üstte grup sekmeleri, altında seçili grubun alanları. Değişiklikler
+ * gruplar arasında korunur; tek "Kaydet" ile, yalnızca değişen ayarlar için ve her biri ayrı istekle
+ * gönderilir; kaydedildiği an geçerli olur.
  */
 @Component({
   imports: [GenericModel, RouterLink],
   templateUrl: './app-settings.html',
-  // Kart iskeleti (st-*) Ayarlar, üst kart (sp-hero) Destek sayfasıyla ortak
-  styleUrls: ['../support/support.css', '../settings/settings.css', './app-settings.css'],
+  // Kart iskeleti ve sayaç hapı (st-*) Ayarlar sayfasıyla ortak
+  styleUrls: ['../settings/settings.css', './app-settings.css'],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -256,14 +259,37 @@ export default class AppSettings {
     const fields = this.fields();
     const order = new Map(DEFS.map((d, i) => [d.key, i]));
     return GROUPS
-      .map(group => ({
-        ...group,
-        fields: fields
+      .map(group => {
+        const groupFields = fields
           .filter(f => f.def.group === group.id)
-          .sort((a, b) => (order.get(a.def.key) ?? 999) - (order.get(b.def.key) ?? 999) || a.def.key.localeCompare(b.def.key)),
-      }))
+          .sort((a, b) => (order.get(a.def.key) ?? 999) - (order.get(b.def.key) ?? 999) || a.def.key.localeCompare(b.def.key));
+        // Grubun aç / kapa anahtarı (ör. SmtpEnabled): sekmede Açık / Kapalı olarak görünür
+        const toggle = groupFields.find(f => f.def.kind === 'bool' && f.def.key.endsWith('Enabled'));
+        return {
+          ...group,
+          fields: groupFields,
+          dirty: groupFields.filter(f => f.dirty).length,
+          invalid: groupFields.some(f => f.error || f.saveError),
+          enabled: toggle ? isTrue(toggle.value) : null,
+        };
+      })
       .filter(g => g.fields.length > 0);
   });
+
+  // ---- Sekmeler: seçili grup adres çubuğunda (?bolum=smtp), yenilemede ve paylaşılan bağlantıda korunur ----
+  readonly #router = inject(Router);
+  readonly #route = inject(ActivatedRoute);
+  readonly #requestedGroup = signal<string | null>(this.#route.snapshot.queryParamMap.get('bolum'));
+
+  readonly activeGroup = computed(() => {
+    const groups = this.groups();
+    return groups.find(g => g.id === this.#requestedGroup()) ?? groups.at(0) ?? null;
+  });
+
+  selectGroup(id: GroupId): void {
+    this.#requestedGroup.set(id);
+    this.#router.navigate([], { queryParams: { bolum: id }, queryParamsHandling: 'merge', replaceUrl: true });
+  }
 
   readonly dirtyCount = computed(() => this.fields().filter(f => f.dirty).length);
   readonly invalidCount = computed(() => this.fields().filter(f => f.error).length);
