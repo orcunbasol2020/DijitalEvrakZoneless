@@ -1,9 +1,8 @@
-import { ChangeDetectionStrategy, Component, ElementRef, ViewEncapsulation, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, ViewEncapsulation, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
-import { HttpClient, HttpContext, httpResource } from '@angular/common/http';
+import { HttpContext, httpResource } from '@angular/common/http';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
-import { FlexiToastService } from 'flexi-toast';
 import { firstValueFrom } from 'rxjs';
 import GenericModel from '../../../components/generic-model/generic-model';
 import { SKIP_ERROR_TOAST } from '../../interceptors/error-interceptor';
@@ -42,6 +41,8 @@ const DEFAULT_SOURCES = ['evrak', 'nota'];
 const INBOX_STALE_MINUTES = 5;
 
 const PAGE_SIZE = 50;
+/** Ekran açıkken listenin yenilenme aralığı */
+const AUTO_REFRESH_MS = 60_000;
 
 const DEFAULT_EXT = '.pdf';
 
@@ -56,7 +57,20 @@ function asUtc(iso: string): string {
   return !iso || /(Z|[+-]\d{2}:?\d{2})$/i.test(iso) ? iso : iso + 'Z';
 }
 
-type SortField = 'fileName' | 'sizeBytes' | 'modifiedAtUtc' | 'scannedAtUtc' | 'pulledAtUtc';
+/** İçerik türü başlığına güvenilmez; görüntüleyiciye yalnızca "%PDF-" ile başlayan içerik verilir */
+async function isPdf(blob: Blob): Promise<boolean> {
+  return blob.size > 0 && (await blob.slice(0, 5).text()) === '%PDF-';
+}
+
+function previewErrorMessage(status: number): string {
+  switch (status) {
+    case 404: return 'Belge bulunamadı: evraka bağlanmış ya da dosyası sunucuda yok. Liste yenilendi.';
+    case 401: return 'Oturum süresi dolmuş olabilir, sayfayı yenileyin.';
+    default: return `Önizleme açılamadı (${status}).`;
+  }
+}
+
+type SortField ='fileName' | 'sizeBytes' | 'modifiedAtUtc' | 'scannedAtUtc' | 'pulledAtUtc';
 
 interface Selection {
   source: string;
@@ -67,8 +81,8 @@ interface Selection {
 /**
  * Tarama klasörleri izleme ekranı: ScannedDocumentApi paylaşımındaki klasörleri dosya gezgini görünümünde
  * listeler; klasörlerde işlem yoktur. Backend'e çekilmiş, kaydı bekleyen belgeler (Çekilenler) önizlenebilir
- * ve kayıt için Taranmış Evraklar ekranında açılabilir. Liste her çağrıda paylaşımı baştan taradığı için
- * otomatik yenilenmez, Yenile ile güncellenir.
+ * ve kayıt için Taranmış Evraklar ekranında açılabilir. Ekran açıkken liste dakikada bir yenilenir; sekme
+ * arka plandayken paylaşım boşuna taranmaz, sekmeye dönülünce liste eskiyse hemen yenilenir.
  */
 @Component({
   imports: [GenericModel, DatePipe, NgTemplateOutlet],
@@ -80,9 +94,7 @@ interface Selection {
 export default class TaramaKlasorleri {
   readonly #router = inject(Router);
   readonly #route = inject(ActivatedRoute);
-  readonly #http = inject(HttpClient);
   readonly #sanitizer = inject(DomSanitizer);
-  readonly #toast = inject(FlexiToastService);
   readonly #scanService = inject(ScannedDocumentService);
 
   readonly nodes = NODES;
@@ -104,15 +116,23 @@ export default class TaramaKlasorleri {
   readonly lastUpdated = computed(() => this.#snapshot()?.at ?? null);
 
   readonly loading = computed(() => this.foldersResource.isLoading());
-  /** İsteğin tümden başarısız olması (backend'in kendi hatası, 500) */
+  /**
+   * İsteğin tümden başarısız olması (backend'in kendi hatası ya da backend'e hiç ulaşılamaması).
+   * Canlıda F12 açılamadığından durum kodu ve backend mesajı ekranda gösterilir.
+   */
   readonly requestError = computed(() => {
     const err: any = this.foldersResource.error();
     if (!err) return null;
+    const status: number | undefined = err.status ?? err.cause?.status;
+    if (status === 0) {
+      const detail: string | undefined = err.message ?? err.cause?.message;
+      return `Tarama klasörleri alınamadı: Sunucuya ulaşılamadı.${detail ? ` (${detail})` : ''}`;
+    }
     const body = err.error ?? err.cause?.error;
-    const message: string | undefined = body?.message ?? body?.Message;
-    if (message) return message;
-    if ((err.status ?? err.cause?.status) === 0) return 'Sunucuya ulaşılamıyor.';
-    return 'Tarama klasörleri alınamadı.';
+    const message: string | undefined = body?.message ?? body?.Message
+      ?? (status === 401 ? 'Oturum süresi dolmuş olabilir.' : undefined);
+    const code = status ? ` (${status})` : '';
+    return message ? `Tarama klasörleri alınamadı${code}: ${message}` : `Tarama klasörleri alınamadı${code}.`;
   });
 
   /** Kaynaklar yanıttaki sırayla ("evrak", "nota"); klasörler okunamazsa çekilenlerden ya da varsayılandan */
@@ -132,6 +152,14 @@ export default class TaramaKlasorleri {
   readonly currentPage = signal(1);
 
   constructor() {
+    const timer = setInterval(() => this.#autoRefresh(), AUTO_REFRESH_MS);
+    const onVisible = () => this.#autoRefresh();
+    document.addEventListener('visibilitychange', onVisible);
+    inject(DestroyRef).onDestroy(() => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    });
+
     const params = this.#route.snapshot.queryParamMap;
     const source = params.get('kaynak');
     if (source) {
@@ -169,6 +197,14 @@ export default class TaramaKlasorleri {
 
   refresh(): void {
     this.foldersResource.reload();
+  }
+
+  /** Görünür sekmede ve süren istek yokken; son güncelleme yeterince yeniyse atlanır */
+  #autoRefresh(): void {
+    if (document.hidden || this.loading()) return;
+    const at = this.lastUpdated()?.getTime() ?? 0;
+    if (Date.now() - at < AUTO_REFRESH_MS - 1000) return;
+    this.refresh();
   }
 
   // ---- Ağaç ----
@@ -398,37 +434,37 @@ export default class TaramaKlasorleri {
     return p.originalFileName || p.fileName;
   }
 
-  readonly preview = signal<{ file: PulledFile; url: SafeResourceUrl | null } | null>(null);
+  readonly preview = signal<{ file: PulledFile; url: SafeResourceUrl | null; error?: string } | null>(null);
   /** showModal() ile üst katmanda açılır; sol menü (z-index'i yüksek) ve sayfa katmanları üstüne binemez */
   readonly previewDialog = viewChild<ElementRef<HTMLDialogElement>>('previewDialog');
   #previewObjectUrl: string | null = null;
 
   /**
-   * PDF önce indirilir: belge bu arada kaydedildiyse servis 404 döner, iframe bunu ayırt edemez.
-   * 404'te kullanıcıya bildirilir ve liste yenilenir.
+   * PDF yetkili istekle blob olarak indirilir (iframe src'ye verilen adres token taşımaz).
+   * Gelen içerik gerçekten PDF değilse görüntüleyici açılmaz, hata pencerede gösterilir;
+   * 404'te (belge bu arada kaydedilmiş ya da dosya yok) liste de yenilenir.
    */
   async openPreview(file: PulledFile): Promise<void> {
     this.closePreview();
     this.preview.set({ file, url: null });
     this.previewDialog()?.nativeElement.showModal();
+    let status = 0;
     try {
-      const blob = await firstValueFrom(this.#http.get(this.#scanService.getPdfUrl(file.source, file.fileName), {
-        responseType: 'blob',
-        context: new HttpContext().set(SKIP_ERROR_TOAST, true)
-      }));
-      if (this.preview()?.file !== file) return;
-      this.#previewObjectUrl = URL.createObjectURL(blob.type === 'application/pdf' ? blob : new Blob([blob], { type: 'application/pdf' }));
-      this.preview.set({ file, url: this.#sanitizer.bypassSecurityTrustResourceUrl(this.#previewObjectUrl + '#zoom=100') });
-    } catch (err: any) {
-      if (this.preview()?.file !== file) return;
-      this.closePreview();
-      if (err?.status === 404) {
-        this.#toast.showToast('Bilgi', 'Belge bu arada evraka bağlanmış; liste yenileniyor.', 'warning');
-        this.refresh();
-      } else {
-        this.#toast.showToast('Hata', 'Belge önizlemesi açılamadı.', 'error');
+      const res = await firstValueFrom(this.#scanService.getScanPoolPdf(file.source, file.fileName));
+      status = res.status;
+      const blob = res.body;
+      if (blob && await isPdf(blob)) {
+        if (this.preview()?.file !== file) return;
+        this.#previewObjectUrl = URL.createObjectURL(blob.type === 'application/pdf' ? blob : new Blob([blob], { type: 'application/pdf' }));
+        this.preview.set({ file, url: this.#sanitizer.bypassSecurityTrustResourceUrl(this.#previewObjectUrl + '#zoom=100') });
+        return;
       }
+    } catch (err: any) {
+      status = err?.status ?? 0;
     }
+    if (this.preview()?.file !== file) return;
+    this.preview.set({ file, url: null, error: previewErrorMessage(status) });
+    if (status === 404) this.refresh();
   }
 
   closePreview(): void {

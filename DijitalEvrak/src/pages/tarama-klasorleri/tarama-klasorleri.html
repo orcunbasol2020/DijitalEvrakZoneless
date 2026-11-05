@@ -41,7 +41,7 @@
     <div class="tk-alert" role="alert">
         <span class="material-symbols-outlined">cloud_off</span>
         <span class="tk-alert-text">
-            Klasörler okunamadı: {{ message }}
+            Tarama klasörleri alınamadı: {{ message }}
             <span class="tk-alert-sub">Çekilenler (kaydı bekleyen) listesi günceldir.</span>
         </span>
         <button type="button" class="btn btn-sm btn-outline-danger" [disabled]="loading()" (click)="refresh()">Yeniden dene</button>
@@ -467,6 +467,12 @@
             <div class="tk-preview-body">
                 @if (pv.url) {
                     <iframe [src]="pv.url" title="Belge önizlemesi"></iframe>
+                } @else if (pv.error) {
+                    <div class="tk-empty" role="alert">
+                        <span class="material-symbols-outlined">error</span>
+                        <div class="tk-empty-title">Önizleme gösterilemiyor</div>
+                        <div class="tk-empty-sub">{{ pv.error }}</div>
+                    </div>
                 } @else {
                     <div class="tk-empty">
                         <div class="spinner-border tk-spinner" role="status"></div>
