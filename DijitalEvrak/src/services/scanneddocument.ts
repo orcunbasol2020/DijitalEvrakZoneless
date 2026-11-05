@@ -1,6 +1,6 @@
 import { environment } from '../environments/environment';
 import { Injectable, inject } from '@angular/core';
-import { HttpContext } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { HttpService } from './http';
 import { ScanFileModel } from '../models/scanneddocument.model';
 import { SKIP_ERROR_TOAST } from '../interceptors/error-interceptor';
@@ -14,6 +14,7 @@ import { firstValueFrom } from 'rxjs';
 export class ScannedDocumentService {
 
   private httpService = inject(HttpService);
+  readonly #http = inject(HttpClient);
   private baseUrl = 'api/ScannedDocuments/';
 
   // Kaynaklar ("evrak", "nota")
@@ -70,6 +71,15 @@ export class ScannedDocumentService {
   getPdfUrl(source: string, fileName: string): string {
     if (!source || !fileName) return '';
     return `${environment.apiUrl}api/ScannedDocuments/GetScanPoolPdf?source=${encodeURIComponent(source)}&fileName=${encodeURIComponent(fileName)}`;
+  }
+
+  // Önizleme PDF'i yetkili istekle blob olarak; "api/" ile başladığı için token eklenir.
+  // fileName depodaki ad olmalı ({evrakNo}_{guid}.pdf), originalFileName değil.
+  getScanPoolPdf(source: string, fileName: string) {
+    return this.#http.get(
+      `${this.baseUrl}GetScanPoolPdf?source=${encodeURIComponent(source)}&fileName=${encodeURIComponent(fileName)}`,
+      { responseType: 'blob', observe: 'response', context: new HttpContext().set(SKIP_ERROR_TOAST, true) }
+    );
   }
 
   // Belgeyi havuzdan alıp evrak numarasına bağlar. Hata mesajları ekranda backend'den gelen
