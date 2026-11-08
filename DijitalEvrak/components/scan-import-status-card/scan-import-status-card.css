@@ -1,100 +1,156 @@
 /* ============================================================
-   Önceden çekme servisi durum kartı (Tarama Klasörleri üstünde).
-   Sol kenar ve rozet genel duruma göre renklenir: yeşil çalışıyor,
-   amber hata, kırmızı çalışmıyor, gri kapalı. Uyarı tonları
-   Tarama Klasörleri'nin hata şeridiyle aynı.
+   Önceden çekme servisi paneli (Tarama Klasörleri → Servis Durumu).
+   Başlık, dört gösterge, tek açıklama notu, pod tablosu ve alt
+   bilgi satırı. Durum rengi (--sis-accent) başlıktaki simge, durum
+   hapı ve üst kenar çizgisinde kullanılır: yeşil çalışıyor, amber
+   hata, kırmızı çalışmıyor, gri kapalı.
+   Aynı sekmedeki "Tarama klasörleri" paneli de bu sis-* sınıflarını
+   kullanır; panel görünümü değişirse ikisi birlikte değişir.
    ============================================================ */
 
-.sis-card {
+.sis-host {
+    display: block;
+    min-width: 0;
+}
+
+.sis-host[hidden] {
+    display: none;
+}
+
+.sis-panel {
     --sis-accent: #94a3b8;
-    --sis-badge-bg: #f1f5f9;
-    --sis-badge-fg: #475569;
-    margin-bottom: 14px;
-    padding: 10px 16px;
+    --sis-accent-soft: #f1f5f9;
+    --sis-accent-fg: #475569;
+    position: relative;
+    overflow: hidden;
     background: #fff;
-    border: 1px solid #e2e8f0;
-    border-left: 4px solid var(--sis-accent);
-    border-radius: 12px;
+    border: 1px solid #e7eaf0;
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 20px rgba(15, 23, 42, 0.05);
     font-size: 13px;
     color: #334155;
 }
 
-.sis-card.sis-ok { --sis-accent: #16a34a; --sis-badge-bg: #dcfce7; --sis-badge-fg: #15803d; }
-.sis-card.sis-error { --sis-accent: #d97706; --sis-badge-bg: #fef3c7; --sis-badge-fg: #b45309; }
-.sis-card.sis-down { --sis-accent: #dc2626; --sis-badge-bg: #fee2e2; --sis-badge-fg: #b91c1c; }
+/* Üst kenarda durum rengi */
+.sis-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 3px;
+    background: var(--sis-accent);
+}
 
-.sis-card .material-symbols-outlined {
+.sis-panel.sis-ok { --sis-accent: #16a34a; --sis-accent-soft: #dcfce7; --sis-accent-fg: #15803d; }
+.sis-panel.sis-error { --sis-accent: #d97706; --sis-accent-soft: #fef3c7; --sis-accent-fg: #b45309; }
+.sis-panel.sis-down { --sis-accent: #dc2626; --sis-accent-soft: #fee2e2; --sis-accent-fg: #b91c1c; }
+
+.sis-panel .material-symbols-outlined {
     font-size: 18px;
     line-height: 1;
 }
 
-/* ---------- Başlık satırı ---------- */
+/* ---------- Başlık ---------- */
 .sis-head {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    gap: 8px 10px;
+    gap: 14px;
+    padding: 20px 22px 16px;
+}
+
+.sis-avatar {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    color: var(--sis-accent-fg);
+    background: var(--sis-accent-soft);
+}
+
+.sis-avatar .material-symbols-outlined {
+    font-size: 22px;
+}
+
+.sis-head-text {
+    flex: 1 1 auto;
+    min-width: 0;
 }
 
 .sis-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    margin: 0;
+    font-size: 15px;
     font-weight: 700;
     color: #0f172a;
 }
 
-.sis-title-icon {
-    color: #0f766e;
+.sis-sub {
+    margin: 2px 0 0;
+    font-size: 12.5px;
+    color: #64748b;
 }
 
-.sis-badge,
+.sis-head-side {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 6px;
+}
+
+.sis-pill,
 .sis-chip {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 2px 10px 2px 7px;
+    gap: 6px;
+    height: 26px;
+    padding: 0 11px;
     border-radius: 999px;
     font-size: 12px;
     font-weight: 600;
     white-space: nowrap;
 }
 
-.sis-badge {
-    background: var(--sis-badge-bg);
-    color: var(--sis-badge-fg);
+.sis-pill {
+    color: var(--sis-accent-fg);
+    background: var(--sis-accent-soft);
+}
+
+.sis-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--sis-accent);
+}
+
+/* Çalışırken yumuşak nabız */
+.sis-ok .sis-dot {
+    animation: sis-pulse 2s ease-out infinite;
+}
+
+@keyframes sis-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.45); }
+    70% { box-shadow: 0 0 0 6px rgba(22, 163, 74, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+}
+
+.sis-chip {
+    gap: 4px;
+    padding: 0 10px 0 8px;
+}
+
+.sis-chip .material-symbols-outlined {
+    font-size: 16px;
 }
 
 .sis-chip-run {
-    background: #e0f2fe;
     color: #0369a1;
+    background: #e0f2fe;
 }
 
 .sis-chip-warn {
-    background: #fef3c7;
     color: #b45309;
-}
-
-.sis-actions {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-left: auto;
-}
-
-.sis-btn,
-.sis-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.sis-toggle {
-    padding-left: 4px;
-    padding-right: 4px;
-    text-decoration: none;
-    color: #0f766e;
-    font-weight: 600;
+    background: #fef3c7;
 }
 
 .sis-spin {
@@ -105,112 +161,412 @@
     to { transform: rotate(360deg); }
 }
 
-/* ---------- Özet ---------- */
-.sis-summary {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 2px 6px;
-    margin-top: 6px;
+@media (prefers-reduced-motion: reduce) {
+    .sis-spin,
+    .sis-ok .sis-dot {
+        animation: none;
+    }
 }
 
-.sis-muted {
+/* ---------- Göstergeler ---------- */
+.sis-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0 22px;
+    border: 1px solid #eef1f5;
+    border-radius: 12px;
+    background: #f8fafc;
+}
+
+.sis-metric {
+    min-width: 0;
+    padding: 12px 16px;
+}
+
+.sis-metric + .sis-metric {
+    border-left: 1px solid #eef1f5;
+}
+
+.sis-metric-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
     color: #64748b;
 }
 
-.sis-sep {
-    color: #94a3b8;
-}
-
-.sis-error,
-.sis-load-error {
-    display: flex;
-    align-items: flex-start;
-    gap: 6px;
-    margin-top: 8px;
-    padding: 6px 10px;
-    border-radius: 8px;
-    overflow-wrap: anywhere;
-}
-
-.sis-error {
-    color: #b45309;
-    background: #fffbeb;
-    border: 1px solid #fde68a;
-}
-
-.sis-load-error {
-    flex-wrap: wrap;
-    color: #b91c1c;
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-}
-
-/* ---------- Pod listesi ---------- */
-.sis-pods {
-    list-style: none;
-    margin: 10px 0 0;
-    padding: 0;
-    border-top: 1px solid #e2e8f0;
-}
-
-.sis-pod {
-    display: grid;
-    grid-template-columns: 140px minmax(160px, 1.2fr) minmax(170px, 1fr) minmax(0, 2fr);
-    align-items: center;
-    gap: 4px 12px;
-    padding: 7px 0;
-    border-bottom: 1px solid #f1f5f9;
-}
-
-.sis-pod:last-child {
-    border-bottom: 0;
-}
-
-.sis-pod.is-faded {
-    opacity: 0.55;
-}
-
-.sis-pod-state {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-weight: 600;
+.sis-metric-value {
+    margin-top: 4px;
+    font-size: 19px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: #0f172a;
     white-space: nowrap;
 }
 
-.sis-pod-Running .sis-pod-state { color: #0369a1; }
-.sis-pod-Idle .sis-pod-state { color: #15803d; }
-.sis-pod-Error .sis-pod-state { color: #b45309; }
-.sis-pod-Unresponsive .sis-pod-state { color: #b91c1c; }
-.sis-pod-Stopped .sis-pod-state { color: #64748b; }
+.sis-metric-value.is-empty {
+    color: #94a3b8;
+}
 
-.sis-pod-name {
-    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+.sis-metric-of {
+    font-size: 13px;
+    font-weight: 600;
+    color: #94a3b8;
+}
+
+.sis-metric-sub {
+    margin-top: 1px;
     font-size: 12px;
+    color: #64748b;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.sis-pod-time {
-    white-space: nowrap;
-}
-
-.sis-pod-message {
-    overflow-wrap: anywhere;
-}
-
-.sis-pod-message.is-error {
+.sis-metric.is-warn .sis-metric-label,
+.sis-metric.is-warn .sis-metric-value {
     color: #b45309;
 }
 
+/* ---------- Açıklama notu ---------- */
+.sis-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 14px 22px 0;
+    padding: 10px 14px;
+    border-radius: 10px;
+    color: #475569;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    overflow-wrap: anywhere;
+}
+
+.sis-note strong {
+    display: block;
+    margin-bottom: 1px;
+    color: inherit;
+}
+
+.sis-note .material-symbols-outlined {
+    margin-top: 1px;
+}
+
+.sis-note.is-info {
+    color: #0c4a6e;
+    background: #f0f9ff;
+    border-color: #bae6fd;
+}
+
+.sis-note.is-warn {
+    color: #92400e;
+    background: #fffbeb;
+    border-color: #fde68a;
+}
+
+.sis-note.is-danger {
+    color: #991b1b;
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
+/* ---------- Pod tablosu ---------- */
+.sis-table {
+    margin: 16px 22px 0;
+    border: 1px solid #eef1f5;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.sis-row {
+    display: grid;
+    grid-template-columns: minmax(150px, 1.3fr) 130px minmax(150px, 1fr) minmax(0, 2fr);
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.sis-row-head {
+    border-top: 0;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    background: #f8fafc;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.sis-row-empty {
+    display: block;
+    color: #64748b;
+}
+
+.sis-row.is-faded {
+    opacity: 0.55;
+}
+
+.sis-cell-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 12px;
+    color: #0f172a;
+}
+
+.sis-cell-name .material-symbols-outlined {
+    flex: 0 0 auto;
+    font-size: 16px;
+    color: #94a3b8;
+}
+
+.sis-cell-name,
+.sis-cell-time {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sis-cell-time {
+    font-variant-numeric: tabular-nums;
+}
+
+.sis-cell-time small {
+    display: block;
+    font-size: 11.5px;
+    color: #64748b;
+}
+
+.sis-cell-msg {
+    overflow-wrap: anywhere;
+    color: #475569;
+}
+
+.sis-cell-msg.is-error {
+    color: #b45309;
+}
+
+.sis-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 24px;
+    padding: 0 9px 0 7px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.sis-state .material-symbols-outlined {
+    font-size: 15px;
+}
+
+.sis-pod-Running .sis-state { color: #0369a1; background: #e0f2fe; }
+.sis-pod-Idle .sis-state { color: #15803d; background: #dcfce7; }
+.sis-pod-Error .sis-state { color: #b45309; background: #fef3c7; }
+.sis-pod-Unresponsive .sis-state { color: #b91c1c; background: #fee2e2; }
+.sis-pod-Stopped .sis-state { color: #475569; background: #f1f5f9; }
+
+.sis-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin: 8px 22px 0;
+    padding: 2px 4px;
+    border: 0;
+    background: none;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #0369a1;
+    cursor: pointer;
+}
+
+.sis-link:hover {
+    text-decoration: underline;
+}
+
+/* ---------- Alt bilgi ---------- */
+.sis-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 52px;
+    margin-top: 16px;
+    padding: 10px 22px;
+    border-top: 1px solid #eef1f5;
+    background: #fbfcfd;
+}
+
+.sis-foot-text {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.sis-foot-text .material-symbols-outlined {
+    font-size: 16px;
+}
+
+.sis-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #fff;
+    background: linear-gradient(120deg, #0f172a 0%, #0c4a6e 55%, #0369a1 100%);
+    border: 0;
+    border-radius: 9px;
+    padding: 6px 14px 6px 10px;
+    font-weight: 600;
+}
+
+.sis-btn:hover:not(:disabled) {
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(3, 105, 161, 0.28);
+}
+
+.sis-btn:disabled {
+    color: #fff;
+    opacity: 0.7;
+}
+
+/* ---------- Dar ekran ---------- */
 @media (max-width: 900px) {
-    .sis-pod {
-        grid-template-columns: 1fr;
+    .sis-head {
+        flex-wrap: wrap;
     }
 
-    .sis-actions {
-        margin-left: 0;
+    .sis-head-side {
+        justify-content: flex-start;
+        width: 100%;
     }
+
+    .sis-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .sis-metric:nth-child(3) {
+        border-left: 0;
+    }
+
+    .sis-metric:nth-child(n + 3) {
+        border-top: 1px solid #eef1f5;
+    }
+
+    .sis-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .sis-row-head {
+        display: none;
+    }
+
+    .sis-cell-time,
+    .sis-cell-msg {
+        grid-column: 1 / -1;
+    }
+}
+
+/* ---------- Koyu tema ---------- */
+[data-theme="dark"] .sis-panel {
+    --sis-accent: #718096;
+    --sis-accent-soft: rgba(148, 163, 184, 0.14);
+    --sis-accent-fg: #cbd5e1;
+    color: #cbd5e1;
+    background: var(--card-bg);
+    border-color: var(--border-color);
+    box-shadow: none;
+}
+
+[data-theme="dark"] .sis-panel.sis-ok { --sis-accent: #22c55e; --sis-accent-soft: rgba(34, 197, 94, 0.14); --sis-accent-fg: #86efac; }
+[data-theme="dark"] .sis-panel.sis-error { --sis-accent: #f59e0b; --sis-accent-soft: rgba(245, 158, 11, 0.14); --sis-accent-fg: #fcd34d; }
+[data-theme="dark"] .sis-panel.sis-down { --sis-accent: #ef4444; --sis-accent-soft: rgba(239, 68, 68, 0.14); --sis-accent-fg: #fca5a5; }
+
+[data-theme="dark"] .sis-title,
+[data-theme="dark"] .sis-metric-value,
+[data-theme="dark"] .sis-cell-name {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .sis-sub,
+[data-theme="dark"] .sis-metric-label,
+[data-theme="dark"] .sis-metric-sub,
+[data-theme="dark"] .sis-row-head,
+[data-theme="dark"] .sis-row-empty,
+[data-theme="dark"] .sis-cell-time small,
+[data-theme="dark"] .sis-foot-text {
+    color: #a0aec0;
+}
+
+[data-theme="dark"] .sis-metric-value.is-empty,
+[data-theme="dark"] .sis-metric-of {
+    color: #718096;
+}
+
+[data-theme="dark"] .sis-metric.is-warn .sis-metric-label,
+[data-theme="dark"] .sis-metric.is-warn .sis-metric-value,
+[data-theme="dark"] .sis-cell-msg.is-error {
+    color: #fcd34d;
+}
+
+[data-theme="dark"] .sis-metrics,
+[data-theme="dark"] .sis-row-head,
+[data-theme="dark"] .sis-foot {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+[data-theme="dark"] .sis-metrics,
+[data-theme="dark"] .sis-metric + .sis-metric,
+[data-theme="dark"] .sis-metric:nth-child(n + 3),
+[data-theme="dark"] .sis-table,
+[data-theme="dark"] .sis-row,
+[data-theme="dark"] .sis-foot {
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .sis-cell-msg {
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .sis-chip-run,
+[data-theme="dark"] .sis-pod-Running .sis-state { color: #7dd3fc; background: rgba(14, 165, 233, 0.16); }
+[data-theme="dark"] .sis-chip-warn,
+[data-theme="dark"] .sis-pod-Error .sis-state { color: #fcd34d; background: rgba(245, 158, 11, 0.16); }
+[data-theme="dark"] .sis-pod-Idle .sis-state { color: #86efac; background: rgba(34, 197, 94, 0.16); }
+[data-theme="dark"] .sis-pod-Unresponsive .sis-state { color: #fca5a5; background: rgba(239, 68, 68, 0.16); }
+[data-theme="dark"] .sis-pod-Stopped .sis-state { color: #a0aec0; background: rgba(148, 163, 184, 0.14); }
+
+[data-theme="dark"] .sis-note {
+    color: #cbd5e1;
+    background: rgba(255, 255, 255, 0.03);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .sis-note.is-info {
+    color: #bae6fd;
+    background: rgba(14, 165, 233, 0.08);
+    border-color: rgba(125, 211, 252, 0.25);
+}
+
+[data-theme="dark"] .sis-note.is-warn {
+    color: #fde68a;
+    background: rgba(245, 158, 11, 0.1);
+    border-color: rgba(252, 211, 77, 0.3);
+}
+
+[data-theme="dark"] .sis-note.is-danger {
+    color: #fecaca;
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(252, 165, 165, 0.3);
+}
+
+[data-theme="dark"] .sis-link {
+    color: #7dd3fc;
 }

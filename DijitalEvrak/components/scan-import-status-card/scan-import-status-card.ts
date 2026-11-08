@@ -8,7 +8,7 @@ import {
   output,
   signal
 } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { FlexiToastService } from 'flexi-toast';
 import { firstValueFrom } from 'rxjs';
 import { RoleService } from '../../src/services/role-service';
@@ -75,11 +75,13 @@ function pick(list: ScanPoolImportInstance[], field: keyof ScanPoolImportInstanc
  */
 @Component({
   selector: 'app-scan-import-status-card',
-  imports: [DatePipe],
+  imports: [DatePipe, NgTemplateOutlet],
   templateUrl: './scan-import-status-card.html',
   styleUrl: './scan-import-status-card.css',
   encapsulation: ViewEncapsulation.None,
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  // Endpoint yokken (404) host da gizlenir; sayfa ızgarasında boş hücre kalmaz
+  host: { class: 'sis-host', '[hidden]': '!visible()' }
 })
 export class ScanImportStatusCard {
   readonly #service = inject(ScannedDocumentService);
@@ -96,13 +98,17 @@ export class ScanImportStatusCard {
   readonly loadError = signal<string | null>(null);
   /** Endpoint yok (404): kart hiç gösterilmez */
   readonly unavailable = signal(false);
-  readonly expanded = signal(false);
+  /** Kapanmış (Stopped) pod'lar dağıtımdan sonra bir gün listede kalır; varsayılan gizli */
+  readonly showStopped = signal(false);
   readonly runningNow = signal(false);
 
   /** Sunucu saati − tarayıcı saati (ms) */
   #clockOffset = 0;
   /** Sunucu saatine göre şimdiki an; her saniye ilerler */
   readonly now = signal(Date.now());
+  /** Durumun son alındığı an (sunucu saati) */
+  readonly lastCheckedAt = signal<string | null>(null);
+  readonly pollSeconds = POLL_MS / 1000;
 
   readonly overall = computed<Overall | null>(() => {
     const s = this.status();
@@ -112,6 +118,8 @@ export class ScanImportStatusCard {
     if (live.some(i => !isFailing(i))) return 'ok';
     return live.length ? 'error' : 'down';
   });
+  /** Kart ekranda mı: endpoint varsa ve durum ya da hata metni alınmışsa */
+  readonly visible = computed(() => !this.unavailable() && (!!this.status() || !!this.loadError()));
   readonly overallInfo = computed(() => {
     const o = this.overall();
     return o ? OVERALL[o] : null;
@@ -122,6 +130,9 @@ export class ScanImportStatusCard {
   /** Kart "Çalışıyor" derken hatalı olan canlı pod sayısı; aksi halde hata gözden kaçar */
   readonly erroredLiveCount = computed(() =>
     this.overall() === 'ok' ? this.live().filter(isFailing).length : 0);
+  /** Tabloda her zaman görünen pod'lar (Stopped dışındakiler) ve açılınca görünen kapanmış pod'lar */
+  readonly activePods = computed(() => this.instances().filter(i => i.state !== 'Stopped'));
+  readonly stoppedPods = computed(() => this.instances().filter(i => i.state === 'Stopped'));
   readonly isRunning = computed(() => this.live().some(i => i.state === 'Running'));
 
   /** Özet satırının pod'u: canlı pod'lar içinde son turu en yeni biten; canlı yoksa tüm pod'lar içinde */
@@ -134,8 +145,8 @@ export class ScanImportStatusCard {
     pick(this.live().filter(i => i.state !== 'Running'), 'nextRunAtUtc', false)?.nextRunAtUtc ?? null);
   /** Deploy sonrası yeni pod'da henüz başarılı tur olmayabileceğinden kapanmış pod'lar da sayılır */
   readonly lastSuccessAt = computed(() => pick(this.instances(), 'lastSuccessAtUtc')?.lastSuccessAtUtc ?? null);
-  /** Hata sürerken gösterilir */
-  readonly showLastSuccess = computed(() => {
+  /** Hata sürüyor mu; "Son başarılı" göstergesi uyarı renginde gösterilir */
+  readonly failing = computed(() => {
     const o = this.overall();
     return o === 'error' || o === 'down' || this.lastRun()?.lastRunSucceeded === false;
   });
@@ -165,6 +176,7 @@ export class ScanImportStatusCard {
       this.#clockOffset = new Date(data.serverTimeUtc).getTime() - Date.now();
       this.now.set(Date.now() + this.#clockOffset);
       this.status.set({ ...data, instances: data.instances ?? [] });
+      this.lastCheckedAt.set(data.serverTimeUtc);
       this.loadError.set(null);
     } catch (err: any) {
       if (err?.status === 404) {
@@ -211,6 +223,15 @@ export class ScanImportStatusCard {
     const hours = Math.floor(minutes / 60);
     if (hours < 24) return `${hours} saat önce`;
     return `${Math.floor(hours / 24)} gün önce`;
+  }
+
+  /** Sunucu saatine göre kalan süre */
+  until(iso: string | null): string {
+    const t = time(iso);
+    if (isNaN(t)) return '';
+    const seconds = Math.max(0, Math.ceil((t - this.now()) / 1000));
+    if (seconds < 60) return `${seconds} sn sonra`;
+    return `${Math.ceil(seconds / 60)} dk sonra`;
   }
 
   /** Sıradaki tur geçmişte kaldıysa (pod turu başlatmak üzere) saat yerine "birazdan" */
