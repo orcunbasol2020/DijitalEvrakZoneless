@@ -42,6 +42,14 @@ const STATES: Record<ScanPoolInstanceState, { label: string; icon: string }> = {
 /** Hatalı da olsa ayakta olan pod'lar; Stopped ve Unresponsive canlı sayılmaz */
 const LIVE_STATES = new Set<ScanPoolInstanceState>(['Running', 'Idle', 'Error']);
 
+/**
+ * Hatası süren pod: Error ya da önceki turu hatalı bitmiş, yeni turu sürmekte olan pod. Aksi halde
+ * her tur hata verirken pod tur sırasında Running göründüğünden kart Çalışıyor / Hata arasında gidip gelir.
+ */
+function isFailing(item: ScanPoolImportInstance): boolean {
+  return item.state === 'Error' || (item.state === 'Running' && item.lastRunSucceeded === false);
+}
+
 function time(iso: string | null): number {
   return iso ? new Date(iso).getTime() : NaN;
 }
@@ -101,7 +109,7 @@ export class ScanImportStatusCard {
     if (!s) return null;
     if (!s.enabled) return 'off';
     const live = this.live();
-    if (live.some(i => i.state === 'Running' || i.state === 'Idle')) return 'ok';
+    if (live.some(i => !isFailing(i))) return 'ok';
     return live.length ? 'error' : 'down';
   });
   readonly overallInfo = computed(() => {
@@ -113,7 +121,7 @@ export class ScanImportStatusCard {
   readonly live = computed(() => this.instances().filter(i => LIVE_STATES.has(i.state)));
   /** Kart "Çalışıyor" derken hatalı olan canlı pod sayısı; aksi halde hata gözden kaçar */
   readonly erroredLiveCount = computed(() =>
-    this.overall() === 'ok' ? this.live().filter(i => i.state === 'Error').length : 0);
+    this.overall() === 'ok' ? this.live().filter(isFailing).length : 0);
   readonly isRunning = computed(() => this.live().some(i => i.state === 'Running'));
 
   /** Özet satırının pod'u: canlı pod'lar içinde son turu en yeni biten; canlı yoksa tüm pod'lar içinde */
@@ -134,7 +142,7 @@ export class ScanImportStatusCard {
   /** Kart "Hata" iken gösterilecek hata: son haber veren hatalı pod'unki */
   readonly errorText = computed(() => {
     if (this.overall() !== 'error') return null;
-    return pick(this.live().filter(i => i.state === 'Error'), 'lastSeenAtUtc')?.lastError ?? null;
+    return pick(this.live().filter(isFailing), 'lastSeenAtUtc')?.lastError ?? null;
   });
 
   constructor() {
@@ -185,6 +193,8 @@ export class ScanImportStatusCard {
   stateInfo(state: ScanPoolInstanceState) {
     return STATES[state] ?? { label: state, icon: 'help' };
   }
+
+  readonly isFailing = isFailing;
 
   isFaded(item: ScanPoolImportInstance): boolean {
     return !LIVE_STATES.has(item.state);

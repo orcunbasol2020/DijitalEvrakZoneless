@@ -131,8 +131,8 @@
                             }
                         }
                     </span>
-                    <span class="sis-pod-message" [class.is-error]="pod.state === 'Error'">
-                        {{ pod.state === 'Error' ? (pod.lastError || pod.lastRunMessage) : pod.lastRunMessage }}
+                    <span class="sis-pod-message" [class.is-error]="isFailing(pod)">
+                        {{ isFailing(pod) ? (pod.lastError || pod.lastRunMessage) : pod.lastRunMessage }}
                     </span>
                 </li>
             }
