@@ -39,30 +39,132 @@
     animation: ad-spin 0.6s linear infinite;
 }
 
-/* ---------- Hata şeridi ---------- */
-.tk-page .tk-alert {
+/* ---------- Sekmeler: Ayarlar'daki grup sekmeleriyle aynı ---------- */
+.tk-page .tk-tabs {
     display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 14px;
+    padding: 4px;
+    border: 1px solid #e7eaf0;
+    border-radius: 14px;
+    background: #fff;
+}
+
+.tk-page .tk-tab {
+    display: inline-flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
-    padding: 12px 16px;
-    border-radius: 12px;
-    color: #b91c1c;
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-}
-
-.tk-page .tk-alert-text {
-    flex: 1;
-    min-width: 0;
+    gap: 6px;
+    height: 34px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    font-size: 12.5px;
     font-weight: 600;
+    color: #64748b;
+    white-space: nowrap;
+    cursor: pointer;
 }
 
-.tk-page .tk-alert-sub {
+.tk-page .tk-tab:hover {
+    color: #0f172a;
+    background: #f1f5f9;
+}
+
+.tk-page .tk-tab.is-active {
+    color: #e0f2fe;
+    background: linear-gradient(120deg, #0f172a 0%, #0c4a6e 55%, #0369a1 100%);
+    box-shadow: 0 4px 12px rgba(3, 105, 161, 0.28);
+}
+
+.tk-page .tk-tab:focus-visible {
+    outline: 2px solid #0ea5e9;
+    outline-offset: 1px;
+}
+
+.tk-page .tk-tab-icon {
+    font-size: 17px;
+}
+
+/* Sekmedeki işaret: hata simgesi ya da servisin açık / kapalı noktası */
+.tk-page .tk-tab-flag.is-error .material-symbols-outlined {
     display: block;
-    font-weight: 400;
-    font-size: 12px;
-    color: #7f1d1d;
+    font-size: 15px;
+    color: #dc2626;
+}
+
+.tk-page .tk-tab.is-active .tk-tab-flag.is-error .material-symbols-outlined {
+    color: #fca5a5;
+}
+
+.tk-page .tk-tab-state {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #cbd5e1;
+}
+
+.tk-page .tk-tab-state.is-on {
+    background: #22c55e;
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.18);
+}
+
+.tk-page .tk-tab.is-active .tk-tab-state:not(.is-on) {
+    background: rgba(224, 242, 254, 0.45);
+}
+
+/* ---------- Servis Durumu sekmesi ----------
+   Önceden çekme paneli (geniş) ve tarama klasörleri paneli yan yana; ikisi de
+   scan-import-status-card.css'teki sis-* panel görünümünü kullanır. */
+.tk-page .tk-status {
+    display: grid;
+    grid-template-columns: minmax(0, 1.8fr) minmax(340px, 1fr);
+    align-items: start;
+    gap: 16px;
+}
+
+.tk-page .tk-status.is-single {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.tk-page .tk-status[hidden] {
+    display: none;
+}
+
+/* Dar sütunda dört gösterge 2 × 2 dizilir */
+.tk-page .tk-folder-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tk-page .tk-folder-metrics .sis-metric:nth-child(3) {
+    border-left: 0;
+}
+
+.tk-page .tk-folder-metrics .sis-metric:nth-child(n + 3) {
+    border-top: 1px solid #eef1f5;
+}
+
+[data-theme="dark"] .tk-page .tk-folder-metrics .sis-metric:nth-child(n + 3) {
+    border-top-color: var(--border-color);
+}
+
+.tk-page .tk-status.is-single .tk-folder-metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.tk-page .tk-status.is-single .tk-folder-metrics .sis-metric:nth-child(3) {
+    border-left: 1px solid #eef1f5;
+}
+
+.tk-page .tk-status.is-single .tk-folder-metrics .sis-metric:nth-child(n + 3) {
+    border-top: 0;
+}
+
+@media (max-width: 1200px) {
+    .tk-page .tk-status {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 
 /* ---------- Gezgin iskeleti ---------- */
@@ -903,14 +1005,31 @@ dialog.tk-preview-dialog::backdrop {
 /* ============================================================
    Koyu tema
    ============================================================ */
-[data-theme="dark"] .tk-page .tk-alert {
-    color: #fca5a5;
-    background: rgba(239, 68, 68, 0.12);
-    border-color: rgba(252, 165, 165, 0.3);
+/* Ayarlar sekmeleriyle aynı koyu zemin */
+[data-theme="dark"] .tk-page .tk-tabs {
+    background: #2d3748;
+    border-color: #4a5568;
 }
 
-[data-theme="dark"] .tk-page .tk-alert-sub {
-    color: #fecaca;
+[data-theme="dark"] .tk-page .tk-tab {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .tk-page .tk-tab:hover {
+    color: #e2e8f0;
+    background: rgba(148, 163, 184, 0.1);
+}
+
+[data-theme="dark"] .tk-page .tk-tab.is-active {
+    color: #e0f2fe;
+}
+
+[data-theme="dark"] .tk-page .tk-tab-state {
+    background: #475569;
+}
+
+[data-theme="dark"] .tk-page .tk-tab-state.is-on {
+    background: #4ade80;
 }
 
 [data-theme="dark"] .tk-page .tk-tree {

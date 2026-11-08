@@ -5,6 +5,8 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import GenericModel from '../../../components/generic-model/generic-model';
+import { ScanImportStatusCard } from '../../../components/scan-import-status-card/scan-import-status-card';
+import { ScanFlowGuide } from '../../../components/scan-flow-guide/scan-flow-guide';
 import { SKIP_ERROR_TOAST } from '../../interceptors/error-interceptor';
 import { ScannedDocumentService, scanSourceLabel } from '../../services/scanneddocument';
 import { RoleService } from '../../services/role-service';
@@ -70,6 +72,10 @@ function previewErrorMessage(status: number): string {
   }
 }
 
+/** Sayfa sekmeleri: dosya gezgini, servislerin durumu, tarama klasörleri şeması ve akışın anlatımı */
+type PageTab = 'klasorler' | 'durum' | 'akis' | 'nasil';
+const PAGE_TABS: readonly PageTab[] = ['klasorler', 'durum', 'akis', 'nasil'];
+
 type SortField ='fileName' | 'sizeBytes' | 'modifiedAtUtc' | 'scannedAtUtc' | 'pulledAtUtc';
 
 interface Selection {
@@ -83,9 +89,11 @@ interface Selection {
  * listeler; klasörlerde işlem yoktur. Backend'e çekilmiş, kaydı bekleyen belgeler (Çekilenler) önizlenebilir
  * ve kayıt için Taranmış Evraklar ekranında açılabilir. Ekran açıkken liste dakikada bir yenilenir; sekme
  * arka plandayken paylaşım boşuna taranmaz, sekmeye dönülünce liste eskiyse hemen yenilenir.
+ * Önceden çekme servisinin durumu ve klasörlerin alınamadığı uyarısı ayrı "Servis Durumu" sekmesindedir;
+ * "Nasıl çalışır?" sekmesi taramadan Atlas'a kadarki akışı son kullanıcıya anlatır.
  */
 @Component({
-  imports: [GenericModel, DatePipe, NgTemplateOutlet],
+  imports: [GenericModel, ScanImportStatusCard, ScanFlowGuide, DatePipe, NgTemplateOutlet],
   templateUrl: './tarama-klasorleri.html',
   styleUrls: ['../home/dashboard.css', './tarama-klasorleri.css'],
   encapsulation: ViewEncapsulation.None,
@@ -151,6 +159,47 @@ export default class TaramaKlasorleri {
   readonly sortDir = signal<'asc' | 'desc'>('asc');
   readonly currentPage = signal(1);
 
+  /** Seçili sekme adres çubuğunda (?sekme=durum / akis / nasil) tutulur; varsayılan Klasörler */
+  readonly tab = signal<PageTab>(
+    PAGE_TABS.find(t => t === this.#route.snapshot.queryParamMap.get('sekme')) ?? 'klasorler');
+
+  private readonly statusCard = viewChild(ScanImportStatusCard);
+  /** Önceden çekme paneli ekranda mı; değilse (endpoint yok) klasör paneli tüm genişliği kaplar */
+  readonly importStatusShown = computed(() => this.statusCard()?.visible() ?? false);
+  /** "Nasıl çalışır?" anlatımındaki önceden çekme aralığı; durum alınamadıysa backend varsayılanı */
+  readonly importIntervalSeconds = computed(() => this.statusCard()?.status()?.intervalSeconds ?? 15);
+
+  /** Servis Durumu → Tarama klasörleri paneli: klasör başına dosya sayıları (tüm kaynaklar toplamı) */
+  readonly folderCounts = computed(() => {
+    const counts: Record<ScanFolderState, number> = { Inbox: 0, Okunan: 0, Processed: 0, Failed: 0 };
+    let staleInbox = 0;
+    for (const folder of this.folders()) {
+      counts[folder.state] += folder.files.length;
+      if (folder.state === 'Inbox') staleInbox += this.staleCount(folder);
+    }
+    return { ...counts, staleInbox };
+  });
+  /** Klasör okumanın genel durumu; önceden çekme paneliyle aynı renk dili */
+  readonly folderHealth = computed<{ tone: 'ok' | 'error' | 'down' | 'unknown'; label: string }>(() => {
+    if (this.requestError()) return { tone: 'down', label: 'Alınamadı' };
+    if (this.foldersError()) return { tone: 'down', label: 'Klasörler okunamadı' };
+    if (!this.lastUpdated()) return { tone: 'unknown', label: 'Yükleniyor' };
+    if (this.folderCounts().staleInbox) return { tone: 'error', label: 'Gecikme var' };
+    return { tone: 'ok', label: 'Okunuyor' };
+  });
+  readonly refreshMinutes = AUTO_REFRESH_MS / 60_000;
+  /**
+   * Servis Durumu sekmesindeki işaret: klasörler alınamadıysa ya da önceden çekme hatalı / çalışmıyorsa
+   * hata; aksi halde servisin açık / kapalı noktası. Kart henüz yanıt almadıysa işaret yok.
+   */
+  readonly statusFlag = computed<'error' | 'ok' | 'off' | null>(() => {
+    const card = this.statusCard();
+    const overall = card?.overall() ?? null;
+    if (this.requestError() || this.foldersError() || overall === 'error' || overall === 'down'
+      || (card?.visible() && card.loadError())) return 'error';
+    return overall === 'ok' || overall === 'off' ? overall : null;
+  });
+
   constructor() {
     const timer = setInterval(() => this.#autoRefresh(), AUTO_REFRESH_MS);
     const onVisible = () => this.#autoRefresh();
@@ -190,9 +239,17 @@ export default class TaramaKlasorleri {
 
     effect(() => {
       const sel = this.selection();
-      const queryParams = { kaynak: sel?.source ?? null, klasor: sel?.node ?? null };
+      const queryParams = {
+        sekme: this.tab() === 'klasorler' ? null : this.tab(),
+        kaynak: sel?.source ?? null,
+        klasor: sel?.node ?? null
+      };
       untracked(() => this.#router.navigate([], { relativeTo: this.#route, queryParams, replaceUrl: true }));
     });
+  }
+
+  selectTab(tab: PageTab): void {
+    this.tab.set(tab);
   }
 
   refresh(): void {

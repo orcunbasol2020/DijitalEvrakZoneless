@@ -25,29 +25,133 @@
     </div>
 </section>
 
-<!-- İstek tümden başarısız (backend hatası) ya da yalnızca tarama servisi okunamadı (çekilenler yine güncel) -->
-@if (requestError(); as message) {
-    <div class="tk-alert" role="alert">
-        <span class="material-symbols-outlined">error</span>
-        <span class="tk-alert-text">
-            {{ message }}
-            @if (lastUpdated()) {
-                <span class="tk-alert-sub">Aşağıdaki liste son başarılı taramaya aittir.</span>
+<!-- Sekmeler (Ayarlar ile aynı dil). Servis Durumu sekmesindeki işaret, Klasörler açıkken de
+     sorunun gözden kaçmaması için: hata simgesi ya da servisin açık / kapalı noktası. -->
+<nav class="tk-tabs" role="tablist" aria-label="Tarama klasörleri bölümleri">
+    <button type="button" class="tk-tab" role="tab" [class.is-active]="tab() === 'klasorler'"
+        [attr.aria-selected]="tab() === 'klasorler'" (click)="selectTab('klasorler')">
+        <span class="material-symbols-outlined tk-tab-icon">folder_open</span>
+        Klasörler
+    </button>
+    <button type="button" class="tk-tab" role="tab" [class.is-active]="tab() === 'durum'"
+        [attr.aria-selected]="tab() === 'durum'" (click)="selectTab('durum')">
+        <span class="material-symbols-outlined tk-tab-icon">monitor_heart</span>
+        Servis Durumu
+        @switch (statusFlag()) {
+            @case ('error') {
+                <span class="tk-tab-flag is-error" title="Servislerde sorun var">
+                    <span class="material-symbols-outlined">error</span>
+                </span>
             }
-        </span>
-        <button type="button" class="btn btn-sm btn-outline-danger" [disabled]="loading()" (click)="refresh()">Yeniden dene</button>
-    </div>
-} @else if (foldersError(); as message) {
-    <div class="tk-alert" role="alert">
-        <span class="material-symbols-outlined">cloud_off</span>
-        <span class="tk-alert-text">
-            Tarama klasörleri alınamadı: {{ message }}
-            <span class="tk-alert-sub">Çekilenler (kaydı bekleyen) listesi günceldir.</span>
-        </span>
-        <button type="button" class="btn btn-sm btn-outline-danger" [disabled]="loading()" (click)="refresh()">Yeniden dene</button>
-    </div>
+            @case ('ok') { <span class="tk-tab-state is-on" title="Önceden çekme servisi çalışıyor"></span> }
+            @case ('off') { <span class="tk-tab-state" title="Önceden çekme kapalı"></span> }
+        }
+    </button>
+    <button type="button" class="tk-tab" role="tab" [class.is-active]="tab() === 'akis'"
+        [attr.aria-selected]="tab() === 'akis'" (click)="selectTab('akis')">
+        <span class="material-symbols-outlined tk-tab-icon">account_tree</span>
+        Klasör Akışı
+    </button>
+    <button type="button" class="tk-tab" role="tab" [class.is-active]="tab() === 'nasil'"
+        [attr.aria-selected]="tab() === 'nasil'" (click)="selectTab('nasil')">
+        <span class="material-symbols-outlined tk-tab-icon">lightbulb</span>
+        Nasıl çalışır?
+    </button>
+</nav>
+
+@if (tab() === 'akis') {
+    <app-scan-flow-guide view="folders" [intervalSeconds]="importIntervalSeconds()" [folders]="folders()"
+        [pulledCount]="lastUpdated() ? pulled().length : null" />
+} @else if (tab() === 'nasil') {
+    <app-scan-flow-guide view="guide" [intervalSeconds]="importIntervalSeconds()" />
 }
 
+<!-- Servis Durumu: sekme kapalıyken de paneller gizli olarak yenilenir, sekme işareti güncel kalır.
+     Önceden çekme paneli solda, tarama klasörleri paneli sağda; dar ekranda alt alta. -->
+<section class="tk-status" role="tabpanel" aria-label="Servis Durumu" [hidden]="tab() !== 'durum'"
+    [class.is-single]="!importStatusShown()">
+
+    <!-- Belgeleri arka planda önceden çeken servisin durumu; elle tur belge aldıysa liste yenilenir -->
+    <app-scan-import-status-card (imported)="refresh()" />
+
+    <!-- Tarama paylaşımındaki klasörlerin okunması (önceden çekme panelinin sis-* görünümüyle) -->
+    @let health = folderHealth();
+    @let counts = folderCounts();
+    <section class="sis-panel tk-folder-panel" [class]="'sis-' + health.tone" aria-labelledby="tk-folder-title">
+        <header class="sis-head">
+            <span class="sis-avatar"><span class="material-symbols-outlined">folder_open</span></span>
+            <div class="sis-head-text">
+                <h3 class="sis-title" id="tk-folder-title">Tarama klasörleri</h3>
+                <p class="sis-sub">Tarama paylaşımındaki klasörler {{ refreshMinutes }} dakikada bir okunur</p>
+            </div>
+            <div class="sis-head-side">
+                <span class="sis-pill" role="status">
+                    <span class="sis-dot"></span>
+                    {{ health.label }}
+                </span>
+            </div>
+        </header>
+
+        <div class="sis-metrics tk-folder-metrics">
+            <div class="sis-metric" [class.is-warn]="counts.staleInbox > 0">
+                <div class="sis-metric-label">Gelen kutusu</div>
+                <div class="sis-metric-value">{{ foldersError() ? '—' : counts.Inbox }}</div>
+                <div class="sis-metric-sub">
+                    @if (counts.staleInbox) { {{ counts.staleInbox }} dosya {{ staleMinutes }} dk+ bekliyor } @else { Okunmayı bekleyen }
+                </div>
+            </div>
+            <div class="sis-metric">
+                <div class="sis-metric-label">Havuz</div>
+                <div class="sis-metric-value">{{ foldersError() ? '—' : counts.Okunan }}</div>
+                <div class="sis-metric-sub">Çekilmeyi bekleyen</div>
+            </div>
+            <div class="sis-metric" [class.is-warn]="counts.Failed > 0">
+                <div class="sis-metric-label">Hatalı</div>
+                <div class="sis-metric-value">{{ foldersError() ? '—' : counts.Failed }}</div>
+                <div class="sis-metric-sub">Okunamayan dosya</div>
+            </div>
+            <div class="sis-metric">
+                <div class="sis-metric-label">Kaydı bekleyen</div>
+                <div class="sis-metric-value">{{ pulled().length }}</div>
+                <div class="sis-metric-sub">Çekilmiş, evraka bağlanmamış</div>
+            </div>
+        </div>
+
+        <!-- İstek tümden başarısız (backend hatası) ya da yalnızca tarama servisi okunamadı (çekilenler yine güncel) -->
+        @if (requestError(); as message) {
+            <div class="sis-note is-danger" role="alert">
+                <span class="material-symbols-outlined">error</span>
+                <div>
+                    <strong>{{ message }}</strong>
+                    @if (lastUpdated()) { Göstergeler ve Klasörler sekmesi son başarılı okumaya aittir. }
+                </div>
+            </div>
+        } @else if (foldersError(); as message) {
+            <div class="sis-note is-danger" role="alert">
+                <span class="material-symbols-outlined">cloud_off</span>
+                <div><strong>Tarama klasörleri alınamadı</strong>{{ message }} Kaydı bekleyen belgeler günceldir.</div>
+            </div>
+        } @else if (counts.staleInbox) {
+            <div class="sis-note is-warn">
+                <span class="material-symbols-outlined">hourglass_bottom</span>
+                <div><strong>Gelen kutusunda bekleyen dosya var</strong>{{ counts.staleInbox }} dosya {{ staleMinutes }} dakikadan uzun süredir bekliyor. Tarama servisi dosyaları okumuyor olabilir.</div>
+            </div>
+        }
+
+        <footer class="sis-foot">
+            <span class="sis-foot-text">
+                <span class="material-symbols-outlined">schedule</span>
+                @if (lastUpdated(); as at) { Son okuma {{ at | date: 'HH:mm:ss' }} } @else { Henüz okunmadı }
+            </span>
+            <button type="button" class="btn btn-sm sis-btn" [disabled]="loading()" (click)="refresh()">
+                <span class="material-symbols-outlined" [class.sis-spin]="loading()">refresh</span>
+                {{ requestError() || foldersError() ? 'Yeniden dene' : 'Şimdi oku' }}
+            </button>
+        </footer>
+    </section>
+</section>
+
+@if (tab() === 'klasorler') {
 <div class="card premium-card tk-explorer">
 
     <!-- Sol: klasör ağacı -->
@@ -428,6 +532,7 @@
 
 @if (lastUpdated(); as at) {
     <div class="tk-updated">Son güncelleme: {{ at | date:'dd.MM.yyyy HH:mm:ss' }}</div>
+}
 }
 
 </div>

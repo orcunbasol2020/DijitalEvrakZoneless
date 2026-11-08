@@ -1,0 +1,211 @@
+@if (visible()) {
+<section class="sis-panel" [class]="'sis-' + (overall() ?? 'unknown')" aria-labelledby="sis-title">
+
+    <!-- Başlık: servis adı, ne yaptığı ve genel durum -->
+    <header class="sis-head">
+        <span class="sis-avatar"><span class="material-symbols-outlined">cloud_download</span></span>
+        <div class="sis-head-text">
+            <h3 class="sis-title" id="sis-title">Önceden çekme servisi</h3>
+            <p class="sis-sub">
+                Tarama sistemindeki yeni belgeleri arka planda alır
+                @if (status(); as s) { · {{ s.intervalSeconds }} sn'de bir tur }
+            </p>
+        </div>
+        <div class="sis-head-side">
+            @if (overallInfo(); as info) {
+                <span class="sis-pill" role="status">
+                    <span class="sis-dot"></span>
+                    {{ info.label }}
+                </span>
+            }
+            @if (isRunning() && overall() !== 'off') {
+                <span class="sis-chip sis-chip-run">
+                    <span class="material-symbols-outlined sis-spin">sync</span>
+                    Tur sürüyor
+                </span>
+            }
+            @if (erroredLiveCount(); as count) {
+                <span class="sis-chip sis-chip-warn" title="Diğer pod'lar çalıştığı için belgeler yine çekiliyor">
+                    <span class="material-symbols-outlined">warning</span>
+                    {{ count }} pod hatalı
+                </span>
+            }
+        </div>
+    </header>
+
+    @if (status(); as s) {
+        <!-- Göstergeler -->
+        <div class="sis-metrics">
+            <div class="sis-metric">
+                <div class="sis-metric-label">Son tur</div>
+                @if (lastRun(); as run) {
+                    <div class="sis-metric-value">{{ run.lastRunFinishedAtUtc | date: 'HH:mm:ss' }}</div>
+                    <div class="sis-metric-sub">{{ ago(run.lastRunFinishedAtUtc) }}</div>
+                } @else {
+                    <div class="sis-metric-value is-empty">—</div>
+                    <div class="sis-metric-sub">Henüz tamamlanan tur yok</div>
+                }
+            </div>
+
+            <div class="sis-metric">
+                <div class="sis-metric-label">Sonraki tur</div>
+                @if (nextRunAt(); as next) {
+                    @if (isDue(next)) {
+                        <div class="sis-metric-value">Birazdan</div>
+                        <div class="sis-metric-sub">Tur başlamak üzere</div>
+                    } @else {
+                        <div class="sis-metric-value">{{ next | date: 'HH:mm:ss' }}</div>
+                        <div class="sis-metric-sub">{{ until(next) }}</div>
+                    }
+                } @else if (isRunning()) {
+                    <div class="sis-metric-value">Sürüyor</div>
+                    <div class="sis-metric-sub">Tur bitince planlanır</div>
+                } @else {
+                    <div class="sis-metric-value is-empty">—</div>
+                    <div class="sis-metric-sub">Çalışan pod yok</div>
+                }
+            </div>
+
+            <div class="sis-metric" [class.is-warn]="failing()">
+                <div class="sis-metric-label">Son başarılı tur</div>
+                @if (lastSuccessAt(); as success) {
+                    <div class="sis-metric-value">{{ success | date: 'HH:mm:ss' }}</div>
+                    <div class="sis-metric-sub">{{ ago(success) }}</div>
+                } @else {
+                    <div class="sis-metric-value is-empty">Yok</div>
+                    <div class="sis-metric-sub">Son bir günde başarılı tur yok</div>
+                }
+            </div>
+
+            <div class="sis-metric">
+                <div class="sis-metric-label">Canlı pod</div>
+                <div class="sis-metric-value">{{ live().length }}<span class="sis-metric-of"> / {{ activePods().length }}</span></div>
+                <div class="sis-metric-sub">
+                    @if (stoppedPods().length) { {{ stoppedPods().length }} kapanmış pod } @else { Kapanmış pod yok }
+                </div>
+            </div>
+        </div>
+
+        <!-- Durumu açıklayan tek not: hata, kapalı, çalışmıyor ya da son tur sonucu -->
+        @if (errorText(); as error) {
+            <div class="sis-note is-warn">
+                <span class="material-symbols-outlined">report</span>
+                <div><strong>Son tur hatası</strong>{{ error }}</div>
+            </div>
+        } @else if (overall() === 'off') {
+            <div class="sis-note">
+                <span class="material-symbols-outlined">toggle_off</span>
+                <div><strong>Önceden çekme kapalı</strong>Uygulama Ayarları'ndan kapatılmış; arka plan turları belge almıyor.</div>
+            </div>
+        } @else if (overall() === 'down') {
+            <div class="sis-note is-danger">
+                <span class="material-symbols-outlined">error</span>
+                <div><strong>Servisten haber alınamıyor</strong>Çalışan pod yok: servis durmuş ya da pod'lar yeniden başlatılıyor olabilir.</div>
+            </div>
+        } @else if (lastRun()?.lastRunMessage; as message) {
+            <div class="sis-note is-info">
+                <span class="material-symbols-outlined">info</span>
+                <div><strong>Son tur sonucu</strong>{{ message }}</div>
+            </div>
+        }
+    }
+
+    @if (loadError(); as message) {
+        <div class="sis-note is-danger">
+            <span class="material-symbols-outlined">cloud_off</span>
+            <div>
+                <strong>{{ message }}</strong>
+                @if (lastCheckedAt(); as at) { Gösterilen bilgi {{ at | date: 'HH:mm:ss' }} itibarıyladır. }
+            </div>
+        </div>
+    }
+
+    <!-- Pod tablosu: kapanmış pod'lar istenirse gösterilir -->
+    @if (instances().length) {
+        <div class="sis-table" role="table" aria-label="Pod'lar">
+            <div class="sis-row sis-row-head" role="row">
+                <span role="columnheader">Pod</span>
+                <span role="columnheader">Durum</span>
+                <span role="columnheader">Zaman</span>
+                <span role="columnheader">Mesaj</span>
+            </div>
+            @for (pod of activePods(); track pod.instanceName) {
+                <ng-container [ngTemplateOutlet]="podRow" [ngTemplateOutletContext]="{ $implicit: pod }" />
+            }
+            @if (showStopped()) {
+                @for (pod of stoppedPods(); track pod.instanceName) {
+                    <ng-container [ngTemplateOutlet]="podRow" [ngTemplateOutletContext]="{ $implicit: pod }" />
+                }
+            }
+            @if (!activePods().length && !showStopped()) {
+                <div class="sis-row sis-row-empty" role="row">Çalışan ya da yanıt bekleyen pod yok.</div>
+            }
+        </div>
+        @if (stoppedPods().length) {
+            <button type="button" class="sis-link" [attr.aria-expanded]="showStopped()" (click)="showStopped.set(!showStopped())">
+                <span class="material-symbols-outlined">{{ showStopped() ? 'expand_less' : 'expand_more' }}</span>
+                @if (showStopped()) { Kapanmış pod'ları gizle } @else { Kapanmış pod'ları göster ({{ stoppedPods().length }}) }
+            </button>
+        }
+    }
+
+    <footer class="sis-foot">
+        <span class="sis-foot-text">
+            <span class="material-symbols-outlined">schedule</span>
+            {{ pollSeconds }} sn'de bir güncellenir
+            @if (lastCheckedAt(); as at) { · son kontrol {{ ago(at) }} }
+        </span>
+        @if (canRunNow && status()?.enabled) {
+            <button type="button" class="btn btn-sm sis-btn"
+                title="Arka plan turunu beklemeden tarama sistemini şimdi kontrol eder. Bu tur yukarıdaki göstergelere yansımaz."
+                [disabled]="runningNow()" (click)="runNow()">
+                <span class="material-symbols-outlined" [class.sis-spin]="runningNow()">{{ runningNow() ? 'sync' : 'play_arrow' }}</span>
+                Şimdi çalıştır
+            </button>
+        }
+    </footer>
+</section>
+}
+
+<ng-template #podRow let-pod>
+    @let info = stateInfo(pod.state);
+    <div class="sis-row" role="row" [class.is-faded]="isFaded(pod)" [class]="'sis-pod-' + pod.state">
+        <span class="sis-cell-name" role="cell" [title]="pod.instanceName">
+            <span class="material-symbols-outlined">dns</span>
+            {{ pod.instanceName }}
+        </span>
+        <span role="cell">
+            <span class="sis-state">
+                <span class="material-symbols-outlined" [class.sis-spin]="pod.state === 'Running'">{{ info.icon }}</span>
+                {{ info.label }}
+            </span>
+        </span>
+        <span class="sis-cell-time" role="cell">
+            @switch (pod.state) {
+                @case ('Running') {
+                    Başladı {{ pod.lastRunStartedAtUtc | date: 'HH:mm:ss' }}
+                    <small>{{ ago(pod.lastRunStartedAtUtc) }}</small>
+                }
+                @case ('Stopped') {
+                    Kapandı {{ pod.stoppedAtUtc | date: 'dd.MM HH:mm' }}
+                    <small>{{ ago(pod.stoppedAtUtc) }}</small>
+                }
+                @case ('Unresponsive') {
+                    Son haber {{ pod.lastSeenAtUtc | date: 'dd.MM HH:mm' }}
+                    <small>{{ ago(pod.lastSeenAtUtc) }}</small>
+                }
+                @default {
+                    @if (pod.lastRunFinishedAtUtc) {
+                        Son tur {{ pod.lastRunFinishedAtUtc | date: 'HH:mm:ss' }}
+                        <small>{{ ago(pod.lastRunFinishedAtUtc) }}</small>
+                    } @else {
+                        <small>Henüz tur yok</small>
+                    }
+                }
+            }
+        </span>
+        <span class="sis-cell-msg" role="cell" [class.is-error]="isFailing(pod)">
+            {{ isFailing(pod) ? (pod.lastError || pod.lastRunMessage) : (pod.lastRunMessage || '—') }}
+        </span>
+    </div>
+</ng-template>

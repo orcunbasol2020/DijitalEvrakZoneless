@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpContext } from '@angular/common/http';
 import { HttpService } from './http';
 import { ScanFileModel } from '../models/scanneddocument.model';
+import { ScanPoolImportStatus } from '../models/scan-pool-import-status.model';
 import { SKIP_ERROR_TOAST } from '../interceptors/error-interceptor';
 import { firstValueFrom } from 'rxjs';
 
@@ -52,6 +53,12 @@ export class ScannedDocumentService {
   // Tarama sistemindeki yeni belgeleri arka plan turunu beklemeden alır (ayar kapalı olsa da)
   importFromScanApi() {
     return this.httpService.post<ScanJobResult>(`${this.baseUrl}ImportFromScanApi`, {},
+      { context: new HttpContext().set(SKIP_ERROR_TOAST, true) });
+  }
+
+  // Önceden çekme servisinin pod başına durumu; kart hatayı kendisi gösterdiği için genel hata toast'ı atlanır
+  getScanPoolImportStatus() {
+    return this.httpService.get<ScanPoolImportStatus>(`${this.baseUrl}GetScanPoolImportStatus`,
       { context: new HttpContext().set(SKIP_ERROR_TOAST, true) });
   }
 

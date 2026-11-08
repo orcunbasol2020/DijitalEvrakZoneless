@@ -1,0 +1,234 @@
+<div class="sfg">
+
+    @if (view() === 'guide') {
+    <!-- Giriş: üç temel kural ve etiketin belgedeki yeri -->
+    <section class="sfg-intro">
+        <div class="sfg-intro-text">
+            <h3 class="sfg-h">Taranan belge evraka nasıl dönüşür?</h3>
+            <p class="sfg-lead">
+                Kağıt belge taranır, sisteme kendiliğinden gelir ve siz onu bir evraka bağladığınızda elektronik
+                kopyası olur. Kaydedip yayınladığınızda evrak Atlas'a aktarılır.
+            </p>
+            <ul class="sfg-keys">
+                <li>
+                    <span class="sfg-key-icon"><span class="material-symbols-outlined">qr_code_2</span></span>
+                    <span><strong>Etiketle tarayın.</strong> Belgenin üzerindeki evrak numarası etiketi okunur.</span>
+                </li>
+                <li>
+                    <span class="sfg-key-icon"><span class="material-symbols-outlined">autorenew</span></span>
+                    <span><strong>Beklemenize gerek yok.</strong> Taranan belge yaklaşık yarım dakika içinde listeye gelir.</span>
+                </li>
+                <li>
+                    <span class="sfg-key-icon"><span class="material-symbols-outlined">touch_app</span></span>
+                    <span><strong>Bağlamayı siz yaparsınız.</strong> Barkod okunsa bile belge kendiliğinden bir evraka
+                        bağlanmaz; yanlış okunan barkod belgeyi yanlış evraka bağlayamaz.</span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Çizim: belgenin sağ üst köşesindeki evrak numarası etiketi -->
+        <figure class="sfg-figure" aria-label="Evrak numarası etiketi belgenin üst köşesindedir">
+            <svg viewBox="0 0 220 230" role="img" aria-hidden="true">
+                <rect class="sfg-svg-shadow" x="34" y="20" width="150" height="196" rx="10" />
+                <rect class="sfg-svg-page" x="28" y="12" width="150" height="196" rx="10" />
+                <rect class="sfg-svg-line" x="46" y="74" width="96" height="6" rx="3" />
+                <rect class="sfg-svg-line" x="46" y="90" width="114" height="6" rx="3" />
+                <rect class="sfg-svg-line" x="46" y="106" width="104" height="6" rx="3" />
+                <rect class="sfg-svg-line" x="46" y="122" width="114" height="6" rx="3" />
+                <rect class="sfg-svg-line" x="46" y="138" width="78" height="6" rx="3" />
+                <rect class="sfg-svg-line" x="46" y="166" width="58" height="6" rx="3" />
+                <rect class="sfg-svg-line" x="46" y="180" width="40" height="6" rx="3" />
+                <!-- Etiket -->
+                <rect class="sfg-svg-label" x="104" y="24" width="64" height="38" rx="5" />
+                <g class="sfg-svg-bars">
+                    <rect x="111" y="30" width="2" height="17" /><rect x="115" y="30" width="4" height="17" />
+                    <rect x="121" y="30" width="1.5" height="17" /><rect x="125" y="30" width="3" height="17" />
+                    <rect x="130" y="30" width="1.5" height="17" /><rect x="134" y="30" width="4" height="17" />
+                    <rect x="140" y="30" width="2" height="17" /><rect x="144" y="30" width="1.5" height="17" />
+                    <rect x="148" y="30" width="3.5" height="17" /><rect x="154" y="30" width="2" height="17" />
+                    <rect x="158" y="30" width="3" height="17" />
+                </g>
+                <text class="sfg-svg-no" x="136" y="57" text-anchor="middle">2026/41192551</text>
+                <!-- Gösterge çizgisi -->
+                <path class="sfg-svg-pointer" d="M168 43 C 192 43, 196 60, 196 76" />
+                <circle class="sfg-svg-dot" cx="196" cy="78" r="3.5" />
+            </svg>
+            <figcaption>
+                <span class="material-symbols-outlined">sell</span>
+                Evrak numarası etiketi
+            </figcaption>
+        </figure>
+    </section>
+
+    <!-- Akış: Dijitalleştirme Takip ekranındaki altı aşama -->
+    <section class="sfg-card">
+        <header class="sfg-card-head">
+            <h4 class="sfg-card-title">Belgenin yolculuğu</h4>
+            <div class="sfg-legend">
+                <span class="sfg-actor is-auto"><span class="material-symbols-outlined">smart_toy</span>Kendiliğinden</span>
+                <span class="sfg-actor is-user"><span class="material-symbols-outlined">person</span>Sizin adımınız</span>
+            </div>
+        </header>
+
+        <ol class="sfg-flow">
+            @for (step of steps(); track step.title; let i = $index; let last = $last) {
+                <li class="sfg-step" [class.is-user]="step.actor === 'user'">
+                    <div class="sfg-node">
+                        <span class="sfg-node-icon"><span class="material-symbols-outlined">{{ step.icon }}</span></span>
+                        <span class="sfg-node-no">{{ i + 1 }}</span>
+                    </div>
+                    @if (!last) {
+                        <div class="sfg-link" [class.has-note]="!!step.next">
+                            @if (step.next) { <span class="sfg-link-note">{{ step.next }}</span> }
+                        </div>
+                    }
+                    <div class="sfg-step-body">
+                        <span class="sfg-actor" [class.is-auto]="step.actor === 'auto'" [class.is-user]="step.actor === 'user'">
+                            <span class="material-symbols-outlined">{{ step.actor === 'auto' ? 'smart_toy' : 'person' }}</span>
+                            {{ step.actorLabel }}
+                        </span>
+                        <div class="sfg-step-title">{{ step.title }}</div>
+                        <p class="sfg-step-text">{{ step.text }}</p>
+                        @if (step.where) {
+                            <span class="sfg-where" title="Belgenin Klasörler sekmesinde göründüğü yer">
+                                <span class="material-symbols-outlined">folder</span>{{ step.where }}
+                            </span>
+                        }
+                    </div>
+                </li>
+            }
+        </ol>
+    </section>
+
+    <div class="sfg-grid">
+        <!-- Durum etiketleri -->
+        <section class="sfg-card">
+            <header class="sfg-card-head">
+                <h4 class="sfg-card-title">Ekranda göreceğiniz durumlar</h4>
+            </header>
+            <ul class="sfg-statuses">
+                @for (s of statuses; track s.label) {
+                    <li class="sfg-status">
+                        <span class="sfg-badge" [class]="'is-' + s.tone">
+                            <span class="material-symbols-outlined">{{ s.icon }}</span>{{ s.label }}
+                        </span>
+                        <div class="sfg-status-text">
+                            {{ s.meaning }}
+                            @if (s.action) {
+                                <span class="sfg-status-action">
+                                    <span class="material-symbols-outlined">arrow_forward</span>{{ s.action }}
+                                </span>
+                            }
+                        </div>
+                    </li>
+                }
+            </ul>
+        </section>
+
+        <!-- Özel durumlar -->
+        <section class="sfg-card">
+            <header class="sfg-card-head">
+                <h4 class="sfg-card-title">Karşılaşabileceğiniz özel durumlar</h4>
+            </header>
+            <ul class="sfg-cases">
+                @for (c of cases; track c.title) {
+                    <li class="sfg-case">
+                        <span class="sfg-case-icon"><span class="material-symbols-outlined">{{ c.icon }}</span></span>
+                        <div>
+                            <div class="sfg-case-title">{{ c.title }}</div>
+                            <p class="sfg-case-text">{{ c.text }}</p>
+                        </div>
+                    </li>
+                }
+            </ul>
+        </section>
+    </div>
+
+    }
+
+    @if (view() === 'folders') {
+    <!-- Tarama klasörleri akışı: paylaşımdaki klasörler (yollar ortamdan, sayılar anlık) ve evrak takip -->
+    @let nodes = folderNodes();
+    <section class="sfg-card">
+        <header class="sfg-card-head">
+            <div>
+                <h4 class="sfg-card-title">Tarama klasörleri akışı</h4>
+                <p class="sfg-card-sub">Taranan dosyanın tarama paylaşımındaki klasörlerden geçişi. Sayılar şu anda klasördeki dosya sayısıdır.</p>
+                @if (defaultPaths()) {
+                    <p class="sfg-default-note">
+                        <span class="material-symbols-outlined">info</span>
+                        Tarama servisine ulaşılamadığı için klasör adları ayardaki varsayılanlardır; gerçek yollar ve sayılar okunamadı.
+                    </p>
+                }
+            </div>
+        </header>
+
+        <div class="sfg-pipe">
+            <div class="sfg-zone is-share">
+                <span class="material-symbols-outlined">lan</span>Tarama paylaşımı · tarama sistemi
+            </div>
+            <div class="sfg-zone is-app">
+                <span class="material-symbols-outlined">dns</span>Evrak takip
+            </div>
+
+            <ng-container [ngTemplateOutlet]="folderNode"
+                [ngTemplateOutletContext]="{ cls: 'is-inbox', icon: 'move_to_inbox', title: 'Gelen kutusu', desc: 'Tarayıcının PDF bıraktığı klasör', node: nodes.Inbox }" />
+            <div class="sfg-pipe-arrow is-c2">
+                <span class="sfg-pipe-note">Barkod okunur</span>
+            </div>
+            <ng-container [ngTemplateOutletContext]="{ cls: 'is-pool', icon: 'inventory_2', title: 'Havuz', desc: 'Barkodu okunmuş ya da okunamamış belgeler', node: nodes.Okunan }"
+                [ngTemplateOutlet]="folderNode" />
+            <div class="sfg-pipe-arrow is-c4">
+                <span class="sfg-pipe-note">Evrak takip üstlenir · {{ intervalSeconds() }} sn'de bir</span>
+            </div>
+            <ng-container [ngTemplateOutlet]="folderNode"
+                [ngTemplateOutletContext]="{ cls: 'is-claimed', icon: 'task_alt', title: 'Üstlenilen', desc: 'Aktarılırken kısa süre durur; aktarım bitince silinir', node: nodes.Processed }" />
+            <div class="sfg-pipe-arrow is-c6">
+                <span class="sfg-pipe-note">İndirilir, doğrulanır</span>
+            </div>
+            <div class="sfg-folder is-app-node">
+                <div class="sfg-folder-head">
+                    <span class="sfg-folder-icon"><span class="material-symbols-outlined">pending_actions</span></span>
+                    <span class="sfg-folder-count">{{ pulledCount() ?? '—' }}</span>
+                </div>
+                <div class="sfg-folder-title">Çekilenler</div>
+                <div class="sfg-folder-desc">Kaydı bekleyen; evraka bağlanınca listeden düşer</div>
+                <div class="sfg-folder-paths"><code>Taranmış Evraklar</code></div>
+            </div>
+
+            <!-- Dal: gelen kutusundan açılamayan dosyalar -->
+            <div class="sfg-pipe-branch">
+                <span class="sfg-pipe-note is-danger">Açılamayan / bozuk PDF</span>
+            </div>
+            <ng-container [ngTemplateOutlet]="folderNode"
+                [ngTemplateOutletContext]="{ cls: 'is-failed', icon: 'report', title: 'Hatalı', desc: 'Elle incelenir; akışa girmez', node: nodes.Failed }" />
+        </div>
+
+        <ul class="sfg-pipe-facts">
+            <li><span class="material-symbols-outlined">qr_code_2</span>Barkodu okunamayan belge Hatalı'ya değil Havuz'a gider; numarası elle girilir.</li>
+            <li><span class="material-symbols-outlined">history</span>Aktarımı yarım kalan dosya Üstlenilen'de 30 dakika bekledikten sonra Havuz'a geri bırakılır ve yeniden alınır.</li>
+            <li><span class="material-symbols-outlined">content_copy</span>Aynı içerikli dosya ikinci kez gelirse yeni kayıt açılmaz, paylaşımdaki kopya silinir.</li>
+        </ul>
+    </section>
+    }
+</div>
+
+<ng-template #folderNode let-cls="cls" let-icon="icon" let-title="title" let-desc="desc" let-node="node">
+    <div class="sfg-folder" [class]="cls">
+        <div class="sfg-folder-head">
+            <span class="sfg-folder-icon"><span class="material-symbols-outlined">{{ icon }}</span></span>
+            <span class="sfg-folder-count" [title]="node.count === null ? 'Klasörler okunamadı' : 'Klasördeki dosya sayısı'">
+                {{ node.count ?? '—' }}
+            </span>
+        </div>
+        <div class="sfg-folder-title">{{ title }}</div>
+        <div class="sfg-folder-desc">{{ desc }}</div>
+        @if (node.paths.length) {
+            <div class="sfg-folder-paths" [class.is-default]="defaultPaths()">
+                @for (p of node.paths; track p.path) {
+                    <code [title]="p.source + ': ' + p.original">{{ p.path }}</code>
+                }
+            </div>
+        }
+    </div>
+</ng-template>
