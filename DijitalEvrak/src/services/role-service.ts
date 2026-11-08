@@ -69,6 +69,22 @@ export function roleDescription(name: string): string {
 /** Birim düzeyindeki evrak rolleri. Birim Yöneticisi şimdilik yalnızca ana sayfa panelinde ayrışır. */
 const BIRIM_EVRAK_ROLES = ['Birim Evrak Sorumlusu', 'Birim Yöneticisi'];
 
+/**
+ * Aynı adlı menü maddelerinden hangisinin gösterileceğini belirleyen rol seviyeleri (1 en üstün).
+ * Birim Yöneticisi, Birim Evrak Sorumlusu ile aynı menüye sahip olduğundan onunla aynı seviyededir.
+ */
+const ROLE_LEVELS: Record<string, number> = {
+  'Yönetici': 1,
+  'Admin': 1,
+  'Gelen Evrak': 2,
+  'Giden Evrak': 2,
+  'Birim Evrak Sorumlusu': 2,
+  'Birim Yöneticisi': 2,
+  'Misyon Evrak Sorumlusu': 3,
+  'Ön Kayıt': 3,
+};
+const LOWEST_ROLE_LEVEL = 4;
+
 @Injectable({ providedIn: 'root' })
 export class RoleService {
 
@@ -109,22 +125,46 @@ export class RoleService {
     return !this.hasAny(LIMITED_ROLES);
   }
 
-  getMenu(): NavigationModel[] {
-    const result: NavigationModel[] = [];
+  /**
+   * Menü maddesinin, kullanıcının o maddeyi gösteren rolleri arasındaki en üst seviyesi
+   * (1 en üstün). Rol kısıtı olmayan ya da seviyesi tanımsız rollerle görünen madde en altta sayılır.
+   */
+  private menuItemLevel(nav: NavigationModel): number {
+    const current = this.roles;
+    const levels = (nav.roles ?? [])
+      .map(normalizeRoleName)
+      .filter(r => current.includes(r))
+      .map(r => ROLE_LEVELS[r] ?? LOWEST_ROLE_LEVEL);
+    return levels.length ? Math.min(...levels) : LOWEST_ROLE_LEVEL;
+  }
 
+  getMenu(): NavigationModel[] {
+    const visible = navigations.filter(nav => nav.category || (
+      (!nav.roles?.length || this.hasAny(nav.roles))
+      && !(nav.excludeRoles?.length && this.hasAny(nav.excludeRoles))
+    ));
+
+    // Aynı başlığın rol bazlı sürümleri var (ör. "Gelen Evraklar"); birden çok rolü olan kullanıcıda
+    // madde tekrarlanmasın diye üst seviyeli rolün sürümü kalır, eşitlikte listede önce gelen.
+    const chosen = new Map<string, { nav: NavigationModel; level: number }>();
+    for (const nav of visible) {
+      if (nav.category || !nav.title) continue;
+      const level = this.menuItemLevel(nav);
+      const best = chosen.get(nav.title);
+      if (!best || level < best.level) chosen.set(nav.title, { nav, level });
+    }
+
+    const result: NavigationModel[] = [];
     let pendingCategory: string | null = null;
 
-    for (const nav of navigations) {
+    for (const nav of visible) {
 
       if (nav.category) {
         pendingCategory = nav.category;
         continue;
       }
 
-      const isVisible = (!nav.roles?.length || this.hasAny(nav.roles))
-        && !(nav.excludeRoles?.length && this.hasAny(nav.excludeRoles));
-
-      if (!isVisible) continue;
+      if (nav.title && chosen.get(nav.title)?.nav !== nav) continue;
 
       if (pendingCategory) {
         result.push({ category: pendingCategory });
