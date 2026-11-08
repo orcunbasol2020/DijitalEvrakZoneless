@@ -1,0 +1,142 @@
+@if (!unavailable() && (status() || loadError())) {
+<section class="sis-card" [class]="'sis-' + (overall() ?? 'unknown')" aria-label="Önceden çekme servisi durumu">
+
+    <div class="sis-head">
+        <div class="sis-title">
+            <span class="material-symbols-outlined sis-title-icon">cloud_download</span>
+            <span>Önceden çekme servisi</span>
+        </div>
+
+        @if (overallInfo(); as info) {
+            <span class="sis-badge" role="status">
+                <span class="material-symbols-outlined">{{ info.icon }}</span>
+                {{ info.label }}
+            </span>
+        }
+        @if (isRunning() && overall() !== 'off') {
+            <span class="sis-chip sis-chip-run" title="Bir pod'da tur şu anda sürüyor">
+                <span class="material-symbols-outlined sis-spin">sync</span>
+                Tur sürüyor
+            </span>
+        }
+        @if (erroredLiveCount(); as count) {
+            <span class="sis-chip sis-chip-warn" title="Diğer pod'lar çalıştığı için belgeler yine çekiliyor">
+                <span class="material-symbols-outlined">warning</span>
+                {{ count }} pod hatalı
+            </span>
+        }
+
+        <div class="sis-actions">
+            @if (canRunNow && status()?.enabled) {
+                <button type="button" class="btn btn-sm btn-outline-secondary sis-btn"
+                    title="Arka plan turunu beklemeden tarama sistemini şimdi kontrol eder. Bu tur kartta görünmez."
+                    [disabled]="runningNow()" (click)="runNow()">
+                    <span class="material-symbols-outlined" [class.sis-spin]="runningNow()">
+                        {{ runningNow() ? 'sync' : 'play_arrow' }}
+                    </span>
+                    Şimdi çalıştır
+                </button>
+            }
+            @if (instances().length) {
+                <button type="button" class="btn btn-sm btn-link sis-toggle" [attr.aria-expanded]="expanded()"
+                    (click)="expanded.set(!expanded())">
+                    Pod'lar ({{ instances().length }})
+                    <span class="material-symbols-outlined">{{ expanded() ? 'expand_less' : 'expand_more' }}</span>
+                </button>
+            }
+        </div>
+    </div>
+
+    @if (status()) {
+        <div class="sis-summary">
+            @if (lastRun(); as run) {
+                <span>
+                    Son tur: <strong>{{ run.lastRunFinishedAtUtc | date: 'HH:mm:ss' }}</strong>
+                    <span class="sis-muted">({{ ago(run.lastRunFinishedAtUtc) }})</span>
+                </span>
+                @if (run.lastRunMessage) {
+                    <span class="sis-sep">–</span>
+                    <span>{{ run.lastRunMessage }}</span>
+                }
+            } @else if (instances().length) {
+                <span class="sis-muted">Henüz tamamlanan tur yok.</span>
+            } @else {
+                <span class="sis-muted">Servisten hiç haber alınmadı.</span>
+            }
+
+            @if (nextRunAt(); as next) {
+                <span class="sis-sep">·</span>
+                <span>Sonraki tur:
+                    <strong>{{ isDue(next) ? 'birazdan' : (next | date: 'HH:mm:ss') }}</strong>
+                </span>
+            }
+
+            @if (showLastSuccess()) {
+                <span class="sis-sep">·</span>
+                <span>Son başarılı:
+                    <strong>{{ lastSuccessAt() ? ago(lastSuccessAt()) : 'yok' }}</strong>
+                </span>
+            }
+        </div>
+
+        @if (errorText(); as error) {
+            <div class="sis-error">
+                <span class="material-symbols-outlined">report</span>
+                <span>{{ error }}</span>
+            </div>
+        }
+    }
+
+    @if (loadError(); as message) {
+        <div class="sis-load-error">
+            <span class="material-symbols-outlined">cloud_off</span>
+            {{ message }}
+            @if (status()) {
+                <span class="sis-muted">Yukarıdaki bilgi son alınan duruma aittir.</span>
+            }
+        </div>
+    }
+
+    @if (expanded() && instances().length) {
+        <ul class="sis-pods">
+            @for (pod of instances(); track pod.instanceName) {
+                @let info = stateInfo(pod.state);
+                <li class="sis-pod" [class.is-faded]="isFaded(pod)" [class]="'sis-pod-' + pod.state">
+                    <span class="sis-pod-state">
+                        <span class="material-symbols-outlined" [class.sis-spin]="pod.state === 'Running'">{{ info.icon }}</span>
+                        {{ info.label }}
+                    </span>
+                    <span class="sis-pod-name" [title]="pod.instanceName">{{ pod.instanceName }}</span>
+                    <span class="sis-pod-time">
+                        @switch (pod.state) {
+                            @case ('Running') {
+                                Başladı: {{ pod.lastRunStartedAtUtc | date: 'HH:mm:ss' }}
+                                <span class="sis-muted">({{ ago(pod.lastRunStartedAtUtc) }})</span>
+                            }
+                            @case ('Stopped') {
+                                Kapandı: {{ pod.stoppedAtUtc | date: 'dd.MM.yyyy HH:mm' }}
+                                <span class="sis-muted">({{ ago(pod.stoppedAtUtc) }})</span>
+                            }
+                            @case ('Unresponsive') {
+                                Son haber: {{ pod.lastSeenAtUtc | date: 'dd.MM.yyyy HH:mm' }}
+                                <span class="sis-muted">({{ ago(pod.lastSeenAtUtc) }})</span>
+                            }
+                            @default {
+                                @if (pod.lastRunFinishedAtUtc) {
+                                    Son tur: {{ pod.lastRunFinishedAtUtc | date: 'HH:mm:ss' }}
+                                    <span class="sis-muted">({{ ago(pod.lastRunFinishedAtUtc) }})</span>
+                                } @else {
+                                    <span class="sis-muted">Henüz tur yok</span>
+                                }
+                            }
+                        }
+                    </span>
+                    <span class="sis-pod-message" [class.is-error]="pod.state === 'Error'">
+                        {{ pod.state === 'Error' ? (pod.lastError || pod.lastRunMessage) : pod.lastRunMessage }}
+                    </span>
+                </li>
+            }
+        </ul>
+    }
+</section>
+}

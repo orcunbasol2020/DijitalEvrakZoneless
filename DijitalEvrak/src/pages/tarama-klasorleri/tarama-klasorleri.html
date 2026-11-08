@@ -25,6 +25,9 @@
     </div>
 </section>
 
+<!-- Belgeleri arka planda önceden çeken servisin durumu; elle tur belge aldıysa liste yenilenir -->
+<app-scan-import-status-card (imported)="refresh()" />
+
 <!-- İstek tümden başarısız (backend hatası) ya da yalnızca tarama servisi okunamadı (çekilenler yine güncel) -->
 @if (requestError(); as message) {
     <div class="tk-alert" role="alert">

@@ -5,6 +5,7 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import GenericModel from '../../../components/generic-model/generic-model';
+import { ScanImportStatusCard } from '../../../components/scan-import-status-card/scan-import-status-card';
 import { SKIP_ERROR_TOAST } from '../../interceptors/error-interceptor';
 import { ScannedDocumentService, scanSourceLabel } from '../../services/scanneddocument';
 import { RoleService } from '../../services/role-service';
@@ -85,7 +86,7 @@ interface Selection {
  * arka plandayken paylaşım boşuna taranmaz, sekmeye dönülünce liste eskiyse hemen yenilenir.
  */
 @Component({
-  imports: [GenericModel, DatePipe, NgTemplateOutlet],
+  imports: [GenericModel, ScanImportStatusCard, DatePipe, NgTemplateOutlet],
   templateUrl: './tarama-klasorleri.html',
   styleUrls: ['../home/dashboard.css', './tarama-klasorleri.css'],
   encapsulation: ViewEncapsulation.None,
