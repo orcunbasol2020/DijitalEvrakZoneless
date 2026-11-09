@@ -36,6 +36,8 @@ interface StatCard {
   trend: number | null;
   icon: string;
   url: string;
+  /** Hedef sayfada hazır açılacak süzgeç (ör. Evrak Listesi'nde bugün gelenler) */
+  queryParams?: Record<string, string>;
   hint: string;
 }
 
@@ -138,8 +140,8 @@ export class AdminDashboard {
     return [
       {
         label: 'BUGÜN GELEN / GİDEN', value: `${fmt(docsToday.a)} / ${fmt(docsToday.b)}`, period: 'Bugün',
-        trend: change(docsToday.a + docsToday.b, docsToday.prev), icon: 'document_scanner', url: '/documentlist',
-        hint: 'Bugün kaydedilen gelen ve giden evrak (eğilim: dün aynı saate göre)'
+        trend: change(docsToday.a + docsToday.b, docsToday.prev), icon: 'document_scanner', url: '/documentlist', queryParams: { filtre: 'bugun-gelen' },
+        hint: 'Bugün kaydedilen gelen ve giden evrak (eğilim: dün aynı saate göre). Tıklayınca bugün gelen evraklar listelenir.'
       },
       {
         label: 'GELEN EVRAK', value: fmt(inMonth), period: 'Son 30 gün',

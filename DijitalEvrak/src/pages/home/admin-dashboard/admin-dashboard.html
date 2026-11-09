@@ -35,7 +35,7 @@
 <!-- ===================== İstatistik kartları ===================== -->
 <div class="ad-stats">
     @for (s of stats(); track s.label) {
-        <a class="ad-stat" [routerLink]="s.url" [title]="s.hint">
+        <a class="ad-stat" [routerLink]="s.url" [queryParams]="s.queryParams" [title]="s.hint">
             <div class="ad-stat-body">
                 <div class="ad-stat-label">{{ s.label }}</div>
                 <div class="ad-stat-value">{{ statsLoading() ? '…' : s.value }}</div>

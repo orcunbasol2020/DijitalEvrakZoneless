@@ -12,7 +12,7 @@
       <div>
         <h4 class="sp-hero-title">Gelen Evraklar</h4>
         <div class="sp-hero-text">
-          Yayına gönderilen gelen evrakları izleyin; aktarım ve teslim durumlarını takip edin, evrak ayrıntılarına ulaşın.
+          Tüm gelen evrakları izleyin; kayıt, aktarım ve teslim durumlarını takip edin, evrak ayrıntılarına ulaşın.
         </div>
       </div>
     </div>
@@ -189,12 +189,19 @@
           <fieldset class="dl-group">
             <legend class="dl-group-head">
               <span class="dl-group-icon"><span class="material-symbols-outlined">calendar_month</span></span>
-              <span class="dl-group-title">Belge Tarihi</span>
+              <span class="dl-group-title">Tarih</span>
               @if (groupCounts().date) {
                 <span class="dl-group-count">{{ groupCounts().date }}</span>
               }
             </legend>
             <div class="dl-group-body">
+              <!-- Aralığın uygulandığı alan: kayıt tarihi ya da belge tarihi -->
+              <div class="dl-segment dl-date-field" role="radiogroup" aria-label="Tarih alanı">
+                @for (o of dateFieldOptions; track o.value) {
+                  <button type="button" role="radio" [class.is-active]="dateField() === o.value"
+                    [attr.aria-checked]="dateField() === o.value" (click)="setFilter(dateField, o.value)">{{ o.label }}</button>
+                }
+              </div>
               <div class="dl-presets" role="group" aria-label="Hazır tarih aralıkları">
                 @for (p of datePresets; track p.key) {
                   <button type="button" class="dl-preset" [class.is-active]="activeDatePreset() === p.key"
@@ -244,9 +251,15 @@
       <span class="sq-listhead-count">
         <strong>{{ filteredRows().length }}</strong> {{ hasActiveFilters() ? 'sonuç' : 'evrak' }}
       </span>
-      <!-- Yayın durumuna göre süzgeç -->
-      <div class="sq-subtabs" role="tablist" aria-label="Yayın durumu">
+      <!-- Aşama / yayın durumuna göre süzgeç -->
+      <div class="sq-subtabs" role="tablist" aria-label="Evrak durumu">
         <button type="button" role="tab" [class.is-active]="publishFilter() === 'all'" (click)="setFilter(publishFilter, 'all')">Tümü</button>
+        <button type="button" role="tab" [class.is-active]="publishFilter() === 'prerecord'" (click)="setFilter(publishFilter, 'prerecord')">
+          <i class="sq-dot dl-dot-prerecord"></i>Ön Kayıt
+        </button>
+        <button type="button" role="tab" [class.is-active]="publishFilter() === 'record'" (click)="setFilter(publishFilter, 'record')">
+          <i class="sq-dot dl-dot-record"></i>Evrak Kayıt
+        </button>
         <button type="button" role="tab" [class.is-active]="publishFilter() === 'done'" (click)="setFilter(publishFilter, 'done')">
           <i class="sq-dot is-ok"></i>Yayınlandı
         </button>

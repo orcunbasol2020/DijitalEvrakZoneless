@@ -944,3 +944,10 @@
 [data-theme="dark"] .dl-sp-meta {
     color: #94a3b8;
 }
+
+/* Durum sekmelerinde yayına gönderilmemiş aşamaların noktası (rozet renkleriyle aynı) */
+.sq-dot.dl-dot-prerecord { background: rgb(139, 92, 246); }
+.sq-dot.dl-dot-record { background: rgb(234, 179, 8); }
+
+/* Kriterler > Tarih: alan seçimi grubun genişliğini iki eşit düğmeyle doldurur */
+.dl-date-field button { flex: 1 1 0; }

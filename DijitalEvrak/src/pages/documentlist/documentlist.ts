@@ -9,7 +9,7 @@ import {
   inject,
   HostListener
 } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import GenericModel from '../../../components/generic-model/generic-model';
 import { CommonModule } from '@angular/common';
 import { FlexiToastService } from 'flexi-toast';
@@ -55,11 +55,22 @@ const OCR_STATUS_LABELS: Record<number, string> = {
 };
 
 const STATUS_DELIVERED = 3;
+const STATUS_PRE_RECORD = 1;
 
-// Yönetici listesi yalnızca yayına gönderilmiş evrakları gösterir (Yayınlandı / Aktarımda /
-// Aktarım Hatalı); ön kayıttaki ve kaydı tamamlanıp yayına gönderilmemiş evraklar listelenmez.
-type PublishView = 'all' | 'done' | 'progress' | 'failed';
+// Yönetici listesi tüm gelen evrakları gösterir. Yayına gönderilmemiş evrak iki aşamada olabilir:
+// Ön Kayıt (status 1) ya da Evrak Kayıt (kaydı sürüyor / tamamlandı, henüz yayına gönderilmedi).
+// Yayına gönderilmiş olanlar yayın durumuna göre ayrılır (Yayınlandı / Aktarımda / Aktarım Hatalı).
+type PublishView = 'all' | 'prerecord' | 'record' | 'done' | 'progress' | 'failed';
+
+function isPreRecord(d: IncomingDocumentModel): boolean {
+  return !isSentToPublish(d) && d.status === STATUS_PRE_RECORD;
+}
+
+function isInRecord(d: IncomingDocumentModel): boolean {
+  return !isSentToPublish(d) && d.status !== STATUS_PRE_RECORD;
+}
 type DeliveryView = 'all' | 'delivered' | 'undelivered';
+type DateField = 'created' | 'document';
 type SortKey = 'created' | 'no' | 'from' | 'to' | 'documentDate' | 'urgency' | 'security' | 'status' | 'delivery';
 type SortDir = 'asc' | 'desc';
 
@@ -254,6 +265,13 @@ export default class Documentlist {
   readonly deliveryFilter = signal<DeliveryView>('all');
   readonly dateFrom = signal('');
   readonly dateTo = signal('');
+  // Tarih aralığının uygulandığı alan: kayıt tarihi (createdDate) ya da belge tarihi (documentDate).
+  // Ön kayıtta belge tarihi girilmediği için varsayılan kayıt tarihidir.
+  readonly dateField = signal<DateField>('created');
+  readonly dateFieldOptions: readonly { value: DateField; label: string }[] = [
+    { value: 'created', label: 'Kayıt Tarihi' },
+    { value: 'document', label: 'Belge Tarihi' }
+  ];
   readonly publishFilter = signal<PublishView>('all');
   readonly page = signal(1);
   readonly filtersOpen = signal(false);
@@ -273,6 +291,7 @@ export default class Documentlist {
     const from = this.dateFrom() ? new Date(this.dateFrom() + 'T00:00:00').getTime() : null;
     const to = this.dateTo() ? new Date(this.dateTo() + 'T23:59:59').getTime() : null;
     const publish = this.publishFilter();
+    const byCreated = this.dateField() === 'created';
 
     const rows = this.documents().filter(d => {
       if (urgency != null && d.urgencyDegree !== urgency) return false;
@@ -285,11 +304,14 @@ export default class Documentlist {
       if (delivery === 'delivered' && d.status !== STATUS_DELIVERED) return false;
       if (delivery === 'undelivered' && d.status === STATUS_DELIVERED) return false;
       if (from != null || to != null) {
-        const t = d.documentDate ? new Date(d.documentDate).getTime() : NaN;
+        const value = byCreated ? d.createdDate : d.documentDate;
+        const t = value ? new Date(value).getTime() : NaN;
         if (isNaN(t)) return false;
         if (from != null && t < from) return false;
         if (to != null && t > to) return false;
       }
+      if (publish === 'prerecord' && !isPreRecord(d)) return false;
+      if (publish === 'record' && !isInRecord(d)) return false;
       if (publish === 'done' && !isPublished(d)) return false;
       if (publish === 'progress' && !isPublishing(d)) return false;
       if (publish === 'failed' && !isPublishFailed(d)) return false;
@@ -402,7 +424,7 @@ export default class Documentlist {
 
   readonly emptyText = computed(() => {
     if (this.hasActiveFilters()) return { title: 'Kriterlere uyan evrak yok', desc: 'Arama metnini ya da kriterleri değiştirip yeniden deneyin.' };
-    return { title: 'Yayınlanan evrak yok', desc: 'Yayına gönderilen evraklar burada görünür.' };
+    return { title: 'Gelen evrak yok', desc: 'Kaydedilen gelen evraklar burada görünür.' };
   });
 
   // Sıralama: sütun başlığına tıklanınca o sütuna göre, aynı başlığa tekrar tıklanınca ters
@@ -439,10 +461,12 @@ export default class Documentlist {
     });
   }
 
-  // Durum sütununun sırası: Aktarımda, Aktarım Hatalı, Yayınlandı
+  // Durum sütununun sırası: Ön Kayıt, Evrak Kayıt, Aktarımda, Aktarım Hatalı, Yayınlandı
   private statusRank(d: IncomingDocumentModel): number {
-    if (isPublished(d)) return 2;
-    return isPublishFailed(d) ? 1 : 0;
+    if (isPreRecord(d)) return 0;
+    if (isInRecord(d)) return 1;
+    if (isPublished(d)) return 4;
+    return isPublishFailed(d) ? 3 : 2;
   }
 
   readonly sortKey = signal<SortKey>('created');
@@ -505,9 +529,12 @@ export default class Documentlist {
     return d.status === STATUS_DELIVERED;
   }
 
-  // Durum sütunu yayın durumunu gösterir. Rozet Zarflar sayfasındaki durum rozetiyle aynıdır
+  // Durum sütunu yayına gönderilmemiş evrakta aşamayı (Ön Kayıt / Evrak Kayıt), gönderilmişte
+  // yayın durumunu gösterir. Rozet Zarflar sayfasındaki durum rozetiyle aynıdır
   // (envelope-status-pill, styles.css); cls rengini, icon ikon çipini belirler.
   statusView(d: IncomingDocumentModel): { label: string; cls: string; icon: string } {
+    if (isPreRecord(d)) return { label: 'Ön Kayıt', cls: 'envelope-status-devir', icon: 'edit_note' };
+    if (isInRecord(d)) return { label: 'Evrak Kayıt', cls: 'envelope-status-kargo', icon: 'assignment' };
     if (isPublished(d)) return { label: 'Yayınlandı', cls: 'envelope-status-teslim', icon: 'cloud_done' };
     if (isPublishFailed(d)) return { label: 'Aktarım Hatalı', cls: 'envelope-status-iade', icon: 'cloud_off' };
     return { label: 'Aktarımda', cls: 'envelope-status-birimde', icon: 'cloud_sync' };
@@ -585,6 +612,13 @@ export default class Documentlist {
   }
 
   constructor() {
+    // Yönetici Paneli'nin "Bugün Gelen" kartından gelindiğinde: bugün kaydedilen tüm evraklar (durum fark etmeksizin)
+    if (inject(ActivatedRoute).snapshot.queryParamMap.get('filtre') === 'bugun-gelen') {
+      const today = this.presetRange('today');
+      this.dateField.set('created');
+      this.dateFrom.set(today.from);
+      this.dateTo.set(today.to);
+    }
     this.loadDocuments();
     this.loadLookups();
   }
@@ -593,13 +627,13 @@ export default class Documentlist {
     return this.user()?.id;
   }
 
-  // Tüm gelen evraklar tek istekte çekilir; yayına gönderilmemişler ayıklanır, süzme istemcide yapılır
+  // Tüm gelen evraklar tek istekte çekilir; süzme istemcide yapılır
   loadDocuments(): void {
     this.loading.set(true);
     this.loadFailed.set(false);
     this.incomingDocumentService.getAllIncomingDocuments().subscribe({
       next: (docs) => {
-        this.documents.set((docs ?? []).filter(d => !d.isDeleted && isSentToPublish(d)));
+        this.documents.set((docs ?? []).filter(d => !d.isDeleted));
         this.loading.set(false);
       },
       error: (err) => {
