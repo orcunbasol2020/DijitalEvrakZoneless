@@ -33,6 +33,7 @@ import { httpResource } from '@angular/common/http';
 import { UPLOAD_DOCUMENT_ROLES, UploadDocumentModal } from '../../../components/upload-document-modal/upload-document-modal';
 import { DocumentNumberUploadError, DocumentUploadFlow } from '../../services/document-upload-flow';
 import { ScanPoolPullModal } from '../../../components/scan-pool-pull-modal/scan-pool-pull-modal';
+import { DocNoCopyButton } from '../../../components/doc-no-copy-button/doc-no-copy-button';
 import { isPublished, isPublishFailed, isPublishing, isSentToPublish, publishStatusLabel } from '../../models/publishstatus.model';
 import { FormsModule } from '@angular/forms';
 import { DocumentTypeLabels } from '../../models/documenttype.model';
@@ -127,7 +128,8 @@ const QUEUE_STORAGE_KEY = 'scanlist.queue';
     CommonModule,
     FormsModule,
     UploadDocumentModal,
-    ScanPoolPullModal
+    ScanPoolPullModal,
+    DocNoCopyButton
   ],
   templateUrl: './scanlist.html',
   // scanlist.css popup stilleri (pa-, zh-, ei-) Yönetici ve Birim listeleriyle ortaktır;

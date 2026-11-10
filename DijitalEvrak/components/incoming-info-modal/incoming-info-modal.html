@@ -5,9 +5,7 @@
       @if (view(); as v) {
         <!-- Başlık: evrak no + konu, sağda durum çipleri -->
         <header class="ei-head">
-          <div class="ei-head-icon">
-            <span class="material-symbols-outlined">description</span>
-          </div>
+          <app-doc-no-copy-button [value]="v.qrCode" />
           <div class="ei-head-text">
             <div class="ei-doc-no">
               {{ v.qrCode }}

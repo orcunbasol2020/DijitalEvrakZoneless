@@ -29,6 +29,7 @@ import { DocumentAllocation } from '../../services/documentallocation';
 import { DocumentAllocationModel } from '../../models/documentallocation.model';
 import { AllocationStatusEnum, AllocationStatusLabels } from '../../models/allocationstatus.model';
 import { UploadDocumentModal } from '../../../components/upload-document-modal/upload-document-modal';
+import { DocNoCopyButton } from '../../../components/doc-no-copy-button/doc-no-copy-button';
 import { isPublished, isPublishFailed, isPublishing, isSentToPublish, publishStatusLabel } from '../../models/publishstatus.model';
 import { DocumentNumberUploadError, DocumentUploadFlow } from '../../services/document-upload-flow';
 import { DocumentTransaction } from '../../services/documenttransaction';
@@ -128,7 +129,8 @@ type DocumentRow = IncomingDocumentModel & { currentAssignmentUser?: string | nu
     GenericModel,
     FormsModule,
     CommonModule,
-    UploadDocumentModal
+    UploadDocumentModal,
+    DocNoCopyButton
   ],
   templateUrl: './documentlist.html',
   // scanlist.css: Süreç ve Zimmet Geçmişi popup'ları (zh-, sp-); incoming-info-modal.css: Evrak Bilgileri (ei-);

@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, HostListener, ViewEncapsulation, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { IncomingAttachmentsView } from '../incoming-attachments-view/incoming-attachments-view';
+import { DocNoCopyButton } from '../doc-no-copy-button/doc-no-copy-button';
 import { IncomingDocumentService } from '../../src/services/incomingdocument';
 import { Department } from '../../src/services/department';
 import { idKey } from '../../src/models/ids';
@@ -37,7 +38,7 @@ const LANGUAGES: Record<number, string> = { 1: 'Türkçe', 2: 'İngilizce' };
 @Component({
   selector: 'app-incoming-info-modal',
   standalone: true,
-  imports: [IncomingAttachmentsView],
+  imports: [IncomingAttachmentsView, DocNoCopyButton],
   templateUrl: './incoming-info-modal.html',
   styleUrl: './incoming-info-modal.css',
   encapsulation: ViewEncapsulation.None,

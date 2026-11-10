@@ -713,17 +713,14 @@
       @if (infoView(); as v) {
         <!-- Başlık: evrak no + konu, sağda durum çipleri -->
         <header class="ei-head">
-          <div class="ei-head-icon">
-            <span class="material-symbols-outlined">description</span>
-          </div>
+          <app-doc-no-copy-button [value]="v.qrCode" />
           <div class="ei-head-text">
-            <div class="ei-overline">
-              Evrak Bilgileri
+            <div class="ei-doc-no">
+              {{ v.qrCode }}
               @if (infoLoading()) {
                 <span class="spinner-border ei-spinner" title="Güncel bilgiler getiriliyor"></span>
               }
             </div>
-            <div class="ei-doc-no">{{ v.qrCode }}</div>
             <div class="ei-subject" [class.is-empty]="!v.subject" [title]="v.subject">
               {{ v.subject || 'Konu girilmemiş' }}
             </div>
