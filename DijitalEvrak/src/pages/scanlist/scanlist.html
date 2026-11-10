@@ -237,7 +237,7 @@
       </span>
     </div>
 
-    <!-- Sol: üstte evrak no + tür, altta tek satır künye (kurum · belge tarihi · orijinal no) -->
+    <!-- Sol: üstte evrak no + tür, altta tek satır künye (kurum · belge tarihi) -->
     <div class="sq-main">
       <div class="sq-head">
         <span class="sq-no">{{ item.qrCode || '-' }}</span>
@@ -250,41 +250,23 @@
         @if (item.documentDate) {
           <span title="Belge tarihi">{{ item.documentDate | date:'dd.MM.yyyy' }}</span>
         }
-        @if (item.orginalNo) {
-          <span class="sq-orig" [title]="'Orijinal belge no: ' + item.orginalNo">{{ item.orginalNo }}</span>
-        }
       </div>
     </div>
 
-    <!-- Dosya ve OCR sabit genişlikli yuvalarda: satırlar arasında aynı hizada durur -->
-    <div class="sq-state">
-      <!-- Dosya ve OCR var/yok işaretleri; yayınlanan evraklarda gösterilmez (yuvalar boş kalır, hiza korunur) -->
-      @if (!published) {
-        <div class="sq-checks">
-          <span class="sq-check" [class.is-on]="!!item.documentName"
-            [title]="item.documentName ? 'Dosya var: ' + item.documentName : 'Dosya yok'">
-            <i class="sq-check-box"><span class="material-symbols-outlined">{{ item.documentName ? 'check' : 'close' }}</span></i>Dosya
-          </span>
-          <span class="sq-check" [class.is-on]="item.ocrStatus === 1" [class.is-err]="item.ocrStatus === 2"
-            [title]="item.ocrStatus === 1 ? 'OCR var: Evrak Kayıt\'ta alanlar dolu gelir' : item.ocrStatus === 2 ? 'OCR hatası (kayıt OCR olmadan yapılabilir)' : 'OCR yok'">
-            <i class="sq-check-box"><span class="material-symbols-outlined">{{ item.ocrStatus === 1 ? 'check' : item.ocrStatus === 2 ? 'priority_high' : 'close' }}</span></i>OCR
-          </span>
-        </div>
+    <!-- Yayın etiketi: düğmelerin solunda, sabit genişlikli yuvada -->
+    <div class="sq-publish">
+      @if (isPublished(item)) {
+        <span class="sq-tag is-ok" title="Atlas'ta yayınlandı"><span class="material-symbols-outlined">cloud_done</span>Yayınlandı</span>
+      } @else if (isPublishFailed(item)) {
+        <span class="sq-tag is-err" title="Atlas'a aktarım hatalı"><span class="material-symbols-outlined">cloud_off</span>Aktarım hatalı</span>
+      } @else if (isPublishing(item)) {
+        <!-- Aktarım sürerken yazı yok: duran bulut ikonunun çevresinde ince bir halka döner; açıklama üzerine gelince -->
+        <span class="sq-sync" role="img" title="EBYS sistemine aktarılıyor" aria-label="EBYS sistemine aktarılıyor">
+          <span class="material-symbols-outlined">cloud_upload</span>
+        </span>
       }
     </div>
-
-    <!-- Atama bilgisi yayınlanan evraklarda gösterilmez; yuva boş kalır, hiza korunur -->
-    <div class="sq-owner" [attr.title]="published ? null : (item.currentAssignmentUser ? 'İşleme alan: ' + item.currentAssignmentUser : 'Kimse işleme almadı')">
-      @if (published) {
-      } @else if (item.currentAssignmentUserId) {
-        <span class="sq-avatar" [class.is-me]="mine">{{ initials(item.currentAssignmentUser) }}</span>
-        <span class="sq-owner-name">{{ mine ? 'Bende' : (item.currentAssignmentUser || 'Atanmış') }}</span>
-      } @else {
-        <span class="sq-avatar is-empty"><span class="material-symbols-outlined">person_off</span></span>
-        <span class="sq-owner-name is-muted">Atanmamış</span>
-      }
-    </div>
-
+    <!-- Dosya, OCR ve atanan personel satırda gösterilmez; Evrak Bilgileri popup'ında yer alır -->
     <div class="sq-actions">
       <!-- Evrak Bilgileri yazılı düğme olarak çıkmaz; her durumda ikon çubuğundaki "i" ile açılır -->
       @if (act.kind !== 'info') {
@@ -306,25 +288,15 @@
         <button type="button" title="Zimmet Geçmişi" (click)="openZimmetHistory(item)">
           <span class="material-symbols-outlined">history</span>
         </button>
-        <!-- Yayına gönderilmiş evrak silinemez -->
-        @if (!published) {
-          <button type="button" class="is-danger" title="Taranmış Evrakı Sil" (click)="delete(item.id)">
-            <span class="material-symbols-outlined">delete</span>
-          </button>
-        }
+        <!-- Yayına gönderilmiş evrak silinemez; düğme yine de yerinde (pasif) durur ki ikon çubuğu
+             her satırda aynı genişlikte kalsın ve birincil düğmeler (İşleme Al, Detay...) aynı hizada olsun -->
+        <button type="button" class="is-danger" [disabled]="published"
+          [title]="published ? 'Yayına gönderilmiş evrak silinemez' : 'Taranmış Evrakı Sil'" (click)="delete(item.id)">
+          <span class="material-symbols-outlined">delete</span>
+        </button>
       </div>
     </div>
 
-    <!-- Yayın etiketi: satırın en sağında, sabit genişlikli yuvada -->
-    <div class="sq-publish">
-      @if (isPublished(item)) {
-        <span class="sq-tag is-ok" title="Atlas'ta yayınlandı"><span class="material-symbols-outlined">cloud_done</span>Yayınlandı</span>
-      } @else if (isPublishFailed(item)) {
-        <span class="sq-tag is-err" title="Atlas'a aktarım hatalı"><span class="material-symbols-outlined">cloud_off</span>Aktarım hatalı</span>
-      } @else if (isPublishing(item)) {
-        <span class="sq-tag is-wait" [title]="publishStatusLabel(item)"><span class="material-symbols-outlined">cloud_sync</span>Aktarımda</span>
-      }
-    </div>
   </article>
 </ng-template>
 

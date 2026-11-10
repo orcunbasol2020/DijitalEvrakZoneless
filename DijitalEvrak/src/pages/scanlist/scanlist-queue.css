@@ -453,7 +453,7 @@
     --sq-stripe: transparent;
     display: grid;
     /* Ana bilgi dışındaki sütunlar sabit: satırlar arasında hizayı korur */
-    grid-template-columns: 72px minmax(0, 1fr) auto 170px 312px;
+    grid-template-columns: 72px minmax(0, 1fr) 312px;
     align-items: center;
     gap: 14px;
     padding: 12px 14px 12px 16px;
@@ -543,8 +543,6 @@
 
 .sq-sub > .sq-from.is-empty { color: var(--sq-muted); font-style: italic; font-weight: 400; }
 
-.sq-orig { font-variant-numeric: tabular-nums; }
-
 .sq-type {
     padding: 1px 7px;
     border: 1px solid var(--sq-border);
@@ -555,21 +553,12 @@
     white-space: nowrap;
 }
 
-/* Durum çipleri */
-/* Yayın etiketi | Dosya | OCR: sabit genişlikli yuvalar, böylece her satırda aynı hizadadır */
-.sq-state {
-    display: grid;
-    grid-template-columns: 62px 50px;
-    align-items: center;
-    column-gap: 10px;
-}
-
-/* Yayın etiketi sütunu yalnızca .has-publish listelerde (Yayınlanan, Tümü) vardır;
-   diğer kuyruklarda düğmeler satırın sağ kenarına dayanır */
+/* Yayın etiketi sütunu yalnızca .has-publish listelerde (Yayınlanan, Tümü) vardır ve
+   düğmelerin solunda durur; diğer kuyruklarda bu yuva yoktur */
 .sq-publish { display: none; }
 
 .sq-list.has-publish .sq-row:not(.is-skeleton) {
-    grid-template-columns: 72px minmax(0, 1fr) auto 170px 312px 118px;
+    grid-template-columns: 72px minmax(0, 1fr) 118px 312px;
 }
 
 .sq-list.has-publish .sq-publish {
@@ -599,6 +588,44 @@
 .sq-tag.is-wait { color: var(--sq-warn); }
 .sq-tag.is-err { color: var(--sq-err); }
 
+/* Aktarım sürüyor göstergesi: duran bulut ikonu, çevresinde dönen ince yay */
+.sq-sync {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    color: var(--sq-warn);
+}
+
+.sq-sync .material-symbols-outlined {
+    font-size: 16px;
+}
+
+/* Soluk tam halka + üzerinde dönen renkli çeyrek yay */
+.sq-sync::before,
+.sq-sync::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid transparent;
+}
+
+.sq-sync::before {
+    border-color: var(--sq-warn-bg);
+}
+
+.sq-sync::after {
+    border-top-color: currentColor;
+    animation: sq-spin 1.1s cubic-bezier(0.5, 0.15, 0.5, 0.85) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sq-sync::after { animation: none; border-right-color: currentColor; }
+}
+
 .sq-chip {
     display: inline-flex;
     align-items: center;
@@ -613,98 +640,13 @@
 
 .sq-chip .material-symbols-outlined { font-size: 14px; }
 
-/* Dosya / OCR var-yok işaretleri */
-/* Kapsayıcı grid'e karışmaz; Dosya ve OCR doğrudan .sq-state yuvalarına oturur */
-.sq-checks {
-    display: contents;
-}
-
-.sq-check {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 0.72rem;
-    font-weight: 600;
-    color: var(--sq-muted);
-    white-space: nowrap;
-}
-
-.sq-check-box {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 16px;
-    height: 16px;
-    border: 1.5px solid var(--sq-border-strong);
-    border-radius: 4px;
-    background: var(--sq-surface);
-    color: var(--sq-muted);
-}
-
-.sq-check-box .material-symbols-outlined { font-size: 13px; font-weight: 700; }
-
-.sq-check.is-on { color: var(--sq-text-2); }
-.sq-check.is-on .sq-check-box { border-color: var(--sq-ok); background: var(--sq-ok); color: #fff; }
-.sq-check.is-err { color: var(--sq-err); }
-.sq-check.is-err .sq-check-box { border-color: var(--sq-err); background: var(--sq-err-bg); color: var(--sq-err); }
-
-[data-theme="dark"] .sq-check.is-on .sq-check-box { color: #0f172a; }
 .sq-chip.is-ok { background: var(--sq-ok-bg); color: var(--sq-ok); }
 .sq-chip.is-warn { background: var(--sq-warn-bg); color: var(--sq-warn); }
 .sq-chip.is-err { background: var(--sq-err-bg); color: var(--sq-err); }
 .sq-chip.is-wait { background: var(--sq-warn-bg); color: var(--sq-warn); }
 .sq-chip.is-ocr { background: var(--sq-info-bg); color: var(--sq-info); }
 
-/* İşleme alan personel */
-.sq-owner {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-}
 
-.sq-avatar {
-    flex: 0 0 auto;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: #e2e8f0;
-    color: #334155;
-    font-size: 0.7rem;
-    font-weight: 800;
-}
-
-.sq-avatar.is-me {
-    background: var(--sq-premium);
-    color: var(--sq-premium-accent);
-}
-
-.sq-avatar.is-empty {
-    background: transparent;
-    border: 1px dashed var(--sq-border-strong);
-    color: var(--sq-muted);
-}
-
-.sq-avatar .material-symbols-outlined { font-size: 16px; }
-
-[data-theme="dark"] .sq-avatar:not(.is-me):not(.is-empty) { background: #3b4658; color: #e2e8f0; }
-
-.sq-owner-name {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--sq-text-2);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.sq-owner-name.is-muted { color: var(--sq-muted); font-weight: 500; }
-.sq-row.is-mine .sq-owner-name { color: var(--sq-info); }
-
-/* Eylemler */
 .sq-actions {
     display: flex;
     align-items: center;
@@ -799,6 +741,18 @@
 }
 
 .sq-iconbar button.is-danger:hover { color: var(--sq-err); }
+
+/* Pasif düğme (ör. yayınlanmış evrakta Sil): yerini korur, tıklanmaz */
+.sq-iconbar button:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.sq-iconbar button:disabled:hover {
+    background: transparent;
+    color: inherit;
+    box-shadow: none;
+}
 
 /* Yükleniyor iskeleti */
 .sq-row.is-skeleton {
@@ -952,10 +906,8 @@
 /* ---- Duyarlı yerleşim ---- */
 @media (max-width: 1280px) {
     .sq-queues { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .sq-row { grid-template-columns: 72px minmax(0, 1fr) auto 140px; }
-    .sq-list.has-publish .sq-row:not(.is-skeleton) { grid-template-columns: 72px minmax(0, 1fr) auto 140px 118px; }
-    .sq-list.has-publish .sq-publish { grid-row: 1; grid-column: 5; }
-    .sq-actions { grid-column: 2 / -1; justify-content: flex-end; }
+    .sq-row { grid-template-columns: 72px minmax(0, 1fr) auto; }
+    .sq-list.has-publish .sq-row:not(.is-skeleton) { grid-template-columns: 72px minmax(0, 1fr) 118px auto; }
 }
 
 @media (max-width: 768px) {
@@ -964,8 +916,6 @@
     .sq-search { max-width: none; flex-basis: 100%; }
     .sq-tools { margin-left: 0; }
     .sq-row { grid-template-columns: 64px minmax(0, 1fr); }
-    .sq-state { grid-column: 2; grid-template-columns: auto auto auto; justify-content: start; }
-    .sq-owner { grid-column: 2; }
     .sq-list.has-publish .sq-row:not(.is-skeleton) { grid-template-columns: 64px minmax(0, 1fr); }
     .sq-list.has-publish .sq-publish { grid-row: auto; grid-column: 2; justify-content: flex-start; }
     .sq-actions { grid-column: 1 / -1; flex-wrap: wrap; justify-content: space-between; }
