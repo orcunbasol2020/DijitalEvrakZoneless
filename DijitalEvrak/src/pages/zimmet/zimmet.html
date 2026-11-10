@@ -575,14 +575,11 @@
                         <span class="zm-summary-target">{{ targetLabel() || 'Kişi seçilmedi' }}</span>
                     </div>
                     <div class="zm-footer-actions">
-                        <!-- Tek düğme: devir mi teslim mi olacağı seçilen kişinin birimine göre evrak bazında belirlenir.
-                             Tür değişince ikon/metin DOM'da yeniden oluşturulur ki belirme animasyonu tekrar oynasın. -->
-                        @let plan = actionPlan();
-                        @let allTeslim = zimmetType() === 'other' && plan.teslim > 0 && plan.devir === 0;
+                        <!-- Tür değişince ikon/metin DOM'da yeniden oluşturulur ki belirme animasyonu tekrar oynasın. -->
                         <button type="button" class="btn btn-primary zimmet-submit-btn"
                             [attr.data-mode]="zimmetType() === 'self' ? 'self' : 'internal'"
                             [disabled]="saving() || (zimmetType() === 'other' && !selectedPerson()) || selectedIsActiveHolder() || allDocsPending()"
-                            [title]="allDocsPending() ? 'Evrakın onay bekleyen zimmet talebi var' : selectedIsActiveHolder() ? 'Aktif zimmet seçtiğiniz kişide' : (actionHint() ?? '')"
+                            [title]="allDocsPending() ? 'Evrakın onay bekleyen zimmet talebi var' : selectedIsActiveHolder() ? 'Aktif zimmet seçtiğiniz kişide' : ''"
                             (click)="saveZimmet()">
                             @if (saving()) {
                                 <span class="spinner-border spinner-border-sm zimmet-submit-icon"></span>
@@ -590,9 +587,6 @@
                             } @else if (zimmetType() === 'self') {
                                 <span class="zimmet-submit-icon material-symbols-outlined">download</span>
                                 <span class="zimmet-submit-text">Zimmeti Üzerime Al</span>
-                            } @else if (allTeslim) {
-                                <span class="zimmet-submit-icon material-symbols-outlined">hand_package</span>
-                                <span class="zimmet-submit-text">{{ isMulti() ? 'Tümünü Teslim Et' : 'Teslim Et' }}</span>
                             } @else {
                                 <span class="zimmet-submit-icon material-symbols-outlined">article_person</span>
                                 <span class="zimmet-submit-text">{{ isMulti() ? 'Tümünü Zimmetle' : 'Zimmetle' }}</span>
@@ -601,20 +595,13 @@
                     </div>
                 </div>
 
-                <!-- Seçilen kişiye göre işlemin sonucu (teslim / devir); kartın en altına yapışık şerit.
-                     Personel seçilmeden gösterilmez. -->
-                @if (!allDocsPending() && (zimmetType() === 'self' || actionHint())) {
-                    <div class="zm-action-note">
-                        <span class="material-symbols-outlined">info</span>
-                        <span>
-                            @if (zimmetType() === 'self') {
-                                Evrak üzerinize alınır, durum <strong>Devir</strong> olur.
-                            } @else {
-                                <strong>{{ actionHint() }}.</strong>
-                            }
-                        </span>
-                    </div>
-                }
+                <!-- Alt butonların zimmet durumuna etkisi; kartın en altına yapışık şerit -->
+                <div class="zm-action-note" *ngIf="!allDocsPending()">
+                    <span class="material-symbols-outlined">info</span>
+                    <span>
+                        <strong>Zimmetle:</strong> zimmetleme yapılır, durum <strong>Devir Edildi</strong> olur.
+                    </span>
+                </div>
             </ng-container>
         </div>
     </div>
@@ -648,14 +635,14 @@
           <div class="iz-result-single is-ok">
             <span class="material-symbols-outlined">check_circle</span>
             <span class="iz-result-single-no">{{ d.qrCode }}</span>
-            <span class="iz-result-single-msg">{{ r.deliveredIds.includes(d.id) ? 'Teslim edildi' : 'Zimmetlendi' }}</span>
+            <span class="iz-result-single-msg">Zimmetlendi</span>
           </div>
         }
         @if (r.pending[0]; as d) {
           <div class="iz-result-single is-pending">
             <span class="material-symbols-outlined">hourglass_top</span>
             <span class="iz-result-single-no">{{ d.qrCode }}</span>
-            <span class="iz-result-single-msg">{{ r.deliveredIds.includes(d.id) ? 'Teslim' : 'Devir' }} talebi {{ r.targetName }} kişisinin onayına gönderildi</span>
+            <span class="iz-result-single-msg">{{ r.targetName }} kişisinin onayına gönderildi</span>
             <span class="iz-result-single-sub">Onay verilene kadar evrak mevcut zimmet sahibinde kalır.</span>
           </div>
         }
@@ -717,12 +704,12 @@
           <div class="zm-doc iz-result-row is-ok" *ngFor="let d of r.succeeded">
             <span class="material-symbols-outlined iz-result-row-icon">check_circle</span>
             <div class="zm-doc-body"><div class="zm-doc-no">{{ d.qrCode }}</div></div>
-            <span class="iz-result-chip">{{ r.deliveredIds.includes(d.id) ? 'Teslim edildi' : 'Zimmetlendi' }}</span>
+            <span class="iz-result-chip">Zimmetlendi</span>
           </div>
           <div class="zm-doc iz-result-row is-pending" *ngFor="let d of r.pending">
             <span class="material-symbols-outlined iz-result-row-icon">hourglass_top</span>
             <div class="zm-doc-body"><div class="zm-doc-no">{{ d.qrCode }}</div></div>
-            <span class="iz-result-chip">{{ r.deliveredIds.includes(d.id) ? 'Teslim onayında' : 'Devir onayında' }}</span>
+            <span class="iz-result-chip">Onaya gönderildi</span>
           </div>
           <div class="zm-doc iz-result-row is-skip" *ngFor="let d of r.skipped">
             <span class="material-symbols-outlined iz-result-row-icon">skip_next</span>
@@ -742,67 +729,12 @@
         </div>
       }
 
-      <!-- Teslim edilen evrakların sayfa sayısı ve ek bilgisi düzenlenebilir -->
-      @if (r.edits.length) {
-        <div class="iz-edit">
-          <div class="iz-edit-title">
-            <span class="material-symbols-outlined">edit_note</span>
-            Evrak Bilgileri
-          </div>
-          @for (e of r.edits; track e.doc.id) {
-            <div class="iz-edit-card" [class.is-dirty]="isEditDirty(e)">
-              @if (r.edits.length > 1) {
-                <div class="iz-edit-no">{{ e.doc.qrCode }}</div>
-              }
-              <div class="iz-edit-grid">
-                <div class="zm-field">
-                  <label class="zm-field-label" [for]="'pc-' + e.doc.id">Sayfa Sayısı</label>
-                  <input type="number" min="0" step="1" class="form-control ok-input" [id]="'pc-' + e.doc.id"
-                    [class.is-invalid]="isEditInvalid(e) && (e.pageCount == null || e.pageCount < 0)"
-                    [(ngModel)]="e.pageCount" [disabled]="savingEdits()">
-                </div>
-                <div class="zm-field">
-                  <label class="zm-field-label" [for]="'ek-' + e.doc.id">Ek Var mı?</label>
-                  <select class="form-select ok-input" [id]="'ek-' + e.doc.id"
-                    [(ngModel)]="e.hasAttachment" [disabled]="savingEdits()">
-                    <option [ngValue]="null">Belirtilmemiş</option>
-                    <option [ngValue]="true">Var</option>
-                    <option [ngValue]="false">Yok</option>
-                  </select>
-                </div>
-                <!-- Ek açıklaması yalnızca "Var" seçilince açılır -->
-                @if (e.hasAttachment === true) {
-                  <div class="zm-field iz-edit-span-2">
-                    <label class="zm-field-label" [for]="'ekd-' + e.doc.id">Ek Açıklaması</label>
-                    <textarea class="form-control ok-input" rows="2" [id]="'ekd-' + e.doc.id"
-                      [(ngModel)]="e.attachmentDescription" [attr.maxlength]="attachmentDescriptionMax"
-                      [disabled]="savingEdits()" placeholder="Örn. 1 dergi, 1 flash disk"></textarea>
-                    <span class="zm-field-hint text-end">{{ (e.attachmentDescription || '').length }} / {{ attachmentDescriptionMax }}</span>
-                  </div>
-                }
-              </div>
-            </div>
-          }
-        </div>
-      }
       </div>
 
       <div class="iz-modal-footer">
-        @if (hasDirtyEdits()) {
-          <button type="button" class="btn btn-light" [disabled]="savingEdits()" (click)="closeResult(true)">
-            Kaydetmeden Kapat
-          </button>
-          <button type="button" class="btn btn-primary" [disabled]="savingEdits() || hasInvalidEdits()" (click)="saveResultEdits()">
-            @if (savingEdits()) {
-              <span class="spinner-border spinner-border-sm me-1"></span>
-            }
-            Kaydet
-          </button>
-        } @else {
-          <button type="button" class="btn btn-primary" (click)="closeResult(true)">
-            Tamam
-          </button>
-        }
+        <button type="button" class="btn btn-primary" (click)="closeResult()">
+          Tamam
+        </button>
       </div>
     </div>
   </div>

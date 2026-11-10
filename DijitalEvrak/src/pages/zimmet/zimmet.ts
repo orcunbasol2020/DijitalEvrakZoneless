@@ -11,7 +11,7 @@ import { AllocationRequestService } from '../../services/allocationrequest';
 import { AllocationRequestActionResultEnum, AllocationRequestModel, AllocationRequestStatusEnum, allocationRequestOperationLabel } from '../../models/allocationrequest.model';
 import { Common } from '../../services/common';
 import { IncomingDocumentService } from '../../services/incomingdocument';
-import { IncomingDocumentModel, incomingRecipientNames, incomingRecipientsOf } from '../../models/incoming-document/incoming-document.model';
+import { IncomingDocumentModel, incomingRecipientNames } from '../../models/incoming-document/incoming-document.model';
 import { AllocationFlowComponent } from '../dynamics/allocation-flow/allocation-flow';
 import { DocumentAllocationModel } from '../../models/documentallocation.model';
 import { AllocationStatusEnum, AllocationStatusLabels } from '../../models/allocationstatus.model';
@@ -46,29 +46,13 @@ export interface ZimmetResult {
   targetName: string;
   actionLabel: string;
   succeeded: ScannedDoc[];
-  // Kurum içi başka kullanıcıya Devir / Teslim: zimmet alıcı onaylayana kadar devredende kalır
+  // Kurum içi başka kullanıcıya Devir: zimmet alıcı onaylayana kadar devredende kalır
   pending: ScannedDoc[];
   skipped: ScannedDoc[];
   failed: ScannedDoc[];
   // Backend'in hata mesajı (ör. evrakın bekleyen onay talebi var), evrak Id'sine göre
   failReasons: Record<string, string>;
-  // Teslim olarak işlenen evraklar (geri kalanı Devir); satırlardaki sonuç metni buna göre
-  deliveredIds: string[];
-  // Teslim edilen / teslim onayına gönderilen evrakların düzenlenebilir bilgileri
-  edits: ResultDocEdit[];
 }
-
-// Teslim sonrası popup'ta düzenlenen evrak bilgileri; original ile karşılaştırılıp
-// yalnızca değişen evraklar kaydedilir.
-export interface ResultDocEdit {
-  doc: ScannedDoc;
-  pageCount: number | null;
-  hasAttachment: boolean | null;
-  attachmentDescription: string;
-  original: { pageCount: number | null; hasAttachment: boolean | null; attachmentDescription: string };
-}
-
-const ATTACHMENT_DESCRIPTION_MAX = 1000;
 
 @Component({
   standalone: true,
@@ -230,9 +214,6 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
 
   // Kayıt sonrası sonuç popup'ı (toast yerine).
   readonly saveResult = signal<ZimmetResult | null>(null);
-  // Sonuç popup'ındaki evrak bilgileri kaydedilirken
-  readonly savingEdits = signal(false);
-  readonly attachmentDescriptionMax = ATTACHMENT_DESCRIPTION_MAX;
 
   id!: string | null;
   // Sol paneldeki sekme (Evrak Bilgileri / Zimmet Geçmişi) ve zimmet türü.
@@ -250,8 +231,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
   // Belge bulunamadı vb. durumlarda kullanıcıya toast'a ek olarak ekranda da gösterilecek mesaj
   lookupErrorMessage = signal<string | null>(null);
 
-  // departmentId: seçilen kişinin birimi; evrakın Nereye birimlerinden biriyse işlem Teslim olur
-  readonly personControl = new FormControl<{ id: string, name: string, departmentId?: DepartmentId | null } | null>(null);
+  readonly personControl = new FormControl<{ id: string, name: string } | null>(null);
   // Autocomplete seçimi; şablonda seçili personel kartı ve buton durumları için.
   readonly selectedPerson = toSignal(this.personControl.valueChanges, { initialValue: this.personControl.value });
 
@@ -266,7 +246,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     this.personList()
       .filter((p): p is UserModel & { id: string } => !!p.id)
       // Unvan seçeneğin altında küçük gösterilir (hint); aramaya katılmaz
-      .map(p => ({ id: p.id, name: this.personOptionName(p), hint: p.titleName, departmentId: p.departmentId }))
+      .map(p => ({ id: p.id, name: this.personOptionName(p), hint: p.titleName }))
   );
 
   // "Ad Soyad (BDHD)"; birimi tanımsızsa yalnızca ad soyad
@@ -279,12 +259,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
   // seçili personel kartı, özet şeridi ve kayıt akışı değişmeden çalışsın.
   selectPerson(p: UserModel): void {
     if (!p.id) return;
-    this.personControl.setValue({
-      id: p.id,
-      name: this.personOptionName(p),
-      // Birim listesinden gelen kişinin birimi yanıtta yoksa seçili birimdir
-      departmentId: p.departmentId ?? this.selectedDepartment()?.id ?? null
-    });
+    this.personControl.setValue({ id: p.id, name: this.personOptionName(p) });
   }
 
   isPersonSelected(p: UserModel): boolean {
@@ -368,8 +343,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
   });
 
   // Zimmet geçmişinde (yalnızca aktif kayıt değil, tüm kayıtlar) "Teslim Edildi" ya da
-  // "Teslim Alındı" olan evrak tekrar teslim edilmez; Nereye birimine verilse de Devir olur.
-  // Onaylı teslimde backend Teslim (3) kaydı açmaz, alıcı onaylayınca doğrudan Teslim Alındı (5) yazar.
+  // "Teslim Alındı" varsa evrak listede teslim edilmiş olarak işaretlenir.
   isDelivered(doc: ScannedDoc): boolean {
     return doc.allocations.some(a =>
       a.status === AllocationStatusEnum.Teslim || a.status === AllocationStatusEnum.TeslimAlindi);
@@ -384,44 +358,12 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
   });
 
   // Devret sekmesinde seçilen personel listedeki evrakların tümünün aktif zimmet
-  // sahibiyse işlem bir şey değiştirmez; Zimmetle / Teslim Et pasifleşir.
+  // sahibiyse işlem bir şey değiştirmez; Zimmetle pasifleşir.
   readonly selectedIsActiveHolder = computed(() => {
     const personId = this.selectedPerson()?.id?.toLowerCase();
     const docs = this.docs();
     if (this.zimmetType() !== 'other' || !personId || docs.length === 0) return false;
     return docs.every(d => this.activeAllocationOf(d)?.userId?.toLowerCase() === personId);
-  });
-
-  // Tek "Zimmetle" düğmesi devir mi teslim mi olacağını evrak bazında kendisi belirler:
-  // seçilen kişi evrakın Nereye birimlerinden birindeyse (Bilgi alıcıları dahil) evrak
-  // muhatabına ulaşmıştır → Teslim; başka birimdeyse ya da evrak daha önce teslim
-  // edilmişse → Devir. Üzerime Al her zaman Devir'dir.
-  statusFor(doc: ScannedDoc): AllocationStatusEnum {
-    if (this.zimmetType() !== 'other' || this.isDelivered(doc)) return AllocationStatusEnum.Devir;
-    const deptId = this.selectedPerson()?.departmentId;
-    if (deptId == null) return AllocationStatusEnum.Devir;
-    return incomingRecipientsOf(doc.detail ?? {}).some(r => sameId(r.departmentId, deptId))
-      ? AllocationStatusEnum.Teslim
-      : AllocationStatusEnum.Devir;
-  }
-
-  // İşlenecek evraklardaki (zaten hedef kişide olanlar hariç) teslim / devir dağılımı;
-  // düğme metni ve özet şeridindeki açıklama bundan üretilir.
-  readonly actionPlan = computed(() => {
-    const personId = this.selectedPerson()?.id?.toLowerCase();
-    const docs = this.docs().filter(d =>
-      this.zimmetType() !== 'other' || this.activeAllocationOf(d)?.userId?.toLowerCase() !== personId);
-    const teslim = docs.filter(d => this.statusFor(d) === AllocationStatusEnum.Teslim).length;
-    return { teslim, devir: docs.length - teslim };
-  });
-
-  readonly actionHint = computed<string | null>(() => {
-    if (this.zimmetType() !== 'other' || !this.selectedPerson()) return null;
-    const { teslim, devir } = this.actionPlan();
-    if (teslim && devir) return `${teslim} evrak teslim edilecek (Nereye birimi), ${devir} evrak devredilecek`;
-    if (teslim) return 'Nereye birimine teslim edilecek';
-    if (devir) return 'Devredilecek';
-    return null;
   });
 
   // Alt özet şeridinde "Evrak No → Ad Soyad" biçiminde gösterilecek hedef.
@@ -658,107 +600,10 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     if (!this.scanCollapsed) this.focusQrInputSoon();
   }
 
-  // force: Kapat butonu; değişiklikler atılır. Dışarı tıklama / Escape kaydedilmemiş
-  // değişiklik varken popup'ı kapatmaz.
-  closeResult(force = false) {
-    if (this.savingEdits()) return;
-    if (!force && this.hasDirtyEdits()) return;
+  closeResult() {
     this.saveResult.set(null);
     this.cdr.markForCheck();
     if (!this.scanCollapsed) this.focusQrInputSoon();
-  }
-
-  // === SONUÇ POPUP'INDA EVRAK BİLGİLERİ ===
-  private buildEdit(doc: ScannedDoc): ResultDocEdit {
-    const d = doc.detail ?? {};
-    const original = {
-      pageCount: d.pageCount != null && String(d.pageCount) !== '' ? Number(d.pageCount) : null,
-      hasAttachment: d.hasAttachment ?? null,
-      attachmentDescription: d.attachmentDescription ?? ''
-    };
-    return { doc, ...original, original };
-  }
-
-  isEditDirty(e: ResultDocEdit): boolean {
-    const desc = e.hasAttachment === true ? (e.attachmentDescription ?? '').trim() : '';
-    const origDesc = e.original.hasAttachment === true ? e.original.attachmentDescription.trim() : '';
-    return this.normalizedPageCount(e) !== e.original.pageCount
-      || e.hasAttachment !== e.original.hasAttachment
-      || desc !== origDesc;
-  }
-
-  // Sayfa sayısı boş bırakılamaz (önceden boşsa boş kalabilir) ve negatif olamaz.
-  isEditInvalid(e: ResultDocEdit): boolean {
-    const pc = this.normalizedPageCount(e);
-    if (pc === null) return e.original.pageCount !== null;
-    return pc < 0 || !Number.isInteger(pc)
-      || (e.attachmentDescription ?? '').length > ATTACHMENT_DESCRIPTION_MAX;
-  }
-
-  private normalizedPageCount(e: ResultDocEdit): number | null {
-    return e.pageCount == null || String(e.pageCount) === '' ? null : Number(e.pageCount);
-  }
-
-  hasDirtyEdits(): boolean {
-    return (this.saveResult()?.edits ?? []).some(e => this.isEditDirty(e));
-  }
-
-  hasInvalidEdits(): boolean {
-    return (this.saveResult()?.edits ?? []).some(e => this.isEditInvalid(e));
-  }
-
-  // Değişen evraklar güncel hâliyle sunucudan alınır, yalnızca bu üç alan değiştirilip
-  // Update'e tam model olarak gönderilir (eksik alan Update'te boşalabilir).
-  async saveResultEdits() {
-    const userId = this.user()?.id;
-    const dirty = (this.saveResult()?.edits ?? []).filter(e => this.isEditDirty(e));
-    if (!userId || !dirty.length || this.savingEdits()) return;
-    if (this.hasInvalidEdits()) {
-      this.#toast.showToast('Uyarı', 'Sayfa sayısı ve ek açıklamasını kontrol edin.', 'warning');
-      return;
-    }
-
-    this.savingEdits.set(true);
-    this.cdr.markForCheck();
-
-    const failedNos: string[] = [];
-    for (const e of dirty) {
-      try {
-        const fresh = await firstValueFrom(this.incomingDocumentService.getIncomingDocumentByDocumentId(e.doc.id));
-        // Ek açıklaması yalnızca "Var" seçiliyken gönderilir; "Yok" seçilince sunucu siler,
-        // belirtilmemişse (null) mevcut değer korunur. (Evrak Kayıt ekranıyla aynı kural)
-        const updated = {
-          ...fresh,
-          pageCount: this.normalizedPageCount(e) as number,
-          hasAttachment: e.hasAttachment,
-          attachmentDescription: e.hasAttachment === true
-            ? (e.attachmentDescription ?? '').trim()
-            : e.hasAttachment === false ? '' : null,
-          userId
-        };
-        // departmentId (ana alıcı) recipients'sız gönderilirse backend "Nereye" listesini o tek
-        // birime indirger; alıcılara dokunulmaması için ikisi de gönderilmez.
-        const { departmentId: _primary, distributions: _list, recipients: _recipients, ...payload } = updated;
-        await firstValueFrom(this.incomingDocumentService.updateIncomingDocument(payload));
-        this.docs.update(list => list.map(d => d.id === e.doc.id ? { ...d, detail: { ...d.detail, ...updated, distributions: d.detail?.distributions } } : d));
-        e.original = {
-          pageCount: this.normalizedPageCount(e),
-          hasAttachment: e.hasAttachment,
-          attachmentDescription: (e.attachmentDescription ?? '').trim()
-        };
-      } catch (err) {
-        console.error(`Evrak bilgileri kaydedilemedi (${e.doc.qrCode}):`, err);
-        failedNos.push(e.doc.qrCode);
-      }
-    }
-
-    this.savingEdits.set(false);
-    if (failedNos.length) {
-      this.#toast.showToast('Kayıt Başarısız', `Evrak bilgileri kaydedilemedi: ${failedNos.join(', ')}`, 'error');
-      this.cdr.markForCheck();
-      return;
-    }
-    this.closeResult(true);
   }
 
   getir(id: string) {
@@ -803,7 +648,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
   // Listedeki tüm evraklar seçilen kişiye sırayla zimmetlenir; bir evrak
   // başarısız olsa da diğerleri devam eder. Başarılı evraklar listede kalır ve
   // zimmet geçmişleri yenilenir; böylece yeni zimmet sahibi hemen görünür.
-  // Devir / Teslim evrak bazında statusFor ile belirlenir.
+  // Zimmet her zaman Devir olarak açılır; bu ekrandan teslim yapılmaz.
   async saveZimmet() {
     if (this.saving()) return;
 
@@ -835,9 +680,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
-    // Karar kayıt anında sabitlenir (istekler sürerken zimmet geçmişi değişebilir)
-    const statusById = new Map(allDocs.map(d => [d.id, this.statusFor(d)]));
-    const isTeslim = (d: ScannedDoc) => statusById.get(d.id) === AllocationStatusEnum.Teslim;
+    const actionLabel = this.zimmetType() === 'self' ? 'Üzerime Al' : 'Devret';
 
     // Hedef kişi evrakın zaten aktif zimmet sahibiyse aynı kişiye ikinci bir
     // zimmet kaydı açılmaz; o evrak atlanır ve sonuç popup'ında gösterilir.
@@ -852,14 +695,8 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
 
     const docs = allDocs.filter(d => !skipped.includes(d) && !blocked.includes(d));
 
-    const teslimCount = docs.filter(isTeslim).length;
-    const actionLabel = this.zimmetType() === 'self' ? 'Üzerime Al'
-      : teslimCount === 0 ? 'Devret'
-      : teslimCount === docs.length ? 'Teslim Et'
-      : 'Devret / Teslim Et';
-
     if (docs.length === 0) {
-      this.saveResult.set({ targetName, actionLabel, succeeded: [], pending: [], skipped, failed, failReasons, deliveredIds: [], edits: [] });
+      this.saveResult.set({ targetName, actionLabel, succeeded: [], pending: [], skipped, failed, failReasons });
       this.cdr.markForCheck();
       return;
     }
@@ -876,7 +713,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
           incomingDocumentId: doc.id,
           userId: personId,
           createdUserId: user.id,
-          status: statusById.get(doc.id)!,
+          status: AllocationStatusEnum.Devir,
           userType: 1,
         }));
         const outcome = DocumentAllocation.classifyCreateResponse(res);
@@ -895,12 +732,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     this.saving.set(false);
 
     // Sonuç toast yerine popup'ta gösterilir: sayılar ve her gruptaki evraklar.
-    // Teslim edilen / teslim onayına gönderilen evrakların sayfa sayısı ve ek bilgisi
-    // popup'ta düzenlenebilir.
-    const delivered = [...succeeded, ...pending].filter(isTeslim);
-    const edits = delivered.map(d => this.buildEdit(d));
-    const deliveredIds = delivered.map(d => d.id);
-    this.saveResult.set({ targetName, actionLabel, succeeded, pending, skipped, failed, failReasons, deliveredIds, edits });
+    this.saveResult.set({ targetName, actionLabel, succeeded, pending, skipped, failed, failReasons });
 
     if (succeeded.length + pending.length > 0) {
       this.personControl.setValue(null);
