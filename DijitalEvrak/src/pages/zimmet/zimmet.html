@@ -343,7 +343,7 @@
                         <span class="zm-step-no">3</span>
                         <div class="zm-step-body">
                             <div class="zm-step-title">Onaylayın</div>
-                            <div class="zm-step-text">Alt kısımdaki özeti kontrol edip "Zimmetle" ile onaylayın. Seçilen personel evrakın Nereye birimindeyse evrak teslim edilir, değilse devredilir. Listedeki tüm evraklar birlikte işlenir.</div>
+                            <div class="zm-step-text">Alt kısımdaki özeti kontrol edip "Zimmetle" ile onaylayın. Listedeki tüm evraklar birlikte işlenir.</div>
                         </div>
                     </div>
                 </div>
@@ -601,20 +601,20 @@
                     </div>
                 </div>
 
-                <!-- Seçilen kişiye göre işlemin zimmet durumuna etkisi; kartın en altına yapışık şerit -->
-                <div class="zm-action-note" *ngIf="!allDocsPending()">
-                    <span class="material-symbols-outlined">info</span>
-                    <span>
-                        @if (zimmetType() === 'self') {
-                            Evrak üzerinize alınır, durum <strong>Devir</strong> olur.
-                        } @else if (actionHint(); as hint) {
-                            <strong>{{ hint }}.</strong>
-                            Nereye birimindeki personele verilen evrak <strong>Teslim Edildi</strong>, diğer birimlere verilen <strong>Devir</strong> olur.
-                        } @else {
-                            Seçilen personel evrakın Nereye birimindeyse evrak <strong>Teslim Edildi</strong>, değilse <strong>Devir</strong> olur.
-                        }
-                    </span>
-                </div>
+                <!-- Seçilen kişiye göre işlemin sonucu (teslim / devir); kartın en altına yapışık şerit.
+                     Personel seçilmeden gösterilmez. -->
+                @if (!allDocsPending() && (zimmetType() === 'self' || actionHint())) {
+                    <div class="zm-action-note">
+                        <span class="material-symbols-outlined">info</span>
+                        <span>
+                            @if (zimmetType() === 'self') {
+                                Evrak üzerinize alınır, durum <strong>Devir</strong> olur.
+                            } @else {
+                                <strong>{{ actionHint() }}.</strong>
+                            }
+                        </span>
+                    </div>
+                }
             </ng-container>
         </div>
     </div>
