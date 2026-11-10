@@ -137,4 +137,19 @@ export class DocumentAllocation {
       })
     );
   }
+
+  // Aktif zimmeti kendisinde olan kullanıcı evrakı teslim alır: zimmet Teslim Alındı (5),
+  // evrak Teslim Edildi (3) olur. Teslim yalnızca bu yolla yapılır (Zimmet ekranı hep Devir açar).
+  // Hata durumlarında da HTTP 200 döner; sonuç mesajla ayırt edilir. Başarısızsa mesaj döner,
+  // başarılıysa null.
+  receive(incomingDocumentId: string, userId: string): Observable<string | null> {
+    return this.httpService.post<MessageResponse<unknown>>(
+      `${this.baseUrl}/Receive`,
+      { incomingDocumentId, userId }
+    ).pipe(map(res => res?.message === DocumentAllocation.RECEIVE_SUCCESS_MESSAGE
+      ? null
+      : (res?.message || 'Evrak teslim alınamadı')));
+  }
+
+  private static readonly RECEIVE_SUCCESS_MESSAGE = 'Evrak teslim alındı';
 }

@@ -172,6 +172,7 @@
                   <span class="zl-th-inner">YÖN <span class="material-symbols-outlined zl-sort-icon">{{ sortIcon('documentDirection') }}</span></span>
                 </th>
                 <th class="zl-center">KAYNAK</th>
+                <th class="zl-center">TESLİM</th>
                 <th class="zl-center">DEVİR</th>
                 <th class="zl-center">GEÇMİŞ</th>
               </tr>
@@ -263,6 +264,15 @@
                       <span class="material-symbols-outlined">{{ isAtlas(item) ? 'hub' : 'inventory_2' }}</span>
                       {{ sourceLabels[item.source] }}
                     </span>
+                  </td>
+                  <td class="zl-center">
+                    @if (item.documentDirection === Direction.Gelen && isReceived(item)) {
+                      <span class="material-symbols-outlined zl-received" title="Teslim alındı">task_alt</span>
+                    } @else if (canReceive(item)) {
+                      <app-receive-button [documentId]="item.documentId" (received)="loadZimmetlerim()" />
+                    } @else {
+                      <span class="zl-route-empty">-</span>
+                    }
                   </td>
                   <td class="zl-center">
                     <button type="button" class="zl-act"

@@ -11,6 +11,7 @@ import {
 import { httpResource } from '@angular/common/http';
 import { Observable, catchError, firstValueFrom, forkJoin, map, of } from 'rxjs';
 import GenericModel from '../../../components/generic-model/generic-model';
+import { ReceiveButton } from '../../../components/receive-button/receive-button';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FlexiToastService } from 'flexi-toast';
@@ -58,7 +59,8 @@ type HistorySource = Omit<HistoryEntry, 'serh'> & { isDeleted: boolean };
   imports: [
     GenericModel,
     FormsModule,
-    CommonModule
+    CommonModule,
+    ReceiveButton
   ],
   templateUrl: './zimmetlerim.html',
   // Kart iskeleti (st-*) Ayarlar, üst kart / arama / boş durum (sp-*) Destek
@@ -110,6 +112,18 @@ export default class Zimmetlerim {
   // Teslim Aldıklarım listesinde sonradan devredilmiş (artık üzerimde olmayan) zimmet
   isTransferred(item: ActiveDocumentModel): boolean {
     return item.isActive === false;
+  }
+
+  // Bu zimmetle evrak teslim alınmış (Teslim Edildi / Teslim Alındı)
+  isReceived(item: ActiveDocumentModel): boolean {
+    return item.status === AllocationStatusEnum.Teslim || item.status === AllocationStatusEnum.TeslimAlindi;
+  }
+
+  // Gelen evrakta teslim yalnızca evrakı üzerinde taşıyan kişi tarafından "Teslim Al" ile
+  // yapılır; Atlas zimmeti, devredilmiş ya da onay bekleyen evrakta düğme çıkmaz.
+  canReceive(item: ActiveDocumentModel): boolean {
+    return item.documentDirection === DocumentDirectionEnum.Gelen && !this.isAtlas(item)
+      && !this.isTransferred(item) && !this.isReceived(item) && !this.pendingRequestOf(item);
   }
 
   readonly directionFilter = signal<DirectionFilter>('all');

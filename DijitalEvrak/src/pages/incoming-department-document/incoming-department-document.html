@@ -234,11 +234,13 @@
                       </span>
                     </td>
                     <td class="zl-center">
-                      <!-- Evrak akış durumu 3 = Teslim Edildi -->
+                      <!-- Evrak akış durumu 3 = Teslim Edildi; edilmediyse ve zimmet bendeyse Teslim Al -->
                       @if (isDelivered(item)) {
                         <button type="button" class="zl-act idd-act-delivered" title="Teslim bilgisi" (click)="openDelivery(item)">
                           <span class="material-symbols-outlined">handshake</span>
                         </button>
+                      } @else if (canReceive(item)) {
+                        <app-receive-button [documentId]="item.id!" (received)="loadDocuments()" />
                       } @else {
                         <span class="idd-muted">-</span>
                       }

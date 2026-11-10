@@ -14,6 +14,7 @@ import { httpResource } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FlexiToastService } from 'flexi-toast';
 import GenericModel from '../../../components/generic-model/generic-model';
+import { ReceiveButton } from '../../../components/receive-button/receive-button';
 import { IncomingDocumentService } from '../../services/incomingdocument';
 import { DocumentAllocation } from '../../services/documentallocation';
 import { Common } from '../../services/common';
@@ -40,7 +41,8 @@ type SortColumn = 'qrCode' | 'subject' | 'documentDate';
   imports: [
     GenericModel,
     CommonModule,
-    FormsModule
+    FormsModule,
+    ReceiveButton
   ],
   templateUrl: './incoming-department-document.html',
   // Kart iskeleti (st-*) Ayarlar, üst kart / arama / boş durum (sp-*) Destek,
@@ -111,6 +113,13 @@ export default class IncomingDepartmentDocument {
   // Teslim sütunu ve üstteki teslim filtresi: evrak akış durumu 3 = Teslim Edildi.
   isDelivered(doc: IncomingDocumentModel): boolean {
     return doc.status === 3;
+  }
+
+  // Teslim edilmemiş evrakın aktif zimmeti giriş yapan kullanıcıdaysa Teslim sütununda
+  // "Teslim Al" düğmesi çıkar (backend de yalnızca zimmet sahibinin teslim almasına izin verir).
+  canReceive(doc: IncomingDocumentModel): boolean {
+    const me = this.user()?.id?.toLowerCase();
+    return !this.isDelivered(doc) && !!me && (doc.currentAssignmentUserId ?? '').toLowerCase() === me;
   }
 
   statusLabel(doc: IncomingDocumentModel): string {

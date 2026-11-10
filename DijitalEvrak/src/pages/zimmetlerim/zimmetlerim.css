@@ -733,6 +733,16 @@
     color: #cbd5e1;
 }
 
+/* Teslim sütunu: bu zimmetle teslim alınmış gelen evrak */
+.zl-received {
+    font-size: 20px;
+    color: #16a34a;
+}
+
+[data-theme="dark"] .zl-received {
+    color: #4ade80;
+}
+
 /* Yön rozeti (gelen / giden) */
 .zl-dir {
     display: inline-flex;
