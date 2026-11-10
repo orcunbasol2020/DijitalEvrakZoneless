@@ -87,6 +87,13 @@
           <span class="material-symbols-outlined">auto_awesome</span>
           OCR verisi hazır
         </button>
+        <button type="button" class="sq-toggle" [class.is-on]="todayOnly()"
+          [attr.aria-pressed]="todayOnly()"
+          title="Yalnızca bugün kaydedilen evraklar"
+          (click)="setFilter(todayOnly, !todayOnly())">
+          <span class="material-symbols-outlined">today</span>
+          Bugün gelenler
+        </button>
         @if (hasActiveFilters()) {
           <button type="button" class="sq-link" (click)="clearFilters()">
             <span class="material-symbols-outlined">filter_alt_off</span>

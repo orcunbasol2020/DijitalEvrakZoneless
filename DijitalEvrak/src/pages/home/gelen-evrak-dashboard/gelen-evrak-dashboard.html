@@ -32,7 +32,8 @@
 
 <!-- ===================== İstatistik kartları ===================== -->
 <div class="ad-stats">
-    <a class="ad-stat" routerLink="/scanlist" title="Bugün kaydedilen gelen evrak">
+    <a class="ad-stat" routerLink="/scanlist" [queryParams]="{ filtre: 'bugun-gelen' }"
+        title="Bugün kaydedilen gelen evrak. Tıklayınca bugün gelen evraklar listelenir.">
         <div class="ad-stat-body">
             <div class="ad-stat-label">BUGÜN GELEN</div>
             <div class="ad-stat-value">{{ statsSignal().todayCount }}</div>

@@ -10,7 +10,7 @@ import {
   effect,
   untracked
 } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import GenericModel from '../../../components/generic-model/generic-model';
 import { CommonModule } from '@angular/common';
 import { FlexiToastService } from 'flexi-toast';
@@ -179,6 +179,8 @@ export default class Scanlist {
   readonly personFilter = signal<string | null>(null);
   readonly fileFilter = signal<FileView>('all');
   readonly ocrReadyOnly = signal(false);
+  // Yalnızca bugün kaydedilen evraklar (kayıt tarihi); Gelen Evrak Paneli'nin "Bugün Gelen" kartı açar
+  readonly todayOnly = signal(false);
   readonly publishFilter = signal<PublishView>('all');
   readonly sortBy = signal<SortView>('priority');
   readonly page = signal(1);
@@ -247,8 +249,10 @@ export default class Scanlist {
     const file = this.fileFilter();
     const ocrReady = this.ocrReadyOnly();
     const publish = this.activeQueue() === 'published' ? this.publishFilter() : 'all';
+    const todayStart = this.todayOnly() ? new Date().setHours(0, 0, 0, 0) : null;
 
     const rows = this.queueRows().filter(d => {
+      if (todayStart != null && !(new Date(d.createdDate ?? 0).getTime() >= todayStart)) return false;
       if (urgency != null && d.urgencyDegree !== urgency) return false;
       if (security != null && d.securityDegree !== security) return false;
       if (person && (d.currentAssignmentUser?.trim() ?? '') !== person) return false;
@@ -279,7 +283,7 @@ export default class Scanlist {
   readonly hasActiveFilters = computed(() =>
     !!this.search().trim() || this.urgencyFilter() != null || this.securityFilter() != null
     || (this.showPersonFilter() && !!this.personFilter()) || this.fileFilter() !== 'all'
-    || this.ocrReadyOnly() || (this.activeQueue() === 'published' && this.publishFilter() !== 'all'));
+    || this.ocrReadyOnly() || this.todayOnly() || (this.activeQueue() === 'published' && this.publishFilter() !== 'all'));
 
   readonly pageCount = computed(() => Math.max(1, Math.ceil(this.filteredRows().length / PAGE_SIZE)));
   readonly currentPage = computed(() => Math.min(this.page(), this.pageCount()));
@@ -357,6 +361,7 @@ export default class Scanlist {
     this.personFilter.set(null);
     this.fileFilter.set('all');
     this.ocrReadyOnly.set(false);
+    this.todayOnly.set(false);
     this.publishFilter.set('all');
     this.page.set(1);
   }
@@ -435,6 +440,12 @@ export default class Scanlist {
   }
 
   constructor() {
+    // Gelen Evrak Paneli'nin "Bugün Gelen" kartından gelindiğinde: bugün kaydedilen tüm evraklar
+    // (kuyruk fark etmeksizin). Kullanıcının saklanan kuyruk seçimi değiştirilmez.
+    if (inject(ActivatedRoute).snapshot.queryParamMap.get('filtre') === 'bugun-gelen') {
+      this.activeQueue.set('all');
+      this.todayOnly.set(true);
+    }
     this.loadDocuments();
     // Nereden (dış kurum) adı satırda ve aramada kullanıldığından listeler baştan çekilir
     this.loadLookupsOnce();
