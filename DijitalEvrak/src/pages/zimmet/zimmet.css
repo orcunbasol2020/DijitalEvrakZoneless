@@ -1306,11 +1306,21 @@
 }
 
 /* ---- Devret: seçilen birimin personeli ----
-   Kartlar iki sütunlu ızgarada; liste uzasa da iç kaydırma yok, sayfa uzar. */
+   Kartlar iki sütunlu ızgarada. Kalabalık birimde Devret / Teslim Et düğmeleri
+   aşağıda kalmasın diye liste ~6 satırda sınırlanır ve kendi içinde kayar.
+   İç boşluk, seçili kartın odak çerçevesinin kırpılmasını önler. */
 .zm-dept-persons {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
     gap: 6px;
+    max-height: min(340px, 45vh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 3px 6px 3px 3px;
+    margin: -3px -6px -3px -3px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(100, 116, 139, 0.45) transparent;
 }
 
 .zm-person.zm-person-compact {
