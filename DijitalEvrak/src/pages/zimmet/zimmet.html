@@ -343,7 +343,7 @@
                         <span class="zm-step-no">3</span>
                         <div class="zm-step-body">
                             <div class="zm-step-title">Onaylayın</div>
-                            <div class="zm-step-text">Alt kısımdaki özeti kontrol edip "Zimmetle" ile devredin ya da "Teslim Et" ile evrakı seçilen personele teslim edin. Listedeki tüm evraklar birlikte işlenir.</div>
+                            <div class="zm-step-text">Alt kısımdaki özeti kontrol edip "Zimmetle" ile onaylayın. Seçilen personel evrakın Nereye birimindeyse evrak teslim edilir, değilse devredilir. Listedeki tüm evraklar birlikte işlenir.</div>
                         </div>
                     </div>
                 </div>
@@ -575,26 +575,24 @@
                         <span class="zm-summary-target">{{ targetLabel() || 'Kişi seçilmedi' }}</span>
                     </div>
                     <div class="zm-footer-actions">
-                        <button type="button" class="btn btn-outline-success zm-back-btn"
-                            *ngIf="zimmetType() === 'other'"
-                            [disabled]="saving() || !selectedPerson() || hasDeliveredDoc() || selectedIsActiveHolder() || allDocsPending()"
-                            [title]="allDocsPending() ? 'Evrakın onay bekleyen zimmet talebi var' : selectedIsActiveHolder() ? 'Aktif zimmet seçtiğiniz kişide' : hasDeliveredDoc() ? (isMulti() ? 'Listede daha önce teslim edilmiş evrak var' : 'Evrak zaten teslim edilmiş') : ''"
-                            (click)="saveZimmet(AllocationStatus.Teslim)">
-                            <span class="material-symbols-outlined">hand_package</span>
-                            Teslim Et
-                        </button>
-                        <!-- Tür değişince ikon/metin DOM'da yeniden oluşturulur ki belirme animasyonu tekrar oynasın. -->
+                        <!-- Tek düğme: devir mi teslim mi olacağı seçilen kişinin birimine göre evrak bazında belirlenir.
+                             Tür değişince ikon/metin DOM'da yeniden oluşturulur ki belirme animasyonu tekrar oynasın. -->
+                        @let plan = actionPlan();
+                        @let allTeslim = zimmetType() === 'other' && plan.teslim > 0 && plan.devir === 0;
                         <button type="button" class="btn btn-primary zimmet-submit-btn"
                             [attr.data-mode]="zimmetType() === 'self' ? 'self' : 'internal'"
                             [disabled]="saving() || (zimmetType() === 'other' && !selectedPerson()) || selectedIsActiveHolder() || allDocsPending()"
-                            [title]="allDocsPending() ? 'Evrakın onay bekleyen zimmet talebi var' : selectedIsActiveHolder() ? 'Aktif zimmet seçtiğiniz kişide' : ''"
-                            (click)="saveZimmet(AllocationStatus.Devir)">
+                            [title]="allDocsPending() ? 'Evrakın onay bekleyen zimmet talebi var' : selectedIsActiveHolder() ? 'Aktif zimmet seçtiğiniz kişide' : (actionHint() ?? '')"
+                            (click)="saveZimmet()">
                             @if (saving()) {
                                 <span class="spinner-border spinner-border-sm zimmet-submit-icon"></span>
                                 <span class="zimmet-submit-text">Kaydediliyor</span>
                             } @else if (zimmetType() === 'self') {
                                 <span class="zimmet-submit-icon material-symbols-outlined">download</span>
                                 <span class="zimmet-submit-text">Zimmeti Üzerime Al</span>
+                            } @else if (allTeslim) {
+                                <span class="zimmet-submit-icon material-symbols-outlined">hand_package</span>
+                                <span class="zimmet-submit-text">{{ isMulti() ? 'Tümünü Teslim Et' : 'Teslim Et' }}</span>
                             } @else {
                                 <span class="zimmet-submit-icon material-symbols-outlined">article_person</span>
                                 <span class="zimmet-submit-text">{{ isMulti() ? 'Tümünü Zimmetle' : 'Zimmetle' }}</span>
@@ -603,14 +601,18 @@
                     </div>
                 </div>
 
-                <!-- Alt butonların zimmet durumuna etkisi; kartın en altına yapışık şerit -->
+                <!-- Seçilen kişiye göre işlemin zimmet durumuna etkisi; kartın en altına yapışık şerit -->
                 <div class="zm-action-note" *ngIf="!allDocsPending()">
                     <span class="material-symbols-outlined">info</span>
                     <span>
-                        <ng-container *ngIf="zimmetType() === 'other'">
-                            <strong>Teslim Et:</strong> zimmetleme yapılır, durum <strong>Teslim Edildi</strong> olur.
-                        </ng-container>
-                        <strong [class.ms-2]="zimmetType() === 'other'">Zimmetle:</strong> zimmetleme yapılır, durum <strong>Devir Edildi</strong> olur.
+                        @if (zimmetType() === 'self') {
+                            Evrak üzerinize alınır, durum <strong>Devir</strong> olur.
+                        } @else if (actionHint(); as hint) {
+                            <strong>{{ hint }}.</strong>
+                            Nereye birimindeki personele verilen evrak <strong>Teslim Edildi</strong>, diğer birimlere verilen <strong>Devir</strong> olur.
+                        } @else {
+                            Seçilen personel evrakın Nereye birimindeyse evrak <strong>Teslim Edildi</strong>, değilse <strong>Devir</strong> olur.
+                        }
                     </span>
                 </div>
             </ng-container>
@@ -646,14 +648,14 @@
           <div class="iz-result-single is-ok">
             <span class="material-symbols-outlined">check_circle</span>
             <span class="iz-result-single-no">{{ d.qrCode }}</span>
-            <span class="iz-result-single-msg">Zimmetlendi</span>
+            <span class="iz-result-single-msg">{{ r.deliveredIds.includes(d.id) ? 'Teslim edildi' : 'Zimmetlendi' }}</span>
           </div>
         }
         @if (r.pending[0]; as d) {
           <div class="iz-result-single is-pending">
             <span class="material-symbols-outlined">hourglass_top</span>
             <span class="iz-result-single-no">{{ d.qrCode }}</span>
-            <span class="iz-result-single-msg">{{ r.targetName }} kişisinin onayına gönderildi</span>
+            <span class="iz-result-single-msg">{{ r.deliveredIds.includes(d.id) ? 'Teslim' : 'Devir' }} talebi {{ r.targetName }} kişisinin onayına gönderildi</span>
             <span class="iz-result-single-sub">Onay verilene kadar evrak mevcut zimmet sahibinde kalır.</span>
           </div>
         }
@@ -715,12 +717,12 @@
           <div class="zm-doc iz-result-row is-ok" *ngFor="let d of r.succeeded">
             <span class="material-symbols-outlined iz-result-row-icon">check_circle</span>
             <div class="zm-doc-body"><div class="zm-doc-no">{{ d.qrCode }}</div></div>
-            <span class="iz-result-chip">Zimmetlendi</span>
+            <span class="iz-result-chip">{{ r.deliveredIds.includes(d.id) ? 'Teslim edildi' : 'Zimmetlendi' }}</span>
           </div>
           <div class="zm-doc iz-result-row is-pending" *ngFor="let d of r.pending">
             <span class="material-symbols-outlined iz-result-row-icon">hourglass_top</span>
             <div class="zm-doc-body"><div class="zm-doc-no">{{ d.qrCode }}</div></div>
-            <span class="iz-result-chip">Onaya gönderildi</span>
+            <span class="iz-result-chip">{{ r.deliveredIds.includes(d.id) ? 'Teslim onayında' : 'Devir onayında' }}</span>
           </div>
           <div class="zm-doc iz-result-row is-skip" *ngFor="let d of r.skipped">
             <span class="material-symbols-outlined iz-result-row-icon">skip_next</span>
@@ -740,7 +742,7 @@
         </div>
       }
 
-      <!-- Teslim Et: teslim edilen evrakların sayfa sayısı ve ek bilgisi düzenlenebilir -->
+      <!-- Teslim edilen evrakların sayfa sayısı ve ek bilgisi düzenlenebilir -->
       @if (r.edits.length) {
         <div class="iz-edit">
           <div class="iz-edit-title">
