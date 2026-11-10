@@ -15,6 +15,7 @@ import { ScanFileModel } from '../../models/scanneddocument.model';
 import { ScanPoolPullModal } from '../../../components/scan-pool-pull-modal/scan-pool-pull-modal';
 import { ScanInfoModal } from '../../../components/scan-info-modal/scan-info-modal';
 import { catchError, firstValueFrom, of, throwError } from 'rxjs';
+import { normalizeDocumentNo } from '../../utils/document-number';
 
 type ScanResult = { code: string; kind: 'notfound' | 'notscanned' };
 
@@ -175,6 +176,16 @@ export default class Qrokut implements OnInit, AfterViewInit, OnDestroy {
     setTimeout(() => this.qrInput?.nativeElement.focus());
   }
 
+  // Okuyucu '/' yerine '.' gönderse bile alanda anında '/' görünür.
+  onQrInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const normalized = normalizeDocumentNo(input.value);
+    if (normalized === input.value) return;
+    const caret = input.selectionStart;
+    input.value = normalized;
+    input.setSelectionRange(caret, caret);
+  }
+
   // QR alanına yazıp / okutup Enter'a basılınca çalışır; alan temizlenir.
   onQrKeydown(event: KeyboardEvent) {
     if (event.key !== 'Enter') return;
@@ -201,6 +212,7 @@ export default class Qrokut implements OnInit, AfterViewInit, OnDestroy {
   // yoksa neden geçilemediği ve seçenekler sol panelde gösterilir.
   redirectEvrakKayit(result: string) {
     if (this.loading()) return;
+    result = normalizeDocumentNo(result);
 
     if (!result) {
       this.#toast.showToast(

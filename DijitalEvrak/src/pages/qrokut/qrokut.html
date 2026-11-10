@@ -26,6 +26,7 @@
               class="zm-scan-input"
               placeholder="Belge üzerindeki QR kodu okutun veya evrak numarasını yazıp Enter'a basın"
               (keydown)="onQrKeydown($event)"
+              (input)="onQrInput($event)"
               (focus)="qrActive = true"
               (blur)="qrActive = false"
               autocomplete="off">

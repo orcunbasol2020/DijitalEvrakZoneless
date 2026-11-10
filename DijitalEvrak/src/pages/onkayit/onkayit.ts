@@ -11,6 +11,7 @@ import { IncomingDocumentPreRegisterModel } from '../../models/incoming-document
 import { Common } from '../../services/common';
 import { DocumentAllocationModel } from '../../models/documentallocation.model';
 import { DocumentAllocation } from '../../services/documentallocation';
+import { normalizeDocumentNo } from '../../utils/document-number';
 
 
 @Component({
@@ -142,6 +143,16 @@ export default class Onkayit implements OnInit, AfterViewInit, OnDestroy {
     this.focusQrInputSoon();
   }
 
+  // Okuyucu '/' yerine '.' gönderse bile alanda anında '/' görünür.
+  onQrInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const normalized = normalizeDocumentNo(input.value);
+    if (normalized === input.value) return;
+    const caret = input.selectionStart;
+    input.value = normalized;
+    input.setSelectionRange(caret, caret);
+  }
+
   // QR alanına yazıp / okutup Enter'a basılınca çalışır; alan temizlenir.
   onQrKeydown(event: KeyboardEvent) {
     if (event.key !== 'Enter') return;
@@ -157,6 +168,7 @@ export default class Onkayit implements OnInit, AfterViewInit, OnDestroy {
 
   onQrScanned(result: string) {
     if (this.loading()) return;
+    result = normalizeDocumentNo(result);
 
     if (!result) {
       this.#toast.showToast(
