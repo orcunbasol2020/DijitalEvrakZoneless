@@ -176,3 +176,10 @@
     background: rgba(148, 163, 184, 0.14);
     border-color: rgba(148, 163, 184, 0.3);
 }
+
+/* Teslim sütunu, Teslim Al düğmesinin genişleyen "Onayla" hâlini de sığdıracak sabit genişlikte;
+   onay durumuna geçişte tablo sütunları kaymaz */
+.idd-col-receive {
+    width: 116px;
+    min-width: 116px;
+}

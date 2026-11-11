@@ -169,7 +169,7 @@
                   </th>
                   <th class="zl-center">GİZLİLİK</th>
                   <th class="zl-center">DURUM</th>
-                  <th class="zl-center">TESLİM</th>
+                  <th class="zl-center idd-col-receive">TESLİM</th>
                   <th class="zl-center">SÜREÇ</th>
                   <th class="zl-center">ZİMMET</th>
                   <th class="zl-center">GEÇMİŞ</th>
@@ -233,7 +233,7 @@
                         {{ statusLabel(item) }}
                       </span>
                     </td>
-                    <td class="zl-center">
+                    <td class="zl-center idd-col-receive">
                       <!-- Evrak akış durumu 3 = Teslim Edildi; edilmediyse ve zimmet bendeyse Teslim Al -->
                       @if (isDelivered(item)) {
                         <button type="button" class="zl-act idd-act-delivered" title="Teslim bilgisi" (click)="openDelivery(item)">

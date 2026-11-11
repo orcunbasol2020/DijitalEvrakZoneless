@@ -115,11 +115,15 @@ export default class IncomingDepartmentDocument {
     return doc.status === 3;
   }
 
+  // Giriş yapan kullanıcının üzerindeki, henüz teslim alınmamış aktif zimmetlerin evrak id'leri.
+  // currentAssignmentUserId zimmet sahibi değil "İşleme Al" yapan kişidir; bu yüzden zimmet
+  // sahibi ayrı uçtan (DocumentAllocations/GetActiveByUserId) tek istekle alınır.
+  readonly receivableIds = signal<ReadonlySet<string>>(new Set());
+
   // Teslim edilmemiş evrakın aktif zimmeti giriş yapan kullanıcıdaysa Teslim sütununda
   // "Teslim Al" düğmesi çıkar (backend de yalnızca zimmet sahibinin teslim almasına izin verir).
   canReceive(doc: IncomingDocumentModel): boolean {
-    const me = this.user()?.id?.toLowerCase();
-    return !this.isDelivered(doc) && !!me && (doc.currentAssignmentUserId ?? '').toLowerCase() === me;
+    return !this.isDelivered(doc) && !!doc.id && this.receivableIds().has(doc.id.toLowerCase());
   }
 
   statusLabel(doc: IncomingDocumentModel): string {
@@ -289,6 +293,22 @@ export default class IncomingDepartmentDocument {
         this.loading.set(false);
         this.toast.showToast('Hata', 'Birim evrakları yüklenemedi.', 'error');
       }
+    });
+    this.loadReceivable();
+  }
+
+  private loadReceivable(): void {
+    const userId = this.user()?.id;
+    if (!userId) {
+      this.receivableIds.set(new Set());
+      return;
+    }
+    this.allocationService.getActiveByUserId(userId).subscribe({
+      next: (list) => this.receivableIds.set(new Set((list ?? [])
+        .filter(a => a.status !== AllocationStatusEnum.TeslimAlindi)
+        .map(a => a.incomingDocumentId.toLowerCase()))),
+      // Zimmet bilgisi alınamazsa yalnızca Teslim Al düğmesi çıkmaz; liste etkilenmez
+      error: () => this.receivableIds.set(new Set())
     });
   }
 
