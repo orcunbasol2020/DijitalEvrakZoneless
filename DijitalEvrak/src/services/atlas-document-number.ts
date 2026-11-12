@@ -17,6 +17,20 @@ export interface AtlasNumberStock {
 }
 
 /**
+ * Elle havuz doldurma sonucu. ran=false: stok yeterli ya da başka dolum sürüyor; ran=true ve added=0: servis
+ * hatası. message her durumda tam gösterilir (servis hatasında sonunda takip kodu olabilir).
+ */
+export interface AtlasRefillResult {
+  ran: boolean;
+  /** İstenen numara adedi (64'ün katı) */
+  requested: number;
+  added: number;
+  duplicates: number;
+  availableAfter: number;
+  message: string;
+}
+
+/**
  * Atlas EBYS'den alınıp backend havuzunda bekleyen evrak numaraları (biçim: 2026/42679909).
  * Hatalar bu serviste genel toast'a düşmez; çağıran taraf backend'in Message alanını gösterir
  * (bkz. atlasErrorMessage).
@@ -43,6 +57,14 @@ export class AtlasDocumentNumberService {
       { qrCode, userId, reason: reason || undefined },
       { context: this.#context() }
     );
+  }
+
+  /**
+   * Havuzu Barkod Servisi'nden hemen doldurur (otomatik dolum kapalıyken de çalışır). Alınan numaralar
+   * geri verilemez; çağıran taraf istek sürerken düğmeyi kapatmalı.
+   */
+  refill() {
+    return this.#http.post<AtlasRefillResult>(`${this.#baseUrl}Refill`, null, { context: this.#context() });
   }
 
   getStock() {

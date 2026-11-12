@@ -173,6 +173,22 @@
     color: #0284c7;
 }
 
+/* Elle doldurma sonucu: servis hatasında kırmızı; takip kodu seçilip kopyalanabilsin diye sarar */
+.as-refill-result {
+    overflow-wrap: anywhere;
+    user-select: text;
+}
+
+.as-refill-result.is-error {
+    border-left-color: #dc2626;
+    color: #991b1b;
+    background: #fef2f2;
+}
+
+.as-refill-result.is-error .material-symbols-outlined {
+    color: #dc2626;
+}
+
 .st-count.is-low {
     color: #b45309;
     background: #fef3c7;
@@ -568,6 +584,15 @@
 [data-theme="dark"] .as-group-note {
     color: #cbd5e1;
     background: rgba(14, 165, 233, 0.08);
+}
+
+[data-theme="dark"] .as-refill-result.is-error {
+    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.12);
+}
+
+[data-theme="dark"] .as-refill-result.is-error .material-symbols-outlined {
+    color: #f87171;
 }
 
 [data-theme="dark"] .as-panel-foot {

@@ -54,6 +54,13 @@
               Boşta: {{ s.available }} / En az: {{ s.minStock }}
             </span>
           }
+          @if (group.id === 'atlas') {
+            <button type="button" class="as-btn as-btn-ghost" [disabled]="refilling()" (click)="askRefill()"
+              title="Barkod Servisi'nden hemen numara al">
+              <span class="material-symbols-outlined">{{ refilling() ? 'progress_activity' : 'add_box' }}</span>
+              {{ refilling() ? 'Dolduruluyor…' : 'Havuzu doldur' }}
+            </button>
+          }
           @if (group.id === 'atlasTransfer' && transferStats(); as t) {
             @if (t.failed > 0) {
               <a class="st-count is-failed" routerLink="/atlas-aktarim" [queryParams]="{ tab: 'hatali' }"
@@ -74,6 +81,14 @@
           <div class="as-group-note">
             <span class="material-symbols-outlined">info</span>
             <span>{{ group.note }}</span>
+          </div>
+        }
+
+        <!-- Elle doldurma sonucu: mesaj kesilmeden (takip kodu servis sorumlusuna iletilir) -->
+        @if (group.id === 'atlas' && refillResult(); as r) {
+          <div class="as-group-note as-refill-result" [class.is-error]="r.error" role="status">
+            <span class="material-symbols-outlined">{{ r.error ? 'error' : 'info' }}</span>
+            <span>{{ r.message }}</span>
           </div>
         }
 
@@ -199,6 +214,29 @@
       <div class="as-confirm-actions">
         <button type="button" class="as-btn as-btn-ghost" (click)="cancelConfirm()">Vazgeç</button>
         <button type="button" class="as-btn as-btn-danger" (click)="confirmEnable()">Aç</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Elle havuz doldurmadan önce onay: alınan numaralar geri verilemez -->
+@if (refillConfirm()) {
+  <div class="modal-overlay" (click)="refillConfirm.set(false)">
+    <div class="modal-box as-confirm" role="dialog" aria-modal="true" aria-labelledby="as-refill-title"
+      (click)="$event.stopPropagation()">
+      <div class="as-confirm-head">
+        <span class="as-confirm-icon">
+          <span class="material-symbols-outlined">warning</span>
+        </span>
+        <h5 id="as-refill-title">Havuz şimdi doldurulsun mu?</h5>
+      </div>
+      <p class="as-confirm-text">
+        Barkod Servisi'nden gerçek numaralar alınır, alınan numaralar geri verilemez. Stok en az değerin
+        üstündeyse dolum yapılmaz.
+      </p>
+      <div class="as-confirm-actions">
+        <button type="button" class="as-btn as-btn-ghost" (click)="refillConfirm.set(false)">Vazgeç</button>
+        <button type="button" class="as-btn as-btn-primary" (click)="refill()">Doldur</button>
       </div>
     </div>
   </div>

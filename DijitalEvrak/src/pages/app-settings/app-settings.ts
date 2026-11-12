@@ -6,7 +6,7 @@ import { catchError, concatMap, map, toArray } from 'rxjs/operators';
 import { FlexiToastService } from 'flexi-toast';
 import GenericModel from '../../../components/generic-model/generic-model';
 import { AppSettingModel, AppSettingsService, SESSION_TIMEOUT_KEY } from '../../services/app-settings';
-import { AtlasDocumentNumberService, AtlasNumberStock } from '../../services/atlas-document-number';
+import { AtlasDocumentNumberService, AtlasNumberStock, atlasErrorMessage } from '../../services/atlas-document-number';
 import { AtlasTransferService, AtlasTransferStats } from '../../services/atlas-transfer';
 import { Common } from '../../services/common';
 
@@ -145,10 +145,17 @@ const DEFS: SettingDef[] = [
 
   {
     key: 'AtlasNumberPoolEnabled', group: 'atlas', label: 'Havuzu otomatik doldur', kind: 'bool', warn: true,
-    note: 'Şu an açılmamalı: Atlas bağlantısı henüz test aşamasında, açılırsa havuza test numaraları girer.',
+    note: 'Açılınca stok azaldıkça Barkod Servisi\'nden gerçek numaralar alınır. Kapalıyken de Etiket Oluştur\'da havuz '
+      + 'yetmezse numara alınır. Alınan numaralar geri verilemez.',
   },
-  { key: 'AtlasNumberPoolMinStock', group: 'atlas', label: 'En az stok', kind: 'int', min: 1 },
-  { key: 'AtlasNumberPoolBatchSize', group: 'atlas', label: 'Tek seferde alınan numara', kind: 'int', min: 1, max: 1000 },
+  {
+    key: 'AtlasNumberPoolMinStock', group: 'atlas', label: 'En az stok', kind: 'int', min: 1,
+    note: 'Tek dolum en az 64 numara getirir. Günlük tüketimden ve bir dolumda gelen adetten (sayfa × 64) büyük tutulmalı.',
+  },
+  {
+    key: 'AtlasNumberPoolBatchSize', group: 'atlas', label: 'Tek seferde alınan sayfa', kind: 'int', min: 1, max: 50, unit: 'sayfa',
+    note: '1 sayfa = 64 numara (ör. 2 sayfa = 128 numara). Alınan numaralar geri verilemez.',
+  },
   { key: 'AtlasNumberPoolIntervalSeconds', group: 'atlas', label: 'Stok kontrol aralığı', kind: 'int', min: 30, unit: 'sn' },
   {
     key: 'AtlasNumberPoolEnforced', group: 'atlas', label: 'Yalnızca havuz numarasıyla evrak aç', kind: 'bool', confirmOn: true, warn: true,
@@ -180,13 +187,17 @@ function isTrue(value: string | null | undefined): boolean {
   return (value ?? '').trim().toLowerCase() === 'true';
 }
 
-/** Backend'in yanıtı: { Errors: ["Value"] | ["Key"], StatusCode } — mesaj değil alan adı gelir. */
+/**
+ * Backend'in yanıtı: { Errors: ["<doğrulama mesajı>"], StatusCode } — Errors[0] olduğu gibi gösterilir
+ * (ör. "Sayfa sayısı 1 ile 50 arasında olmalıdır…"). Eski yanıtlarda alan adı ("Key" / "Value") gelebilir.
+ */
 function saveErrorMessage(err: unknown): string {
   const body = (err as HttpErrorResponse)?.error;
-  const fields: string[] = body?.Errors ?? body?.errors ?? [];
-  if (fields.includes('Key')) return 'Bu ayar sunucuda tanınmıyor, kaydedilemedi.';
-  if (fields.includes('Value')) return 'Değer sunucu kurallarına uymadığı için kaydedilemedi.';
-  return 'Kaydedilemedi, lütfen tekrar deneyin.';
+  const errors: string[] = body?.Errors ?? body?.errors ?? [];
+  const first = errors.find(e => typeof e === 'string' && e.trim());
+  if (first === 'Key') return 'Bu ayar sunucuda tanınmıyor, kaydedilemedi.';
+  if (first === 'Value') return 'Değer sunucu kurallarına uymadığı için kaydedilemedi.';
+  return first ?? 'Kaydedilemedi, lütfen tekrar deneyin.';
 }
 
 /**
@@ -225,6 +236,11 @@ export default class AppSettings {
 
   /** Onay bekleyen açma işlemi (AtlasNumberPoolEnforced) */
   readonly confirmField = signal<FieldView | null>(null);
+
+  /** Elle havuz doldurma: onay penceresi, istek sürüyor mu, son sonuç (mesaj tam gösterilir) */
+  readonly refillConfirm = signal(false);
+  readonly refilling = signal(false);
+  readonly refillResult = signal<{ error: boolean; message: string } | null>(null);
 
   readonly fields = computed<FieldView[]>(() => {
     const drafts = this.#drafts();
@@ -312,7 +328,7 @@ export default class AppSettings {
         this.loading.set(false);
       },
     });
-    this.#atlas.getStock().pipe(catchError(() => of(null))).subscribe(stock => this.stock.set(stock));
+    this.#refreshStock();
     this.#transfer.getStats().pipe(catchError(() => of(null))).subscribe(stats => this.transferStats.set(stats));
   }
 
@@ -361,6 +377,38 @@ export default class AppSettings {
   @HostListener('document:keydown.escape')
   onEscape(): void {
     if (this.confirmField()) this.cancelConfirm();
+    this.refillConfirm.set(false);
+  }
+
+  // ---- Havuzu elle doldur ----
+
+  askRefill(): void {
+    if (!this.refilling()) this.refillConfirm.set(true);
+  }
+
+  /** Alınan numaralar geri verilemez: istek sürerken düğme kapalı, ikinci istek gönderilmez. */
+  refill(): void {
+    this.refillConfirm.set(false);
+    if (this.refilling()) return;
+    this.refilling.set(true);
+    this.refillResult.set(null);
+    this.#atlas.refill().subscribe({
+      next: r => {
+        // ran=true ve added=0: servis hatası (mesajda takip kodu olabilir)
+        this.refillResult.set({ error: r.ran && r.added === 0, message: r.message });
+        this.refilling.set(false);
+        this.#refreshStock();
+      },
+      error: err => {
+        this.refillResult.set({ error: true, message: atlasErrorMessage(err, 'Havuz doldurulamadı, lütfen tekrar deneyin.') });
+        this.refilling.set(false);
+        this.#refreshStock();
+      },
+    });
+  }
+
+  #refreshStock(): void {
+    this.#atlas.getStock().pipe(catchError(() => of(null))).subscribe(stock => this.stock.set(stock));
   }
 
   discard(): void {
@@ -412,7 +460,7 @@ export default class AppSettings {
       if (savedKeys.size) {
         this.#service.getAll().subscribe({ next: list => this.#settings.set(list ?? []) });
         if (results.some(r => r.key.startsWith('AtlasNumberPool') && !r.error)) {
-          this.#atlas.getStock().pipe(catchError(() => of(null))).subscribe(stock => this.stock.set(stock));
+          this.#refreshStock();
         }
       }
     });
