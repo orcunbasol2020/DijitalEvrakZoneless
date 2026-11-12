@@ -1,126 +1,173 @@
 <app-generic
-  pageTitle="QR Oluştur"
-  [breadcrumbs]="[{title: 'QR Oluştur', url: 'qrlist', icon:''}]">
+  pageTitle="Etiket Oluştur"
+  [breadcrumbs]="[{title: 'Etiket Oluştur', url: 'qrlist', icon:''}]">
 </app-generic>
 
-<div class="row">
-  <div class="col-md-12 col-12">
-    <div class="card qr-card">
+<section class="et-card" #card [style.height.px]="cardHeight()">
 
-      <!-- Başlık: Zarflar listesindeki caption ile aynı dil (gradyan zemin, sol vurgu çubuğu, ikon çipli başlık) -->
-      <div class="card-header qr-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <span class="qr-card-title">QR Oluştur</span>
+  <!-- Başlık: ne yapıldığı ve havuz durumu -->
+  <header class="et-head">
+    <span class="et-head-icon material-symbols-outlined" aria-hidden="true">qr_code</span>
+    <div class="et-head-text">
+      <h2 class="et-title">Etiket Oluştur</h2>
+      <p class="et-sub">Atlas numara havuzundan numara alın, QR kod ya da barkod etiketi olarak basın.</p>
+    </div>
+    @if (stock(); as s) {
+      <span class="et-stock" [class.is-low]="stockLow()"
+            title="Havuzda boşta bekleyen numara; en az {{ s.minStock }} olması beklenir">
+        <span class="material-symbols-outlined" aria-hidden="true">{{ stockLow() ? 'warning' : 'inventory_2' }}</span>
+        Havuzda <strong>{{ s.available }}</strong> numara
+      </span>
+    }
+  </header>
 
-        <div class="d-flex gap-2 flex-wrap align-items-center">
+  <!-- Ayarlar ve işlemler: biçim → miktar → numara al → yazdır -->
+  <div class="et-toolbar">
+    <div class="et-field">
+      <span class="et-field-label" id="et-format-label">Biçim</span>
+      <div class="et-segment" role="group" aria-labelledby="et-format-label">
+        <button type="button" [class.is-active]="format() === 'qr'" [attr.aria-pressed]="format() === 'qr'"
+                (click)="setFormat('qr')" title="Etikete QR kod basılır">
+          <span class="material-symbols-outlined" aria-hidden="true">qr_code_2</span>QR kod
+        </button>
+        <button type="button" [class.is-active]="format() === 'barkod'" [attr.aria-pressed]="format() === 'barkod'"
+                (click)="setFormat('barkod')" title="Etikete Code 128 barkod basılır">
+          <span class="material-symbols-outlined" aria-hidden="true">barcode</span>Barkod
+        </button>
+      </div>
+    </div>
 
-          <label class="qr-count-field" title="Kaç etiket basılacak ({{ minCount }}–{{ maxCount }})">
-            <span>Adet</span>
-            <input
-              type="number"
-              class="form-control form-control-sm"
-              [min]="minCount"
-              [max]="maxCount"
-              [ngModel]="count()"
-              (ngModelChange)="count.set($event)"
-              (keydown.enter)="reserve()"
-              [disabled]="reserving()">
-          </label>
-
-          <button
-            type="button"
-            class="btn btn-gradient-print"
-            (click)="reserve()"
-            [disabled]="reserving()"
-            title="Atlas numara havuzundan girilen adette evrak numarası ayırır">
-            <span class="material-symbols-outlined">{{ reserving() ? 'progress_activity' : 'confirmation_number' }}</span>
-            {{ reserving() ? 'Alınıyor' : 'Numara Al' }}
-          </button>
-
-          <button
-            type="button"
-            class="btn btn-gradient-print"
-            (click)="printQrList()"
-            [disabled]="activeLabels().length === 0"
-            title="Ayrılan numaraların QR etiketlerini A4 sayfalara yazdırır">
-            <span class="material-symbols-outlined">print</span>
-            Yazdır
-          </button>
-
+    <div class="et-field">
+      <span class="et-field-label" id="et-amount-label">Miktar</span>
+      <div class="et-amount">
+        <div class="et-segment" role="group" aria-labelledby="et-amount-label">
+          <button type="button" [class.is-active]="unit() === 'adet'" [attr.aria-pressed]="unit() === 'adet'"
+                  [disabled]="reserving()" (click)="setUnit('adet')">Adet</button>
+          <button type="button" [class.is-active]="unit() === 'sayfa'" [attr.aria-pressed]="unit() === 'sayfa'"
+                  [disabled]="reserving()" (click)="setUnit('sayfa')"
+                  title="Tam A4 sayfa: sayfada {{ labelsPerPage }} etiket (tek seferde en fazla {{ maxPages }} sayfa)">Sayfa</button>
         </div>
-      </div>
-
-      <!-- Özet: havuz durumu ve ne basılacağı tek bakışta. -->
-      <div class="qr-summary">
-        @if (stock(); as s) {
-          <span class="qr-summary-item" [class.is-warning]="stockLow()"
-                title="Havuzda en az {{ s.minStock }} numara bulunması beklenir">
-            <span class="material-symbols-outlined">{{ stockLow() ? 'warning' : 'inventory_2' }}</span>
-            <span class="qr-summary-label">BOŞTA</span>
-            <strong>{{ s.available }}</strong> numara
-          </span>
+        <input
+          type="number"
+          class="et-input"
+          [attr.aria-label]="unit() === 'sayfa' ? 'Sayfa sayısı' : 'Etiket adedi'"
+          [title]="(unit() === 'sayfa' ? 'Kaç sayfa' : 'Kaç etiket') + ' (' + minAmount + '–' + maxAmount() + ')'"
+          [min]="minAmount"
+          [max]="maxAmount()"
+          [ngModel]="amount()"
+          (ngModelChange)="amount.set($event)"
+          (keydown.enter)="reserve()"
+          [disabled]="reserving()">
+        @if (unit() === 'sayfa') {
+          <span class="et-equiv">= {{ requestedCount() }} etiket</span>
         }
-        <span class="qr-summary-item">
-          <span class="material-symbols-outlined">tag</span>
-          <span class="qr-summary-label">ETİKET</span>
-          <strong>{{ activeLabels().length }}</strong>
-          @if (cancelledCount() > 0) {
-            <span class="qr-summary-sep">·</span> {{ cancelledCount() }} iptal
-          }
+      </div>
+    </div>
+
+    <!-- Ana işlem duruma göre öne çıkar: basılmamış etiket varken Yazdır, yoksa Numara Al -->
+    <div class="et-actions">
+      <button type="button" class="et-btn" [class.et-btn-primary]="!printReady()" [class.et-btn-secondary]="printReady()"
+              (click)="reserve()" [disabled]="reserving()"
+              title="Atlas numara havuzundan girilen miktarda evrak numarası ayırır">
+        <span class="material-symbols-outlined" [class.et-spin]="reserving()" aria-hidden="true">
+          {{ reserving() ? 'progress_activity' : 'confirmation_number' }}
         </span>
-        @if (activeLabels().length > 0) {
-          <span class="qr-summary-item">
-            <span class="material-symbols-outlined">description</span>
-            <span class="qr-summary-label">ÇIKTI</span>
-            A4, 4 sütun, yaklaşık <strong>{{ estimatedPages() }}</strong> sayfa
-          </span>
-        }
+        {{ reserving() ? 'Alınıyor…' : 'Numara Al' }}
+      </button>
+      <button type="button" class="et-btn" [class.et-btn-primary]="printReady()" [class.et-btn-secondary]="!printReady()"
+              (click)="printQrList()" [disabled]="activeLabels().length === 0"
+              [title]="'Etiketleri ' + (format() === 'barkod' ? 'barkod' : 'QR kod') + ' olarak A4 sayfalara yazdırır'">
+        <span class="material-symbols-outlined" aria-hidden="true">print</span>
+        Yazdır
+      </button>
+    </div>
+  </div>
+
+  <div class="et-body">
+
+    @if (notice(); as n) {
+      <div class="et-notice" [class.is-error]="n.error" [attr.role]="n.error ? 'alert' : 'status'">
+        <span class="material-symbols-outlined" aria-hidden="true">{{ n.error ? 'error' : 'info' }}</span>
+        <span>{{ n.message }}</span>
       </div>
+    }
 
-      <div class="card-body">
-
-        @if (notice(); as message) {
-          <div class="qr-notice">
-            <span class="material-symbols-outlined">info</span>
-            {{ message }}
+    <!-- Etiketler kendi alanında kayar; başlık, ayarlar ve alttaki not yerinde kalır -->
+    <div class="et-scroll">
+      @if (labels().length === 0) {
+        <div class="et-empty">
+          <ol class="et-steps">
+            <li>
+              <span class="et-step-no">1</span>
+              <span><strong>Biçim ve miktarı seçin</strong>QR kod ya da barkod; adet ya da tam sayfa</span>
+            </li>
+            <li>
+              <span class="et-step-no">2</span>
+              <span><strong>Numara Al'a basın</strong>Numaralar havuzdan ayrılır, başka kullanıcıya verilmez</span>
+            </li>
+            <li>
+              <span class="et-step-no">3</span>
+              <span><strong>Yazdırın</strong>Etiketler aşağıda kâğıttaki yerleriyle görünür</span>
+            </li>
+          </ol>
+        </div>
+      } @else {
+        @for (sheet of sheets(); track $index; let i = $index) {
+          <div class="et-sheet-head">
+            <span>Sayfa {{ i + 1 }} / {{ sheets().length }}</span>
+            <span class="et-sheet-count">{{ sheet.length }} / {{ labelsPerPage }} etiket</span>
           </div>
-        }
-
-        @if (labels().length === 0) {
-          <div class="qr-empty">
-            <span class="material-symbols-outlined">qr_code_2</span>
-            <div>
-              Basılacak etiket adedini girip <strong>Numara Al</strong>'a basın.
-              Numaralar Atlas numara havuzundan ayrılır ve başka bir kullanıcıya verilmez.
-            </div>
-          </div>
-        } @else {
-          <div class="qr-label-grid">
-            @for (label of labels(); track label.no) {
-              <div class="qr-label-card" [class.is-cancelled]="label.cancelled">
-                @if (!label.cancelled) {
-                  <button type="button" class="qr-label-cancel"
-                          (click)="cancel(label.no)"
-                          [disabled]="cancellingNo() !== null"
-                          [class.is-busy]="cancellingNo() === label.no"
-                          title="Numarayı iptal et (hatalı basılan etiket); bu numarayla evrak açılamaz"
-                          aria-label="Numarayı iptal et">
-                    <span class="material-symbols-outlined">close</span>
-                  </button>
+          <!-- Baskıdaki yerleşim: 4 sütun, etiket oranı 52,5 × 29,7 -->
+          <div class="et-sheet" [style.--et-cols]="columns">
+            @for (no of sheet; track no) {
+              <div class="et-label" [class.is-barcode]="format() === 'barkod'">
+                @if (format() === 'barkod') {
+                  <div class="et-barcode">
+                    <app-barcode128 [value]="no" [height]="34" />
+                  </div>
+                } @else {
+                  <qrcode [qrdata]="no" [width]="128" [margin]="0" [errorCorrectionLevel]="'M'"></qrcode>
                 }
-
-                <qrcode [qrdata]="label.no" [width]="90" [errorCorrectionLevel]="'H'"></qrcode>
-                <div class="qr-label-no">{{ label.no }}</div>
-
-                @if (label.cancelled) {
-                  <span class="qr-label-state">İptal edildi</span>
-                }
+                <span class="et-label-no">{{ no }}</span>
+                <button type="button" class="et-label-cancel"
+                        (click)="cancel(no)"
+                        [disabled]="cancellingNo() !== null"
+                        [class.is-busy]="cancellingNo() === no"
+                        title="Numarayı iptal et (hatalı basılan etiket); bu numarayla evrak açılamaz"
+                        [attr.aria-label]="no + ' numarasını iptal et'">
+                  <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                </button>
               </div>
             }
           </div>
         }
 
-      </div>
-
+        @if (cancelledCount() > 0) {
+          <div class="et-cancelled">
+            <span class="et-cancelled-title">
+              <span class="material-symbols-outlined" aria-hidden="true">block</span>
+              İptal edilen {{ cancelledCount() }} numara basılmaz:
+            </span>
+            @for (label of labels(); track label.no) {
+              @if (label.cancelled) {
+                <span class="et-chip">{{ label.no }}</span>
+              }
+            }
+          </div>
+        }
+      }
     </div>
+
   </div>
-</div>
+
+  <!-- Alt şerit: kâğıt ve yazdırma ölçeği; ölçek küçültülürse etiketler kâğıttaki yerlerinden kayar -->
+  <footer class="et-foot">
+    <span class="material-symbols-outlined" aria-hidden="true">print</span>
+    <span>
+      <strong>Tanex TW-2040</strong> (52,5 × 29,7 mm, sayfada {{ labelsPerPage }} etiket) etiket kâğıdına göre basılır.
+      Yazdırma penceresinde ölçeği <strong>Gerçek boyut</strong> (ya da Özel: %100) seçin;
+      "Sayfaya sığdır" seçilirse etiketler kâğıttaki yerlerinden kayar.
+    </span>
+  </footer>
+
+</section>

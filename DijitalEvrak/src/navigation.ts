@@ -183,7 +183,7 @@ export const navigations: NavigationModel[] = [
         icon: undefined
     },
     {
-        title: "QR Oluştur",
+        title: "Etiket Oluştur",
         url: "/qrlist",
         icon: "qr_code",
         roles: ["Gelen Evrak"]
