@@ -9,7 +9,15 @@
       <div class="card-header dashboard-header d-flex align-items-center justify-content-between gap-3">
         <div class="d-flex align-items-center min-w-0">
           <span class="material-symbols-outlined me-2 text-info">document_scanner</span>
-          <h5 class="card-title mb-0 fw-semibold">{{ viewMode() === 'grid' ? 'Taranmış Evraklar' : 'Taranmış Evrak' }}</h5>
+          <div class="min-w-0">
+            <h5 class="card-title mb-0 fw-semibold">{{ viewMode() === 'grid' ? 'Taranmış Evraklar' : 'Taranmış Evrak' }}</h5>
+            <!-- Tek evrak görünümünde açık PDF'in adı; uzunsa kısaltılır, tamamı ipucunda -->
+            @if (viewMode() === 'single' && currentDocument(); as doc) {
+              @if (doc.fileName) {
+                <div class="sd-file-name" [title]="doc.fileName">{{ doc.fileName }}</div>
+              }
+            }
+          </div>
         </div>
 
         <div class="sd-nav">
@@ -22,9 +30,6 @@
             }
           </div>
 
-          @if (viewMode() === 'single' && currentDocument(); as doc) {
-            <span class="sd-source-badge" [attr.data-source]="doc.source" [title]="doc.fileName">{{ sourceLabel(doc.source) }}</span>
-          }
           @if (viewMode() === 'single' && scannedDocuments().length) {
             <button type="button" class="zm-icon-btn" title="Önceki evrak"
               (click)="prev()" [disabled]="currentIndex() === 0 || isLoading()">

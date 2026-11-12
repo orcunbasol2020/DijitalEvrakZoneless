@@ -9,6 +9,20 @@
 }
 
 /* ---- Başlık: dosya adı + gezinme ---- */
+/* Başlığın altında açık PDF'in adı: küçük, tek satır, sığmazsa üç noktayla kısalır */
+.sd-file-name {
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    color: #64748b;
+}
+
+[data-theme="dark"] .sd-file-name {
+    color: #94a3b8;
+}
+
 .sd-nav {
     display: inline-flex;
     align-items: center;
