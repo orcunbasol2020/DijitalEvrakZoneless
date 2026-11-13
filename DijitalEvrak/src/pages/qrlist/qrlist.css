@@ -131,14 +131,25 @@
 }
 
 /* ---- Ayar çubuğu ---- */
+/*
+ * Ayar çubuğu: Tarama Klasörleri'ndeki seçili sekmenin lacivert geçişi. Üstündeki denetimler yarı saydam
+ * açık renk; seçili bölüm ve ana düğme beyaz zemin üstünde lacivert yazıyla öne çıkar. Açık ve koyu temada aynı.
+ */
 .et-toolbar {
+    --et-bar-text: #f0f9ff;
+    --et-bar-text-2: #bae6fd;
+    --et-bar-ink: #0c4a6e;
+    --et-bar-fill: rgba(255, 255, 255, 0.08);
+    --et-bar-fill-hover: rgba(255, 255, 255, 0.16);
+    --et-bar-line: rgba(186, 230, 253, 0.28);
+    --et-bar-focus: #7dd3fc;
     display: flex;
     flex-wrap: wrap;
     align-items: flex-end;
     gap: 14px 28px;
-    padding: 14px 22px;
-    border-bottom: 1px solid var(--et-border);
-    background: var(--et-surface-2);
+    padding: 16px 22px;
+    background: linear-gradient(120deg, #0f172a 0%, #0c4a6e 55%, #0369a1 100%);
+    color: var(--et-bar-text);
 }
 
 .et-field {
@@ -288,6 +299,146 @@
     outline-offset: 2px;
 }
 
+/* ---- Lacivert ayar çubuğunun üstündeki denetimler ---- */
+.et-toolbar .et-field-label {
+    color: var(--et-bar-text-2);
+    opacity: 0.85;
+}
+
+.et-toolbar .et-segment {
+    border-color: var(--et-bar-line);
+    background: var(--et-bar-fill);
+}
+
+.et-toolbar .et-segment button {
+    color: var(--et-bar-text-2);
+}
+
+.et-toolbar .et-segment button:not(.is-active):not(:disabled):hover {
+    color: var(--et-bar-text);
+    background: var(--et-bar-fill-hover);
+}
+
+.et-toolbar .et-segment button.is-active {
+    color: var(--et-bar-ink);
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(2, 6, 23, 0.25);
+}
+
+/* Miktar: − kutu + tek çerçevede; tarayıcının kendi okları gizli (klavyede ↑ ↓ yine çalışır) */
+.et-stepper {
+    display: inline-flex;
+    align-items: center;
+    height: 38px;
+    padding: 3px;
+    border: 1px solid var(--et-bar-line);
+    border-radius: 8px;
+    background: var(--et-bar-fill);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.et-stepper:focus-within {
+    border-color: var(--et-bar-focus);
+    box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.25);
+}
+
+.et-stepper.is-disabled {
+    opacity: 0.6;
+}
+
+.et-step {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--et-bar-text-2);
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.et-step .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.et-step:not(:disabled):hover {
+    color: var(--et-bar-ink);
+    background: #fff;
+}
+
+.et-step:not(:disabled):active {
+    transform: scale(0.94);
+}
+
+.et-step:disabled {
+    cursor: not-allowed;
+    opacity: 0.35;
+}
+
+.et-step:focus-visible {
+    outline: 2px solid var(--et-bar-focus);
+    outline-offset: 1px;
+}
+
+.et-toolbar .et-input {
+    width: 52px;
+    height: 30px;
+    padding: 0 4px;
+    border: 0;
+    background: transparent;
+    color: var(--et-bar-text);
+    font-size: 0.95rem;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.et-toolbar .et-input::-webkit-outer-spin-button,
+.et-toolbar .et-input::-webkit-inner-spin-button {
+    margin: 0;
+    -webkit-appearance: none;
+}
+
+.et-toolbar .et-input:focus {
+    box-shadow: none;
+}
+
+.et-toolbar .et-input:disabled {
+    opacity: 1;
+}
+
+.et-toolbar .et-equiv {
+    color: var(--et-bar-text-2);
+}
+
+.et-toolbar .et-btn-primary {
+    color: var(--et-bar-ink);
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(2, 6, 23, 0.28);
+}
+
+.et-toolbar .et-btn-primary:not(:disabled):hover {
+    background: #e0f2fe;
+}
+
+.et-toolbar .et-btn-secondary {
+    color: var(--et-bar-text);
+    background: transparent;
+    border-color: var(--et-bar-line);
+}
+
+.et-toolbar .et-btn-secondary:not(:disabled):hover {
+    background: var(--et-bar-fill-hover);
+}
+
+.et-toolbar .et-btn:focus-visible,
+.et-toolbar .et-segment button:focus-visible {
+    outline-color: var(--et-bar-focus);
+}
+
 .et-spin {
     animation: et-spin 1s linear infinite;
 }
@@ -423,30 +574,49 @@
     overflow: hidden;
 }
 
-/* Bir etiket: Tanex TW-2040 oranı (52,5 × 29,7); kesik çizgi etiket sınırı */
+/* Bir etiket: seçili kâğıdın etiket oranı (--et-ratio); kesik çizgi etiket sınırı. QR solda, yazı sağda */
 .et-label {
     position: relative;
-    aspect-ratio: 52.5 / 29.7;
+    aspect-ratio: var(--et-ratio, 2.85);
     display: flex;
-    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 4px;
+    gap: 6%;
     min-width: 0;
-    padding: 6px;
+    padding: 0 4%;
     outline: 1px dashed #e2e8f0;
     outline-offset: -1px;
     color: #0f172a;
 }
 
-/* QR etiket yüksekliğinin ~%58'i: kart daralınca etiketle birlikte küçülür, taşmaz */
+/* Barkod: çubuklar üstte, numara altta */
+.et-label.is-barcode {
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+}
+
+/* QR yüksekliği etikete oranla baskıdaki gibi (--et-qr): kart daralınca etiketle birlikte küçülür, taşmaz */
 .et-label qrcode {
     display: block;
-    flex: 0 1 auto;
-    height: 58%;
+    flex: 0 0 auto;
+    height: var(--et-qr, 85%);
     min-height: 0;
     aspect-ratio: 1;
     line-height: 0;
+}
+
+.et-label-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+.et-label-caption {
+    font-size: 0.55rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #475569;
 }
 
 /* angularx-qrcode tuvale satır içi px boyut verir; kapsayıcıya uydurulur */
@@ -462,22 +632,30 @@
 }
 
 .et-label-no {
+    overflow: hidden;
     font-size: 0.72rem;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.et-label.is-barcode .et-label-no {
+    font-size: 0.6rem;
+    font-weight: 400;
+    letter-spacing: 0.2em;
 }
 
 /* İptal: etiketin üzerine gelince ya da odaklanınca görünür; dokunmatik ekranda hep görünür */
 .et-label-cancel {
     position: absolute;
-    top: 4px;
-    right: 4px;
+    top: 3px;
+    right: 3px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     padding: 0;
     border: 1px solid #e2e8f0;
     border-radius: 50%;
@@ -489,7 +667,7 @@
 }
 
 .et-label-cancel .material-symbols-outlined {
-    font-size: 15px;
+    font-size: 13px;
 }
 
 .et-label:hover .et-label-cancel,

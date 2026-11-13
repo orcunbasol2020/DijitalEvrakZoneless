@@ -21,7 +21,7 @@
     }
   </header>
 
-  <!-- Ayarlar ve işlemler: biçim → miktar → numara al → yazdır -->
+  <!-- Ayarlar ve işlemler: biçim → kâğıt → miktar → numara al → yazdır -->
   <div class="et-toolbar">
     <div class="et-field">
       <span class="et-field-label" id="et-format-label">Biçim</span>
@@ -38,6 +38,16 @@
     </div>
 
     <div class="et-field">
+      <span class="et-field-label" id="et-sheet-label">Kâğıt</span>
+      <div class="et-segment" role="group" aria-labelledby="et-sheet-label">
+        <button type="button" [class.is-active]="sheetKind() === '64'" [attr.aria-pressed]="sheetKind() === '64'"
+                (click)="setSheet('64')" title="A4'te 4 × 16 = 64 etiket">64'lük</button>
+        <button type="button" [class.is-active]="sheetKind() === '40'" [attr.aria-pressed]="sheetKind() === '40'"
+                (click)="setSheet('40')" title="A4'te 4 × 10 = 40 etiket">40'lık</button>
+      </div>
+    </div>
+
+    <div class="et-field">
       <span class="et-field-label" id="et-amount-label">Miktar</span>
       <div class="et-amount">
         <div class="et-segment" role="group" aria-labelledby="et-amount-label">
@@ -45,19 +55,32 @@
                   [disabled]="reserving()" (click)="setUnit('adet')">Adet</button>
           <button type="button" [class.is-active]="unit() === 'sayfa'" [attr.aria-pressed]="unit() === 'sayfa'"
                   [disabled]="reserving()" (click)="setUnit('sayfa')"
-                  title="Tam A4 sayfa: sayfada {{ labelsPerPage }} etiket (tek seferde en fazla {{ maxPages }} sayfa)">Sayfa</button>
+                  title="Tam A4 sayfa: sayfada {{ labelsPerPage() }} etiket (tek seferde en fazla {{ maxPages }} sayfa)">Sayfa</button>
         </div>
-        <input
-          type="number"
-          class="et-input"
-          [attr.aria-label]="unit() === 'sayfa' ? 'Sayfa sayısı' : 'Etiket adedi'"
-          [title]="(unit() === 'sayfa' ? 'Kaç sayfa' : 'Kaç etiket') + ' (' + minAmount + '–' + maxAmount() + ')'"
-          [min]="minAmount"
-          [max]="maxAmount()"
-          [ngModel]="amount()"
-          (ngModelChange)="amount.set($event)"
-          (keydown.enter)="reserve()"
-          [disabled]="reserving()">
+        <!-- Miktar: − kutu + ; tarayıcının kendi okları gizli -->
+        <div class="et-stepper" [class.is-disabled]="reserving()">
+          <button type="button" class="et-step" (click)="stepAmount(-1)"
+                  [disabled]="reserving() || amountNumber() <= minAmount"
+                  [attr.aria-label]="unit() === 'sayfa' ? 'Bir sayfa azalt' : 'Bir etiket azalt'">
+            <span class="material-symbols-outlined" aria-hidden="true">remove</span>
+          </button>
+          <input
+            type="number"
+            class="et-input"
+            [attr.aria-label]="unit() === 'sayfa' ? 'Sayfa sayısı' : 'Etiket adedi'"
+            [title]="(unit() === 'sayfa' ? 'Kaç sayfa' : 'Kaç etiket') + ' (' + minAmount + '–' + maxAmount() + ')'"
+            [min]="minAmount"
+            [max]="maxAmount()"
+            [ngModel]="amount()"
+            (ngModelChange)="amount.set($event)"
+            (keydown.enter)="reserve()"
+            [disabled]="reserving()">
+          <button type="button" class="et-step" (click)="stepAmount(1)"
+                  [disabled]="reserving() || amountNumber() >= maxAmount()"
+                  [attr.aria-label]="unit() === 'sayfa' ? 'Bir sayfa artır' : 'Bir etiket artır'">
+            <span class="material-symbols-outlined" aria-hidden="true">add</span>
+          </button>
+        </div>
         @if (unit() === 'sayfa') {
           <span class="et-equiv">= {{ requestedCount() }} etiket</span>
         }
@@ -99,7 +122,7 @@
           <ol class="et-steps">
             <li>
               <span class="et-step-no">1</span>
-              <span><strong>Biçim ve miktarı seçin</strong>QR kod ya da barkod; adet ya da tam sayfa</span>
+              <span><strong>Biçim, kâğıt ve miktarı seçin</strong>QR kod ya da barkod; 64'lük ya da 40'lık kâğıt; adet ya da tam sayfa</span>
             </li>
             <li>
               <span class="et-step-no">2</span>
@@ -115,20 +138,24 @@
         @for (sheet of sheets(); track $index; let i = $index) {
           <div class="et-sheet-head">
             <span>Sayfa {{ i + 1 }} / {{ sheets().length }}</span>
-            <span class="et-sheet-count">{{ sheet.length }} / {{ labelsPerPage }} etiket</span>
+            <span class="et-sheet-count">{{ sheet.length }} / {{ labelsPerPage() }} etiket</span>
           </div>
-          <!-- Baskıdaki yerleşim: 4 sütun, etiket oranı 52,5 × 29,7 -->
-          <div class="et-sheet" [style.--et-cols]="columns">
+          <!-- Baskıdaki yerleşim: seçili kâğıdın sütun sayısı ve etiket oranı -->
+          <div class="et-sheet" [style.--et-cols]="columns()" [style.--et-ratio]="labelRatio()" [style.--et-qr]="qrHeight()">
             @for (no of sheet; track no) {
               <div class="et-label" [class.is-barcode]="format() === 'barkod'">
                 @if (format() === 'barkod') {
                   <div class="et-barcode">
-                    <app-barcode128 [value]="no" [height]="34" />
+                    <app-barcode128 [value]="no" [height]="26" />
                   </div>
+                  <span class="et-label-no">{{ no }}</span>
                 } @else {
                   <qrcode [qrdata]="no" [width]="128" [margin]="0" [errorCorrectionLevel]="'M'"></qrcode>
+                  <span class="et-label-text">
+                    <span class="et-label-caption">EVRAK NO</span>
+                    <span class="et-label-no">{{ no }}</span>
+                  </span>
                 }
-                <span class="et-label-no">{{ no }}</span>
                 <button type="button" class="et-label-cancel"
                         (click)="cancel(no)"
                         [disabled]="cancellingNo() !== null"
@@ -164,7 +191,7 @@
   <footer class="et-foot">
     <span class="material-symbols-outlined" aria-hidden="true">print</span>
     <span>
-      <strong>Tanex TW-2040</strong> (52,5 × 29,7 mm, sayfada {{ labelsPerPage }} etiket) etiket kâğıdına göre basılır.
+      <strong>{{ layout().name }} etiket kâğıdına</strong> (etiket {{ labelSizeText() }} mm, sayfada {{ labelsPerPage() }} etiket) göre basılır.
       Yazdırma penceresinde ölçeği <strong>Gerçek boyut</strong> (ya da Özel: %100) seçin;
       "Sayfaya sığdır" seçilirse etiketler kâğıttaki yerlerinden kayar.
     </span>

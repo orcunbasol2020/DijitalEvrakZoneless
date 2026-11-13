@@ -18,38 +18,73 @@ import type { TDocumentDefinitions } from 'pdfmake/interfaces';
 
 pdfMake.vfs = pdfFonts.vfs;
 
+/** Etiket kâğıdı: A4'te 4 × 16 = 64 ya da 4 × 10 = 40 etiket; kullanıcının son seçimi tarayıcıda hatırlanır. */
+export type SheetKind = '64' | '40';
+const SHEET_STORAGE_KEY = 'qrlist.sheet';
+
 /**
- * Etiket yerleşimi (A4, mm): Tanex TW-2040 / Avery 3651 — 52,5 × 29,7 mm, 4 × 10 = 40 etiket, kenar boşluksuz.
- * Her hücre bir etikettir; içerik hücrede dikey ve yatay ortalanır. Etiket kâğıdı değişirse yalnızca bu
- * değerler ayarlanır: LABEL_HEIGHT_MM * PDF_ROWS_PER_PAGE + 2 * PAGE_MARGIN_Y_MM ≤ 297.
- * Kâğıt kenara kadar etiket olduğundan yazıcının basamadığı ~4,2 mm'lik kenar şeridine içerik düşmemeli:
- * en üst / en alt satırda içerik ile kâğıt kenarı arası = (LABEL_HEIGHT_MM - içerik yüksekliği) / 2 ≈ 4,3 mm.
+ * Etiket kâğıdı yerleşimi (A4, mm) ve o etikete göre içerik ölçüleri. Her hücre bir etikettir; etiket ölçüsü
+ * kenar boşluklarından sonra kalan alandan çıkar: (210 - 2 × marginX) / columns × (297 - 2 × marginY) / rows.
+ *
+ * QR etiketi: solda QR, sağında "EVRAK NO" ve numara. pdfmake QR modülünü tam punto sayısına yuvarlar
+ * (21 modüllük QR'da 15 mm → 2 pt modül → 14,8 mm); daha küçük değer modülü 1 pt'ye düşürüp QR'ı yarıya indirir,
+ * 3 pt modül (22,2 mm) ise 40'lık etikette yazıcının basamadığı kenar şeridine taşar.
+ *
+ * Code 128 barkod: en ince çubuk en fazla 0,33 mm; barkod etikette en fazla barcodeMaxWidthMm yer kaplar.
+ * Evrak numarası 134 modül tutar; iki yanda kalan boşluk sessiz boşluğu (10 modül ≈ 3 mm) karşılar.
+ * Numara barkodun altında harf aralıklı yazılır.
  */
-const PDF_COLUMNS = 4;
-const PDF_ROWS_PER_PAGE = 10;
-const PAGE_MARGIN_X_MM = 0;
-const PAGE_MARGIN_Y_MM = 0;
-const LABEL_HEIGHT_MM = 29.7;
-const QR_SIZE_MM = 16;
-/**
- * Code 128 barkod: en ince çubuk en fazla 0,33 mm; barkod etikette en fazla BARCODE_MAX_WIDTH_MM yer kaplar.
- * Evrak numarası 134 modül tutar → ~0,31 mm çubuk, 41,5 mm genişlik. İki yanda kalan 5,5 mm hem sessiz
- * boşluğu (10 modül ≈ 3,1 mm) hem de kenar sütunlarda yazıcının basamadığı şeridi karşılar.
- */
-const BARCODE_MAX_WIDTH_MM = 41.5;
+interface SheetLayout {
+  /** Ekranda ve yazdırma notunda görünen ad */
+  name: string;
+  columns: number;
+  rows: number;
+  marginXMm: number;
+  marginYMm: number;
+  qrSizeMm: number;
+  qrPadXMm: number;
+  qrTextGapMm: number;
+  qrCaptionPt: number;
+  qrNumberPt: number;
+  barcodeMaxWidthMm: number;
+  barcodeHeightMm: number;
+  barcodeTextPt: number;
+}
+
+const SHEETS: Record<SheetKind, SheetLayout> = {
+  // 64'lük kâğıt: yanlarda 4, üst/altta 6,65 mm boşluk → etiket 50,5 × 17,73 mm
+  '64': {
+    name: "64'lük", columns: 4, rows: 16, marginXMm: 4, marginYMm: 6.65,
+    qrSizeMm: 15, qrPadXMm: 2, qrTextGapMm: 2, qrCaptionPt: 6, qrNumberPt: 9,
+    barcodeMaxWidthMm: 38.5, barcodeHeightMm: 9, barcodeTextPt: 7
+  },
+  // 40'lık kâğıt (Tanex TW-2040 / Avery 3651): kenar boşluksuz → etiket 52,5 × 29,7 mm
+  '40': {
+    name: "40'lık", columns: 4, rows: 10, marginXMm: 0, marginYMm: 0,
+    qrSizeMm: 15, qrPadXMm: 5, qrTextGapMm: 2.5, qrCaptionPt: 6.5, qrNumberPt: 9.5,
+    barcodeMaxWidthMm: 41.5, barcodeHeightMm: 12, barcodeTextPt: 9
+  }
+};
+
+const labelWidthMm = (s: SheetLayout) => (210 - 2 * s.marginXMm) / s.columns;
+const labelHeightMm = (s: SheetLayout) => (297 - 2 * s.marginYMm) / s.rows;
+
 const BARCODE_MAX_MODULE_MM = 0.33;
-const BARCODE_HEIGHT_MM = 12;
-const LABEL_TEXT_SIZE_PT = 9;
-const LABEL_TEXT_GAP_MM = 1.2;
+const BARCODE_TEXT_SPACING_PT = 1.6;
+const BARCODE_TEXT_GAP_MM = 0.8;
+/** pdfmake (Roboto) satır yüksekliği yazı boyunun yaklaşık bu katı */
+const LINE_HEIGHT = 1.17;
 const mm = (v: number) => v * 72 / 25.4;
 /**
- * Satır yükseklikleri toplamı sayfa yüksekliğine tam eşit; kayan nokta yuvarlaması toplamı aşarsa pdfmake son
- * satırı sonraki sayfaya iter. Her satırdan alınan bu pay 10 satırda ~0,04 mm eder, hizayı bozmaz.
+ * Satır yükseklikleri toplamı kullanılabilir yüksekliğe tam eşit; kayan nokta yuvarlaması toplamı aşarsa pdfmake son
+ * satırı sonraki sayfaya iter. Her satırdan alınan bu pay 16 satırda ~0,06 mm eder, hizayı bozmaz.
  */
 const ROW_HEIGHT_SLACK_PT = 0.01;
-/** Backend Reserve isteğinde count 1–100 arasında olmalı. */
+/** Backend Reserve isteğinde count 1–100 arasında olmalı; daha büyük istek 100'lük parçalara bölünür. */
 const MIN_COUNT = 1;
-const MAX_COUNT = 100;
+const RESERVE_CHUNK = 100;
+/** Tek seferde en fazla bu kadar tam sayfa (64'lükte 320, 40'lıkta 200 etiket) */
+const MAX_PAGES = 5;
 
 /** Etiket biçimi: QR kod ya da Code 128 barkod; kullanıcının son seçimi tarayıcıda hatırlanır. */
 export type LabelFormat = 'qr' | 'barkod';
@@ -60,6 +95,14 @@ function readFormat(): LabelFormat {
     return localStorage.getItem(FORMAT_STORAGE_KEY) === 'barkod' ? 'barkod' : 'qr';
   } catch {
     return 'qr';
+  }
+}
+
+function readSheet(): SheetKind {
+  try {
+    return localStorage.getItem(SHEET_STORAGE_KEY) === '40' ? '40' : '64';
+  } catch {
+    return '64';
   }
 }
 
@@ -98,26 +141,58 @@ export default class Qrlist implements OnInit {
     }
   }
 
-  /** Bir A4 sayfadaki etiket sayısı (TW-2040: 4 sütun × 10 satır = 40) */
-  readonly columns = PDF_COLUMNS;
-  readonly rowsPerPage = PDF_ROWS_PER_PAGE;
-  readonly labelsPerPage = PDF_COLUMNS * PDF_ROWS_PER_PAGE;
+  /** Etiket kâğıdı: 64'lük ya da 40'lık; önizleme, sayfa hesabı ve yazdırma buna göre */
+  readonly sheetKind = signal<SheetKind>(readSheet());
+  readonly layout = computed(() => SHEETS[this.sheetKind()]);
+
+  setSheet(kind: SheetKind) {
+    if (kind === this.sheetKind()) return;
+    this.sheetKind.set(kind);
+    try {
+      localStorage.setItem(SHEET_STORAGE_KEY, kind);
+    } catch {
+      // Tarayıcı depolaması kapalıysa seçim yalnızca bu oturumda geçerli
+    }
+    // Adet birimindeki miktar yeni kâğıdın sınırına çekilir (64'lükte en fazla 320, 40'lıkta 200 etiket)
+    this.amount.set(Math.min(Math.max(Number(this.amount()) || 1, this.minAmount), this.maxAmount()));
+  }
+
+  /** Bir A4 sayfadaki etiket sayısı (4 × 16 = 64 ya da 4 × 10 = 40) */
+  readonly columns = computed(() => this.layout().columns);
+  readonly labelsPerPage = computed(() => this.layout().columns * this.layout().rows);
+  /** Önizlemede etiket oranı (genişlik / yükseklik) */
+  readonly labelRatio = computed(() => labelWidthMm(this.layout()) / labelHeightMm(this.layout()));
+  /** Önizlemede QR yüksekliği, etiket yüksekliğine oranla (baskıdaki gibi) */
+  readonly qrHeight = computed(() => `${Math.round(this.layout().qrSizeMm / labelHeightMm(this.layout()) * 100)}%`);
+  /** Yazdırma notunda etiket ölçüsü, ör. "50,5 × 17,7" */
+  readonly labelSizeText = computed(() => {
+    const f = (v: number) => (Math.round(v * 10) / 10).toString().replace('.', ',');
+    return `${f(labelWidthMm(this.layout()))} × ${f(labelHeightMm(this.layout()))}`;
+  });
 
   /**
-   * Miktar adet ya da tam sayfa olarak girilir; sayfa × sayfadaki etiket istenir. Backend sınırı (100) yüzünden
-   * tek seferde en fazla floor(100 / 40) = 2 sayfa alınabilir.
+   * Miktar adet ya da tam sayfa olarak girilir; sayfa × sayfadaki etiket istenir. Tek seferde en fazla MAX_PAGES
+   * sayfa; adet sınırı da o kadar sayfanın etiketi.
    */
   readonly unit = signal<'adet' | 'sayfa'>('adet');
-  readonly maxPages = Math.max(1, Math.floor(MAX_COUNT / this.labelsPerPage));
+  readonly maxPages = MAX_PAGES;
   readonly minAmount = MIN_COUNT;
-  readonly maxAmount = computed(() => this.unit() === 'sayfa' ? this.maxPages : MAX_COUNT);
+  readonly maxAmount = computed(() => this.unit() === 'sayfa' ? MAX_PAGES : MAX_PAGES * this.labelsPerPage());
 
   /** Girilen miktar (birime göre adet ya da sayfa); numaralar yalnızca "Numara Al" ile istenir. */
   readonly amount = signal(1);
+  /** Kutuya elle yazılırken boş ya da geçersiz değer gelebilir; − / + düğmeleri bununla çalışır */
+  readonly amountNumber = computed(() => Number(this.amount()) || 0);
+
+  /** − / + düğmeleri: miktarı bir artırır ya da azaltır, sınırların dışına çıkmaz */
+  stepAmount(delta: number) {
+    const next = Math.round(this.amountNumber()) + delta;
+    this.amount.set(Math.min(Math.max(next, this.minAmount), this.maxAmount()));
+  }
   /** İstenecek etiket adedi */
   readonly requestedCount = computed(() => {
     const n = Number(this.amount());
-    return this.unit() === 'sayfa' ? n * this.labelsPerPage : n;
+    return this.unit() === 'sayfa' ? n * this.labelsPerPage() : n;
   });
   readonly reserving = signal(false);
 
@@ -147,7 +222,7 @@ export default class Qrlist implements OnInit {
   readonly sheets = computed(() => {
     const nos = this.activeLabels().map(x => x.no);
     const pages: string[][] = [];
-    for (let i = 0; i < nos.length; i += this.labelsPerPage) pages.push(nos.slice(i, i + this.labelsPerPage));
+    for (let i = 0; i < nos.length; i += this.labelsPerPage()) pages.push(nos.slice(i, i + this.labelsPerPage()));
     return pages;
   });
 
@@ -184,7 +259,7 @@ export default class Qrlist implements OnInit {
   setUnit(unit: 'adet' | 'sayfa') {
     if (unit === this.unit()) return;
     const amount = Number(this.amount()) || 1;
-    const next = unit === 'sayfa' ? Math.round(amount / this.labelsPerPage) : amount * this.labelsPerPage;
+    const next = unit === 'sayfa' ? Math.round(amount / this.labelsPerPage()) : amount * this.labelsPerPage();
     this.unit.set(unit);
     this.amount.set(Math.min(Math.max(next, this.minAmount), this.maxAmount()));
   }
@@ -219,24 +294,47 @@ export default class Qrlist implements OnInit {
       return;
     }
 
+    // Backend tek istekte en fazla 100 numara verir: istek parçalara bölünüp sırayla gönderilir. Bir parça tam
+    // karşılanmazsa (havuz ve Barkod Servisi yetmedi) sonrakiler istenmez.
     this.reserving.set(true);
-    this.#numbers.reserve(userId, count).subscribe({
-      next: res => {
-        const data = res?.data ?? [];
-        this.labels.set(data.map(no => ({ no, cancelled: false })));
-        this.printed.set(false);
-        this.notice.set(data.length < count && res?.message ? { message: res.message, error: false } : null);
-        this.reserving.set(false);
-        this.loadStock();
-      },
-      error: err => {
-        const message = atlasErrorMessage(err, 'Numara alınamadı.');
-        this.notice.set({ message, error: true });
-        this.#toast.showToast('Hata', message, 'error');
-        this.reserving.set(false);
-        this.loadStock();
-      }
-    });
+    const received: string[] = [];
+    const requestChunk = () => {
+      const want = Math.min(RESERVE_CHUNK, count - received.length);
+      this.#numbers.reserve(userId, want).subscribe({
+        next: res => {
+          const data = res?.data ?? [];
+          received.push(...data);
+          if (data.length === want && received.length < count) {
+            requestChunk();
+            return;
+          }
+          const short = received.length < count;
+          this.#finishReserve(received, short && res?.message
+            ? { message: count > RESERVE_CHUNK ? `${count} numara istendi, ${received.length} numara alınabildi. ${res.message}` : res.message, error: false }
+            : null);
+        },
+        error: err => {
+          // Önceki parçalarda alınan numaralar ayrılmış durumda; kaybolmasın diye ekrana gelir
+          const message = atlasErrorMessage(err, 'Numara alınamadı.');
+          this.#finishReserve(received, {
+            message: received.length ? `${count} numara istendi, ${received.length} numara alınabildi. ${message}` : message,
+            error: true
+          });
+          this.#toast.showToast('Hata', message, 'error');
+        }
+      });
+    };
+    requestChunk();
+  }
+
+  #finishReserve(numbers: string[], notice: { message: string; error: boolean } | null) {
+    if (numbers.length) {
+      this.labels.set(numbers.map(no => ({ no, cancelled: false })));
+      this.printed.set(false);
+    }
+    this.notice.set(notice);
+    this.reserving.set(false);
+    this.loadStock();
   }
 
   /** Hatalı basılan etiketin numarası onay ve sebep sorulmadan iptal edilir. */
@@ -268,50 +366,73 @@ export default class Qrlist implements OnInit {
     const documents = this.activeLabels().map(x => x.no);
     if (documents.length === 0) return;
 
-    const labelHeight = mm(LABEL_HEIGHT_MM) - ROW_HEIGHT_SLACK_PT;
-    const labelWidth = (mm(210) - 2 * mm(PAGE_MARGIN_X_MM)) / PDF_COLUMNS;
-    const textGap = mm(LABEL_TEXT_GAP_MM);
-    const barcode = this.format() === 'barkod';
-    // Görsel yüksekliği: QR kare, barkod sabit yükseklikte
-    const graphicHeight = barcode ? mm(BARCODE_HEIGHT_MM) : mm(QR_SIZE_MM);
-    // pdfmake hücre içeriğini dikey ortalamaz; üst boşluk elle hesaplanır.
-    const contentHeight = graphicHeight + textGap + LABEL_TEXT_SIZE_PT * 1.2;
-    const topOffset = Math.max(0, (labelHeight - contentHeight) / 2);
+    const s = this.layout();
+    const labelHeight = mm(labelHeightMm(s)) - ROW_HEIGHT_SLACK_PT;
+    const labelWidth = mm(labelWidthMm(s));
+    // pdfmake hücre içeriğini dikey ortalamaz; üst boşluklar elle hesaplanır.
+    const middle = (height: number) => Math.max(0, (labelHeight - height) / 2);
 
-    const graphic = (no: string): any => {
-      if (!barcode) return { qr: no, fit: graphicHeight, alignment: 'center' };
-      // Barkod vektör dikdörtgenlerle çizilir; canvas hizalanmadığı için sol boşlukla ortalanır
-      const { bars, modules } = code128Bars(no);
-      const module = Math.min(mm(BARCODE_MAX_MODULE_MM), mm(BARCODE_MAX_WIDTH_MM) / modules);
+    // QR: solda kare kod, sağında iki satır yazı; yazı bloğu QR'a göre dikey ortalanır
+    const qrCell = (no: string): any => {
+      const qrSize = mm(s.qrSizeMm);
+      const captionGap = mm(0.6);
+      const textHeight = s.qrCaptionPt * LINE_HEIGHT + captionGap + s.qrNumberPt * LINE_HEIGHT;
       return {
-        canvas: bars.map(b => ({ type: 'rect', x: b.x * module, y: 0, w: b.w * module, h: graphicHeight, color: '#000' })),
-        margin: [Math.max(0, (labelWidth - modules * module) / 2), 0, 0, 0]
+        columns: [
+          { qr: no, fit: qrSize, width: qrSize },
+          {
+            width: '*',
+            stack: [
+              { text: 'EVRAK NO', fontSize: s.qrCaptionPt, bold: true, color: '#444', characterSpacing: 0.4 },
+              { text: no, fontSize: s.qrNumberPt, bold: true, margin: [0, captionGap, 0, 0] }
+            ],
+            margin: [0, Math.max(0, (qrSize - textHeight) / 2), 0, 0]
+          }
+        ],
+        columnGap: mm(s.qrTextGapMm),
+        margin: [mm(s.qrPadXMm), middle(qrSize), mm(s.qrPadXMm), 0]
       };
     };
 
-    const cell = (no: string): any => ({
-      stack: [
-        graphic(no),
-        { text: no, fontSize: LABEL_TEXT_SIZE_PT, bold: true, alignment: 'center', margin: [0, textGap, 0, 0] }
-      ],
-      margin: [0, topOffset, 0, 0]
-    });
+    // Barkod: üstte çubuklar, altında harf aralıklı numara
+    const barcodeCell = (no: string): any => {
+      const height = mm(s.barcodeHeightMm);
+      const textGap = mm(BARCODE_TEXT_GAP_MM);
+      // Barkod vektör dikdörtgenlerle çizilir; canvas hizalanmadığı için sol boşlukla ortalanır
+      const { bars, modules } = code128Bars(no);
+      const module = Math.min(mm(BARCODE_MAX_MODULE_MM), mm(s.barcodeMaxWidthMm) / modules);
+      return {
+        stack: [
+          {
+            canvas: bars.map(b => ({ type: 'rect', x: b.x * module, y: 0, w: b.w * module, h: height, color: '#000' })),
+            margin: [Math.max(0, (labelWidth - modules * module) / 2), 0, 0, 0]
+          },
+          {
+            text: no, fontSize: s.barcodeTextPt, characterSpacing: BARCODE_TEXT_SPACING_PT,
+            alignment: 'center', margin: [0, textGap, 0, 0]
+          }
+        ],
+        margin: [0, middle(height + textGap + s.barcodeTextPt * LINE_HEIGHT), 0, 0]
+      };
+    };
+
+    const cell = this.format() === 'barkod' ? barcodeCell : qrCell;
 
     const rows: any[][] = [];
-    for (let i = 0; i < documents.length; i += PDF_COLUMNS) {
-      const row = documents.slice(i, i + PDF_COLUMNS).map(cell);
-      while (row.length < PDF_COLUMNS) row.push({ text: '' });
+    for (let i = 0; i < documents.length; i += s.columns) {
+      const row = documents.slice(i, i + s.columns).map(cell);
+      while (row.length < s.columns) row.push({ text: '' });
       rows.push(row);
     }
 
     // Her sayfa ayrı tablo: satır yükseklikleri sabit olduğundan sayfa sonu etiket sınırına denk gelir,
     // yuvarlama farkı yüzünden bir satırın sonraki sayfaya kayması önlenir.
     const content: any[] = [];
-    for (let i = 0; i < rows.length; i += PDF_ROWS_PER_PAGE) {
-      const pageRows = rows.slice(i, i + PDF_ROWS_PER_PAGE);
+    for (let i = 0; i < rows.length; i += s.rows) {
+      const pageRows = rows.slice(i, i + s.rows);
       content.push({
         table: {
-          widths: Array(PDF_COLUMNS).fill('*'),
+          widths: Array(s.columns).fill('*'),
           heights: pageRows.map(() => labelHeight),
           dontBreakRows: true,
           body: pageRows
@@ -328,8 +449,8 @@ export default class Qrlist implements OnInit {
       });
     }
 
-    const marginX = mm(PAGE_MARGIN_X_MM);
-    const marginY = mm(PAGE_MARGIN_Y_MM);
+    const marginX = mm(s.marginXMm);
+    const marginY = mm(s.marginYMm);
     const docDefinition: TDocumentDefinitions = {
       pageSize: 'A4',
       pageMargins: [marginX, marginY, marginX, marginY],
