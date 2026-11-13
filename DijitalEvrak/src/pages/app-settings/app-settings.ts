@@ -308,7 +308,16 @@ export default class AppSettings {
   }
 
   readonly dirtyCount = computed(() => this.fields().filter(f => f.dirty).length);
-  readonly invalidCount = computed(() => this.fields().filter(f => f.error).length);
+  /**
+   * Kaydı engelleyen hatalı alanlar: yalnızca kaydedilecek (değişen) alanlar. Başka sekmede önceden hatalı duran,
+   * dokunulmamış bir alan (ör. boş zorunlu alan) gönderilmediği için kaydı engellemez; sekmesinde işaretli kalır.
+   * Mesai bitişi istisna: başlangıç değişince bitişin hatası o değişiklikten doğar.
+   */
+  readonly invalidCount = computed(() => {
+    const fields = this.fields();
+    const startDirty = fields.some(f => f.def.key === WORK_START && f.dirty);
+    return fields.filter(f => f.error && (f.dirty || (f.def.key === WORK_END && startDirty))).length;
+  });
   readonly canSave = computed(() => !this.saving() && this.dirtyCount() > 0 && this.invalidCount() === 0);
 
   constructor() {
