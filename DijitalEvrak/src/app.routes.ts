@@ -39,6 +39,8 @@ export const routes: Routes = [
                 path: "qrlist",
                 loadComponent: () => import("./pages/qrlist/qrlist"),
                 canActivate: [roleGuard],
+                // Yazdırılmamış numara varken çıkılırsa sorar; bileşen dosyası lazy kalsın diye guard burada
+                canDeactivate: [(c: { canDeactivate?: () => boolean }) => c.canDeactivate?.() ?? true],
                 data: { roles: ["Gelen Evrak"] }
             },
             {

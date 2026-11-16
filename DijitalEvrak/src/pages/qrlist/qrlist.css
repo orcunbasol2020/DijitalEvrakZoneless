@@ -67,7 +67,7 @@
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 18px 22px;
+    padding: 9px 22px;
     border-bottom: 1px solid var(--et-border);
 }
 
@@ -76,10 +76,10 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    font-size: 22px;
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    font-size: 20px;
     color: var(--et-accent);
     background: var(--et-accent-soft);
 }
@@ -94,12 +94,6 @@
     font-size: 1.05rem;
     font-weight: 700;
     color: var(--et-text);
-}
-
-.et-sub {
-    margin: 2px 0 0;
-    font-size: 0.82rem;
-    color: var(--et-text-2);
 }
 
 .et-stock {
@@ -491,8 +485,55 @@
 /* ---- Boş durum: üç adım ---- */
 .et-empty {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
     padding: 32px 8px;
+}
+
+/* Tarayıcıda saklanan son liste; yazdırılmadıysa uyarı renginde */
+.et-last {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 820px;
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--et-border);
+    border-radius: 10px;
+    background: var(--et-surface);
+    color: var(--et-text-2);
+    font-size: 0.85rem;
+    line-height: 1.45;
+}
+
+.et-last > .material-symbols-outlined {
+    flex: 0 0 auto;
+    font-size: 22px;
+    color: var(--et-accent);
+}
+
+.et-last-text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.et-last-text strong {
+    display: block;
+    color: var(--et-text);
+}
+
+.et-last .et-btn {
+    flex: 0 0 auto;
+}
+
+.et-last.is-unprinted {
+    border-color: var(--et-warn-border);
+    background: var(--et-warn-bg);
+}
+
+.et-last.is-unprinted > .material-symbols-outlined {
+    color: var(--et-warn);
 }
 
 .et-steps {
@@ -608,12 +649,14 @@
 .et-label-text {
     display: flex;
     flex-direction: column;
+    align-items: center;
+    margin-left: 5px;
     gap: 1px;
     min-width: 0;
 }
 
 .et-label-caption {
-    font-size: 0.55rem;
+    font-size: 0.605rem;
     font-weight: 700;
     letter-spacing: 0.06em;
     color: #475569;
@@ -633,7 +676,7 @@
 
 .et-label-no {
     overflow: hidden;
-    font-size: 0.72rem;
+    font-size: 0.792rem;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
@@ -780,6 +823,15 @@
 
     .et-steps {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    .et-last {
+        flex-wrap: wrap;
+    }
+
+    .et-last .et-btn {
+        width: 100%;
+        justify-content: center;
     }
 
     /* Telefonda 4 sütun okunmaz; önizleme 2 sütuna iner (baskı yine 4 sütun) */

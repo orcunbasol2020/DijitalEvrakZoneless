@@ -10,13 +10,12 @@
     <span class="et-head-icon material-symbols-outlined" aria-hidden="true">qr_code</span>
     <div class="et-head-text">
       <h2 class="et-title">Etiket Oluştur</h2>
-      <p class="et-sub">Atlas numara havuzundan numara alın, QR kod ya da barkod etiketi olarak basın.</p>
     </div>
     @if (stock(); as s) {
       <span class="et-stock" [class.is-low]="stockLow()"
             title="Havuzda boşta bekleyen numara; en az {{ s.minStock }} olması beklenir">
         <span class="material-symbols-outlined" aria-hidden="true">{{ stockLow() ? 'warning' : 'inventory_2' }}</span>
-        Havuzda <strong>{{ s.available }}</strong> numara
+        Havuzda <strong>{{ s.available }}</strong> numara var
       </span>
     }
   </header>
@@ -51,11 +50,11 @@
       <span class="et-field-label" id="et-amount-label">Miktar</span>
       <div class="et-amount">
         <div class="et-segment" role="group" aria-labelledby="et-amount-label">
-          <button type="button" [class.is-active]="unit() === 'adet'" [attr.aria-pressed]="unit() === 'adet'"
-                  [disabled]="reserving()" (click)="setUnit('adet')">Adet</button>
           <button type="button" [class.is-active]="unit() === 'sayfa'" [attr.aria-pressed]="unit() === 'sayfa'"
                   [disabled]="reserving()" (click)="setUnit('sayfa')"
                   title="Tam A4 sayfa: sayfada {{ labelsPerPage() }} etiket (tek seferde en fazla {{ maxPages }} sayfa)">Sayfa</button>
+          <button type="button" [class.is-active]="unit() === 'adet'" [attr.aria-pressed]="unit() === 'adet'"
+                  [disabled]="reserving()" (click)="setUnit('adet')">Adet</button>
         </div>
         <!-- Miktar: − kutu + ; tarayıcının kendi okları gizli -->
         <div class="et-stepper" [class.is-disabled]="reserving()">
@@ -89,6 +88,15 @@
 
     <!-- Ana işlem duruma göre öne çıkar: basılmamış etiket varken Yazdır, yoksa Numara Al -->
     <div class="et-actions">
+      <!-- Numara alındıktan sonra görünür: yazdırmadan çıkılırsa liste buradan geri getirilir -->
+      @if (lastList(); as l) {
+        <button type="button" class="et-btn et-btn-secondary" (click)="openLastList()"
+                [disabled]="reserving() || showingLastList()"
+                [title]="showingLastList() ? 'Son liste ekranda' : 'Son alınan listeyi açar (' + (l.at | date:'dd.MM.yyyy HH:mm') + ', ' + lastListActive() + ' numara)'">
+          <span class="material-symbols-outlined" aria-hidden="true">history</span>
+          Son Liste
+        </button>
+      }
       <button type="button" class="et-btn" [class.et-btn-primary]="!printReady()" [class.et-btn-secondary]="printReady()"
               (click)="reserve()" [disabled]="reserving()"
               title="Atlas numara havuzundan girilen miktarda evrak numarası ayırır">
@@ -119,6 +127,22 @@
     <div class="et-scroll">
       @if (labels().length === 0) {
         <div class="et-empty">
+          <!-- Tarayıcıda saklanan son liste: sayfadan çıkıldıysa geri getirilip yeniden basılabilir -->
+          @if (lastList(); as l) {
+            @if (lastListActive() > 0) {
+              <div class="et-last" [class.is-unprinted]="!l.printed">
+                <span class="material-symbols-outlined" aria-hidden="true">{{ l.printed ? 'history' : 'warning' }}</span>
+                <span class="et-last-text">
+                  <strong>Son liste: {{ l.at | date:'dd.MM.yyyy HH:mm' }}, {{ lastListActive() }} numara</strong>
+                  {{ l.printed ? 'Yazdırılmıştı; yeniden basmak için açabilirsiniz.' : 'Henüz yazdırılmadı; yeni numara almadan önce açıp yazdırın.' }}
+                </span>
+                <button type="button" class="et-btn et-btn-secondary" (click)="openLastList()" [disabled]="reserving()">
+                  <span class="material-symbols-outlined" aria-hidden="true">folder_open</span>
+                  Son listeyi aç
+                </button>
+              </div>
+            }
+          }
           <ol class="et-steps">
             <li>
               <span class="et-step-no">1</span>
@@ -152,7 +176,7 @@
                 } @else {
                   <qrcode [qrdata]="no" [width]="128" [margin]="0" [errorCorrectionLevel]="'M'"></qrcode>
                   <span class="et-label-text">
-                    <span class="et-label-caption">EVRAK NO</span>
+                    <span class="et-label-caption">Atlas Belge No</span>
                     <span class="et-label-no">{{ no }}</span>
                   </span>
                 }

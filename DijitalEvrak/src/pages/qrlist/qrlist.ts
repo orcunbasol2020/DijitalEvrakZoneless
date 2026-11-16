@@ -26,7 +26,7 @@ const SHEET_STORAGE_KEY = 'qrlist.sheet';
  * Etiket kâğıdı yerleşimi (A4, mm) ve o etikete göre içerik ölçüleri. Her hücre bir etikettir; etiket ölçüsü
  * kenar boşluklarından sonra kalan alandan çıkar: (210 - 2 × marginX) / columns × (297 - 2 × marginY) / rows.
  *
- * QR etiketi: solda QR, sağında "EVRAK NO" ve numara. pdfmake QR modülünü tam punto sayısına yuvarlar
+ * QR etiketi: solda QR, sağında "Atlas Belge No" ve numara. pdfmake QR modülünü tam punto sayısına yuvarlar
  * (21 modüllük QR'da 15 mm → 2 pt modül → 14,8 mm); daha küçük değer modülü 1 pt'ye düşürüp QR'ı yarıya indirir,
  * 3 pt modül (22,2 mm) ise 40'lık etikette yazıcının basamadığı kenar şeridine taşar.
  *
@@ -55,13 +55,13 @@ const SHEETS: Record<SheetKind, SheetLayout> = {
   // 64'lük kâğıt: yanlarda 4, üst/altta 6,65 mm boşluk → etiket 50,5 × 17,73 mm
   '64': {
     name: "64'lük", columns: 4, rows: 16, marginXMm: 4, marginYMm: 6.65,
-    qrSizeMm: 15, qrPadXMm: 2, qrTextGapMm: 2, qrCaptionPt: 6, qrNumberPt: 9,
+    qrSizeMm: 15, qrPadXMm: 2, qrTextGapMm: 2, qrCaptionPt: 6.6, qrNumberPt: 9.9,
     barcodeMaxWidthMm: 38.5, barcodeHeightMm: 9, barcodeTextPt: 7
   },
   // 40'lık kâğıt (Tanex TW-2040 / Avery 3651): kenar boşluksuz → etiket 52,5 × 29,7 mm
   '40': {
     name: "40'lık", columns: 4, rows: 10, marginXMm: 0, marginYMm: 0,
-    qrSizeMm: 15, qrPadXMm: 5, qrTextGapMm: 2.5, qrCaptionPt: 6.5, qrNumberPt: 9.5,
+    qrSizeMm: 15, qrPadXMm: 5, qrTextGapMm: 2.5, qrCaptionPt: 7.15, qrNumberPt: 10.45,
     barcodeMaxWidthMm: 41.5, barcodeHeightMm: 12, barcodeTextPt: 9
   }
 };
@@ -109,6 +109,31 @@ function readSheet(): SheetKind {
 interface QrLabel {
   no: string;
   cancelled: boolean;
+}
+
+/**
+ * Son alınan liste tarayıcıda saklanır; sayfadan çıkılsa da "Son listeyi aç" ile geri getirilip yeniden basılabilir.
+ * Yalnızca bu tarayıcıda görünür; numaranın bu arada evrakta kullanılıp kullanılmadığını bilmez.
+ */
+interface LastList {
+  /** Numaraların alındığı an (ISO) */
+  at: string;
+  labels: QrLabel[];
+  printed: boolean;
+}
+const LAST_LIST_STORAGE_KEY = 'qrlist.lastList';
+
+function readLastList(): LastList | null {
+  try {
+    const raw = localStorage.getItem(LAST_LIST_STORAGE_KEY);
+    if (!raw) return null;
+    const v = JSON.parse(raw) as LastList;
+    const ok = typeof v?.at === 'string' && Array.isArray(v.labels) && v.labels.length > 0
+      && v.labels.every(x => typeof x?.no === 'string');
+    return ok ? { at: v.at, labels: v.labels.map(x => ({ no: x.no, cancelled: !!x.cancelled })), printed: !!v.printed } : null;
+  } catch {
+    return null;
+  }
 }
 
 @Component({
@@ -174,7 +199,7 @@ export default class Qrlist implements OnInit {
    * Miktar adet ya da tam sayfa olarak girilir; sayfa × sayfadaki etiket istenir. Tek seferde en fazla MAX_PAGES
    * sayfa; adet sınırı da o kadar sayfanın etiketi.
    */
-  readonly unit = signal<'adet' | 'sayfa'>('adet');
+  readonly unit = signal<'adet' | 'sayfa'>('sayfa');
   readonly maxPages = MAX_PAGES;
   readonly minAmount = MIN_COUNT;
   readonly maxAmount = computed(() => this.unit() === 'sayfa' ? MAX_PAGES : MAX_PAGES * this.labelsPerPage());
@@ -200,6 +225,50 @@ export default class Qrlist implements OnInit {
   readonly labels = signal<QrLabel[]>([]);
   /** Ayrılan numaralar yazdırıldı mı; yazdırılmadan yeni numara alınırsa öncekiler sahipsiz kalır. */
   readonly printed = signal(false);
+  /** Ekrandaki listenin alındığı an; tarayıcıda saklanan son listeye yazılır */
+  #reservedAt: string | null = null;
+  /** Tarayıcıda saklanan son liste; ekranda liste yokken "Son listeyi aç" ile geri getirilir */
+  readonly lastList = signal<LastList | null>(readLastList());
+  readonly lastListActive = computed(() => this.lastList()?.labels.filter(x => !x.cancelled).length ?? 0);
+  /** Ekrandaki liste zaten son liste mi; öyleyse "Son Liste" düğmesi pasif */
+  readonly showingLastList = computed(() => this.labels().length > 0 && this.labels() === this.lastList()?.labels);
+
+  /** Ekrandaki liste son liste olarak saklanır (numara alınınca, iptal edilince, yazdırılınca) */
+  #saveLastList() {
+    if (!this.#reservedAt || this.labels().length === 0) return;
+    const list: LastList = { at: this.#reservedAt, labels: this.labels(), printed: this.printed() };
+    this.lastList.set(list);
+    try {
+      localStorage.setItem(LAST_LIST_STORAGE_KEY, JSON.stringify(list));
+    } catch {
+      // Tarayıcı depolaması kapalıysa son liste yalnızca bu oturumda kalır
+    }
+  }
+
+  /** Yazdırılmamış numara varken menüden başka sayfaya geçilirse sorulur (route canDeactivate) */
+  canDeactivate(): boolean {
+    if (!this.printReady()) return true;
+    return confirm('Ayrılan numaralar yazdırılmadı. Sayfadan çıkmak istiyor musunuz?\n\nListeye daha sonra "Son Liste" ile ulaşabilirsiniz.');
+  }
+
+  /** Sekme kapatılır ya da sayfa yenilenirse tarayıcının kendi uyarısı çıkar (metin özelleştirilemez) */
+  @HostListener('window:beforeunload', ['$event'])
+  onBeforeUnload(event: BeforeUnloadEvent) {
+    if (this.printReady()) {
+      event.preventDefault();
+      event.returnValue = true;
+    }
+  }
+
+  /** Saklanan son listeyi ekrana getirir; yazdırılıp yazdırılmadığı da korunur */
+  openLastList() {
+    const list = this.lastList();
+    if (!list || this.reserving()) return;
+    this.#reservedAt = list.at;
+    this.labels.set(list.labels);
+    this.printed.set(list.printed);
+    this.notice.set(null);
+  }
   /**
    * Havuzda istenenden az numara varsa ya da hiç alınamadıysa backend'in açıklaması. Kapanmadan kalır:
    * Barkod Servisi hatasında metnin sonunda servis sorumlusuna iletilecek takip kodu olabilir.
@@ -331,6 +400,8 @@ export default class Qrlist implements OnInit {
     if (numbers.length) {
       this.labels.set(numbers.map(no => ({ no, cancelled: false })));
       this.printed.set(false);
+      this.#reservedAt = new Date().toISOString();
+      this.#saveLastList();
     }
     this.notice.set(notice);
     this.reserving.set(false);
@@ -352,6 +423,7 @@ export default class Qrlist implements OnInit {
       next: () => {
         // Sonuç kartta görünür; ayrıca toast gösterilmez.
         this.labels.update(list => list.map(x => x.no === no ? { ...x, cancelled: true } : x));
+        this.#saveLastList();
         this.cancellingNo.set(null);
         this.loadStock();
       },
@@ -372,7 +444,8 @@ export default class Qrlist implements OnInit {
     // pdfmake hücre içeriğini dikey ortalamaz; üst boşluklar elle hesaplanır.
     const middle = (height: number) => Math.max(0, (labelHeight - height) / 2);
 
-    // QR: solda kare kod, sağında iki satır yazı; yazı bloğu QR'a göre dikey ortalanır
+    // QR: solda kare kod, sağında iki satır yazı; yazı bloğu QR'a göre dikey ortalanır. Yazı sütunu içeriği kadar
+    // geniş ('auto'), böylece başlık numaranın genişliğine göre ortalanır.
     const qrCell = (no: string): any => {
       const qrSize = mm(s.qrSizeMm);
       const captionGap = mm(0.6);
@@ -381,12 +454,13 @@ export default class Qrlist implements OnInit {
         columns: [
           { qr: no, fit: qrSize, width: qrSize },
           {
-            width: '*',
+            width: 'auto',
             stack: [
-              { text: 'EVRAK NO', fontSize: s.qrCaptionPt, bold: true, color: '#444', characterSpacing: 0.4 },
+              { text: 'Atlas Belge No', fontSize: s.qrCaptionPt, bold: true, color: '#444', characterSpacing: 0.4, alignment: 'center' },
               { text: no, fontSize: s.qrNumberPt, bold: true, margin: [0, captionGap, 0, 0] }
             ],
-            margin: [0, Math.max(0, (qrSize - textHeight) / 2), 0, 0]
+            // Sağdaki boş alanda ortalı dursun diye yazı bloğu ~1,2 mm (ekranda ~4-5 px) sağa alınır
+            margin: [mm(1.2), Math.max(0, (qrSize - textHeight) / 2), 0, 0]
           }
         ],
         columnGap: mm(s.qrTextGapMm),
@@ -459,6 +533,7 @@ export default class Qrlist implements OnInit {
 
     pdfMake.createPdf(docDefinition).print();
     this.printed.set(true);
+    this.#saveLastList();
   }
 
 }
