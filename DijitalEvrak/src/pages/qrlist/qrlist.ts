@@ -11,6 +11,7 @@ import { Common } from '../../services/common';
 import { AtlasDocumentNumberService, AtlasNumberStock, atlasErrorMessage } from '../../services/atlas-document-number';
 import { Barcode128 } from '../../../components/barcode128/barcode128';
 import { code128Bars } from '../../utils/code128';
+import { create as createQr } from 'qrcode';
 
 import pdfMake from "pdfmake/build/pdfmake";
 import pdfFonts from "pdfmake/build/vfs_fonts";
@@ -75,6 +76,30 @@ const BARCODE_TEXT_GAP_MM = 0.8;
 /** pdfmake (Roboto) satır yüksekliği yazı boyunun yaklaşık bu katı */
 const LINE_HEIGHT = 1.17;
 const mm = (v: number) => v * 72 / 25.4;
+/** pdfmake'in qrSizeMm (15 mm) için bastığı QR'ın gerçek ölçüsü: 21 modül × 2 pt ≈ 14,8 mm */
+const QR_BASE_MM = 21 * 2 * 25.4 / 72;
+/** Baskıda QR bu ölçeğe küçültülür */
+const QR_SCALE = 0.9;
+/**
+ * QR'ı vektör dikdörtgenlerle çizer. pdfmake'in kendi `qr` düğümü modülü tam punto sayısına yuvarladığından
+ * ara ölçüler (ör. %90) basılamıyor; burada modül kesirli olabilir. Hata düzeltme düzeyi pdfmake'teki gibi 'L'.
+ */
+function qrRects(text: string, size: number): any[] {
+  const { modules } = createQr(text, { errorCorrectionLevel: 'L' });
+  const n = modules.size;
+  const module = size / n;
+  const rects: any[] = [];
+  // Satırdaki ardışık koyu modüller tek dikdörtgen olur; kesirli ölçüde modüller arasında ince çizgi kalmaz
+  for (let row = 0; row < n; row++) {
+    for (let col = 0; col < n; col++) {
+      if (!modules.get(row, col)) continue;
+      const start = col;
+      while (col + 1 < n && modules.get(row, col + 1)) col++;
+      rects.push({ type: 'rect', x: start * module, y: row * module, w: (col - start + 1) * module, h: module, color: '#000' });
+    }
+  }
+  return rects;
+}
 /**
  * Satır yükseklikleri toplamı kullanılabilir yüksekliğe tam eşit; kayan nokta yuvarlaması toplamı aşarsa pdfmake son
  * satırı sonraki sayfaya iter. Her satırdan alınan bu pay 16 satırda ~0,06 mm eder, hizayı bozmaz.
@@ -95,7 +120,13 @@ const ROW_EXTRA_FROM = 9;
 const ROW_EXTRA_MM = 0.1;
 /** Baskıda en üstteki ROW_TOP_COUNT satırın içeriği, ROW_STEP_MM kaydırmasına ek olarak ROW_TOP_UP_MM yukarı alınır */
 const ROW_TOP_COUNT = 3;
-const ROW_TOP_UP_MM = 0.3;
+const ROW_TOP_UP_MM = 0.6;
+/**
+ * Baskıda en alttaki ROW_BOTTOM_COUNT satır ek olarak aşağı alınır: en alttan yukarı doğru
+ * ROW_BOTTOM_COUNT × ROW_BOTTOM_STEP_MM, ..., 1 × ROW_BOTTOM_STEP_MM (en alt 0,6, üstü 0,4, onun üstü 0,2 mm).
+ */
+const ROW_BOTTOM_COUNT = 3;
+const ROW_BOTTOM_STEP_MM = 0.2;
 /** Backend Reserve isteğinde count 1–100 arasında olmalı; daha büyük istek 100'lük parçalara bölünür. */
 const MIN_COUNT = 1;
 const RESERVE_CHUNK = 100;
@@ -464,11 +495,17 @@ export default class Qrlist implements OnInit {
     // geniş ('auto'), böylece başlık numaranın genişliğine göre ortalanır.
     const qrCell = (no: string, shift: number): any => {
       const qrSize = mm(s.qrSizeMm);
+      const drawSize = mm(QR_BASE_MM * QR_SCALE);
       const captionGap = mm(0.6);
       const textHeight = s.qrCaptionPt * LINE_HEIGHT + captionGap + s.qrNumberPt * LINE_HEIGHT;
       return {
         columns: [
-          { qr: no, fit: qrSize, width: qrSize },
+          {
+            width: qrSize,
+            canvas: qrRects(no, drawSize),
+            // Küçülen QR eski QR alanında (QR_BASE_MM) ortalı kalır; yazı yerinden oynamaz
+            margin: [(mm(QR_BASE_MM) - drawSize) / 2, (mm(QR_BASE_MM) - drawSize) / 2, 0, 0]
+          },
           {
             width: 'auto',
             stack: [
@@ -515,7 +552,8 @@ export default class Qrlist implements OnInit {
       // relativePosition satır yüksekliğini değiştirmez; ızgara ve sayfa sonu yerinde kalır.
       const r = (i / s.columns) % s.rows;
       const dy = mm(ROW_STEP_MM) * r + (r >= ROW_EXTRA_FROM - 1 ? mm(ROW_EXTRA_MM) : 0)
-        - (r < ROW_TOP_COUNT ? mm(ROW_TOP_UP_MM) : 0);
+        - (r < ROW_TOP_COUNT ? mm(ROW_TOP_UP_MM) : 0)
+        + mm(ROW_BOTTOM_STEP_MM) * Math.max(0, r - (s.rows - 1 - ROW_BOTTOM_COUNT));
       const row: any[] = documents.slice(i, i + s.columns)
         .map((no, col) => ({ stack: [cell(no, COLUMN_SHIFT_PT[col] ?? 0)], relativePosition: { x: 0, y: dy } }));
       while (row.length < s.columns) row.push({ text: '' });
