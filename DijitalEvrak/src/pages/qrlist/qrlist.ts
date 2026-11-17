@@ -118,6 +118,12 @@ const ROW_STEP_MM = 0.1;
  */
 const ROW_EXTRA_FROM = 9;
 const ROW_EXTRA_MM = 0.1;
+/**
+ * Baskıda artan ek aşağı kaydırma (mm): ROW_RAMP_FROM. satırdan itibaren her satır, diğer kaydırmalara ek olarak
+ * bir öncekinden ROW_RAMP_STEP_MM daha kayar (8. satır +0,1, 9. satır +0,2, 10. satır +0,3 ...).
+ */
+const ROW_RAMP_FROM = 8;
+const ROW_RAMP_STEP_MM = 0.1;
 /** Baskıda en üstteki ROW_TOP_COUNT satırın içeriği, ROW_STEP_MM kaydırmasına ek olarak ROW_TOP_UP_MM yukarı alınır */
 const ROW_TOP_COUNT = 3;
 const ROW_TOP_UP_MM = 0.6;
@@ -552,6 +558,7 @@ export default class Qrlist implements OnInit {
       // relativePosition satır yüksekliğini değiştirmez; ızgara ve sayfa sonu yerinde kalır.
       const r = (i / s.columns) % s.rows;
       const dy = mm(ROW_STEP_MM) * r + (r >= ROW_EXTRA_FROM - 1 ? mm(ROW_EXTRA_MM) : 0)
+        + mm(ROW_RAMP_STEP_MM) * Math.max(0, r - (ROW_RAMP_FROM - 2))
         - (r < ROW_TOP_COUNT ? mm(ROW_TOP_UP_MM) : 0)
         + mm(ROW_BOTTOM_STEP_MM) * Math.max(0, r - (s.rows - 1 - ROW_BOTTOM_COUNT));
       const row: any[] = documents.slice(i, i + s.columns)
