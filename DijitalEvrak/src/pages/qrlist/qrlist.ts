@@ -80,6 +80,22 @@ const mm = (v: number) => v * 72 / 25.4;
  * satırı sonraki sayfaya iter. Her satırdan alınan bu pay 16 satırda ~0,06 mm eder, hizayı bozmaz.
  */
 const ROW_HEIGHT_SLACK_PT = 0.01;
+/**
+ * Baskıda sütun başına içerik kaydırması (pt; CSS px = 0,75 pt): 3. sütun 8 px, 4. sütun 16 px sağa. Izgara yerinde
+ * kalır, yalnızca etiketin içeriği kayar.
+ */
+const COLUMN_SHIFT_PT = [0, 0, 8 * 0.75, 16 * 0.75];
+/** Baskıda satır başına aşağı kaydırma (mm): üstten n. satırın içeriği (n - 1) × bu kadar aşağı kayar */
+const ROW_STEP_MM = 0.1;
+/**
+ * Baskıda alt satırlarda ek aşağı kaydırma (mm): ROW_EXTRA_FROM. satır (1'den sayılır) ve altındaki satırlar, ROW_STEP_MM'ye
+ * ek olarak sabit ROW_EXTRA_MM kadar daha aşağı kayar.
+ */
+const ROW_EXTRA_FROM = 9;
+const ROW_EXTRA_MM = 0.1;
+/** Baskıda en üstteki ROW_TOP_COUNT satırın içeriği, ROW_STEP_MM kaydırmasına ek olarak ROW_TOP_UP_MM yukarı alınır */
+const ROW_TOP_COUNT = 3;
+const ROW_TOP_UP_MM = 0.3;
 /** Backend Reserve isteğinde count 1–100 arasında olmalı; daha büyük istek 100'lük parçalara bölünür. */
 const MIN_COUNT = 1;
 const RESERVE_CHUNK = 100;
@@ -446,7 +462,7 @@ export default class Qrlist implements OnInit {
 
     // QR: solda kare kod, sağında iki satır yazı; yazı bloğu QR'a göre dikey ortalanır. Yazı sütunu içeriği kadar
     // geniş ('auto'), böylece başlık numaranın genişliğine göre ortalanır.
-    const qrCell = (no: string): any => {
+    const qrCell = (no: string, shift: number): any => {
       const qrSize = mm(s.qrSizeMm);
       const captionGap = mm(0.6);
       const textHeight = s.qrCaptionPt * LINE_HEIGHT + captionGap + s.qrNumberPt * LINE_HEIGHT;
@@ -464,12 +480,12 @@ export default class Qrlist implements OnInit {
           }
         ],
         columnGap: mm(s.qrTextGapMm),
-        margin: [mm(s.qrPadXMm), middle(qrSize), mm(s.qrPadXMm), 0]
+        margin: [mm(s.qrPadXMm) + shift, middle(qrSize), Math.max(0, mm(s.qrPadXMm) - shift), 0]
       };
     };
 
     // Barkod: üstte çubuklar, altında harf aralıklı numara
-    const barcodeCell = (no: string): any => {
+    const barcodeCell = (no: string, shift: number): any => {
       const height = mm(s.barcodeHeightMm);
       const textGap = mm(BARCODE_TEXT_GAP_MM);
       // Barkod vektör dikdörtgenlerle çizilir; canvas hizalanmadığı için sol boşlukla ortalanır
@@ -479,11 +495,12 @@ export default class Qrlist implements OnInit {
         stack: [
           {
             canvas: bars.map(b => ({ type: 'rect', x: b.x * module, y: 0, w: b.w * module, h: height, color: '#000' })),
-            margin: [Math.max(0, (labelWidth - modules * module) / 2), 0, 0, 0]
+            margin: [Math.max(0, (labelWidth - modules * module) / 2) + shift, 0, 0, 0]
           },
           {
+            // Ortalanan metin sol boşluğun yarısı kadar kayar; 2 × shift ile çubuklarla aynı miktarda kayar
             text: no, fontSize: s.barcodeTextPt, characterSpacing: BARCODE_TEXT_SPACING_PT,
-            alignment: 'center', margin: [0, textGap, 0, 0]
+            alignment: 'center', margin: [2 * shift, textGap, 0, 0]
           }
         ],
         margin: [0, middle(height + textGap + s.barcodeTextPt * LINE_HEIGHT), 0, 0]
@@ -494,7 +511,13 @@ export default class Qrlist implements OnInit {
 
     const rows: any[][] = [];
     for (let i = 0; i < documents.length; i += s.columns) {
-      const row = documents.slice(i, i + s.columns).map(cell);
+      // Sayfadaki satır sırası: her satırın içeriği bir üsttekinden ROW_STEP_MM daha aşağı (ilk satır yerinde).
+      // relativePosition satır yüksekliğini değiştirmez; ızgara ve sayfa sonu yerinde kalır.
+      const r = (i / s.columns) % s.rows;
+      const dy = mm(ROW_STEP_MM) * r + (r >= ROW_EXTRA_FROM - 1 ? mm(ROW_EXTRA_MM) : 0)
+        - (r < ROW_TOP_COUNT ? mm(ROW_TOP_UP_MM) : 0);
+      const row: any[] = documents.slice(i, i + s.columns)
+        .map((no, col) => ({ stack: [cell(no, COLUMN_SHIFT_PT[col] ?? 0)], relativePosition: { x: 0, y: dy } }));
       while (row.length < s.columns) row.push({ text: '' });
       rows.push(row);
     }
