@@ -36,6 +36,13 @@ export const routes: Routes = [
                 data: { roles: ["Gelen Evrak", "Ön Kayıt"] }
             },
             {
+                // Taranmış evrakların art arda hızlı kaydı (QR okutmadan); bkz. backend seri_kayit_ekrani.md
+                path: "seri-kayit",
+                loadComponent: () => import("./pages/seri-kayit/seri-kayit"),
+                canActivate: [roleGuard],
+                data: { roles: ["Gelen Evrak", "Yönetici"] }
+            },
+            {
                 path: "qrlist",
                 loadComponent: () => import("./pages/qrlist/qrlist"),
                 canActivate: [roleGuard],

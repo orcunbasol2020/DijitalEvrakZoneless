@@ -1,0 +1,289 @@
+<app-generic pageTitle="Seri Kayıt" [breadcrumbs]="breadcrumbs" />
+
+<div class="sk-page">
+  <!-- Üst şerit: sıra durumu, oturum sayacı, kısayollar, İleri / Bırak -->
+  <header class="sk-bar">
+    <div class="sk-bar-stats">
+      <span class="sk-stat" title="Sırada bekleyen (yaklaşık): havuzdaki taramalar + eşleşmiş ama kaydedilmemiş evraklar">
+        <span class="material-symbols-outlined">inbox</span>
+        Sırada <strong>≈{{ remainingTotal() }}</strong>
+        <span class="sk-stat-sub">tarama {{ remaining().scans }} · evrak {{ remaining().documents }}</span>
+      </span>
+      <span class="sk-stat is-done" title="Bu oturumda kaydedilen evrak">
+        <span class="material-symbols-outlined">task_alt</span>
+        Bu oturumda <strong>{{ completed() }}</strong> kayıt
+      </span>
+    </div>
+
+    <!-- Klavye kısayolları: düğmeyle açılan küçük panel (dışına tıklayınca kapanır) -->
+    <details class="sk-keys" #keysMenu>
+      <summary class="sk-btn" title="Klavye kısayolları">
+        <span class="material-symbols-outlined">keyboard</span>
+        Kısayollar
+        <span class="material-symbols-outlined sk-keys-caret">expand_more</span>
+      </summary>
+      <div class="sk-keys-panel">
+        <div class="sk-keys-row"><span class="sk-keys-combo"><kbd>Ctrl</kbd>+<kbd>Enter</kbd></span> Kaydet</div>
+        <div class="sk-keys-row"><span class="sk-keys-combo"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Enter</kbd></span> Kaydet + Yayınla</div>
+        <div class="sk-keys-row"><span class="sk-keys-combo"><kbd>Alt</kbd>+<kbd>→</kbd></span> İleri</div>
+      </div>
+    </details>
+
+    @if (phase() === 'working') {
+      <div class="sk-bar-actions">
+        <button type="button" class="sk-btn" [disabled]="busy()" (click)="pause()"
+          title="Açık belgeleri sıraya bırak ve seri kayda ara ver">
+          <span class="material-symbols-outlined">back_hand</span>
+          Bırak
+        </button>
+        <button type="button" class="sk-btn" [disabled]="busy()" (click)="skip()"
+          title="Bu belgeyi sıraya geri bırak, sıradakini aç (Alt+→)">
+          <span class="material-symbols-outlined" [class.sk-spin]="skipping()">{{ skipping() ? 'progress_activity' : 'skip_next' }}</span>
+          İleri
+        </button>
+      </div>
+    }
+  </header>
+
+  @switch (phase()) {
+    @case ('loading') {
+      <div class="sk-state">
+        <div class="spinner-border text-primary"></div>
+        <div class="sk-state-title">Sıradaki belge alınıyor…</div>
+      </div>
+    }
+    @case ('empty') {
+      <div class="sk-state">
+        <span class="material-symbols-outlined sk-state-icon">celebration</span>
+        <div class="sk-state-title">Sırada kayıt bekleyen belge yok</div>
+        <div class="sk-state-text">
+          @if (completed()) { Bu oturumda {{ completed() }} evrak kaydedildi. }
+          Yeni taranan belgeler havuza düştükçe burada görünür.
+        </div>
+        <button type="button" class="btn btn-primary sk-state-btn" (click)="start()">
+          <span class="material-symbols-outlined">refresh</span>
+          Yeniden Kontrol Et
+        </button>
+      </div>
+    }
+    @case ('paused') {
+      <div class="sk-state">
+        <span class="material-symbols-outlined sk-state-icon">pause_circle</span>
+        <div class="sk-state-title">Belgeler sıraya bırakıldı</div>
+        <div class="sk-state-text">Diğer memurlar bu belgeleri alabilir. Devam Et ile sıradaki belgeden sürdürebilirsiniz.</div>
+        <button type="button" class="btn btn-primary sk-state-btn" (click)="start()">
+          <span class="material-symbols-outlined">play_arrow</span>
+          Devam Et
+        </button>
+      </div>
+    }
+    @case ('error') {
+      <div class="sk-state is-error">
+        <span class="material-symbols-outlined sk-state-icon">error</span>
+        <div class="sk-state-title">Sıradaki belge alınamadı</div>
+        <div class="sk-state-text">{{ loadError() }}</div>
+        <button type="button" class="btn btn-primary sk-state-btn" (click)="start()">
+          <span class="material-symbols-outlined">refresh</span>
+          Tekrar Dene
+        </button>
+      </div>
+    }
+    @case ('working') {
+      @if (item(); as it) {
+        <div class="sk-work">
+          <!-- SOL: belge -->
+          <section class="sk-viewer card zm-card">
+            @if (pdfUrl(); as url) {
+              <iframe class="sk-pdf" [src]="url" title="Taranmış belge"></iframe>
+            } @else {
+              <div class="sk-pdf sk-pdf-missing">
+                <span class="material-symbols-outlined">hide_source</span>
+                Belge önizlemesi açılamadı. İleri ile sıradaki belgeye geçebilirsiniz.
+              </div>
+            }
+          </section>
+
+          <!-- SAĞ: kayıt formu -->
+          <form class="sk-form card zm-card" [formGroup]="form" autocomplete="off">
+            <div class="sk-form-body">
+              <!-- Sıra Evrak Kayıt ekranıyla aynı: Evrak no + Gizlilik, Tür, Tarih, İvedilik, Orjinal no,
+                   Konusu, Nereden, Nereye -->
+              <div class="sk-grid">
+                <div class="zm-field">
+                  <label for="sk-number" class="zm-field-label">Evrak No</label>
+                  <input id="sk-number" type="text" class="form-control ok-input sk-number" formControlName="documentNumber"
+                    placeholder="2026/12345678" (input)="onNumberInput($event)"
+                    [class.is-invalid]="form.controls.documentNumber.invalid && form.controls.documentNumber.dirty">
+                </div>
+                <div class="zm-field">
+                  <label for="sk-security" class="zm-field-label sk-label">
+                    Gizlilik Derecesi
+                    <button type="button" class="sk-pin" [class.is-on]="isPinned('securityDegree')" (click)="togglePin('securityDegree')"
+                      title="Sabitle: sonraki belgede de dolu gelsin">
+                      <span class="material-symbols-outlined">keep</span>
+                    </button>
+                  </label>
+                  <select id="sk-security" class="form-select ok-input" formControlName="securityDegree">
+                    @for (o of securityDegreeOptions; track o.value) {
+                      <option [ngValue]="o.value">{{ o.label }}</option>
+                    }
+                  </select>
+                </div>
+              </div>
+              @if (numberLocked()) {
+                <span class="sk-hint sk-hint-top"><span class="material-symbols-outlined">lock</span>Belge bu numaraya bağlı.</span>
+              } @else if (numberChoices().length) {
+                <div class="sk-hint-top">
+                  <span class="sk-hint">Barkodda birden fazla numara okundu, birini seçin:</span>
+                  <div class="sk-chips">
+                    @for (no of numberChoices(); track no) {
+                      <button type="button" class="sk-chip" [class.is-on]="form.controls.documentNumber.value === no"
+                        (click)="chooseNumber(no)">{{ no }}</button>
+                    }
+                  </div>
+                </div>
+              }
+
+              <div class="sk-grid">
+                <div class="zm-field">
+                  <label for="sk-type" class="zm-field-label sk-label">
+                    Evrak Türü
+                    <button type="button" class="sk-pin" [class.is-on]="isPinned('documentTypeId')" (click)="togglePin('documentTypeId')"
+                      title="Sabitle: sonraki belgede de dolu gelsin">
+                      <span class="material-symbols-outlined">keep</span>
+                    </button>
+                  </label>
+                  <select id="sk-type" class="form-select ok-input" formControlName="documentTypeId">
+                    <option [ngValue]="null">Seçiniz</option>
+                    @for (o of documentTypeOptions; track o.value) {
+                      <option [ngValue]="o.value">{{ o.label }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="zm-field">
+                  <label for="sk-date" class="zm-field-label">Evrak Tarihi</label>
+                  <input id="sk-date" type="date" class="form-control ok-input" formControlName="documentDate">
+                </div>
+                <div class="zm-field">
+                  <label for="sk-urgency" class="zm-field-label sk-label">
+                    İvedilik Derecesi
+                    <button type="button" class="sk-pin" [class.is-on]="isPinned('urgencyDegree')" (click)="togglePin('urgencyDegree')"
+                      title="Sabitle: sonraki belgede de dolu gelsin">
+                      <span class="material-symbols-outlined">keep</span>
+                    </button>
+                  </label>
+                  <select id="sk-urgency" class="form-select ok-input" formControlName="urgencyDegree">
+                    @for (o of urgencyDegreeOptions; track o.value) {
+                      <option [ngValue]="o.value">{{ o.label }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="zm-field">
+                  <label for="sk-original" class="zm-field-label">Orjinal Belge No</label>
+                  <input id="sk-original" type="text" class="form-control ok-input" formControlName="orginalNo">
+                </div>
+              </div>
+
+              <div class="zm-field">
+                <label for="sk-subject" class="zm-field-label">Konusu</label>
+                <input id="sk-subject" type="text" class="form-control ok-input" formControlName="subject">
+              </div>
+
+              <!-- Nereden -->
+              <div class="zm-field" id="sk-institution">
+                <label class="zm-field-label sk-label">
+                  Nereden
+                  <button type="button" class="sk-pin" [class.is-on]="isPinned('institution')" (click)="togglePin('institution')"
+                    [title]="isPinned('institution') ? 'Sabitlendi: sonraki belgede de dolu gelir' : 'Sabitle: sonraki belgede de dolu gelsin'">
+                    <span class="material-symbols-outlined">keep</span>
+                  </button>
+                </label>
+                <app-simple-autocomplete [control]="institutionControl"
+                  [options]="institutionSearch.options()"
+                  [remote]="true" [minChars]="institutionMinSearch"
+                  [searching]="institutionSearch.loading()"
+                  (search)="institutionSearch.search($event)"
+                  placeholder="Kurum adı ya da DETSİS no ile arayın" />
+              </div>
+
+              <!-- Nereye: birim ekle; her birimde Gereği / Bilgi -->
+              <div class="zm-field">
+                <label class="zm-field-label sk-label">
+                  Nereye
+                  @if (recipients().length) { <span class="sk-count">{{ recipients().length }}</span> }
+                  <button type="button" class="sk-pin" [class.is-on]="isPinned('recipients')" (click)="togglePin('recipients')"
+                    title="Sabitle: sonraki belgede de dolu gelsin">
+                    <span class="material-symbols-outlined">keep</span>
+                  </button>
+                </label>
+                <app-simple-autocomplete [control]="recipientPicker"
+                  [options]="recipientOptions()"
+                  [loading]="departmentsLoading()"
+                  loadingText="Birimler yükleniyor..."
+                  placeholder="Birim ekleyin" />
+                @if (recipients().length) {
+                  <ul class="sk-recipients">
+                    @for (r of recipients(); track r.departmentId) {
+                      <li class="sk-recipient">
+                        <span class="sk-recipient-name" [title]="r.name">{{ r.name }}</span>
+                        <button type="button" class="sk-action" [class.is-info]="!r.actionRequired"
+                          (click)="toggleRecipientAction(r)" title="Gereği / Bilgi değiştir">
+                          {{ r.actionRequired ? 'Gereği' : 'Bilgi' }}
+                        </button>
+                        <button type="button" class="sk-remove" (click)="removeRecipient(r)" [attr.aria-label]="r.name + ' kaldır'">
+                          <span class="material-symbols-outlined">close</span>
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                }
+              </div>
+            </div>
+
+            <div class="sk-form-foot">
+              @if (errorText(); as err) {
+                <div class="sk-error" role="alert">
+                  <span class="material-symbols-outlined">error</span>
+                  {{ err }}
+                </div>
+              }
+              <div class="sk-buttons">
+                <button id="sk-save" type="button" class="btn btn-light zm-back-btn" [disabled]="busy()" (click)="save(false)">
+                  @if (saving() === 'save') {
+                    <span class="spinner-border spinner-border-sm"></span>
+                  } @else {
+                    <span class="material-symbols-outlined">save</span>
+                  }
+                  Kaydet
+                </button>
+                <button type="button" class="btn btn-primary zimmet-submit-btn" data-mode="self" [disabled]="busy()"
+                  (click)="save(true)">
+                  @if (saving() === 'publish') {
+                    <span class="spinner-border spinner-border-sm"></span>
+                  } @else {
+                    <span class="zimmet-submit-icon material-symbols-outlined">publish</span>
+                  }
+                  <span class="zimmet-submit-text">Kaydet + Yayınla</span>
+                </button>
+              </div>
+
+              @if (recent().length) {
+                <div class="sk-recent">
+                  <span class="sk-recent-title">Son kayıtlar</span>
+                  @for (r of recent(); track r.documentId + r.at.getTime()) {
+                    <button type="button" class="sk-recent-item" (click)="openRecent(r)"
+                      title="Düzeltmek için Evrak Kayıt'ta aç">
+                      <span class="material-symbols-outlined">{{ r.published ? 'cloud_upload' : 'check' }}</span>
+                      {{ r.documentNumber }}
+                      <span class="sk-recent-time">{{ r.at | date:'HH:mm' }}</span>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          </form>
+        </div>
+      }
+    }
+  }
+</div>

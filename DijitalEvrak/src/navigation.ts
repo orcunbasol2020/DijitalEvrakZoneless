@@ -45,6 +45,12 @@ export const navigations: NavigationModel[] = [
         roles: ["Gelen Evrak", "Ön Kayıt"]
     },
     {
+        title: "Seri Kayıt",
+        url: "/seri-kayit",
+        icon: "playlist_play",
+        roles: ["Gelen Evrak", "Yönetici"]
+    },
+    {
         title: "Gelen Evraklar",
         url: "/scanlist",
         icon: "add_notes",

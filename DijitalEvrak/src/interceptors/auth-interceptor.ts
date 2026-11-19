@@ -15,7 +15,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 };
 
 /** Oturumu silmeden (readStoredUser'ın aksine) yalnızca token okunur. */
-function readToken(): string | null {
+export function readToken(): string | null {
   const raw = localStorage.getItem('user') ?? sessionStorage.getItem('user');
   if (!raw) return null;
   try {
