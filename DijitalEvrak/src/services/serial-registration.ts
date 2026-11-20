@@ -90,6 +90,18 @@ export class SerialRegistrationService {
       })));
   }
 
+  /**
+   * Numara okutarak açma (taranmayacak gizli evrak ya da belirli bir belge). Cevap ClaimNext ile aynı biçim;
+   * dosyasız evrakta documentName null döner. Bulunamaz / kaydedilmiş / başkasında ise 409 + Message.
+   */
+  claimByNumber(userId: string, documentNumber: string): Observable<SerialClaimResult> {
+    return this.httpService.post<SerialClaimResult>(`${this.baseUrl}ClaimByNumber`, { userId, documentNumber }, this.skipToast())
+      .pipe(map(r => ({
+        item: r?.item ?? null,
+        remaining: { scans: r?.remaining?.scans ?? 0, documents: r?.remaining?.documents ?? 0 }
+      })));
+  }
+
   register(request: SerialRegisterRequest): Observable<SerialRegisterResult> {
     return this.httpService.post<SerialRegisterResult>(`${this.baseUrl}Register`, request, this.skipToast());
   }

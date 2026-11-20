@@ -64,7 +64,7 @@
 
 
 /* ---- Kısayollar: açılır panel ---- */
-.sk-keys { position: relative; margin-left: auto; }
+.sk-keys { position: relative; }
 .sk-keys > summary { list-style: none; cursor: pointer; }
 .sk-keys > summary::-webkit-details-marker { display: none; }
 .sk-keys-caret { transition: transform 0.15s ease; }
@@ -345,3 +345,65 @@
     .sk-grid { grid-template-columns: minmax(0, 1fr); }
     .sk-buttons { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ---- Numara ile aç (taranmayacak / gizli evrak) ---- */
+.sk-open {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 34px;
+    margin: 0 0 0 auto;
+    padding: 0 10px;
+    border: 1px solid var(--sk-border);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--sk-muted);
+}
+
+.sk-open:focus-within { border-color: var(--sk-accent); box-shadow: 0 0 0 3px var(--sk-accent-soft); }
+.sk-open .material-symbols-outlined { font-size: 19px; }
+
+.sk-open input {
+    width: 170px;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--sk-text);
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---- Taranmış belge yok: Evrak Kayıt'taki belge sahnesi (evrakkayit/evrak-stage.css) ----
+   Sahne orada sayfa yüksekliğine göre boyutlanır; burada belge alanını doldurur */
+.sk-viewer .ek-stage { min-height: 0; }
+
+/* İleri: şeridin en dikkat çekici düğmesi; sitenin turkuaz → mavi vurgu ailesi (Belge Yükle, menü vurguları) */
+.sk-btn.sk-btn-next {
+    min-width: 132px;
+    height: 38px;
+    padding: 0 20px;
+    justify-content: center;
+    gap: 6px;
+    border: 0;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 55%, #0284c7 100%);
+    color: #fff;
+    font-size: calc(0.95rem - 1pt); /* 1 punto küçültüldü */
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    box-shadow: 0 6px 16px rgba(14, 165, 233, 0.35);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+.sk-btn.sk-btn-next .material-symbols-outlined { font-size: 22px; }
+
+.sk-btn.sk-btn-next:hover:not(:disabled) {
+    background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 55%, #0284c7 100%);
+    border-color: transparent;
+    filter: brightness(1.06);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px rgba(14, 165, 233, 0.45);
+}
+
+.sk-btn.sk-btn-next:focus-visible { outline: 0; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.4); }
+.sk-btn.sk-btn-next:disabled { opacity: 0.6; box-shadow: none; }

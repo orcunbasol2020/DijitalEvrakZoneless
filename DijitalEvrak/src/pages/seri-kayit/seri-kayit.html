@@ -1,10 +1,10 @@
 <app-generic pageTitle="Seri Kayıt" [breadcrumbs]="breadcrumbs" />
 
 <div class="sk-page">
-  <!-- Üst şerit: sıra durumu, oturum sayacı, kısayollar, İleri / Bırak -->
+  <!-- Üst şerit: sıra durumu, oturum sayacı, numara okut, kısayollar, İleri -->
   <header class="sk-bar">
     <div class="sk-bar-stats">
-      <span class="sk-stat" title="Sırada bekleyen (yaklaşık): havuzdaki taramalar + eşleşmiş ama kaydedilmemiş evraklar">
+      <span class="sk-stat" title="Sırada bekleyen (yaklaşık): havuzdaki taramalar + kaydedilmemiş evraklar (taraması bağlı ya da dosyasız ön kayıt)">
         <span class="material-symbols-outlined">inbox</span>
         Sırada <strong>≈{{ remainingTotal() }}</strong>
         <span class="sk-stat-sub">tarama {{ remaining().scans }} · evrak {{ remaining().documents }}</span>
@@ -14,6 +14,15 @@
         Bu oturumda <strong>{{ completed() }}</strong> kayıt
       </span>
     </div>
+
+    <!-- Numara ile aç: taranmayacak (gizli) evrakın zarfındaki QR okutulur (F2 ile odak) -->
+    <label class="sk-open" title="Taranmayacak (gizli) evrakı zarfındaki QR'ı okutarak açın (F2)">
+      <span class="material-symbols-outlined" [class.sk-spin]="openingByNumber()">
+        {{ openingByNumber() ? 'progress_activity' : 'qr_code_scanner' }}
+      </span>
+      <input #openNo id="sk-open-number" type="text" autocomplete="off" placeholder="Numara okut (F2)"
+        [disabled]="openingByNumber()" (keydown.enter)="$event.preventDefault(); openByNumber(openNo)">
+    </label>
 
     <!-- Klavye kısayolları: düğmeyle açılan küçük panel (dışına tıklayınca kapanır) -->
     <details class="sk-keys" #keysMenu>
@@ -26,17 +35,13 @@
         <div class="sk-keys-row"><span class="sk-keys-combo"><kbd>Ctrl</kbd>+<kbd>Enter</kbd></span> Kaydet</div>
         <div class="sk-keys-row"><span class="sk-keys-combo"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Enter</kbd></span> Kaydet + Yayınla</div>
         <div class="sk-keys-row"><span class="sk-keys-combo"><kbd>Alt</kbd>+<kbd>→</kbd></span> İleri</div>
+        <div class="sk-keys-row"><span class="sk-keys-combo"><kbd>F2</kbd></span> Numara okut (gizli evrak)</div>
       </div>
     </details>
 
     @if (phase() === 'working') {
       <div class="sk-bar-actions">
-        <button type="button" class="sk-btn" [disabled]="busy()" (click)="pause()"
-          title="Açık belgeleri sıraya bırak ve seri kayda ara ver">
-          <span class="material-symbols-outlined">back_hand</span>
-          Bırak
-        </button>
-        <button type="button" class="sk-btn" [disabled]="busy()" (click)="skip()"
+        <button type="button" class="sk-btn sk-btn-next" [disabled]="busy()" (click)="skip()"
           title="Bu belgeyi sıraya geri bırak, sıradakini aç (Alt+→)">
           <span class="material-symbols-outlined" [class.sk-spin]="skipping()">{{ skipping() ? 'progress_activity' : 'skip_next' }}</span>
           İleri
@@ -55,25 +60,20 @@
     @case ('empty') {
       <div class="sk-state">
         <span class="material-symbols-outlined sk-state-icon">celebration</span>
-        <div class="sk-state-title">Sırada kayıt bekleyen belge yok</div>
+        <div class="sk-state-title">
+          {{ skippedCount() ? 'Sıranın sonuna geldiniz' : 'Sırada kayıt bekleyen belge yok' }}
+        </div>
         <div class="sk-state-text">
           @if (completed()) { Bu oturumda {{ completed() }} evrak kaydedildi. }
-          Yeni taranan belgeler havuza düştükçe burada görünür.
+          @if (skippedCount()) {
+            İleri ile geçtiğiniz {{ skippedCount() }} belge sırada bekliyor; Yeniden Kontrol Et ile tekrar gelir.
+          } @else {
+            Yeni taranan belgeler havuza düştükçe burada görünür.
+          }
         </div>
-        <button type="button" class="btn btn-primary sk-state-btn" (click)="start()">
+        <button type="button" class="btn btn-primary sk-state-btn" (click)="recheck()">
           <span class="material-symbols-outlined">refresh</span>
           Yeniden Kontrol Et
-        </button>
-      </div>
-    }
-    @case ('paused') {
-      <div class="sk-state">
-        <span class="material-symbols-outlined sk-state-icon">pause_circle</span>
-        <div class="sk-state-title">Belgeler sıraya bırakıldı</div>
-        <div class="sk-state-text">Diğer memurlar bu belgeleri alabilir. Devam Et ile sıradaki belgeden sürdürebilirsiniz.</div>
-        <button type="button" class="btn btn-primary sk-state-btn" (click)="start()">
-          <span class="material-symbols-outlined">play_arrow</span>
-          Devam Et
         </button>
       </div>
     }
@@ -93,7 +93,43 @@
         <div class="sk-work">
           <!-- SOL: belge -->
           <section class="sk-viewer card zm-card">
-            @if (pdfUrl(); as url) {
+            @if (noFile()) {
+              <!-- Taranmış belge yok (gizli ya da henüz taranmamış ön kayıt): Evrak Kayıt'taki "belge sahnesi" ile
+                   aynı görünüm (ortak stil: evrakkayit/evrak-stage.css); kâğıda tıklayınca Belge Yükle penceresi açılır -->
+              <div class="ek-stage">
+                <button type="button" class="ek-sheet" [class.is-clickable]="canUploadDocument()"
+                  [disabled]="!canUploadDocument() || busy()"
+                  [title]="canUploadDocument() ? (stamp() ? 'Kapak yazısı / belge yükle' : 'Belge yükle') : 'Belge henüz yüklenmedi'"
+                  (click)="openUpload()">
+                  <span class="ek-sheet-head">
+                    <span class="ek-sheet-logo"></span>
+                    <span class="ek-sheet-tag">{{ it.documentNumber || it.document?.qrCode || '—' }}</span>
+                  </span>
+                  <span class="ek-sheet-lines">
+                    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+                  </span>
+                  <span class="ek-sheet-lines is-second">
+                    <i></i><i></i><i></i><i></i><i></i>
+                  </span>
+                  @if (stamp(); as s) {
+                    <span class="ek-stamp" [attr.data-level]="selectedSecurity()">
+                      <span class="ek-stamp-text">{{ s }}</span>
+                      <span class="ek-stamp-sub">DİJİTAL KOPYA YOK</span>
+                    </span>
+                  }
+                  @if (canUploadDocument()) {
+                    <span class="ek-sheet-cta">
+                      <span class="material-symbols-outlined">upload_file</span>
+                      {{ stamp() ? 'Kapak yazısı / belge yükle' : 'Belge yükle' }}
+                    </span>
+                  }
+                </button>
+                <div class="ek-stage-status" [class.is-secure]="!!stamp()">
+                  <span class="ek-stage-dot"></span>
+                  {{ stamp() ? stamp() + ' · Yüklenmiş / taranmış bir belge bulunmuyor' : 'Yüklenmiş / taranmış bir belge bulunmuyor' }}
+                </div>
+              </div>
+            } @else if (pdfUrl(); as url) {
               <iframe class="sk-pdf" [src]="url" title="Taranmış belge"></iframe>
             } @else {
               <div class="sk-pdf sk-pdf-missing">
@@ -130,9 +166,7 @@
                   </select>
                 </div>
               </div>
-              @if (numberLocked()) {
-                <span class="sk-hint sk-hint-top"><span class="material-symbols-outlined">lock</span>Belge bu numaraya bağlı.</span>
-              } @else if (numberChoices().length) {
+              @if (numberChoices().length) {
                 <div class="sk-hint-top">
                   <span class="sk-hint">Barkodda birden fazla numara okundu, birini seçin:</span>
                   <div class="sk-chips">
@@ -287,3 +321,12 @@
     }
   }
 </div>
+
+<!-- Belge Yükle: taranmış belgesi olmayan evraka PDF (Evrak Kayıt ile aynı pencere) -->
+<app-upload-document-modal
+  [document]="uploadDoc()"
+  [loading]="uploading()"
+  [navigationHint]="false"
+  confirmLabel="Yükle"
+  (confirmed)="confirmUpload($event)"
+  (cancelled)="closeUpload()" />

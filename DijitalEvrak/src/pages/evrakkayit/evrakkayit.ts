@@ -96,7 +96,7 @@ interface AttachmentUpload {
   // Görsel dil Ön Kayıt / Zimmet ekranlarıyla aynı; ortak zm-* sınıfları
   // gidenevrak/zimmet.css'ten, ok-input gibi form parçaları onkayit.css'ten,
   // bu ekrana özgü ek-* sınıfları evrakkayit.css'ten gelir.
-  styleUrls: ['../gidenevrak/zimmet/zimmet.css', '../onkayit/onkayit.css', './evrakkayit.css'],
+  styleUrls: ['../gidenevrak/zimmet/zimmet.css', '../onkayit/onkayit.css', './evrakkayit.css', './evrak-stage.css'],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
