@@ -126,8 +126,9 @@
 
 /* ---- Ayar çubuğu ---- */
 /*
- * Ayar çubuğu: Tarama Klasörleri'ndeki seçili sekmenin lacivert geçişi. Üstündeki denetimler yarı saydam
- * açık renk; seçili bölüm ve ana düğme beyaz zemin üstünde lacivert yazıyla öne çıkar. Açık ve koyu temada aynı.
+ * Ayar çubuğu: Kontrol Paneli'ndeki Yönetici Paneli başlığının (.ad-hero) mavi geçişi; koyu temada onun
+ * koyu karşılığı. Üstündeki denetimler yarı saydam açık renk; seçili bölüm ve ana düğme beyaz zemin üstünde
+ * lacivert yazıyla öne çıkar.
  */
 .et-toolbar {
     --et-bar-text: #f0f9ff;
@@ -142,8 +143,12 @@
     align-items: flex-end;
     gap: 14px 28px;
     padding: 16px 22px;
-    background: linear-gradient(120deg, #0f172a 0%, #0c4a6e 55%, #0369a1 100%);
+    background: linear-gradient(135deg, #0369a1 0%, #0284c7 45%, #06b6d4 100%);
     color: var(--et-bar-text);
+}
+
+:host-context([data-theme="dark"]) .et-toolbar {
+    background: linear-gradient(120deg, #0b1220 0%, #0c3a57 55%, #075985 100%);
 }
 
 .et-field {

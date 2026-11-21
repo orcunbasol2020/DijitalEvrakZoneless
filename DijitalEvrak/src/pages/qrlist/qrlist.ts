@@ -27,7 +27,7 @@ const SHEET_STORAGE_KEY = 'qrlist.sheet';
  * Etiket kâğıdı yerleşimi (A4, mm) ve o etikete göre içerik ölçüleri. Her hücre bir etikettir; etiket ölçüsü
  * kenar boşluklarından sonra kalan alandan çıkar: (210 - 2 × marginX) / columns × (297 - 2 × marginY) / rows.
  *
- * QR etiketi: solda QR, sağında "Atlas Belge No" ve numara. pdfmake QR modülünü tam punto sayısına yuvarlar
+ * QR etiketi: solda QR, sağında "Belge Numarası" ve numara. pdfmake QR modülünü tam punto sayısına yuvarlar
  * (21 modüllük QR'da 15 mm → 2 pt modül → 14,8 mm); daha küçük değer modülü 1 pt'ye düşürüp QR'ı yarıya indirir,
  * 3 pt modül (22,2 mm) ise 40'lık etikette yazıcının basamadığı kenar şeridine taşar.
  *
@@ -515,7 +515,7 @@ export default class Qrlist implements OnInit {
           {
             width: 'auto',
             stack: [
-              { text: 'Atlas Belge No', fontSize: s.qrCaptionPt, bold: true, color: '#444', characterSpacing: 0.4, alignment: 'center' },
+              { text: 'Belge Numarası', fontSize: s.qrCaptionPt, bold: true, color: '#444', characterSpacing: 0.4, alignment: 'center' },
               { text: no, fontSize: s.qrNumberPt, bold: true, margin: [0, captionGap, 0, 0] }
             ],
             // Sağdaki boş alanda ortalı dursun diye yazı bloğu ~1,2 mm (ekranda ~4-5 px) sağa alınır
