@@ -24,6 +24,8 @@ import { UrgencyDegreeLabels, UrgencyDegreeBadgeClass } from '../../models/urgen
 import { DocumentTypeLabels } from '../../models/documenttype.model';
 import { Department, DepartmentModel } from '../../services/department';
 import { ExternalInstitution, ExternalInstitutionModel } from '../../services/external-institution';
+import { RoleService } from '../../services/role-service';
+import { InPersonDeliveryComponent } from '../in-person-delivery/in-person-delivery';
 
 type ZimmetType = 'self' | 'other';
 // Sol paneldeki sekmeler: evrak bilgileri / zimmet geçmişi
@@ -52,6 +54,9 @@ export interface ZimmetResult {
   failed: ScannedDoc[];
   // Backend'in hata mesajı (ör. evrakın bekleyen onay talebi var), evrak Id'sine göre
   failReasons: Record<string, string>;
+  // Yerinde teslim için: Devret'te alıcı ve onaya gönderilen taleplerin Id'leri
+  targetUserId: string | null;
+  pendingRequestIds: string[];
 }
 
 @Component({
@@ -62,7 +67,8 @@ export interface ZimmetResult {
     FormsModule,
     ReactiveFormsModule,
     AllocationFlowComponent,
-    SimpleAutocompleteComponent
+    SimpleAutocompleteComponent,
+    InPersonDeliveryComponent
   ],
   templateUrl: './zimmet.html',
   // Görsel dil Ön Kayıt / Giden Evrak Teslim Al ekranlarıyla aynı; ortak zm-*
@@ -214,6 +220,32 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
 
   // Kayıt sonrası sonuç popup'ı (toast yerine).
   readonly saveResult = signal<ZimmetResult | null>(null);
+
+  // === YERİNDE TESLİM ===
+  // Evrakını almaya gelen kişi, evrak biriminden bekleyen zimmetlerini teslim PIN'iyle bu ekranda
+  // teslim alır. Yalnızca Gelen Evrak rolü başlatabilir (backend de denetler).
+  private readonly roleService = inject(RoleService);
+  readonly canDeliverInPerson = signal(this.roleService.has('Gelen Evrak'));
+  readonly inPerson = signal<{ receiverUserId: string | null; requestIds: string[] | null } | null>(null);
+
+  openInPerson(receiverUserId: string | null, requestIds: string[] | null): void {
+    this.saveResult.set(null);
+    this.inPerson.set({ receiverUserId, requestIds });
+    this.cdr.markForCheck();
+  }
+
+  // Teslim edilen evraklar bu ekranın listesindeyse zimmet bilgileri yenilenir
+  onInPersonClosed(approvedCount: number): void {
+    this.inPerson.set(null);
+    if (approvedCount > 0) {
+      for (const d of this.docs()) {
+        this.loadPendingRequest(d.id);
+        this.loadAllocations(d.id);
+      }
+    }
+    this.cdr.markForCheck();
+    if (!this.scanCollapsed) this.focusQrInputSoon();
+  }
 
   id!: string | null;
   // Sol paneldeki sekme (Evrak Bilgileri / Zimmet Geçmişi) ve zimmet türü.
@@ -403,6 +435,12 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
   // Odak bir form alanındayken (personel arama, QR alanının kendisi) tuşlar
   // tampona alınmaz; aksi halde oraya yazılan metin QR olarak okunmaya çalışılırdı.
   private handleKeydown(e: KeyboardEvent) {
+    // Yerinde teslim penceresi açıkken okuyucu pasif; Escape'i pencere kendisi işler
+    if (this.inPerson()) {
+      this.buffer = '';
+      return;
+    }
+
     // Popup'lar Escape ile kapanır.
     if (e.key === 'Escape' && this.saveResult()) {
       this.closeResult();
@@ -695,8 +733,11 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
 
     const docs = allDocs.filter(d => !skipped.includes(d) && !blocked.includes(d));
 
+    // Yerinde teslim yalnızca başka birine Devret'te anlamlı
+    const targetUserId = this.zimmetType() === 'other' ? personId : null;
+
     if (docs.length === 0) {
-      this.saveResult.set({ targetName, actionLabel, succeeded: [], pending: [], skipped, failed, failReasons });
+      this.saveResult.set({ targetName, actionLabel, succeeded: [], pending: [], skipped, failed, failReasons, targetUserId, pendingRequestIds: [] });
       this.cdr.markForCheck();
       return;
     }
@@ -706,6 +747,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
 
     const succeeded: ScannedDoc[] = [];
     const pending: ScannedDoc[] = [];
+    const pendingRequestIds: string[] = [];
 
     for (const doc of docs) {
       try {
@@ -718,8 +760,10 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
         }));
         const outcome = DocumentAllocation.classifyCreateResponse(res);
         if (outcome.kind === 'allocated') succeeded.push(doc);
-        else if (outcome.kind === 'pending') pending.push(doc);
-        else {
+        else if (outcome.kind === 'pending') {
+          pending.push(doc);
+          if (outcome.requestId) pendingRequestIds.push(outcome.requestId);
+        } else {
           failed.push(doc);
           failReasons[doc.id] = outcome.reason;
         }
@@ -732,7 +776,7 @@ export default class Zimmet implements OnInit, AfterViewInit, OnDestroy {
     this.saving.set(false);
 
     // Sonuç toast yerine popup'ta gösterilir: sayılar ve her gruptaki evraklar.
-    this.saveResult.set({ targetName, actionLabel, succeeded, pending, skipped, failed, failReasons });
+    this.saveResult.set({ targetName, actionLabel, succeeded, pending, skipped, failed, failReasons, targetUserId, pendingRequestIds });
 
     if (succeeded.length + pending.length > 0) {
       this.personControl.setValue(null);

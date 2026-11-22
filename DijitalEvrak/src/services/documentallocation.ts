@@ -13,7 +13,7 @@ export interface CreateAllocationPendingData {
 
 export type CreateAllocationOutcome =
   | { kind: 'allocated' }
-  | { kind: 'pending' }
+  | { kind: 'pending'; requestId: string | null }
   | { kind: 'failed'; reason: string };
 
 @Injectable({ providedIn: 'root' })
@@ -111,7 +111,7 @@ export class DocumentAllocation {
     res: MessageResponse<CreateAllocationPendingData | unknown> | null | undefined
   ): CreateAllocationOutcome {
     const data = res?.data as CreateAllocationPendingData | null | undefined;
-    if (data?.isPendingApproval) return { kind: 'pending' };
+    if (data?.isPendingApproval) return { kind: 'pending', requestId: data.requestId ?? null };
     if (res?.message === DocumentAllocation.CREATE_SUCCESS_MESSAGE) return { kind: 'allocated' };
     return { kind: 'failed', reason: res?.message || 'Zimmet kaydedilemedi' };
   }

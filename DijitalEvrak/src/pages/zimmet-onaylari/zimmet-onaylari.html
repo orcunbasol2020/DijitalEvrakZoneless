@@ -19,6 +19,11 @@
     </div>
 
     <div class="zl-hero-side">
+      <button type="button" class="st-hero-btn" (click)="pinDialogOpen.set(true)"
+        title="Evrak biriminde evrakı yerinde teslim alırken gireceğiniz PIN">
+        Teslim PIN'im
+        <span class="material-symbols-outlined">pin</span>
+      </button>
       <button type="button" class="st-hero-btn" [disabled]="loading()" (click)="reload()">
         Yenile
         <span class="material-symbols-outlined" [class.zl-spin]="loading()">refresh</span>
@@ -616,4 +621,9 @@
       </footer>
     </div>
   </div>
+}
+
+<!-- Teslim PIN'im: evrak biriminde zimmeti memurun ekranında yerinde teslim alırken girilir -->
+@if (pinDialogOpen()) {
+  <app-delivery-pin-dialog (closed)="pinDialogOpen.set(false)" />
 }

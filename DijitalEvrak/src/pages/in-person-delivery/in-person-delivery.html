@@ -1,0 +1,163 @@
+<!-- Evrak biriminde yerinde teslim: teslim alan kişi PIN'ini memurun ekranında girer.
+     Kaplamaya tıklamak pencereyi kapatmaz; kişi PIN yazarken yanlışlıkla kapanmasın. -->
+<div class="modal-overlay ipd-overlay">
+  <div class="modal-box ipd-modal" role="dialog" aria-modal="true" aria-labelledby="ipd-title"
+    (keydown.escape)="close()">
+
+    <div class="ipd-header">
+      <span class="ipd-header-icon">
+        <span class="material-symbols-outlined">how_to_reg</span>
+      </span>
+      <div class="ipd-header-text">
+        <div id="ipd-title" class="ipd-title">Yerinde Teslim</div>
+        <div class="ipd-subtitle">Teslim alan kişi kendi teslim PIN'ini girerek evrakları teslim alır.</div>
+      </div>
+      <button type="button" class="ipd-icon-btn" title="Kapat" [disabled]="submitting()" (click)="close()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <div class="ipd-body">
+      @if (pending(); as p) {
+        @if (phase() !== 'pick' && phase() !== 'loading') {
+          <!-- Teslim alan: PIN girecek kişi adını açıkça görsün -->
+          <div class="ipd-person">
+            <span class="ipd-avatar">{{ initials(p.receiverFullName) }}</span>
+            <span class="ipd-person-text">
+              <span class="ipd-person-label">Teslim alan</span>
+              <span class="ipd-person-name">{{ p.receiverFullName }}</span>
+              @if (p.receiverDepartmentName) { <span class="ipd-person-dept">{{ p.receiverDepartmentName }}</span> }
+            </span>
+            @if (!receiverUserId() && phase() !== 'success') {
+              <button type="button" class="ipd-link" (click)="changePerson()">Kişiyi değiştir</button>
+            }
+          </div>
+        }
+      }
+
+      @switch (phase()) {
+        @case ('pick') {
+          <label class="ipd-label" for="ipd-person">Evrakı teslim alacak kişi</label>
+          <app-simple-autocomplete [control]="personControl" [options]="personOptions()"
+            [loading]="personsLoading()" loadingText="Personel yükleniyor..."
+            [minChars]="2" placeholder="Ad soyad ile arayın" />
+          <p class="ipd-hint">Kişiyi seçince evrak biriminden ona gönderilmiş ve onay bekleyen evraklar listelenir.</p>
+        }
+
+        @case ('loading') {
+          <div class="ipd-state">
+            <span class="spinner-border text-primary"></span>
+            <span>Bekleyen evraklar alınıyor…</span>
+          </div>
+        }
+
+        @case ('empty') {
+          <div class="ipd-state">
+            <span class="material-symbols-outlined">inbox</span>
+            <span class="ipd-state-title">Teslim bekleyen evrak yok</span>
+            <span>Bu kişiye evrak biriminden gönderilmiş, onay bekleyen zimmet bulunmuyor.</span>
+          </div>
+        }
+
+        @case ('noPin') {
+          <div class="ipd-state is-warn">
+            <span class="material-symbols-outlined">pin</span>
+            <span class="ipd-state-title">Teslim PIN'i tanımlı değil</span>
+            <span>
+              Kişi kendi bilgisayarında <strong>Zimmet Onayları → Teslim PIN'im</strong> bölümünden PIN belirleyebilir.
+              O zamana kadar evrakları kendi ekranından onaylayabilir; zimmetler onayında bekliyor.
+            </span>
+          </div>
+        }
+
+        @case ('locked') {
+          <div class="ipd-state is-fail">
+            <span class="material-symbols-outlined">lock_clock</span>
+            <span class="ipd-state-title">Teslim PIN'i geçici olarak kilitli</span>
+            <span>
+              Art arda hatalı denemeler nedeniyle
+              @if (lockedUntil(); as until) { <strong>{{ until | date:'HH:mm' }}</strong> saatine kadar }
+              PIN ile teslim yapılamaz. Kişi evrakları kendi ekranından onaylayabilir.
+            </span>
+          </div>
+        }
+
+        @case ('error') {
+          <div class="ipd-state is-fail">
+            <span class="material-symbols-outlined">error</span>
+            <span>{{ errorText() }}</span>
+          </div>
+        }
+
+        @case ('success') {
+          <div class="ipd-state is-ok">
+            <span class="material-symbols-outlined ipd-success-icon">check_circle</span>
+            <span class="ipd-state-title">{{ approvedCount() }} evrak teslim alındı</span>
+            <span>Zimmet {{ pending()?.receiverFullName }} üzerine geçti.</span>
+            @if (failedMessages().length) {
+              <ul class="ipd-failed">
+                @for (m of failedMessages(); track $index) { <li>{{ m }}</li> }
+              </ul>
+            }
+          </div>
+        }
+
+        @case ('ready') {
+          <div class="ipd-list-head">
+            <span>Teslim edilecek evraklar <strong>{{ selectedCount() }}/{{ requests().length }}</strong></span>
+            @if (requests().length > 1) {
+              <button type="button" class="ipd-link" (click)="toggleAll()">{{ allSelected() ? 'Seçimi kaldır' : 'Tümünü seç' }}</button>
+            }
+          </div>
+          <ul class="ipd-list">
+            @for (r of requests(); track r.id) {
+              <li>
+                <label class="ipd-row" [class.is-on]="isSelected(r)">
+                  <input type="checkbox" [checked]="isSelected(r)" (change)="toggle(r)">
+                  <span class="ipd-row-body">
+                    <span class="ipd-row-no">{{ requestLabel(r) }}</span>
+                    @if (r.subject) { <span class="ipd-row-subject" [title]="r.subject">{{ r.subject }}</span> }
+                  </span>
+                  <span class="ipd-row-meta">
+                    <span class="ipd-chip">{{ operationLabel(r.requestedAllocationStatus) }}</span>
+                    <span class="ipd-row-date">{{ r.createdDate | date:'dd.MM HH:mm' }}</span>
+                  </span>
+                </label>
+              </li>
+            }
+          </ul>
+
+          <label class="ipd-label" for="ipd-pin">Teslim PIN'i</label>
+          <input #pinInput id="ipd-pin" class="form-control ipd-pin" type="password" inputmode="numeric"
+            autocomplete="off" [attr.maxlength]="pinMaxLength" [disabled]="submitting()"
+            [class.is-invalid]="pinError()" (input)="onPinInput($event)"
+            (keydown.enter)="$event.preventDefault(); submit()">
+          @if (pinError(); as e) {
+            <div class="ipd-pin-error" role="alert">
+              <span class="material-symbols-outlined">error</span>
+              {{ e }}
+            </div>
+          } @else {
+            <div class="ipd-hint">PIN'i yalnızca teslim alan kişi girmelidir. Teslim, kişinin adına kaydedilir.</div>
+          }
+        }
+      }
+    </div>
+
+    <div class="ipd-footer">
+      @if (phase() === 'ready') {
+        <button type="button" class="btn btn-light" [disabled]="submitting()" (click)="close()">Vazgeç</button>
+        <button type="button" class="btn btn-primary ipd-submit" [disabled]="!canSubmit()" (click)="submit()">
+          @if (submitting()) {
+            <span class="spinner-border spinner-border-sm"></span>
+          } @else {
+            <span class="material-symbols-outlined">how_to_reg</span>
+          }
+          Teslim Al
+        </button>
+      } @else {
+        <button type="button" class="btn btn-primary" (click)="close()">{{ phase() === 'success' ? 'Tamam' : 'Kapat' }}</button>
+      }
+    </div>
+  </div>
+</div>

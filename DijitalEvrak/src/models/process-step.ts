@@ -16,7 +16,7 @@ export interface ProcessStep {
 
 // İşlem türüne göre zaman çizelgesi düğümünün ikonu ve rengi.
 // 1 Ön Kayıt, 6 Zimmet, 7 Teslim, 8 OCR, 9 Birim Arşivi, 17 Şerhli Kabul,
-// 19 Atlas Aktarımı Hatalı, 20 Ek Yükleme, 21 Ek Silme; diğerleri varsayılan.
+// 19 Atlas Aktarımı Hatalı, 20 Ek Yükleme, 21 Ek Silme, 22 Evrak Biriminde Yerinde Teslim Alındı; diğerleri varsayılan.
 const TYPE_STYLE: Record<number, { icon: string; tone: ProcessTone }> = {
   1: { icon: 'app_registration', tone: 'info' },
   6: { icon: 'contract_edit', tone: 'info' },
@@ -27,6 +27,7 @@ const TYPE_STYLE: Record<number, { icon: string; tone: ProcessTone }> = {
   19: { icon: 'cloud_off', tone: 'danger' },
   20: { icon: 'attach_file_add', tone: 'info' },
   21: { icon: 'link_off', tone: 'neutral' },
+  22: { icon: 'how_to_reg', tone: 'success' },
 };
 
 // Kilometre taşları hem bilinen tür numarasından hem de backend'in gönderdiği işlem
@@ -37,6 +38,10 @@ const MILESTONE_BY_TYPE: Record<number, ProcessMilestone> = {
   9: 'archive',
   18: 'publish',
 };
+
+// Adında "teslim" geçse de kilometre taşı sayılmayan türler: 22 Teslim Alındı / Devir Alındı kaydının yanına
+// yazılan "yerinde onaylandı" notudur, teslim adımını ikinci kez çizmemeli.
+const NON_MILESTONE_TYPES = new Set([22]);
 
 const MILESTONE_BY_NAME: Array<{ pattern: RegExp; kind: ProcessMilestone }> = [
   { pattern: /yay[ıi]n/i, kind: 'publish' },
@@ -59,6 +64,7 @@ const AUTO_ZIMMET_WINDOW_MS = 5 * 60 * 1000;
 
 // Adımın kilometre taşı türü; kilometre taşı değilse null.
 export function processMilestoneKind(t: DocumentTransactionModel): ProcessMilestone | null {
+  if (NON_MILESTONE_TYPES.has(t.transactionType)) return null;
   const byType = MILESTONE_BY_TYPE[t.transactionType];
   if (byType) return byType;
   const name = t.transactionTypeName ?? '';
@@ -88,6 +94,7 @@ export function processPersonLabel(t: DocumentTransactionModel): string {
   if (type === 17) return 'Kabul Eden';
   if (type === 20) return 'Yükleyen';
   if (type === 21) return 'Silen';
+  if (type === 22) return 'Teslim Alan';
   return 'Kullanıcı';
 }
 

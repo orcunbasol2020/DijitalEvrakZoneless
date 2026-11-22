@@ -25,6 +25,7 @@ import {
   NotificationTypeIcons,
   NotificationTypeTones
 } from '../../models/notification.model';
+import { DeliveryPinDialogComponent } from '../delivery-pin/delivery-pin-dialog';
 
 // Onayımı bekleyenler (alıcı) / gönderdiklerim (devreden veya işlemi yapan)
 type ApprovalTab = 'bekleyen' | 'gonderilen' | 'bildirimler';
@@ -46,7 +47,7 @@ interface FailedRow {
 // toplu onaylar / reddeder; devreden bekleyen taleplerini izler ve geri çeker.
 // Onaylanan satır listeden düşer; ayrıca başarı bildirimi gösterilmez.
 @Component({
-  imports: [GenericModel, CommonModule, FormsModule],
+  imports: [GenericModel, CommonModule, FormsModule, DeliveryPinDialogComponent],
   templateUrl: './zimmet-onaylari.html',
   // Kart iskeleti (st-*), üst kart / arama / boş durum (sp-*) ve liste (zl-*) Zimmetlerim ile ortak
   styleUrls: ['../settings/settings.css', '../support/support.css', '../zimmetlerim/zimmetlerim.css', './zimmet-onaylari.css'],
@@ -65,6 +66,9 @@ export default class ZimmetOnaylari implements OnInit {
 
   readonly activeTab = signal<ApprovalTab>('bekleyen');
   readonly searchQuery = signal('');
+
+  // Teslim PIN'im penceresi: evrak biriminde yerinde teslim alırken girilen kişisel PIN
+  readonly pinDialogOpen = signal(false);
 
   // Onayımı bekleyenler ortak listeden gelir (zil ve sol menü rozetiyle aynı)
   readonly incoming = this.requestService.pendingForMe;

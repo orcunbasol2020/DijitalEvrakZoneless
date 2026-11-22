@@ -4,6 +4,8 @@ import { HttpService } from './http';
 import {
   AllocationRequestActionResult,
   AllocationRequestModel,
+  InPersonApproveResult,
+  InPersonPending,
   MessageResponse
 } from '../models/allocationrequest.model';
 
@@ -64,6 +66,21 @@ export class AllocationRequestService {
   cancelBulk(requestIds: string[], userId: string, note: string | null) {
     return this.http.post<MessageResponse<AllocationRequestActionResult[]>>(
       `${this.baseUrl}/CancelBulk`, { requestIds, userId, note }
+    );
+  }
+
+  // Evrak biriminde yerinde teslim (yalnızca Gelen Evrak rolü; memur token'dan alınır):
+  // alıcının evrak biriminden bekleyen talepleri ve teslim PIN'i durumu
+  getInPersonPending(receiverUserId: string) {
+    return this.http.get<MessageResponse<InPersonPending>>(
+      `${this.baseUrl}/GetInPersonPending?receiverUserId=${encodeURIComponent(receiverUserId)}`
+    );
+  }
+
+  // Alıcı PIN'ini memurun ekranında girer; PIN hatalıysa hiçbir talep işlenmez
+  approveInPerson(receiverUserId: string, requestIds: string[], pin: string) {
+    return this.http.post<MessageResponse<InPersonApproveResult>>(
+      `${this.baseUrl}/ApproveInPerson`, { receiverUserId, requestIds, pin }
     );
   }
 

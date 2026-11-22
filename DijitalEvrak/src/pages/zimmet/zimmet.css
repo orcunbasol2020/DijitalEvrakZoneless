@@ -1374,3 +1374,61 @@
 .zm-pick-tabs {
     margin-top: 0;
 }
+
+/* ---- Yerinde teslim: evrakını almaya gelen kişi PIN'iyle teslim alır ----
+   QR alanının altında (Teslim Ver) ve zimmet sonucu penceresinde (Şimdi Teslim Et) aynı şerit */
+.iz-handover {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid #bae6fd;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #f0f9ff 0%, #ecfeff 100%);
+}
+
+.iz-handover.is-inline { margin: 0 20px 14px; }
+
+.iz-handover-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #0369a1 0%, #0284c7 45%, #06b6d4 100%);
+    color: #fff;
+}
+
+.iz-handover-text { flex: 1 1 auto; min-width: 0; }
+.iz-handover-title { font-weight: 700; color: #0c4a6e; font-size: 0.9rem; }
+.iz-handover-sub { color: #475569; font-size: 0.78rem; }
+
+.btn.iz-handover-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+    border: 0;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #0369a1 0%, #0284c7 45%, #06b6d4 100%);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.btn.iz-handover-btn .material-symbols-outlined { font-size: 18px; }
+.btn.iz-handover-btn:hover { filter: brightness(1.06); }
+
+[data-theme="dark"] .iz-handover {
+    border-color: rgba(14, 165, 233, 0.3);
+    background: rgba(14, 165, 233, 0.1);
+}
+
+[data-theme="dark"] .iz-handover-title { color: #e0f2fe; }
+[data-theme="dark"] .iz-handover-sub { color: #94a3b8; }
+
+@media (max-width: 520px) {
+    .iz-handover { flex-wrap: wrap; }
+    .btn.iz-handover-btn { width: 100%; justify-content: center; }
+}

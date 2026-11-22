@@ -79,6 +79,44 @@ export interface MessageResponse<T> {
   data?: T | null;
 }
 
+// === EVRAK BİRİMİNDE YERİNDE TESLİM ===
+// Alıcı, evrak memurunun ekranında kişisel teslim PIN'ini girerek evrak biriminin açtığı
+// bekleyen talepleri onaylar. Kendi ekranından onaylama yolu aynen kalır.
+
+export enum DeliveryPinCheckResultEnum {
+  Dogru = 1,
+  Tanimsiz = 2,
+  Yanlis = 3,
+  Kilitli = 4
+}
+
+export interface DeliveryPinStatus {
+  hasPin: boolean;
+  updatedDate?: string | null;
+  lockedUntilUtc?: string | null;
+}
+
+export interface InPersonPending {
+  receiverUserId: string;
+  receiverFullName: string;
+  receiverDepartmentName?: string | null;
+  hasPin: boolean;
+  lockedUntilUtc?: string | null;
+  requests: AllocationRequestModel[];
+}
+
+export interface InPersonApproveResult {
+  pinResult: DeliveryPinCheckResultEnum;
+  remainingAttempts?: number | null;
+  lockedUntilUtc?: string | null;
+  approvedCount: number;
+  results: AllocationRequestActionResult[];
+}
+
+// Backend kuralıyla aynı (DeliveryPinRules): 4-6 rakam
+export const DELIVERY_PIN_MIN_LENGTH = 4;
+export const DELIVERY_PIN_MAX_LENGTH = 6;
+
 // Talep edilen işlemin ekrandaki adı
 export function allocationRequestOperationLabel(status: AllocationStatusEnum): string {
   return Number(status) === AllocationStatusEnum.Teslim ? 'Teslim' : 'Devir';

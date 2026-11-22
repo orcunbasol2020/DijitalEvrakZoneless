@@ -1,0 +1,26 @@
+/* Teslim PIN'im penceresi; iskelet ve değişkenler in-person-delivery.css'ten (ipd-*) */
+
+.modal-box.ipd-modal.dpd-modal { width: 440px; }
+
+.dpd-status {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--ipd-border);
+    border-radius: 12px;
+    background: var(--ipd-soft);
+    font-size: 0.82rem;
+}
+
+.dpd-status .material-symbols-outlined { font-size: 20px; color: var(--ipd-accent); }
+.dpd-status.is-on .material-symbols-outlined { color: var(--ipd-ok); }
+.dpd-status.is-warn .material-symbols-outlined { color: var(--ipd-warn); }
+.dpd-muted { color: var(--ipd-muted); }
+
+.dpd-rules {
+    margin: 4px 0 0;
+    padding-left: 18px;
+    font-size: 0.76rem;
+    color: var(--ipd-muted);
+}

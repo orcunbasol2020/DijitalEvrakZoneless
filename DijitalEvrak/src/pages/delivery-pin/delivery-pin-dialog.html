@@ -1,0 +1,81 @@
+<div class="modal-overlay ipd-overlay" (click)="close()">
+  <div class="modal-box ipd-modal dpd-modal" role="dialog" aria-modal="true" aria-labelledby="dpd-title"
+    (click)="$event.stopPropagation()" (keydown.escape)="close()">
+
+    <div class="ipd-header">
+      <span class="ipd-header-icon">
+        <span class="material-symbols-outlined">pin</span>
+      </span>
+      <div class="ipd-header-text">
+        <div id="dpd-title" class="ipd-title">Teslim PIN'im</div>
+        <div class="ipd-subtitle">Evrak biriminde evrakı yerinde teslim alırken girersiniz.</div>
+      </div>
+      <button type="button" class="ipd-icon-btn" title="Kapat" [disabled]="saving()" (click)="close()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <div class="ipd-body">
+      @if (loading()) {
+        <div class="ipd-state">
+          <span class="spinner-border text-primary"></span>
+        </div>
+      } @else {
+        <div class="dpd-status" [class.is-on]="status()?.hasPin">
+          <span class="material-symbols-outlined">{{ status()?.hasPin ? 'verified_user' : 'info' }}</span>
+          @if (status()?.hasPin) {
+            <span>
+              Teslim PIN'iniz tanımlı
+              @if (status()?.updatedDate; as d) { <span class="dpd-muted">· son değişiklik {{ d | date:'dd.MM.yyyy HH:mm' }}</span> }
+            </span>
+          } @else {
+            <span>Henüz teslim PIN'iniz yok. PIN belirlediğinizde evrak biriminde evrakı beklemeden, yerinde teslim alabilirsiniz.</span>
+          }
+        </div>
+
+        @if (lockedUntil(); as until) {
+          <div class="dpd-status is-warn">
+            <span class="material-symbols-outlined">lock_clock</span>
+            <span>Hatalı denemeler nedeniyle PIN'iniz {{ until | date:'HH:mm' }} saatine kadar kilitli. Yeni PIN belirlerseniz kilit kalkar.</span>
+          </div>
+        }
+
+        <label class="ipd-label" for="dpd-pin">{{ status()?.hasPin ? 'Yeni PIN' : 'PIN' }}</label>
+        <input #pinInput id="dpd-pin" class="form-control ipd-pin" type="password" inputmode="numeric"
+          autocomplete="new-password" [attr.maxlength]="pinMaxLength" [disabled]="saving()"
+          (input)="onInput($event, 'pin')" (keydown.enter)="$event.preventDefault(); save()">
+
+        <label class="ipd-label" for="dpd-confirm">PIN tekrar</label>
+        <input id="dpd-confirm" class="form-control ipd-pin" type="password" inputmode="numeric"
+          autocomplete="new-password" [attr.maxlength]="pinMaxLength" [disabled]="saving()"
+          [class.is-invalid]="errorText()" (input)="onInput($event, 'confirm')"
+          (keydown.enter)="$event.preventDefault(); save()">
+
+        @if (errorText(); as e) {
+          <div class="ipd-pin-error" role="alert">
+            <span class="material-symbols-outlined">error</span>
+            {{ e }}
+          </div>
+        }
+
+        <ul class="dpd-rules">
+          <li>{{ pinMinLength }}-{{ pinMaxLength }} haneli, yalnızca rakam</li>
+          <li>Aynı rakamın tekrarı (0000) ve ardışık rakamlar (1234) olamaz</li>
+          <li>PIN'inizi kimseyle paylaşmayın; yerinde teslim sizin adınıza kaydedilir</li>
+        </ul>
+      }
+    </div>
+
+    <div class="ipd-footer">
+      <button type="button" class="btn btn-light" [disabled]="saving()" (click)="close()">Vazgeç</button>
+      <button type="button" class="btn btn-primary ipd-submit" [disabled]="!canSave() || loading()" (click)="save()">
+        @if (saving()) {
+          <span class="spinner-border spinner-border-sm"></span>
+        } @else {
+          <span class="material-symbols-outlined">save</span>
+        }
+        Kaydet
+      </button>
+    </div>
+  </div>
+</div>

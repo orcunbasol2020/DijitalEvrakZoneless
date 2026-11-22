@@ -30,7 +30,9 @@ export enum NotificationTypeEnum {
   ZimmetTalebiIptal = 5,
   ZimmetOnayGecikme = 6,
   ZimmetTalebiGecersiz = 7,
-  ZimmetSerhliKabul = 8
+  ZimmetSerhliKabul = 8,
+  // Alıcı evrakı evrak biriminde, memurun ekranında teslim PIN'iyle teslim aldı (alıcıya bilgi)
+  YerindeTeslimAlindi = 9
 }
 
 // Tür 1 ve 2 "onayınızı bekleyen evraklar"ı haber verir. Bu evraklar zil menüsünde ve
@@ -54,7 +56,8 @@ export const NotificationTypeIcons: Record<NotificationTypeEnum, string> = {
   [NotificationTypeEnum.ZimmetTalebiIptal]: 'undo',
   [NotificationTypeEnum.ZimmetOnayGecikme]: 'schedule',
   [NotificationTypeEnum.ZimmetTalebiGecersiz]: 'link_off',
-  [NotificationTypeEnum.ZimmetSerhliKabul]: 'rule'
+  [NotificationTypeEnum.ZimmetSerhliKabul]: 'rule',
+  [NotificationTypeEnum.YerindeTeslimAlindi]: 'how_to_reg'
 };
 
 // Renk tonu (is-*): onay yeşil, red kırmızı, gecikme ve şerhli kabul kehribar, diğerleri mavi / gri
@@ -67,5 +70,6 @@ export const NotificationTypeTones: Record<NotificationTypeEnum, string> = {
   [NotificationTypeEnum.ZimmetOnayGecikme]: 'is-warn',
   [NotificationTypeEnum.ZimmetTalebiGecersiz]: 'is-muted',
   // Kabul edildi ama şerh var: devredenin dikkatine
-  [NotificationTypeEnum.ZimmetSerhliKabul]: 'is-warn'
+  [NotificationTypeEnum.ZimmetSerhliKabul]: 'is-warn',
+  [NotificationTypeEnum.YerindeTeslimAlindi]: 'is-ok'
 };

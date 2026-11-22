@@ -157,6 +157,24 @@
                     </div>
                 </div>
 
+                <!-- Yerinde teslim: evrakını almaya gelen kişi, evrak biriminden bekleyen zimmetlerini
+                     PIN'iyle burada teslim alır (yalnızca Gelen Evrak rolü) -->
+                @if (canDeliverInPerson() && !detailsVisible() && !loading()) {
+                    <div class="iz-handover">
+                        <span class="iz-handover-icon">
+                            <span class="material-symbols-outlined">how_to_reg</span>
+                        </span>
+                        <div class="iz-handover-text">
+                            <div class="iz-handover-title">Evrakını almaya gelen var mı?</div>
+                            <div class="iz-handover-sub">Kişi, evrak biriminden gönderilmiş ve onay bekleyen evraklarını teslim PIN'iyle burada teslim alabilir.</div>
+                        </div>
+                        <button type="button" class="btn btn-primary iz-handover-btn" (click)="openInPerson(null, null)">
+                            <span class="material-symbols-outlined">how_to_reg</span>
+                            Teslim Ver
+                        </button>
+                    </div>
+                }
+
                 <!-- Sorgulanıyor (listede evrak varken durum yalnızca okutma şeridinde gösterilir) -->
                 <div class="zm-empty" *ngIf="loading() && !detailsVisible()">
                     <div class="zm-empty-icon">
@@ -731,6 +749,24 @@
 
       </div>
 
+      <!-- Onaya gönderilen evrakı alıcı şu an masadaysa PIN'iyle hemen teslim alabilir -->
+      @if (canDeliverInPerson() && r.pendingRequestIds.length && r.targetUserId) {
+        <div class="iz-handover is-inline">
+          <span class="iz-handover-icon">
+            <span class="material-symbols-outlined">how_to_reg</span>
+          </span>
+          <div class="iz-handover-text">
+            <div class="iz-handover-title">{{ r.targetName }} şu an burada mı?</div>
+            <div class="iz-handover-sub">Teslim PIN'ini girerek {{ r.pendingRequestIds.length > 1 ? r.pendingRequestIds.length + ' evrakı' : 'evrakı' }} hemen teslim alabilir; onay beklemez.</div>
+          </div>
+          <button type="button" class="btn btn-primary iz-handover-btn"
+            (click)="openInPerson(r.targetUserId, r.pendingRequestIds)">
+            <span class="material-symbols-outlined">how_to_reg</span>
+            Şimdi Teslim Et
+          </button>
+        </div>
+      }
+
       <div class="iz-modal-footer">
         <button type="button" class="btn btn-primary" (click)="closeResult()">
           Tamam
@@ -787,4 +823,11 @@
       </div>
     </div>
   </div>
+}
+
+<!-- Evrak biriminde yerinde teslim: alıcı PIN'ini girerek bekleyen zimmetlerini teslim alır -->
+@if (inPerson(); as ip) {
+  <app-in-person-delivery [receiverUserId]="ip.receiverUserId" [preselectedRequestIds]="ip.requestIds"
+    [personOptions]="personOptions()" [personsLoading]="usersResult.isLoading()"
+    (closed)="onInPersonClosed($event)" />
 }

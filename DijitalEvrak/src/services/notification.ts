@@ -106,7 +106,7 @@ export class NotificationService {
 
   // Bildirime tıklanınca okundu sayılır ve ilgili ekrana gidilir:
   // bekleyen onaylar ve iptal (alıcı) → Onayımı Bekleyenler, gecikme (devreden) → Gönderdiklerim,
-  // red (evrak devredene döndü) → Zimmetlerim, diğerleri → Bildirimler sekmesi.
+  // red (evrak devredene döndü) ve yerinde teslim (evrak alıcıda) → Zimmetlerim, diğerleri → Bildirimler sekmesi.
   open(notification: NotificationModel, userId: string): void {
     if (!notification.isRead) this.markAsRead(notification.id, userId);
 
@@ -119,6 +119,7 @@ export class NotificationService {
         this.router.navigate(['/zimmet-onaylari'], { queryParams: { sekme: 'gonderilen' } });
         break;
       case NotificationTypeEnum.ZimmetReddedildi:
+      case NotificationTypeEnum.YerindeTeslimAlindi:
         this.router.navigate(['/zimmetlerim']);
         break;
       default:

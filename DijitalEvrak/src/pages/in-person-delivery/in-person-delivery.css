@@ -1,0 +1,257 @@
+/* Yerinde Teslim penceresi (ipd-*); kaplama ve kutu iskeleti styles.css'teki modal-overlay / modal-box */
+
+:host {
+    --ipd-text: #0f172a;
+    --ipd-muted: #64748b;
+    --ipd-border: #e2e8f0;
+    --ipd-soft: #f8fafc;
+    --ipd-accent: #0284c7;
+    --ipd-accent-soft: #f0f9ff;
+    --ipd-accent-border: #bae6fd;
+    --ipd-ok: #16a34a;
+    --ipd-warn: #b45309;
+    --ipd-fail: #b91c1c;
+}
+
+:host-context([data-theme="dark"]) {
+    --ipd-text: #e2e8f0;
+    --ipd-muted: #94a3b8;
+    --ipd-border: rgba(148, 163, 184, 0.22);
+    --ipd-soft: rgba(15, 23, 42, 0.5);
+    --ipd-accent: #7dd3fc;
+    --ipd-accent-soft: rgba(14, 165, 233, 0.12);
+    --ipd-accent-border: rgba(14, 165, 233, 0.3);
+    --ipd-ok: #86efac;
+    --ipd-warn: #fcd34d;
+    --ipd-fail: #fca5a5;
+}
+
+.ipd-overlay { z-index: 1060; padding: 16px; }
+
+.modal-box.ipd-modal {
+    display: flex;
+    flex-direction: column;
+    width: 520px;
+    max-width: 100%;
+    max-height: calc(100vh - 32px);
+    border-radius: 16px;
+    overflow: hidden;
+    color: var(--ipd-text);
+}
+
+:host-context([data-theme="dark"]) .modal-box.ipd-modal { background: #1e293b; }
+
+/* Başlık: Seri Kayıt / Etiket Oluştur şeridiyle aynı mavi → turkuaz geçiş */
+.ipd-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 18px;
+    background: linear-gradient(135deg, #0369a1 0%, #0284c7 45%, #06b6d4 100%);
+    color: #f0f9ff;
+}
+
+:host-context([data-theme="dark"]) .ipd-header {
+    background: linear-gradient(120deg, #0b1220 0%, #0c3a57 55%, #075985 100%);
+}
+
+.ipd-header-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.16);
+}
+
+.ipd-header-text { flex: 1 1 auto; min-width: 0; }
+.ipd-title { font-size: 1.05rem; font-weight: 700; }
+.ipd-subtitle { font-size: 0.8rem; color: #bae6fd; }
+
+.ipd-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: inherit;
+}
+
+.ipd-icon-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.16); }
+
+.ipd-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 0;
+    padding: 18px;
+    overflow-y: auto;
+}
+
+/* Teslim alan kişi: büyük ad, PIN'i girecek kişi kendini görsün */
+.ipd-person {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--ipd-accent-border);
+    border-radius: 12px;
+    background: var(--ipd-accent-soft);
+}
+
+.ipd-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--ipd-accent);
+    color: #fff;
+    font-weight: 700;
+}
+
+:host-context([data-theme="dark"]) .ipd-avatar { color: #0c4a6e; }
+
+.ipd-person-text { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
+.ipd-person-label { font-size: 0.72rem; color: var(--ipd-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.ipd-person-name { font-size: 1.15rem; font-weight: 700; }
+.ipd-person-dept { font-size: 0.8rem; color: var(--ipd-muted); }
+
+.ipd-link {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--ipd-accent);
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.ipd-link:hover { text-decoration: underline; }
+
+.ipd-label { font-size: 0.8rem; font-weight: 600; color: var(--ipd-muted); margin: 4px 0 0; }
+.ipd-hint { margin: 0; font-size: 0.78rem; color: var(--ipd-muted); }
+
+.ipd-list-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.82rem;
+    color: var(--ipd-muted);
+}
+
+.ipd-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 240px;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+}
+
+.ipd-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--ipd-border);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.ipd-row:hover { background: var(--ipd-soft); }
+.ipd-row.is-on { border-color: var(--ipd-accent-border); background: var(--ipd-accent-soft); }
+.ipd-row input { flex: 0 0 auto; width: 16px; height: 16px; accent-color: var(--ipd-accent); }
+
+.ipd-row-body { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
+.ipd-row-no { font-size: 0.88rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ipd-row-subject { font-size: 0.78rem; color: var(--ipd-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.ipd-row-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex: 0 0 auto; }
+.ipd-row-date { font-size: 0.72rem; color: var(--ipd-muted); font-variant-numeric: tabular-nums; }
+
+.ipd-chip {
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--ipd-accent-soft);
+    color: var(--ipd-accent);
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+/* PIN: büyük, ortalı, aralıklı haneler */
+.form-control.ipd-pin {
+    height: 52px;
+    border-radius: 12px;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: 0.6em;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.ipd-pin-error {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--ipd-fail);
+}
+
+.ipd-pin-error .material-symbols-outlined { font-size: 18px; }
+
+.ipd-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 18px 8px;
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--ipd-muted);
+}
+
+.ipd-state > .material-symbols-outlined { font-size: 40px; color: var(--ipd-accent); }
+.ipd-state.is-warn > .material-symbols-outlined { color: var(--ipd-warn); }
+.ipd-state.is-fail > .material-symbols-outlined { color: var(--ipd-fail); }
+.ipd-state.is-ok > .material-symbols-outlined { color: var(--ipd-ok); }
+.ipd-state-title { font-size: 1rem; font-weight: 700; color: var(--ipd-text); }
+.ipd-success-icon { font-size: 56px !important; animation: ipd-pop 0.25s ease-out; }
+
+@keyframes ipd-pop {
+    from { transform: scale(0.6); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.ipd-failed { margin: 4px 0 0; padding-left: 18px; text-align: left; color: var(--ipd-fail); }
+
+.ipd-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 18px;
+    border-top: 1px solid var(--ipd-border);
+}
+
+.ipd-footer .btn { display: inline-flex; align-items: center; gap: 6px; border-radius: 10px; font-weight: 600; }
+.ipd-footer .btn .material-symbols-outlined { font-size: 18px; }
+
+.ipd-submit {
+    border: 0;
+    background: linear-gradient(135deg, #0369a1 0%, #0284c7 45%, #06b6d4 100%);
+}
+
+.ipd-submit:disabled { opacity: 0.55; }
+
+.spinner-border.text-primary { width: 2rem; height: 2rem; }
