@@ -205,11 +205,13 @@ export default class SeriKayit implements OnInit, OnDestroy {
 
   private keydownHandler = (e: KeyboardEvent) => this.onKeydown(e);
 
-  // Kısayollar paneli dışına tıklanınca kapanır
+  // Kısayollar ve Son kayıtlar panelleri dışına tıklanınca kapanır
   @ViewChild('keysMenu') keysMenu?: ElementRef<HTMLDetailsElement>;
+  @ViewChild('recentMenu') recentMenu?: ElementRef<HTMLDetailsElement>;
   private clickHandler = (e: MouseEvent) => {
-    const menu = this.keysMenu?.nativeElement;
-    if (menu?.open && !menu.contains(e.target as Node)) menu.open = false;
+    for (const menu of [this.keysMenu?.nativeElement, this.recentMenu?.nativeElement]) {
+      if (menu?.open && !menu.contains(e.target as Node)) menu.open = false;
+    }
   };
 
   ngOnInit(): void {

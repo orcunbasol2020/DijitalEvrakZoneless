@@ -31,25 +31,66 @@
 }
 
 /* ---- Üst şerit ---- */
+/*
+ * Şerit Etiket Oluştur'daki ayar çubuğunun (qrlist .et-toolbar) mavi → turkuaz geçişinde; koyu temada onun koyu
+ * karşılığı. Renk değişkenleri şerit içinde açık tonlara çevrilir, denetimler yarı saydam açık renk olur;
+ * açılır paneller kendi zeminleri olduğundan sayfa renklerine döner.
+ */
 .sk-bar {
+    --sk-text: #f0f9ff;
+    --sk-muted: #bae6fd;
+    --sk-border: rgba(186, 230, 253, 0.28);
+    --sk-accent: #ffffff;
+    --sk-accent-soft: rgba(255, 255, 255, 0.12);
+    --sk-accent-border: rgba(186, 230, 253, 0.45);
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     gap: 10px 16px;
     padding: 10px 14px;
-    border: 1px solid var(--sk-border);
+    border: 0;
     border-radius: 14px;
-    background: var(--sk-soft);
+    background: linear-gradient(135deg, #0369a1 0%, #0284c7 45%, #06b6d4 100%);
+    color: var(--sk-text);
 }
 
-.sk-bar-stats { display: flex; flex-wrap: wrap; gap: 8px; }
+[data-theme="dark"] .sk-bar {
+    background: linear-gradient(120deg, #0b1220 0%, #0c3a57 55%, #075985 100%);
+}
+
+.sk-bar .sk-open input::placeholder { color: var(--sk-muted); opacity: 0.85; }
+.sk-bar .sk-open:focus-within { border-color: #7dd3fc; box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.25); }
+.sk-bar .sk-stat.is-done .material-symbols-outlined { color: #86efac; }
+.sk-bar .sk-recent-item .material-symbols-outlined { color: #86efac; }
+
+.sk-keys-panel,
+.sk-recent-panel {
+    --sk-text: #0f172a;
+    --sk-muted: #64748b;
+    --sk-border: #e2e8f0;
+    --sk-accent: #0284c7;
+    --sk-accent-soft: #f0f9ff;
+    --sk-accent-border: #bae6fd;
+}
+
+[data-theme="dark"] .sk-keys-panel,
+[data-theme="dark"] .sk-recent-panel {
+    --sk-text: #e2e8f0;
+    --sk-muted: #94a3b8;
+    --sk-border: rgba(148, 163, 184, 0.22);
+    --sk-accent: #7dd3fc;
+    --sk-accent-soft: rgba(14, 165, 233, 0.12);
+    --sk-accent-border: rgba(14, 165, 233, 0.3);
+}
+
+.sk-bar-stats { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 
 .sk-stat {
     display: inline-flex;
     align-items: center;
     gap: 6px;
     padding: 4px 12px;
-    border-radius: 999px;
+    border-radius: 10px;
     border: 1px solid var(--sk-accent-border);
     background: var(--sk-accent-soft);
     color: var(--sk-text);
@@ -58,7 +99,6 @@
 
 .sk-stat .material-symbols-outlined { font-size: 18px; color: var(--sk-accent); }
 .sk-stat strong { font-variant-numeric: tabular-nums; }
-.sk-stat-sub { color: var(--sk-muted); font-size: 0.78rem; }
 .sk-stat.is-done .material-symbols-outlined { color: #16a34a; }
 
 
@@ -74,7 +114,7 @@
 .sk-keys-panel {
     position: absolute;
     top: calc(100% + 6px);
-    right: 0;
+    left: 0;
     z-index: 20;
     display: flex;
     flex-direction: column;
@@ -104,8 +144,8 @@
     font-size: 0.75rem;
 }
 
-/* Kısayollar sağa yaslandığı için Atla / Durdur hemen yanında durur */
-.sk-bar-actions { display: flex; gap: 6px; }
+/* Sağda yalnızca İleri kalır */
+.sk-bar-actions { display: flex; gap: 6px; margin-left: auto; }
 
 .sk-btn {
     display: inline-flex;
@@ -163,9 +203,11 @@
     min-height: 560px;
 }
 
-.sk-viewer { display: flex; flex-direction: column; overflow: hidden; }
+/* Chrome PDF görüntüleyicisi (iframe) kartın overflow + border-radius kırpmasına uymuyor, köşeler sivri
+   kalıyor; clip-path ile form kartıyla (zm-card 14px) aynı yuvarlaklığa kırpılır */
+.sk-viewer { display: flex; flex-direction: column; overflow: hidden; clip-path: inset(0 round 14px); }
 
-.sk-pdf { flex: 1 1 auto; width: 100%; border: 0; }
+.sk-pdf { flex: 1 1 auto; width: 100%; border: 0; border-radius: 14px; }
 
 .sk-pdf-missing {
     display: flex;
@@ -314,8 +356,32 @@
 .sk-buttons { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; }
 .sk-buttons .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 
+/* Kaydet + Yayınla: üst şeritle aynı mavi → turkuaz geçiş; koyu temada şeridin koyu karşılığı */
+.sk-buttons .zimmet-submit-btn,
+.sk-buttons .zimmet-submit-btn:hover,
+.sk-buttons .zimmet-submit-btn:focus-visible,
+.sk-buttons .zimmet-submit-btn:active,
+.sk-buttons .zimmet-submit-btn:disabled {
+    border-color: transparent;
+    background: linear-gradient(135deg, #0369a1 0%, #0284c7 45%, #06b6d4 100%);
+    color: #fff;
+}
+
+.sk-buttons .zimmet-submit-btn:hover { box-shadow: 0 8px 18px rgba(2, 132, 199, 0.35); }
+.sk-buttons .zimmet-submit-btn:active { box-shadow: 0 3px 8px rgba(2, 132, 199, 0.3); }
+.sk-buttons .zimmet-submit-btn:focus-visible { box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.35); }
+
+[data-theme="dark"] .sk-buttons .zimmet-submit-btn,
+[data-theme="dark"] .sk-buttons .zimmet-submit-btn:hover,
+[data-theme="dark"] .sk-buttons .zimmet-submit-btn:focus-visible,
+[data-theme="dark"] .sk-buttons .zimmet-submit-btn:active,
+[data-theme="dark"] .sk-buttons .zimmet-submit-btn:disabled {
+    background: linear-gradient(120deg, #0b1220 0%, #0c3a57 55%, #075985 100%);
+    border-color: rgba(125, 211, 252, 0.25);
+}
+
 .sk-recent { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.sk-recent-title { color: var(--sk-muted); font-size: 0.75rem; margin-right: 2px; }
+.sk-recent-title { color: var(--sk-muted); font-size: 0.75rem; margin: 0 2px 0 6px; }
 
 .sk-recent-item {
     display: inline-flex;
@@ -333,6 +399,60 @@
 .sk-recent-item .material-symbols-outlined { font-size: 14px; color: #16a34a; }
 .sk-recent-item:hover { border-color: var(--sk-accent-border); background: var(--sk-accent-soft); }
 .sk-recent-time { color: var(--sk-muted); }
+
+/* Birden fazla son kayıt: en sonuncusu şeritte, tümü açılır panelde */
+.sk-recent-menu { position: relative; }
+.sk-recent-menu > summary { list-style: none; cursor: pointer; }
+.sk-recent-menu > summary::-webkit-details-marker { display: none; }
+.sk-recent-menu > summary .sk-keys-caret { font-size: 16px; color: var(--sk-muted); }
+.sk-recent-menu[open] .sk-keys-caret { transform: rotate(180deg); }
+.sk-recent-menu[open] > summary { border-color: var(--sk-accent-border); background: var(--sk-accent-soft); }
+
+.sk-recent-more {
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--sk-accent-soft);
+    color: var(--sk-accent);
+    font-weight: 600;
+}
+
+.sk-recent-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 220px;
+    padding: 8px;
+    border: 1px solid var(--sk-border);
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+}
+
+[data-theme="dark"] .sk-recent-panel { background: #1e293b; box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45); }
+
+.sk-recent-panel .sk-recent-title { margin: 0 4px 4px; }
+
+.sk-recent-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--sk-text);
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+    text-align: left;
+}
+
+.sk-recent-row:hover { background: var(--sk-accent-soft); }
+.sk-recent-row .material-symbols-outlined { font-size: 15px; color: #16a34a; }
+.sk-recent-no { flex: 1 1 auto; }
 
 /* ---- Dar ekran: belge üstte, form altta ---- */
 @media (max-width: 1100px) {
@@ -352,7 +472,7 @@
     align-items: center;
     gap: 6px;
     height: 34px;
-    margin: 0 0 0 auto;
+    margin: 0;
     padding: 0 10px;
     border: 1px solid var(--sk-border);
     border-radius: 10px;
@@ -407,3 +527,15 @@
 
 .sk-btn.sk-btn-next:focus-visible { outline: 0; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.4); }
 .sk-btn.sk-btn-next:disabled { opacity: 0.6; box-shadow: none; }
+
+/* Mavi şerit üstünde İleri, Etiket Oluştur'daki ana düğme gibi beyaz zeminde lacivert yazıyla öne çıkar */
+.sk-bar .sk-btn.sk-btn-next,
+.sk-bar .sk-btn.sk-btn-next:hover:not(:disabled) {
+    background: #ffffff;
+    color: #0c4a6e;
+    box-shadow: 0 6px 16px rgba(12, 74, 110, 0.3);
+}
+
+.sk-bar .sk-btn.sk-btn-next .material-symbols-outlined { color: #0284c7; }
+.sk-bar .sk-btn.sk-btn-next:hover:not(:disabled) { box-shadow: 0 10px 22px rgba(12, 74, 110, 0.4); }
+.sk-bar .sk-btn.sk-btn-next:focus-visible { box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.6); }

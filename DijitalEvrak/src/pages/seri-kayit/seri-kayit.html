@@ -1,19 +1,12 @@
 <app-generic pageTitle="Seri Kayıt" [breadcrumbs]="breadcrumbs" />
 
 <div class="sk-page">
-  <!-- Üst şerit: sıra durumu, oturum sayacı, numara okut, kısayollar, İleri -->
+  <!-- Üst şerit: solda sıra durumu, numara okut, kısayollar, oturum sayacı, son kayıtlar; sağda yalnızca İleri -->
   <header class="sk-bar">
-    <div class="sk-bar-stats">
-      <span class="sk-stat" title="Sırada bekleyen (yaklaşık): havuzdaki taramalar + kaydedilmemiş evraklar (taraması bağlı ya da dosyasız ön kayıt)">
-        <span class="material-symbols-outlined">inbox</span>
-        Sırada <strong>≈{{ remainingTotal() }}</strong>
-        <span class="sk-stat-sub">tarama {{ remaining().scans }} · evrak {{ remaining().documents }}</span>
-      </span>
-      <span class="sk-stat is-done" title="Bu oturumda kaydedilen evrak">
-        <span class="material-symbols-outlined">task_alt</span>
-        Bu oturumda <strong>{{ completed() }}</strong> kayıt
-      </span>
-    </div>
+    <span class="sk-stat" title="Kayıt bekleyen evrak sayısı">
+      <span class="material-symbols-outlined">inbox</span>
+      Sırada <strong>{{ remainingTotal() }}</strong>
+    </span>
 
     <!-- Numara ile aç: taranmayacak (gizli) evrakın zarfındaki QR okutulur (F2 ile odak) -->
     <label class="sk-open" title="Taranmayacak (gizli) evrakı zarfındaki QR'ı okutarak açın (F2)">
@@ -38,6 +31,49 @@
         <div class="sk-keys-row"><span class="sk-keys-combo"><kbd>F2</kbd></span> Numara okut (gizli evrak)</div>
       </div>
     </details>
+
+    <div class="sk-bar-stats">
+      @if (completed() > 0) {
+        <span class="sk-stat is-done" title="Bu oturumda kaydedilen evrak">
+          <span class="material-symbols-outlined">task_alt</span>
+          Bu oturumda <strong>{{ completed() }}</strong> kayıt
+        </span>
+      }
+      <!-- Son kayıtlar: tek kayıt düz gösterilir; birden fazlaysa en sonuncusu görünür, diğerleri
+           açılır panelde (şerit alt satıra taşmasın) -->
+      @if (recent().length === 1) {
+        <div class="sk-recent">
+          <span class="sk-recent-title">Son kayıt</span>
+          <button type="button" class="sk-recent-item" (click)="openRecent(recent()[0])"
+            title="Düzeltmek için Evrak Kayıt'ta aç">
+            <span class="material-symbols-outlined">{{ recent()[0].published ? 'cloud_upload' : 'check' }}</span>
+            {{ recent()[0].documentNumber }}
+            <span class="sk-recent-time">{{ recent()[0].at | date:'HH:mm' }}</span>
+          </button>
+        </div>
+      } @else if (recent().length > 1) {
+        <details class="sk-recent-menu" #recentMenu>
+          <summary class="sk-recent-item" title="Son kayıtları göster">
+            <span class="material-symbols-outlined">{{ recent()[0].published ? 'cloud_upload' : 'check' }}</span>
+            {{ recent()[0].documentNumber }}
+            <span class="sk-recent-time">{{ recent()[0].at | date:'HH:mm' }}</span>
+            <span class="sk-recent-more">+{{ recent().length - 1 }}</span>
+            <span class="material-symbols-outlined sk-keys-caret">expand_more</span>
+          </summary>
+          <div class="sk-recent-panel">
+            <span class="sk-recent-title">Son kayıtlar · düzeltmek için tıklayın</span>
+            @for (r of recent(); track r.documentId + r.at.getTime()) {
+              <button type="button" class="sk-recent-row" (click)="recentMenu.open = false; openRecent(r)"
+                title="Düzeltmek için Evrak Kayıt'ta aç">
+                <span class="material-symbols-outlined">{{ r.published ? 'cloud_upload' : 'check' }}</span>
+                <span class="sk-recent-no">{{ r.documentNumber }}</span>
+                <span class="sk-recent-time">{{ r.at | date:'HH:mm' }}</span>
+              </button>
+            }
+          </div>
+        </details>
+      }
+    </div>
 
     @if (phase() === 'working') {
       <div class="sk-bar-actions">
@@ -148,7 +184,7 @@
                 <div class="zm-field">
                   <label for="sk-number" class="zm-field-label">Evrak No</label>
                   <input id="sk-number" type="text" class="form-control ok-input sk-number" formControlName="documentNumber"
-                    placeholder="2026/12345678" (input)="onNumberInput($event)"
+                    (input)="onNumberInput($event)"
                     [class.is-invalid]="form.controls.documentNumber.invalid && form.controls.documentNumber.dirty">
                 </div>
                 <div class="zm-field">
@@ -301,19 +337,6 @@
                 </button>
               </div>
 
-              @if (recent().length) {
-                <div class="sk-recent">
-                  <span class="sk-recent-title">Son kayıtlar</span>
-                  @for (r of recent(); track r.documentId + r.at.getTime()) {
-                    <button type="button" class="sk-recent-item" (click)="openRecent(r)"
-                      title="Düzeltmek için Evrak Kayıt'ta aç">
-                      <span class="material-symbols-outlined">{{ r.published ? 'cloud_upload' : 'check' }}</span>
-                      {{ r.documentNumber }}
-                      <span class="sk-recent-time">{{ r.at | date:'HH:mm' }}</span>
-                    </button>
-                  }
-                </div>
-              }
             </div>
           </form>
         </div>
