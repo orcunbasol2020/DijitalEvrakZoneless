@@ -12616,3 +12616,8 @@ body {
     background: linear-gradient(135deg, rgba(234, 179, 8, 0.5), rgba(234, 179, 8, 0.3)) !important;
     color: #fef08a !important;
 }
+
+/* app-simple-autocomplete listesi CDK overlay katmanında açılır: sidebar (11020) ve
+   modalların üstünde kalsın; panel boş alana göre kısalınca liste içte kaysın */
+html .cdk-overlay-container { z-index: 13000; }
+.cdk-overlay-pane.sac-pane { flex-direction: column; }

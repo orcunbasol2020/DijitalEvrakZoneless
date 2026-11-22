@@ -1,14 +1,15 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnChanges, OnDestroy, SimpleChanges, ElementRef, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, OnDestroy, SimpleChanges, ElementRef, ChangeDetectorRef, ViewChild, inject } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { CdkConnectedOverlay, CdkOverlayOrigin, ConnectedPosition, OverlayModule } from '@angular/cdk/overlay';
 import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-simple-autocomplete',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, OverlayModule],
 template: `
-  <div class="position-relative">
+  <div class="position-relative" cdkOverlayOrigin #origin="cdkOverlayOrigin">
 
     <input
       type="text"
@@ -24,8 +25,23 @@ template: `
 
     <span *ngIf="loading || searching" class="autocomplete-spinner spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
 
-    <ul *ngIf="show && !loading && !disabled"
-        class="list-group position-absolute w-100 zindex-dropdown dropdown-anim">
+  </div>
+
+  <!-- Liste sayfanın üst katmanında (CDK overlay) açılır: kaydırılan form gövdesini uzatıp
+       ikinci bir scroll bar çıkarmaz; altta yer yoksa kutunun üstünde açılır. -->
+  <ng-template cdkConnectedOverlay
+    [cdkConnectedOverlayOrigin]="origin"
+    [cdkConnectedOverlayOpen]="show && !loading && !disabled"
+    [cdkConnectedOverlayPositions]="positions"
+    [cdkConnectedOverlayWidth]="panelWidth"
+    [cdkConnectedOverlayMinHeight]="140"
+    [cdkConnectedOverlayViewportMargin]="8"
+    [cdkConnectedOverlayFlexibleDimensions]="true"
+    [cdkConnectedOverlayGrowAfterOpen]="true"
+    cdkConnectedOverlayPanelClass="sac-pane"
+    (detach)="onDetach()">
+
+    <ul class="list-group w-100 sac-list dropdown-anim" (mousedown)="$event.preventDefault()">
 
       <ng-container *ngIf="filteredOptions.length > 0; else noResult">
 
@@ -53,15 +69,19 @@ template: `
 
     </ul>
 
-  </div>
+  </ng-template>
 `,
   styles: [`
-    .zindex-dropdown { 
-      z-index: 1000; 
-      max-height: 220px;
+    /* Overlay paneli boş alana göre kısalır (.sac-pane, styles.css); kaydırma yalnızca listededir */
+    .sac-list {
+      flex: 0 1 auto;
+      min-height: 0;
+      max-height: 280px;
       overflow-y: auto;
+      overscroll-behavior: contain;
+      margin: 2px 0;
       border-radius: 10px;
-      box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.12);
     }
 
     .dropdown-anim {
@@ -81,7 +101,7 @@ template: `
     }
 
     .list-group-item {
-      transition: all 0.12s ease;
+      transition: background-color 0.12s ease;
       cursor: pointer;
     }
 
@@ -91,7 +111,6 @@ template: `
 
     .list-group-item:hover {
       background: #f5f7fa;
-      transform: scale(1.02);
     }
 
     .active-item {
@@ -164,12 +183,32 @@ export class SimpleAutocompleteComponent implements OnInit, OnChanges, OnDestroy
   show = false;
   activeIndex = -1;
 
+  /** Önce kutunun altı, sığmazsa üstü */
+  readonly positions: ConnectedPosition[] = [
+    { originX: 'start', originY: 'bottom', overlayX: 'start', overlayY: 'top' },
+    { originX: 'start', originY: 'top', overlayX: 'start', overlayY: 'bottom' },
+  ];
+  /** Liste kutuyla aynı genişlikte açılır; açılışta ölçülür */
+  panelWidth = 0;
+
+  @ViewChild(CdkConnectedOverlay) private connectedOverlay?: CdkConnectedOverlay;
+  @ViewChild(CdkOverlayOrigin) private overlayOrigin?: CdkOverlayOrigin;
+
   /** Metin kutusunda gösterilen, henüz seçime dönüşmemiş olabilecek arama metni. */
   private searchText: string | null = null;
 
   /** stopPropagation() kullanan popup/modal kapsayıcıları içindeyken bile dışa tıklamayı
    *  yakalayabilmek için document'e bubble yerine capture aşamasında dinleyici ekliyoruz. */
   private readonly documentClickListener = (event: MouseEvent) => this.onClickOutside(event);
+
+  /** Liste body'deki katmanda olduğundan, kutunun bulunduğu kaydırılan alan (ör. form gövdesi)
+   *  kayınca konumu yenilenir; listenin kendi kaydırması yok sayılır. */
+  private readonly scrollListener = (event: Event) => {
+    if (!this.show) return;
+    const pane = this.overlayPane;
+    if (pane && event.target instanceof Node && pane.contains(event.target)) return;
+    this.connectedOverlay?.overlayRef?.updatePosition();
+  };
 
   // Proje zoneless (provideZonelessChangeDetection) çalıştığından, aşağıdaki
   // document.addEventListener ile eklenen dış tık dinleyicisi Angular'ın event
@@ -185,6 +224,7 @@ export class SimpleAutocompleteComponent implements OnInit, OnChanges, OnDestroy
   ngOnInit() {
     this.filteredOptions = this.options;
     document.addEventListener('click', this.documentClickListener, true);
+    document.addEventListener('scroll', this.scrollListener, true);
 
     // Üst bileşen control.setValue() ile programatik değer yazdığında (ör. güncelleme
     // ekranında kayıt yüklenince) zoneless ortamda görünümün yenilenmesi garanti
@@ -194,6 +234,7 @@ export class SimpleAutocompleteComponent implements OnInit, OnChanges, OnDestroy
 
   ngOnDestroy() {
     document.removeEventListener('click', this.documentClickListener, true);
+    document.removeEventListener('scroll', this.scrollListener, true);
     this.controlSub?.unsubscribe();
   }
 
@@ -201,6 +242,8 @@ export class SimpleAutocompleteComponent implements OnInit, OnChanges, OnDestroy
     if (changes['options']) {
       // Uzak aramada sonuçlar yazılan metne göre gelir; yerelde yazılan metinle yeniden süzülür
       this.filteredOptions = this.remote || this.searchText === null ? this.options : this.localFilter(this.searchText);
+      // Sonuç sayısı değişince liste yüksekliği değişir; altta/üstte yer yeniden hesaplanır
+      this.refreshPosition();
     }
   }
 
@@ -215,6 +258,7 @@ export class SimpleAutocompleteComponent implements OnInit, OnChanges, OnDestroy
   }
 
   open() {
+    this.measureWidth();
     this.show = this.minChars === 0;
     this.searchText = '';
     this.filteredOptions = this.options;
@@ -226,8 +270,37 @@ export class SimpleAutocompleteComponent implements OnInit, OnChanges, OnDestroy
     // burada henüz bir seçim yapılmadığından ham metni control'e yazmıyoruz.
     this.searchText = value;
     this.filter(value);
+    this.measureWidth();
     this.show = value.trim().length >= this.minChars;
     this.activeIndex = -1;
+    this.refreshPosition();
+  }
+
+  private get overlayPane(): HTMLElement | undefined {
+    return this.connectedOverlay?.overlayRef?.overlayElement;
+  }
+
+  private measureWidth() {
+    const box = this.overlayOrigin?.elementRef.nativeElement as HTMLElement | undefined;
+    this.panelWidth = box?.getBoundingClientRect().width ?? 0;
+  }
+
+  private refreshPosition() {
+    requestAnimationFrame(() => this.connectedOverlay?.overlayRef?.updatePosition());
+  }
+
+  /** Klavyeyle seçilen satır listenin görünen alanında kalsın */
+  private scrollActiveIntoView() {
+    requestAnimationFrame(() => this.overlayPane?.querySelector('.active-item')?.scrollIntoView({ block: 'nearest' }));
+  }
+
+  /** CDK listeyi kendisi kapattığında (ör. Escape) iç durum da kapanır */
+  onDetach() {
+    if (this.show) {
+      this.show = false;
+      this.searchText = null;
+      this.cdr.markForCheck();
+    }
   }
 
   private filter(value: any) {
@@ -268,6 +341,7 @@ export class SimpleAutocompleteComponent implements OnInit, OnChanges, OnDestroy
           this.activeIndex < this.filteredOptions.length - 1
             ? this.activeIndex + 1
             : 0;
+        this.scrollActiveIntoView();
         break;
 
       case 'ArrowUp':
@@ -276,6 +350,7 @@ export class SimpleAutocompleteComponent implements OnInit, OnChanges, OnDestroy
           this.activeIndex > 0
             ? this.activeIndex - 1
             : this.filteredOptions.length - 1;
+        this.scrollActiveIntoView();
         break;
 
       case 'Enter':
@@ -303,7 +378,8 @@ export class SimpleAutocompleteComponent implements OnInit, OnChanges, OnDestroy
 
   onClickOutside(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    if (!this.elementRef.nativeElement.contains(target)) {
+    // Liste body'deki katmanda; içine (ör. kaydırma çubuğuna) tıklamak dış tık sayılmaz
+    if (!this.elementRef.nativeElement.contains(target) && !this.overlayPane?.contains(target)) {
       this.close();
     }
   }
