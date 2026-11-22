@@ -54,7 +54,7 @@ export const routes: Routes = [
                 path: "zimmet",
                 loadComponent: () => import("./pages/zimmet/zimmet"),
                 canActivate: [roleGuard],
-                data: { roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Birim Yöneticisi", "Ön Kayıt"] }
+                data: { roles: ["Yönetici", "Gelen Evrak", "Birim Evrak Sorumlusu", "Birim Yöneticisi", "Ön Kayıt"] }
             },
             {
                 path: 'scanlist',

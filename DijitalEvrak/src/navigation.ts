@@ -82,7 +82,7 @@ export const navigations: NavigationModel[] = [
         title: "Zimmet",
         url: "/zimmet",
         icon: "contract_edit",
-        roles: ["Gelen Evrak", "Birim Evrak Sorumlusu", "Birim Yöneticisi", "Ön Kayıt"]
+        roles: ["Yönetici", "Gelen Evrak", "Birim Evrak Sorumlusu", "Birim Yöneticisi", "Ön Kayıt"]
     },
     {
         // Rol kısıtı yok: her kullanıcıya evrak devredilebilir
