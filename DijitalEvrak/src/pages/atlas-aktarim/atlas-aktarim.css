@@ -126,6 +126,10 @@
     width: 460px;
 }
 
+.aa-confirm .ship-foot {
+    gap: 8px;
+}
+
 /* ---------- Servis özeti (tek satır) + aç/kapa ayrıntılar ---------- */
 .aa-summary {
     padding: 0;
