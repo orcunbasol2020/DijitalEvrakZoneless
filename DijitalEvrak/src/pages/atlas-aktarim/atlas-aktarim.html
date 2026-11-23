@@ -332,7 +332,15 @@
                                                 @if (row.subject) { <span class="aa-doc-subject" [title]="row.subject">{{ row.subject }}</span> }
                                             </div>
                                         </td>
-                                        <td class="aa-error-cell"><span class="aa-clamp aa-error-text" [title]="row.lastError || ''">{{ row.lastError || 'Neden bildirilmedi.' }}</span></td>
+                                        <td class="aa-error-cell">
+                                            <span class="aa-error-text">{{ row.lastError || 'Neden bildirilmedi.' }}</span>
+                                            @if (isDuplicate(row.lastError)) {
+                                                <span class="aa-dup-hint">
+                                                    <span class="material-symbols-outlined">warning</span>
+                                                    Yeniden Dene'den önce Atlas'ta kontrol edin.
+                                                </span>
+                                            }
+                                        </td>
                                         <td class="text-end">
                                             <div class="aa-stack is-end">
                                                 <span>{{ row.tryCount }}</span>
@@ -369,7 +377,7 @@
                                 <th scope="col">ZAMAN</th>
                                 <th scope="col">EVRAK</th>
                                 <th scope="col">SONUÇ</th>
-                                <th scope="col">ATLAS REFERANSI / HATA</th>
+                                <th scope="col">ATLAS BELGE NO / HATA</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -479,7 +487,7 @@
                     <li>Evrak numarası (QR kod)</li>
                     <li>Konu</li>
                     <li>Evrak tarihi</li>
-                    <li>Gizlilik derecesi (Kişiye Özel'in EYP karşılığı henüz belirlenmediği için bu derecedeki evrak yayınlanamaz)</li>
+                    <li>Gizlilik derecesi</li>
                     <li>Gönderen kurum</li>
                 </ul>
 
@@ -497,7 +505,9 @@
                                 gizlilik dereceli evraklar) yerine "Bu Belge Fiziki Olarak Gönderilecektir." yazan standart sayfa konur.</li>
                             <li><strong>Ekler:</strong> yüklenen elektronik ekler (PDF) dosyalarıyla; fiziki ek varsa açıklamasıyla.</li>
                             <li><strong>Evrak bilgileri:</strong> konu, evrak tarihi, gönderen kurumun evrak sayısı (girilmemişse
-                                Atlas evrak numarası), gizlilik derecesi, ivedilik.</li>
+                                Atlas evrak numarası), gizlilik derecesi, ivedilik. Atlas yalnızca birkaç değer kabul
+                                ettiği için gizlilik Tasnif Dışı değilse <strong>Hizmete Özel</strong>, ivedilik
+                                Normal/Günlüdür değilse <strong>Acele</strong> olarak aktarılır.</li>
                             <li><strong>Gönderen:</strong> gönderen kurum, DETSİS kodu ve iletişim bilgileri. DETSİS kodu olmayan
                                 gönderenlere (yabancı misyonlar, dilekçeler) <code>99999999</code> yazılır; bilinmeyen iletişim
                                 bilgisi <code>-</code> olarak geçer.</li>
@@ -523,6 +533,8 @@
                         aralıklarla (1, 5, 15, 60 dakika) yeniden denenir. Varsayılan 5 denemeden sonra <strong>Aktarım Hatalı</strong> olur.</li>
                     <li><strong>Kalıcı hata</strong> (paket hazırlanamadı, örneğin evrak dosyası bulunamadı; ya da Atlas paketi
                         reddetti): evrak hemen <strong>Aktarım Hatalı</strong> olur, tekrar denenmez.</li>
+                    <li><strong>Evrak numarası Atlas'ta kullanılıyor (409):</strong> evrak daha önce aktarılmış olabilir;
+                        <strong>Yeniden Dene</strong>'den önce Atlas'ta kontrol edin.</li>
                     <li><strong>Takılı kalan evrak:</strong> bir evrak 30 dakikadan uzun <strong>Aktarılıyor</strong> durumunda
                         kalırsa (ör. sunucu işlem sırasında yeniden başladı) kendiliğinden sıraya geri alınır.</li>
                 </ul>

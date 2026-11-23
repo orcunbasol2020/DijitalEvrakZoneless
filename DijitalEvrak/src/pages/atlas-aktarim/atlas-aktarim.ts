@@ -13,6 +13,7 @@ import {
   AtlasTransferService,
   AtlasTransferStatus,
   attemptOutcome,
+  isAtlasDuplicateError,
   utc
 } from '../../services/atlas-transfer';
 import { incomingErrorMessage } from '../../services/incomingdocument';
@@ -78,6 +79,7 @@ export default class AtlasAktarim implements OnInit {
 
   readonly utc = utc;
   readonly outcome = attemptOutcome;
+  readonly isDuplicate = isAtlasDuplicateError;
 
   // ---- Durum (GetStatus) ----
   readonly status = signal<AtlasTransferStatus | null>(null);

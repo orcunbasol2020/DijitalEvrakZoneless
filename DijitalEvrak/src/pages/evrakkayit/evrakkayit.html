@@ -488,7 +488,7 @@
             Kaydet
           </button>
           <button type="submit" form="ekGeneralForm" class="btn btn-primary zimmet-submit-btn" data-mode="self"
-            [disabled]="activeStatus() || attachmentsBusy()" (click)="publish.set(true)">
+            [disabled]="activeStatus() || attachmentsBusy()" [title]="mappingNote" (click)="publish.set(true)">
             <span class="zimmet-submit-icon material-symbols-outlined">publish</span>
             <span class="zimmet-submit-text">Kaydet/Yayınla</span>
           </button>

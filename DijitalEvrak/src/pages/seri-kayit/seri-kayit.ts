@@ -22,6 +22,7 @@ import {
   SerialQueueItem, SerialRecipient, SerialRegisterRequest, SerialRegistrationService, SerialRemaining,
   isLeaseLost, serialErrorMessage
 } from '../../services/serial-registration';
+import { ATLAS_MAPPING_NOTE } from '../../services/atlas-transfer';
 import { SecurityDegreeEnum, SecurityDegreeLabels } from '../../models/securitydegree.model';
 import { UrgencyDegreeEnum, UrgencyDegreeLabels } from '../../models/urgencydegree.model';
 import { DocumentTypeEnum, DocumentTypeLabels } from '../../models/documenttype.model';
@@ -117,6 +118,7 @@ export default class SeriKayit implements OnInit, OnDestroy {
   readonly #destroyRef = inject(DestroyRef);
 
   readonly breadcrumbs = [{ title: 'Seri Kayıt', url: 'seri-kayit', icon: '' }];
+  readonly mappingNote = ATLAS_MAPPING_NOTE;
 
   // ---- Seçenekler ----
   readonly securityDegreeOptions = Object.entries(SecurityDegreeLabels)
@@ -616,9 +618,6 @@ export default class SeriKayit implements OnInit, OnDestroy {
     if (!v.subject?.trim()) missing.push('Konu');
     if (!v.securityDegree) missing.push('Gizlilik');
     if (missing.length) return `Yayın için eksik: ${missing.join(', ')}.`;
-    if (v.securityDegree === SecurityDegreeEnum.PersonalUseOnly) {
-      return 'Kişiye Özel evrak Atlas\'a aktarılamaz; Kaydet ile kaydedin.';
-    }
     return null;
   }
 

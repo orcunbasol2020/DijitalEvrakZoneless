@@ -8,7 +8,9 @@ import {
   AtlasTransferDocument,
   AtlasTransferPackage,
   AtlasTransferService,
+  ATLAS_MAPPING_NOTE,
   attemptOutcome,
+  isAtlasDuplicateError,
   utc
 } from '../../src/services/atlas-transfer';
 import { incomingErrorMessage } from '../../src/services/incomingdocument';
@@ -74,6 +76,10 @@ export class AtlasTransferDetail {
   readonly statusTone = computed(() => TRANSFER_STATUS_TONE[this.status()] ?? TRANSFER_STATUS_TONE[PublishStatusEnum.Yayinlanmadi]);
   readonly canRetry = computed(() => this.status() === PublishStatusEnum.AktarimHatali);
   readonly isTransferring = computed(() => this.status() === PublishStatusEnum.Aktariliyor);
+  readonly mappingNote = ATLAS_MAPPING_NOTE;
+  // Etkin paketin son hatası 409 ise Yeniden Dene'den önce Atlas'ta bakılmalı
+  readonly duplicateWarning = computed(() =>
+    this.canRetry() && isAtlasDuplicateError(this.detail()?.packages.find(p => p.isActive)?.lastError));
 
   #sub?: Subscription;
 

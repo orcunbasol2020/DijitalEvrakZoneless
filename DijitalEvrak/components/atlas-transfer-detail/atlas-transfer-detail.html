@@ -39,6 +39,13 @@
         </button>
       </div>
 
+      @if (duplicateWarning()) {
+        <div class="aa-dup-warning">
+          <span class="material-symbols-outlined">warning</span>
+          <span>Evrak numarası Atlas'ta kullanılıyor; evrak daha önce aktarılmış olabilir.
+            <strong>Yeniden Dene'den önce Atlas'ta kontrol edin.</strong></span>
+        </div>
+      }
       @if (canRetry()) {
         <div class="aa-retry-row">
           <span class="aa-muted">Hatanın nedeni giderildiyse evrak güncel bilgileriyle yeni bir paketle sıraya alınır.</span>
@@ -59,6 +66,10 @@
           </span>
         </div>
       }
+      <div class="aa-mapping-note">
+        <span class="material-symbols-outlined">info</span>
+        <span>{{ mappingNote }}</span>
+      </div>
     </div>
 
     <!-- Paketler -->
@@ -132,7 +143,7 @@
                   <div><dt>Sonraki deneme</dt><dd>{{ utc(p.nextAttemptAt) | date:'dd.MM.yyyy HH:mm' }}</dd></div>
                 }
                 @if (p.atlasReferenceId) {
-                  <div class="is-wide"><dt>Atlas referansı</dt><dd class="aa-mono">{{ p.atlasReferenceId }}</dd></div>
+                  <div class="is-wide"><dt>Atlas belge no</dt><dd class="aa-mono">{{ p.atlasReferenceId }}</dd></div>
                 }
               </dl>
               @if (p.lastError) {
@@ -169,7 +180,7 @@
                   {{ a.attemptNo }}. deneme
                 </div>
                 @if (a.isSuccess && a.atlasReferenceId) {
-                  <div class="aa-mono aa-muted">{{ a.atlasReferenceId }}</div>
+                  <div class="aa-mono aa-muted">Atlas belge no: {{ a.atlasReferenceId }}</div>
                 } @else if (a.error) {
                   <div class="aa-error-text">{{ a.error }}</div>
                 }

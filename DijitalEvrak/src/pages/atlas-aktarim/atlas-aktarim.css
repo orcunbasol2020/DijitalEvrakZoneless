@@ -317,6 +317,25 @@
     font-size: 13px;
 }
 
+/* Hatalı sekmesinde 409: Yeniden Dene'den önce Atlas'ta bakılmalı */
+.aa-dup-hint {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #b45309;
+}
+
+.aa-dup-hint .material-symbols-outlined {
+    font-size: 15px;
+}
+
+[data-theme="dark"] .aa-dup-hint {
+    color: #fcd34d;
+}
+
 /* Uzun hata metni iki satırda kesilir, tamamı title'da */
 .aa-clamp {
     display: -webkit-box;

@@ -135,6 +135,18 @@ export function attemptOutcome(a: AtlasTransferAttempt): { label: string; tone: 
   return { label: 'Tekrar denenecek', tone: 'warn' };
 }
 
+/** Atlas'a giden gizlilik / ivedilik karşılıkları; Atlas yalnızca birkaç değer kabul eder. */
+export const ATLAS_MAPPING_NOTE =
+  'Atlas\'a gizlilik Tasnif Dışı değilse Hizmete Özel, ivedilik Normal/Günlüdür değilse Acele olarak aktarılır.';
+
+/**
+ * Atlas evrak numarasını zaten kullanıyor (409): evrak daha önce aktarılmış olabilir,
+ * Yeniden Dene'den önce Atlas'ta bakılmalı. Backend mesajındaki sabit metinle tanınır.
+ */
+export function isAtlasDuplicateError(message: string | null | undefined): boolean {
+  return !!message && message.includes('Atlas\'ta kullanılıyor');
+}
+
 /**
  * Yayınlanan gelen evrakın EYP paketi olarak Atlas'a aktarım kuyruğu.
  * Hatalar genel toast'a düşmez; çağıran taraf backend'in Message alanını gösterir

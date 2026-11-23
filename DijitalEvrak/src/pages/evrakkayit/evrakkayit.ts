@@ -20,7 +20,7 @@ import {
   attachmentFileError,
   formatFileSize
 } from '../../models/incoming-document-attachment.model';
-import { AtlasTransferService } from '../../services/atlas-transfer';
+import { ATLAS_MAPPING_NOTE, AtlasTransferService } from '../../services/atlas-transfer';
 import { AtlasTransferDetail } from '../../../components/atlas-transfer-detail/atlas-transfer-detail';
 import { SimpleAutocompleteComponent } from '../simpleautocomplete/simpleautocomplete';
 import {
@@ -148,6 +148,7 @@ export default class Evrakkayit implements OnInit {
 
   // Aktarım Hatalı evrakın nedeni: evrak modelinde yok, yalnızca GetFailed listesinden okunur
   readonly publishError = signal<string | null>(null);
+  readonly mappingNote = ATLAS_MAPPING_NOTE;
   private atlasTransferService = inject(AtlasTransferService);
 
   private loadPublishError(documentId: string | null | undefined) {
