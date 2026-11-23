@@ -36,6 +36,96 @@
     margin-top: 8px;
 }
 
+/* ---------- Test modu şeridi ---------- */
+.aa-test-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding: 10px 16px;
+    border-radius: 12px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: #78350f;
+    background: repeating-linear-gradient(-45deg, #fffbeb 0 14px, #fef3c7 14px 28px);
+    border: 1px solid #fcd34d;
+}
+
+.aa-test-tag {
+    flex: 0 0 auto;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: #fff;
+    background: #d97706;
+}
+
+[data-theme="dark"] .aa-test-banner {
+    color: #fde68a;
+    background: repeating-linear-gradient(-45deg, rgba(245, 158, 11, 0.1) 0 14px, rgba(245, 158, 11, 0.16) 14px 28px);
+    border-color: rgba(252, 211, 77, 0.4);
+}
+
+[data-theme="dark"] .aa-test-tag {
+    color: #1a202c;
+    background: #fbbf24;
+}
+
+/* ---------- Hedef servis: Test / Canlı ---------- */
+.aa-summary-item.is-mode {
+    align-items: center;
+}
+
+.aa-mode-seg {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    border-radius: 8px;
+    background: #eef2f7;
+    border: 1px solid #e2e8f0;
+}
+
+.aa-mode-btn {
+    height: 22px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.aa-mode-btn:hover:not(.is-active):not(:disabled) { color: #0f172a; }
+.aa-mode-btn:disabled { cursor: default; opacity: 0.6; }
+
+.aa-mode-btn:focus-visible {
+    outline: 2px solid #0ea5e9;
+    outline-offset: 1px;
+}
+
+/* Test: amber (şeritle aynı), Canlı: yeşil */
+.aa-mode-btn.is-active { color: #fff; background: #d97706; }
+.aa-mode-btn.is-live.is-active { background: #15803d; }
+
+[data-theme="dark"] .aa-mode-seg {
+    background: rgba(148, 163, 184, 0.1);
+    border-color: rgba(148, 163, 184, 0.2);
+}
+
+[data-theme="dark"] .aa-mode-btn { color: #a0aec0; }
+[data-theme="dark"] .aa-mode-btn:hover:not(.is-active):not(:disabled) { color: #e2e8f0; }
+[data-theme="dark"] .aa-mode-btn.is-active { color: #1a202c; background: #fbbf24; }
+[data-theme="dark"] .aa-mode-btn.is-live.is-active { color: #052e16; background: #4ade80; }
+
+.modal-box.ship-modal.aa-confirm {
+    width: 460px;
+}
+
 /* ---------- Servis özeti (tek satır) + aç/kapa ayrıntılar ---------- */
 .aa-summary {
     padding: 0;

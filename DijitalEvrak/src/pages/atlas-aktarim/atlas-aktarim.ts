@@ -12,10 +12,13 @@ import {
   AtlasTransferQueueItem,
   AtlasTransferService,
   AtlasTransferStatus,
+  ATLAS_LIVE_CONFIRM,
+  ATLAS_TEST_MODE_KEY,
   attemptOutcome,
   isAtlasDuplicateError,
   utc
 } from '../../services/atlas-transfer';
+import { AppSettingsService } from '../../services/app-settings';
 import { incomingErrorMessage } from '../../services/incomingdocument';
 import { Common } from '../../services/common';
 
@@ -31,7 +34,8 @@ const POLL_RUNNING_MS = 5_000;
 const ATTEMPT_LIMITS = [50, 100, 200, 500];
 
 // Bunlardan biri kırmızıysa aktarım çalışmaz ya da paket hazırlanamaz; diğerleri bilgi amaçlı
-const CRITICAL_CHECKS = new Set(['Recipient', 'PhysicalDeliveryPdf']);
+// (AtlasTarget: seçili servisin — test / canlı — adresi tanımlı değil)
+const CRITICAL_CHECKS = new Set(['Recipient', 'PhysicalDeliveryPdf', 'AtlasTarget']);
 
 const DETAILS_STORAGE_KEY = 'atlasAktarim.detailsOpen';
 
@@ -70,6 +74,7 @@ const emptyTab = <T>(): TabState<T> => ({ rows: [], loading: false, error: null,
 })
 export default class AtlasAktarim implements OnInit {
   readonly #service = inject(AtlasTransferService);
+  readonly #settings = inject(AppSettingsService);
   readonly #toast = inject(FlexiToastService);
   readonly #common = inject(Common);
   readonly #route = inject(ActivatedRoute);
@@ -129,6 +134,11 @@ export default class AtlasAktarim implements OnInit {
   readonly running = signal(false);
   // Yeniden sıraya alınmakta olan evraklar; istek sürerken satırın butonu pasiftir
   readonly retrying = signal<ReadonlySet<string>>(new Set());
+
+  // Test / Canlı geçişi: Canlı'ya geçmeden önce onay, istek sürerken düğme pasif
+  readonly liveConfirmOpen = signal(false);
+  readonly liveConfirmText = ATLAS_LIVE_CONFIRM;
+  readonly modeSaving = signal(false);
 
   // Evrak aktarım detayı ve "Nasıl çalışır?" pencereleri
   readonly selectedDocumentId = signal<string | null>(null);
@@ -274,6 +284,42 @@ export default class AtlasAktarim implements OnInit {
         this.#toast.showToast('Atlas aktarımı çalıştırılamadı',
           incomingErrorMessage(err, 'Aktarım turu çalıştırılamadı.'), 'error');
         this.loadStatus();
+      }
+    });
+  }
+
+  /** Test / Canlı düğmesi; Canlı'ya geçiş onaydan sonra yapılır. */
+  selectMode(test: boolean): void {
+    const current = this.status()?.testMode;
+    if (current === undefined || current === test || this.modeSaving()) return;
+    if (!test) {
+      this.liveConfirmOpen.set(true);
+      return;
+    }
+    this.#saveMode(true);
+  }
+
+  confirmLive(): void {
+    this.liveConfirmOpen.set(false);
+    this.#saveMode(false);
+  }
+
+  #saveMode(test: boolean): void {
+    const userId = this.#common.user()?.id;
+    if (!userId) return;
+    this.modeSaving.set(true);
+    this.#settings.update(ATLAS_TEST_MODE_KEY, test ? 'true' : 'false', userId).subscribe({
+      next: () => {
+        this.modeSaving.set(false);
+        this.#toast.showToast('Hedef servis değişti',
+          test ? 'Paketler bir sonraki turdan itibaren test servisinde kontrol edilecek.'
+            : 'Paketler bir sonraki turdan itibaren Atlas\'a kaydedilecek.', 'success');
+        this.loadStatus();
+      },
+      error: err => {
+        this.modeSaving.set(false);
+        this.#toast.showToast('Hedef servis değiştirilemedi',
+          incomingErrorMessage(err, 'Ayar kaydedilemedi, lütfen tekrar deneyin.'), 'error');
       }
     });
   }

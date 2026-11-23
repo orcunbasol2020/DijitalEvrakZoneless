@@ -44,6 +44,15 @@
     </div>
 </section>
 
+<!-- Test modu: paketler yalnızca kontrol edilir, Atlas'ta evrak oluşmaz -->
+@if (status()?.testMode) {
+    <div class="aa-test-banner" role="status">
+        <span class="aa-test-tag">TEST MODU</span>
+        <span>Paketler Atlas test servisinde yalnızca kontrol edilir; Atlas'ta evrak oluşmaz. Uygun bulunan evrak
+            <strong>Yayınlanmadı</strong>'ya döner.</span>
+    </div>
+}
+
 <!-- Aktarımı durduran ön koşul eksikleri: her zaman görünür -->
 @for (c of failedChecks(); track c.code) {
     <div class="aa-alert" role="alert">
@@ -75,6 +84,18 @@
                 } @else {
                     <span class="aa-badge aa-badge-muted"><span class="aa-dot"></span>Otomatik aktarım kapalı</span>
                 }
+
+                <span class="aa-summary-item is-mode">
+                    <span class="aa-summary-key">Hedef</span>
+                    <span class="aa-mode-seg" role="radiogroup" aria-label="Hedef servis">
+                        <button type="button" class="aa-mode-btn" role="radio" [class.is-active]="s.testMode"
+                            [attr.aria-checked]="s.testMode" [disabled]="modeSaving()" (click)="selectMode(true)"
+                            title="Paket test servisinde yalnızca kontrol edilir">Test</button>
+                        <button type="button" class="aa-mode-btn is-live" role="radio" [class.is-active]="!s.testMode"
+                            [attr.aria-checked]="!s.testMode" [disabled]="modeSaving()" (click)="selectMode(false)"
+                            title="Evrak Atlas'a kaydedilir">Canlı</button>
+                    </span>
+                </span>
 
                 <span class="aa-summary-item">
                     <span class="aa-summary-key">Sonraki tur</span>
@@ -461,6 +482,30 @@
     </div>
 }
 
+<!-- Canlı servise geçiş onayı -->
+@if (liveConfirmOpen()) {
+    <div class="modal-overlay" (click)="liveConfirmOpen.set(false)">
+        <div class="modal-box ship-modal aa-modal aa-confirm" role="dialog" aria-modal="true" aria-labelledby="aa-live-title"
+            (click)="$event.stopPropagation()">
+            <div class="ship-head">
+                <span class="ship-head-icon"><span class="material-symbols-outlined">warning</span></span>
+                <div class="ship-head-text">
+                    <h5 id="aa-live-title" class="ship-head-title">Canlı servise geçilsin mi?</h5>
+                    <div class="ship-head-sub">Bir sonraki aktarım turunda geçerli olur</div>
+                </div>
+            </div>
+            <div class="ship-body">
+                <p class="mb-2">{{ liveConfirmText }}</p>
+                <p class="aa-muted mb-0">Test'te uygun bulunan evraklar kendiliğinden gitmez; yeniden Yayınla'nmaları gerekir.</p>
+            </div>
+            <div class="ship-foot">
+                <button type="button" class="btn btn-secondary" (click)="liveConfirmOpen.set(false)">Vazgeç</button>
+                <button type="button" class="btn btn-danger" (click)="confirmLive()">Canlı'ya geç</button>
+            </div>
+        </div>
+    </div>
+}
+
 <!-- Nasıl çalışır? -->
 @if (infoOpen()) {
     <div class="modal-overlay" (click)="infoOpen.set(false)">
@@ -518,6 +563,16 @@
                     <li><strong>Paket Atlas'a gönderilir.</strong> Paket ayrıca arşiv için sistemde saklanır.</li>
                 </ol>
 
+                <h6>Test / Canlı</h6>
+                <ul>
+                    <li><strong>Test</strong> (varsayılan): paket Atlas test servisinde yalnızca kontrol edilir, Atlas'ta evrak
+                        oluşmaz. Uygun bulunan evrak <strong>Yayınlanmadı</strong>'ya döner; deneme "Test: uygun" olarak görünür.
+                        Uygun bulunmazsa evrak <strong>Aktarım Hatalı</strong> olur, nedenler hata mesajında yazar.</li>
+                    <li><strong>Canlı:</strong> evrak Atlas'a kaydedilir ve <strong>Yayınlandı</strong> olur.</li>
+                    <li>Test'te uygun bulunan evrak Canlı'ya geçince kendiliğinden gitmez; yeniden <strong>Yayınla</strong>nmalıdır.
+                        Seçim bir sonraki turda geçerli olur.</li>
+                </ul>
+
                 <h6>Durumlar</h6>
                 <dl class="aa-info-dl">
                     <div><dt><span class="aa-badge aa-badge-muted">Yayınlanmadı</span></dt><dd>Evrak henüz yayınlanmadı.</dd></div>
@@ -551,6 +606,7 @@
                         <thead><tr><th>Ayar</th><th>Varsayılan</th><th>Açıklama</th></tr></thead>
                         <tbody>
                             <tr><td><code>AtlasTransferEnabled</code></td><td>kapalı</td><td>Otomatik aktarım. Kapalıyken sıradaki evraklar yalnızca "Şimdi Çalıştır" ile aktarılır.</td></tr>
+                            <tr><td><code>AtlasEypTestMode</code></td><td>Test</td><td>Hedef servis. Test: yalnızca kontrol; Canlı: evrak Atlas'a kaydedilir.</td></tr>
                             <tr><td><code>AtlasTransferIntervalSeconds</code></td><td>60</td><td>İki tur arası süre (en az 10 saniye).</td></tr>
                             <tr><td><code>AtlasTransferBatchSize</code></td><td>10</td><td>Bir turda en fazla kaç evrak aktarılır (en fazla 100).</td></tr>
                             <tr><td><code>AtlasTransferMaxTryCount</code></td><td>5</td><td>Geçici hatada kaç kez denendikten sonra Aktarım Hatalı olur.</td></tr>

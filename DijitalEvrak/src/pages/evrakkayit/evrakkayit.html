@@ -482,6 +482,10 @@
         </div>
 
         <div class="zm-footer-actions" *ngIf="activeTab() === 'general'">
+          <span class="ek-test-note" *ngIf="atlasTestMode()" [title]="testModeNote">
+            <span class="material-symbols-outlined">science</span>
+            {{ testModeNote }}
+          </span>
           <button type="submit" form="ekGeneralForm" class="btn btn-light zm-back-btn"
             [disabled]="activeStatus() || attachmentsBusy()" (click)="publish.set(false)">
             <span class="material-symbols-outlined">save</span>

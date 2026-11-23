@@ -20,7 +20,7 @@ import {
   attachmentFileError,
   formatFileSize
 } from '../../models/incoming-document-attachment.model';
-import { ATLAS_MAPPING_NOTE, AtlasTransferService } from '../../services/atlas-transfer';
+import { ATLAS_MAPPING_NOTE, ATLAS_TEST_MODE_NOTE, AtlasTransferService } from '../../services/atlas-transfer';
 import { AtlasTransferDetail } from '../../../components/atlas-transfer-detail/atlas-transfer-detail';
 import { SimpleAutocompleteComponent } from '../simpleautocomplete/simpleautocomplete';
 import {
@@ -149,7 +149,16 @@ export default class Evrakkayit implements OnInit {
   // Aktarım Hatalı evrakın nedeni: evrak modelinde yok, yalnızca GetFailed listesinden okunur
   readonly publishError = signal<string | null>(null);
   readonly mappingNote = ATLAS_MAPPING_NOTE;
+  readonly testModeNote = ATLAS_TEST_MODE_NOTE;
   private atlasTransferService = inject(AtlasTransferService);
+
+  // Test modunda Yayınla evrakı Atlas'a kaydetmez; GetStatus okunamazsa (yetki vb.) not gösterilmez
+  readonly atlasTestMode = signal(false);
+
+  private loadAtlasTestMode() {
+    this.atlasTransferService.getStatus().pipe(catchError(() => of(null)))
+      .subscribe(s => this.atlasTestMode.set(s?.testMode ?? false));
+  }
 
   private loadPublishError(documentId: string | null | undefined) {
     this.publishError.set(null);
@@ -427,6 +436,7 @@ export default class Evrakkayit implements OnInit {
 
 
   ngOnInit(): void {
+    this.loadAtlasTestMode();
     this.form = this.fb.group({
       id: ['', Validators.required],
       qrCode: [''],

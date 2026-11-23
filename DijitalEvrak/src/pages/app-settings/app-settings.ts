@@ -7,10 +7,24 @@ import { FlexiToastService } from 'flexi-toast';
 import GenericModel from '../../../components/generic-model/generic-model';
 import { AppSettingModel, AppSettingsService, SESSION_TIMEOUT_KEY } from '../../services/app-settings';
 import { AtlasDocumentNumberService, AtlasNumberStock, atlasErrorMessage } from '../../services/atlas-document-number';
-import { AtlasTransferService, AtlasTransferStats } from '../../services/atlas-transfer';
+import { ATLAS_LIVE_CONFIRM, ATLAS_TEST_MODE_KEY, AtlasTransferService, AtlasTransferStats } from '../../services/atlas-transfer';
 import { Common } from '../../services/common';
 
-type FieldKind = 'text' | 'email' | 'url' | 'textarea' | 'bool' | 'int';
+type FieldKind = 'text' | 'email' | 'url' | 'textarea' | 'bool' | 'int' | 'choice';
+
+interface ChoiceOption {
+  value: string;
+  label: string;
+}
+
+/** Bir değere geçmeden önce sorulan onay */
+interface ConfirmDef {
+  /** Onay isteyen değer (ör. "true", Canlı için "false") */
+  value: string;
+  title: string;
+  text: string;
+  button: string;
+}
 
 type GroupId = 'general' | 'scan' | 'zimmet' | 'deliveryReminder' | 'smtp' | 'atlas' | 'atlasTransfer' | 'session' | 'other';
 
@@ -37,8 +51,10 @@ interface SettingDef {
   domainList?: boolean;
   /** Uyarı tonunda not (ör. henüz açılmaması gereken ayar) */
   warn?: boolean;
-  /** true yapılmadan önce onay penceresi */
-  confirmOn?: boolean;
+  /** Bu değere geçmeden önce onay penceresi */
+  confirm?: ConfirmDef;
+  /** İki ya da daha çok seçenekli düğme (kind: 'choice'); ilki varsayılandır */
+  options?: ChoiceOption[];
 }
 
 interface GroupDef {
@@ -158,13 +174,26 @@ const DEFS: SettingDef[] = [
   },
   { key: 'AtlasNumberPoolIntervalSeconds', group: 'atlas', label: 'Stok kontrol aralığı', kind: 'int', min: 30, unit: 'sn' },
   {
-    key: 'AtlasNumberPoolEnforced', group: 'atlas', label: 'Yalnızca havuz numarasıyla evrak aç', kind: 'bool', confirmOn: true, warn: true,
+    key: 'AtlasNumberPoolEnforced', group: 'atlas', label: 'Yalnızca havuz numarasıyla evrak aç', kind: 'bool', warn: true,
+    confirm: {
+      value: 'true', title: 'Yalnızca havuz numarasıyla evrak aç açılsın mı?', button: 'Aç',
+      text: 'Açıldığında gelen evrak yalnızca Atlas havuzundaki numarayla açılabilir. Havuza geçiş tamamlanmadıysa '
+        + 'evrak kaydı durabilir. Değişiklik "Kaydet" ile geçerli olur.',
+    },
     note: 'Açıkken gelen evrak yalnızca havuzdaki numarayla açılabilir. Geçiş tamamlanınca açılmalı.',
   },
 
   {
-    key: 'AtlasTransferEnabled', group: 'atlasTransfer', label: 'Otomatik aktarım', kind: 'bool', warn: true,
-    note: 'Şu an açılmamalı: EYP üretimi ve Atlas bağlantısı henüz sahte; açılırsa kuyruktaki evraklar Atlas\'a gitmeden Yayınlandı görünür.',
+    key: 'AtlasTransferEnabled', group: 'atlasTransfer', label: 'Otomatik aktarım', kind: 'bool',
+    note: 'Kapalıyken sıradaki evraklar yalnızca Atlas Aktarım sayfasındaki "Şimdi Çalıştır" ile gönderilir.',
+  },
+  {
+    key: ATLAS_TEST_MODE_KEY, group: 'atlasTransfer', label: 'Hedef servis', kind: 'choice', warn: true,
+    options: [{ value: 'true', label: 'Test' }, { value: 'false', label: 'Canlı' }],
+    hint: 'Test: paket Atlas test servisinde yalnızca kontrol edilir, Atlas\'ta evrak oluşmaz. Canlı: evrak Atlas\'a kaydedilir.',
+    note: 'Test\'te uygun bulunan evrak Yayınlanmadı\'ya döner; Canlı\'ya geçildikten sonra yeniden Yayınla\'nmalıdır. '
+      + 'Değişiklik bir sonraki aktarım turunda geçerli olur.',
+    confirm: { value: 'false', title: 'Canlı servise geçilsin mi?', text: ATLAS_LIVE_CONFIRM, button: 'Canlı\'ya geç' },
   },
   { key: 'AtlasTransferIntervalSeconds', group: 'atlasTransfer', label: 'Kontrol aralığı', kind: 'int', min: 10, unit: 'sn' },
   { key: 'AtlasTransferBatchSize', group: 'atlasTransfer', label: 'Bir turda aktarılan', kind: 'int', min: 1, max: 100 },
@@ -234,8 +263,8 @@ export default class AppSettings {
   /** Atlas aktarım kuyruğu özeti; hatalı evrak varsa grup başlığında listeye bağlantı */
   readonly transferStats = signal<AtlasTransferStats | null>(null);
 
-  /** Onay bekleyen açma işlemi (AtlasNumberPoolEnforced) */
-  readonly confirmField = signal<FieldView | null>(null);
+  /** Onay bekleyen değişiklik (ör. havuz zorunluluğunu açma, Canlı servise geçiş) */
+  readonly pendingConfirm = signal<{ field: FieldView; confirm: ConfirmDef } | null>(null);
 
   /** Elle havuz doldurma: onay penceresi, istek sürüyor mu, son sonuç (mesaj tam gösterilir) */
   readonly refillConfirm = signal(false);
@@ -360,32 +389,46 @@ export default class AppSettings {
 
   onToggle(field: FieldView, event: Event): void {
     const input = event.target as HTMLInputElement;
-    if (input.checked && field.def.confirmOn) {
-      // Onaylanana kadar kapalı kalır
-      input.checked = false;
-      this.confirmField.set(field);
+    const value = input.checked ? 'true' : 'false';
+    if (this.#needsConfirm(field, value)) {
+      // Onaylanana kadar eski değerde kalır
+      input.checked = !input.checked;
+      this.pendingConfirm.set({ field, confirm: field.def.confirm! });
       return;
     }
-    this.setValue(field, input.checked ? 'true' : 'false');
+    this.setValue(field, value);
+  }
+
+  selectChoice(field: FieldView, value: string): void {
+    if (value === field.value || this.saving()) return;
+    if (this.#needsConfirm(field, value)) {
+      this.pendingConfirm.set({ field, confirm: field.def.confirm! });
+      return;
+    }
+    this.setValue(field, value);
+  }
+
+  #needsConfirm(field: FieldView, value: string): boolean {
+    return field.def.confirm?.value === value;
   }
 
   isOn(field: FieldView): boolean {
     return isTrue(field.value);
   }
 
-  confirmEnable(): void {
-    const field = this.confirmField();
-    if (field) this.setValue(field, 'true');
-    this.confirmField.set(null);
+  acceptConfirm(): void {
+    const pending = this.pendingConfirm();
+    if (pending) this.setValue(pending.field, pending.confirm.value);
+    this.pendingConfirm.set(null);
   }
 
   cancelConfirm(): void {
-    this.confirmField.set(null);
+    this.pendingConfirm.set(null);
   }
 
   @HostListener('document:keydown.escape')
   onEscape(): void {
-    if (this.confirmField()) this.cancelConfirm();
+    if (this.pendingConfirm()) this.cancelConfirm();
     this.refillConfirm.set(false);
   }
 
@@ -491,13 +534,18 @@ export default class AppSettings {
 
   #normalize(def: SettingDef, value: string | null | undefined): string {
     if (def.kind === 'bool') return isTrue(value) ? 'true' : 'false';
+    if (def.kind === 'choice' && def.options?.length) {
+      // Tanınmayan / boş değer varsayılan (ilk) seçenek sayılır
+      const text = (value ?? '').trim().toLowerCase();
+      return def.options.find(o => o.value === text)?.value ?? def.options[0].value;
+    }
     return value ?? '';
   }
 
   #validate(view: FieldView): string | null {
     const { def } = view;
     const value = view.value;
-    if (def.kind === 'bool') return null;
+    if (def.kind === 'bool' || def.kind === 'choice') return null;
     if (value.length > MAX_LENGTH) return `En fazla ${MAX_LENGTH} karakter olabilir.`;
 
     if (def.kind === 'int') {

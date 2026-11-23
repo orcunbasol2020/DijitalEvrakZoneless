@@ -41,7 +41,7 @@ export interface AtlasTransferLastRun {
   error: string | null;
 }
 
-export type AtlasTransferCheckCode = 'AutoTransfer' | 'Recipient' | 'PhysicalDeliveryPdf' | 'AtlasDelivery';
+export type AtlasTransferCheckCode = 'AutoTransfer' | 'Recipient' | 'PhysicalDeliveryPdf' | 'AtlasDelivery' | 'AtlasTarget';
 
 /** Aktarımın çalışması için gereken koşul; code sabittir, rozet rengi ona göre seçilir. */
 export interface AtlasTransferCheck {
@@ -56,6 +56,7 @@ export interface AtlasTransferStatus {
   intervalSeconds: number;
   batchSize: number;
   maxTryCount: number;
+  testMode: boolean;       // true: paketler test servisinde yalnızca kontrol edilir, Atlas'ta evrak oluşmaz
   isRunning: boolean;
   runningSince: string | null;
   lastRun: AtlasTransferLastRun | null;
@@ -88,7 +89,8 @@ export interface AtlasTransferAttempt {
   isSuccess: boolean;
   isPermanentFailure: boolean;
   error: string | null;
-  atlasReferenceId: string | null;
+  atlasReferenceId: string | null;  // test denemelerinde boş
+  isTest: boolean;                  // test servisine gönderildi (AtlasEypTestMode)
 }
 
 /** Evrakın EYP paketi; evrak yeniden sıraya alınınca eskisi isActive: false olarak kalır. */
@@ -128,12 +130,29 @@ export function utc(value: string | null | undefined): Date | null {
   return new Date(/[zZ]|[+-]\d\d:\d\d$/.test(value) ? value : value + 'Z');
 }
 
-/** Bir denemenin sonucu: başarılı, kalıcı hata ya da tekrar denenecek geçici hata. */
+/**
+ * Bir denemenin sonucu: başarılı, kalıcı hata ya da tekrar denenecek geçici hata. Test servisine
+ * giden denemede paket yalnızca kontrol edilir; "uygun" evrak Atlas'a kaydedilmez.
+ */
 export function attemptOutcome(a: AtlasTransferAttempt): { label: string; tone: 'ok' | 'error' | 'warn' } {
+  if (a.isTest) {
+    if (a.isSuccess) return { label: 'Test: uygun', tone: 'ok' };
+    if (a.isPermanentFailure) return { label: 'Test: uygun değil', tone: 'error' };
+    return { label: 'Test: tekrar denenecek', tone: 'warn' };
+  }
   if (a.isSuccess) return { label: 'Aktarıldı', tone: 'ok' };
   if (a.isPermanentFailure) return { label: 'Hatalı', tone: 'error' };
   return { label: 'Tekrar denenecek', tone: 'warn' };
 }
+
+/** Paketin hangi Atlas servisine gideceği (AppSettings); "true" = test servisi (varsayılan), "false" = canlı. */
+export const ATLAS_TEST_MODE_KEY = 'AtlasEypTestMode';
+
+/** Canlı'ya geçerken sorulan onay. */
+export const ATLAS_LIVE_CONFIRM = 'Paketler Atlas\'a kaydedilecek. Devam edilsin mi?';
+
+/** Test modunda Yayınla yanında gösterilen not. */
+export const ATLAS_TEST_MODE_NOTE = 'Test modu: paket yalnızca kontrol edilir.';
 
 /** Atlas'a giden gizlilik / ivedilik karşılıkları; Atlas yalnızca birkaç değer kabul eder. */
 export const ATLAS_MAPPING_NOTE =

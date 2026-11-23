@@ -22,7 +22,7 @@ import {
   SerialQueueItem, SerialRecipient, SerialRegisterRequest, SerialRegistrationService, SerialRemaining,
   isLeaseLost, serialErrorMessage
 } from '../../services/serial-registration';
-import { ATLAS_MAPPING_NOTE } from '../../services/atlas-transfer';
+import { ATLAS_MAPPING_NOTE, ATLAS_TEST_MODE_NOTE, AtlasTransferService } from '../../services/atlas-transfer';
 import { SecurityDegreeEnum, SecurityDegreeLabels } from '../../models/securitydegree.model';
 import { UrgencyDegreeEnum, UrgencyDegreeLabels } from '../../models/urgencydegree.model';
 import { DocumentTypeEnum, DocumentTypeLabels } from '../../models/documenttype.model';
@@ -118,7 +118,11 @@ export default class SeriKayit implements OnInit, OnDestroy {
   readonly #destroyRef = inject(DestroyRef);
 
   readonly breadcrumbs = [{ title: 'Seri Kayıt', url: 'seri-kayit', icon: '' }];
-  readonly mappingNote = ATLAS_MAPPING_NOTE;
+  readonly #atlasTransfer = inject(AtlasTransferService);
+  // Test modunda Yayınla evrakı Atlas'a kaydetmez; GetStatus okunamazsa (yetki vb.) not eklenmez
+  readonly #atlasTestMode = signal(false);
+  readonly publishTitle = computed(() =>
+    this.#atlasTestMode() ? `${ATLAS_TEST_MODE_NOTE} ${ATLAS_MAPPING_NOTE}` : ATLAS_MAPPING_NOTE);
 
   // ---- Seçenekler ----
   readonly securityDegreeOptions = Object.entries(SecurityDegreeLabels)
@@ -217,6 +221,8 @@ export default class SeriKayit implements OnInit, OnDestroy {
   };
 
   ngOnInit(): void {
+    this.#atlasTransfer.getStatus().pipe(catchError(() => of(null)))
+      .subscribe(s => this.#atlasTestMode.set(s?.testMode ?? false));
     this.departmentService.getDepartments().subscribe({
       next: list => {
         this.departments.set(list ?? []);
