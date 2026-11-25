@@ -6,7 +6,7 @@ import { IncomingDocumentDistributionModel, IncomingDocumentModel } from '../mod
 import { IncomingDocumentPreRegisterModel } from '../models/incoming-document/incomingdocument-pregister.model';
 import { IncomingDocumentTodayStats } from '../models/dashboard/IncomingDocumentTodayStats.model';
 import { catchError, firstValueFrom, forkJoin, map, of } from 'rxjs';
-import { HttpContext, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpErrorResponse } from '@angular/common/http';
 import { SKIP_ERROR_TOAST } from '../interceptors/error-interceptor';
 import { IncomingDocumentLast30DaysStats } from '../models/dashboard/IncomingDocument30DaysStats.model';
 import { IncomingDocumentPendingScanStats } from '../models/dashboard/IncomingDocumentPendingScanStats.model';
@@ -38,6 +38,8 @@ const skipErrorToast = () => ({ context: new HttpContext().set(SKIP_ERROR_TOAST,
 export class IncomingDocumentService {
 
   private httpService = inject(HttpService);
+  // Blob indirmeleri (HttpService responseType desteklemez)
+  readonly #http = inject(HttpClient);
   private baseUrl = 'api/IncomingDocuments/';
 
   // 📌 Detay ekranı için seçili incoming document
@@ -243,6 +245,12 @@ export class IncomingDocumentService {
   getPdfUrl(fileName: string): string {
     if (!fileName) return '';
     return `${environment.apiUrl}api/ScannedDocuments/GetPdf?fileName=${encodeURIComponent(fileName)}`;
+  }
+
+  /** Evrakın dosyası blob olarak (önizleme penceresi için); hata ekranda gösterileceği için toast çıkmaz */
+  getPdfFile(fileName: string) {
+    return this.#http.get(`api/ScannedDocuments/GetPdf?fileName=${encodeURIComponent(fileName)}`,
+      { responseType: 'blob', observe: 'response', context: new HttpContext().set(SKIP_ERROR_TOAST, true) });
   }
 
   getPendingCount(userId: string) {

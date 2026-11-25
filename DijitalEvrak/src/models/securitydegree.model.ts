@@ -18,6 +18,17 @@ export const SecurityDegreeLabels: Record<SecurityDegreeEnum, string> = {
   [SecurityDegreeEnum.Crypto]: 'Kripto'
 };
 
+// Liste rozetinde gösterilen baş harf. Kişiye Özel ve Kripto ikisi de K: rozet rengi ve title'daki tam ad ayırır.
+export const SecurityDegreeInitials: Record<SecurityDegreeEnum, string> = {
+  [SecurityDegreeEnum.Unclassified]: 'T',
+  [SecurityDegreeEnum.Special]: 'Ö',
+  [SecurityDegreeEnum.ServiceUseOnly]: 'H',
+  [SecurityDegreeEnum.PersonalUseOnly]: 'K',
+  [SecurityDegreeEnum.Confidential]: 'G',
+  [SecurityDegreeEnum.TopSecret]: 'Ç',
+  [SecurityDegreeEnum.Crypto]: 'K'
+};
+
 // "degree-tier-N" sınıfları styles.css'te tanımlıdır (düşükten yükseğe premium gradient rozet paleti).
 export const SecurityDegreeBadgeClass: Record<SecurityDegreeEnum, string> = {
   [SecurityDegreeEnum.Unclassified]: 'degree-tier-1',

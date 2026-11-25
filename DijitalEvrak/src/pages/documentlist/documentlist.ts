@@ -5,10 +5,16 @@ import {
   Component,
   signal,
   ViewEncapsulation,
+  DestroyRef,
   computed,
   inject,
-  HostListener
+  HostListener,
+  viewChild,
+  ElementRef
 } from '@angular/core';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { firstValueFrom } from 'rxjs';
+import { isPdfBlob, pdfObjectUrl } from '../../services/pdf-blob';
 import { ActivatedRoute, Router } from '@angular/router';
 import GenericModel from '../../../components/generic-model/generic-model';
 import { CommonModule } from '@angular/common';
@@ -18,7 +24,7 @@ import { httpResource } from '@angular/common/http';
 import { IncomingDocumentService } from '../../services/incomingdocument';
 import { IncomingDocumentModel, incomingRecipientNames, incomingRecipientsOf, summarizeRecipientNames } from '../../models/incoming-document/incoming-document.model';
 import { Common } from '../../services/common';
-import { SecurityDegreeLabels, SecurityDegreeIcons, SecurityDegreeBadgeClass } from '../../models/securitydegree.model';
+import { SecurityDegreeLabels, SecurityDegreeIcons, SecurityDegreeBadgeClass, SecurityDegreeInitials } from '../../models/securitydegree.model';
 import { UrgencyDegreeEnum, UrgencyDegreeLabels, UrgencyDegreeInitials, UrgencyDegreeBadgeClass } from '../../models/urgencydegree.model';
 import { DocumentTypeLabels } from '../../models/documenttype.model';
 import { actionRequiredBadgeClass, actionRequiredIcon, actionRequiredLabel } from '../../models/actionrequired.model';
@@ -72,17 +78,8 @@ function isInRecord(d: IncomingDocumentModel): boolean {
 }
 type DeliveryView = 'all' | 'delivered' | 'undelivered';
 type DateField = 'created' | 'document';
-type SortKey = 'created' | 'no' | 'from' | 'to' | 'documentDate' | 'urgency' | 'security' | 'status' | 'delivery';
+type SortKey = 'created' | 'no' | 'from' | 'to' | 'documentDate' | 'urgency' | 'security' | 'delivery';
 type SortDir = 'asc' | 'desc';
-
-// "Sırala" seçimindeki hazır sıralamalar (değer: "anahtar:yön")
-const SORT_PRESETS: readonly { value: string; label: string }[] = [
-  { value: 'created:desc', label: 'En yeni kayıt' },
-  { value: 'created:asc', label: 'En eski kayıt' },
-  { value: 'documentDate:desc', label: 'Belge tarihi' },
-  { value: 'urgency:asc', label: 'Önceliğe göre' },
-  { value: 'no:asc', label: 'Evrak numarası' }
-];
 
 // İvedilik önceliği: dikkat sırası Yıldırım, Günlüdür, Çok Acele, Acele; ardından
 // İvedi Süreli ve Normal (Gelen Evraklar kuyruk görünümüyle aynı).
@@ -116,12 +113,13 @@ function toDateInput(d: Date): string {
 const PAGE_SIZE = 10;
 // Sayfalamada aynı anda gösterilen sayfa numarası düğmesi
 const PAGE_WINDOW = 5;
-const SUBJECT_WORD_LIMIT = 12;
+// Nereden / Nereye hücrelerinde gösterilen en fazla karakter
+const CELL_TEXT_LIMIT = 40;
 
 type DocumentRow = IncomingDocumentModel & { currentAssignmentUser?: string | null };
 
 /** Gelen Evraklar (yönetici): tüm gelen evrakların salt izleme listesi. İşleme Al / kilit yok;
- *  Detay evrakı her durumda Evrak Kayıt ekranında açar. Görünüm Gelen Evraklar kuyruk
+ *  Görüntüle evrakın PDF'ini pencerede gösterir; Evrak Kayıt ekranı oradan ve Evrak Bilgileri'nden açılır. Görünüm Gelen Evraklar kuyruk
  *  ekranıyla (scanlist) ortak sq- stillerini kullanır. */
 @Component({
   imports: [
@@ -165,6 +163,8 @@ export default class Documentlist {
 
   readonly securityDegreeMap: Record<number, string> = SecurityDegreeLabels;
   readonly securityDegreeIconMap: Record<number, string> = SecurityDegreeIcons;
+  /** Tablodaki gizlilik rozetinde baş harf (T, Ö, H, K, G, Ç, K) */
+  readonly securityDegreeInitialMap: Record<number, string> = SecurityDegreeInitials;
   readonly securityDegreeBadgeClassMap: Record<number, string> = SecurityDegreeBadgeClass;
   readonly urgencyDegreeMap: Record<number, string> = UrgencyDegreeLabels;
   readonly urgencyDegreeInitialMap: Record<number, string> = UrgencyDegreeInitials;
@@ -222,6 +222,12 @@ export default class Documentlist {
     return this.toNames(d, false).join('\n');
   }
 
+  // Nereden / Nereye hücrelerinde CELL_TEXT_LIMIT karakterden sonrası "…"; tamamı title'da
+  clip(text: string | null | undefined): string {
+    const value = (text ?? '').trim();
+    return value.length > CELL_TEXT_LIMIT ? value.slice(0, CELL_TEXT_LIMIT).trimEnd() + '…' : value;
+  }
+
   // ---- Süzgeçler ----
   readonly search = signal('');
   readonly urgencyFilter = signal<number | null>(null);
@@ -275,6 +281,8 @@ export default class Documentlist {
     { value: 'document', label: 'Belge Tarihi' }
   ];
   readonly publishFilter = signal<PublishView>('all');
+  /** Listenin üstündeki Durum süzgeci; gizliyken publishFilter hep 'all' kalır */
+  readonly statusFilterVisible = false;
   readonly page = signal(1);
   readonly filtersOpen = signal(false);
 
@@ -348,7 +356,7 @@ export default class Documentlist {
   readonly deliveryOptions: readonly { value: DeliveryView; label: string; tone?: 'ok' | 'wait' }[] = [
     { value: 'all', label: 'Tümü' },
     { value: 'delivered', label: 'Teslim edildi', tone: 'ok' },
-    { value: 'undelivered', label: 'Teslim bekliyor', tone: 'wait' }
+    { value: 'undelivered', label: 'Beklemede', tone: 'wait' }
   ];
 
   // ---- Hazır belge tarihi aralıkları ----
@@ -450,7 +458,6 @@ export default class Documentlist {
       },
       urgency: { empty: d => d.urgencyDegree == null, cmp: (a, b) => this.urgencyRank(a) - this.urgencyRank(b) },
       security: { empty: d => d.securityDegree == null, cmp: (a, b) => (b.securityDegree ?? 0) - (a.securityDegree ?? 0) },
-      status: { empty: () => false, cmp: (a, b) => this.statusRank(a) - this.statusRank(b) },
       delivery: { empty: () => false, cmp: (a, b) => this.deliveryRank(a) - this.deliveryRank(b) }
     };
     const { empty, cmp } = spec[key];
@@ -461,14 +468,6 @@ export default class Documentlist {
       // Eşitlikte en yeni kayıt üstte
       return (ea ? 0 : sign * cmp(a, b)) || created(b) - created(a);
     });
-  }
-
-  // Durum sütununun sırası: Ön Kayıt, Evrak Kayıt, Aktarımda, Aktarım Hatalı, Yayınlandı
-  private statusRank(d: IncomingDocumentModel): number {
-    if (isPreRecord(d)) return 0;
-    if (isInRecord(d)) return 1;
-    if (isPublished(d)) return 4;
-    return isPublishFailed(d) ? 3 : 2;
   }
 
   readonly sortKey = signal<SortKey>('created');
@@ -495,23 +494,6 @@ export default class Documentlist {
     return this.sortDir() === 'asc' ? 'ascending' : 'descending';
   }
 
-  // Araç çubuğundaki "Sırala" seçimi aynı sıralama durumunu gösterir ve değiştirir;
-  // sütun başlığıyla seçilen bir sıralama hazır seçeneklerde yoksa "Sütuna göre" görünür.
-  readonly sortPreset = computed(() => {
-    const value = `${this.sortKey()}:${this.sortDir()}`;
-    return SORT_PRESETS.some(p => p.value === value) ? value : 'custom';
-  });
-
-  setSortPreset(value: string): void {
-    const [key, dir] = value.split(':') as [SortKey, SortDir];
-    if (!key || !dir) return;
-    this.sortKey.set(key);
-    this.sortDir.set(dir);
-    this.page.set(1);
-  }
-
-  readonly sortPresets = SORT_PRESETS;
-
   private urgencyRank(d: IncomingDocumentModel): number {
     return d.urgencyDegree != null ? (URGENCY_RANK[d.urgencyDegree] ?? 6) : 6;
   }
@@ -520,34 +502,16 @@ export default class Documentlist {
     return d.urgencyDegree != null && ATTENTION_URGENCIES.has(d.urgencyDegree);
   }
 
-  // Satırdaki konu ilk SUBJECT_WORD_LIMIT kelimeyle sınırlanır; konu yoksa boş döner (gösterilmez)
-  subjectPreview(subject?: string | null): string {
-    const words = (subject ?? '').trim().split(/\s+/).filter(Boolean);
-    if (words.length <= SUBJECT_WORD_LIMIT) return words.join(' ');
-    return words.slice(0, SUBJECT_WORD_LIMIT).join(' ') + '…';
-  }
-
   isDelivered(d: IncomingDocumentModel): boolean {
     return d.status === STATUS_DELIVERED;
   }
 
-  // Durum sütunu yayına gönderilmemiş evrakta aşamayı (Ön Kayıt / Evrak Kayıt), gönderilmişte
-  // yayın durumunu gösterir. Rozet Zarflar sayfasındaki durum rozetiyle aynıdır
-  // (envelope-status-pill, styles.css); cls rengini, icon ikon çipini belirler.
-  statusView(d: IncomingDocumentModel): { label: string; cls: string; icon: string } {
-    if (isPreRecord(d)) return { label: 'Ön Kayıt', cls: 'envelope-status-devir', icon: 'edit_note' };
-    if (isInRecord(d)) return { label: 'Evrak Kayıt', cls: 'envelope-status-kargo', icon: 'assignment' };
-    if (isPublished(d)) return { label: 'Yayınlandı', cls: 'envelope-status-teslim', icon: 'cloud_done' };
-    if (isPublishFailed(d)) return { label: 'Aktarım Hatalı', cls: 'envelope-status-iade', icon: 'cloud_off' };
-    return { label: 'Aktarımda', cls: 'envelope-status-birimde', icon: 'cloud_sync' };
-  }
-
-  // Teslim sütunu: evrak birime teslim edildi mi (akış durumu 3); edilmediyse "Teslim bekliyor"
+  // Teslim sütunu: evrak birime teslim edildi mi (akış durumu 3); edilmediyse "Beklemede"
   deliveryView(d: IncomingDocumentModel): { label: string; tone: 'ok' | 'wait' } {
-    return this.isDelivered(d) ? { label: 'Teslim edildi', tone: 'ok' } : { label: 'Teslim bekliyor', tone: 'wait' };
+    return this.isDelivered(d) ? { label: 'Teslim edildi', tone: 'ok' } : { label: 'Beklemede', tone: 'wait' };
   }
 
-  // Teslim sütununun sırası: teslim edildi, teslim bekliyor
+  // Teslim sütununun sırası: teslim edildi, beklemede
   private deliveryRank(d: IncomingDocumentModel): number {
     return this.isDelivered(d) ? 0 : 1;
   }
@@ -701,6 +665,71 @@ export default class Documentlist {
     this.incomingDocumentService.setSelectedIncomingDocument(id);
     this.incomingDocumentService.setIncomingDocumentUpdateType('1');
     this.router.navigate(['/evrakkayit']);
+  }
+
+  // ---- Görüntüle: evrakın PDF'i pencerede ----
+  /** url: gösterilen PDF; error: neden gösterilemediği; ikisi de boşken yükleniyor */
+  readonly pdfPreview = signal<{ item: DocumentRow; url: SafeResourceUrl | null; error?: string } | null>(null);
+  /** showModal() ile üst katmanda açılır; sol menü ve sayfa katmanları üstüne binemez */
+  readonly pdfDialog = viewChild<ElementRef<HTMLDialogElement>>('pdfDialog');
+  readonly #sanitizer = inject(DomSanitizer);
+  #pdfObjectUrl: string | null = null;
+  // Sayfadan çıkılınca açık PDF'in belleği bırakılır
+  readonly #pdfCleanup = inject(DestroyRef).onDestroy(() => { if (this.#pdfObjectUrl) URL.revokeObjectURL(this.#pdfObjectUrl); });
+
+  /** PDF yetkili istekle blob olarak indirilir; gerçekten PDF değilse görüntüleyici açılmaz, hata gösterilir. */
+  async openPdf(item: DocumentRow): Promise<void> {
+    this.closePdf();
+    this.menu.set(null);
+    this.pdfDialog()?.nativeElement.showModal();
+    if (!item.documentName) {
+      this.pdfPreview.set({ item, url: null, error: 'Bu evraka henüz dosya (taranmış ya da yüklenmiş PDF) bağlanmamış.' });
+      return;
+    }
+    this.pdfPreview.set({ item, url: null });
+
+    let status = 0;
+    try {
+      const res = await firstValueFrom(this.incomingDocumentService.getPdfFile(item.documentName));
+      status = res.status;
+      if (res.body && await isPdfBlob(res.body)) {
+        if (this.pdfPreview()?.item !== item) return;
+        this.#pdfObjectUrl = pdfObjectUrl(res.body);
+        this.pdfPreview.set({ item, url: this.#sanitizer.bypassSecurityTrustResourceUrl(this.#pdfObjectUrl + '#zoom=100') });
+        return;
+      }
+    } catch (err: any) {
+      status = err?.status ?? 0;
+    }
+    if (this.pdfPreview()?.item !== item) return;
+    this.pdfPreview.set({
+      item, url: null,
+      error: status === 404 ? 'Evrakın dosyası sunucuda bulunamadı.'
+        : status === 401 ? 'Oturum süresi dolmuş olabilir, sayfayı yenileyin.'
+        : `Belge açılamadı${status ? ' (' + status + ')' : ''}.`
+    });
+  }
+
+  closePdf(): void {
+    if (this.#pdfObjectUrl) {
+      URL.revokeObjectURL(this.#pdfObjectUrl);
+      this.#pdfObjectUrl = null;
+    }
+    this.pdfPreview.set(null);
+    const dialog = this.pdfDialog()?.nativeElement;
+    if (dialog?.open) dialog.close();
+  }
+
+  /** Pencere içeriği dialog'u tamamen doldurur; dialog'un kendisine düşen tıklama arka plana yapılmıştır */
+  onPdfDialogClick(event: MouseEvent): void {
+    if (event.target === this.pdfDialog()?.nativeElement) this.closePdf();
+  }
+
+  /** Pencereden Evrak Kayıt ekranına geçiş */
+  openPdfInRecord(): void {
+    const id = this.pdfPreview()?.item.id;
+    this.closePdf();
+    if (id) this.goToDetail(id);
   }
 
   goToProcess(id: string) {

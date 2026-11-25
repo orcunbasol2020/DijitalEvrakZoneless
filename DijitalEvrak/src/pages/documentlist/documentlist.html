@@ -7,13 +7,10 @@
   <section class="sp-hero zl-hero zl-hero-split zl-hero-slim dl-hero">
     <div class="sp-hero-top">
       <span class="sp-hero-icon">
-        <span class="material-symbols-outlined">inbox</span>
+        <span class="material-symbols-outlined">folder</span>
       </span>
       <div>
         <h4 class="sp-hero-title">Gelen Evraklar</h4>
-        <div class="sp-hero-text">
-          Tüm gelen evrakları izleyin; kayıt, aktarım ve teslim durumlarını takip edin, evrak ayrıntılarına ulaşın.
-        </div>
       </div>
     </div>
 
@@ -37,13 +34,24 @@
     </div>
   </section>
 
-  <section class="sq-panel">
+  <!-- Arama ve süzgeçler: listeden ayrı kart; Filtre ile kriterler paneli bu kartın altında açılır -->
+  <section class="sq-panel dl-filterbar" aria-label="Arama ve süzgeçler">
     <!-- Araç çubuğu: arama ve süzgeçler solda, işlemler sağda -->
     <div class="sq-toolbar">
-      <label class="sq-search dl-search">
-        <span class="material-symbols-outlined">search</span>
-        <input type="search" placeholder="Evrak no, konu, kurum, birim, orijinal no ya da personel ara"
+      <!-- Arama da bir süzgeç: etiketli alan, doluyken seçili süzgeçler gibi vurgulanır -->
+      <label class="sq-search dl-search" [class.is-set]="!!search().trim()">
+        <span class="dl-search-label">
+          <span class="material-symbols-outlined">search</span>
+          Ara
+        </span>
+        <input type="search" placeholder="Evrak no, konu, kurum, birim, orijinal no ya da personel"
           [ngModel]="search()" (ngModelChange)="setFilter(search, $event)" aria-label="Ara" />
+        @if (search()) {
+          <button type="button" class="dl-search-clear" title="Aramayı temizle" aria-label="Aramayı temizle"
+            (click)="setFilter(search, '')">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        }
       </label>
 
       <div class="sq-filters">
@@ -246,42 +254,26 @@
         </div>
       </div>
     }
+  </section>
 
-    <div class="sq-listhead">
-      <span class="sq-listhead-count">
-        <strong>{{ filteredRows().length }}</strong> {{ hasActiveFilters() ? 'sonuç' : 'evrak' }}
-      </span>
-      <!-- Aşama / yayın durumuna göre süzgeç -->
-      <div class="sq-subtabs" role="tablist" aria-label="Evrak durumu">
-        <button type="button" role="tab" [class.is-active]="publishFilter() === 'all'" (click)="setFilter(publishFilter, 'all')">Tümü</button>
-        <button type="button" role="tab" [class.is-active]="publishFilter() === 'prerecord'" (click)="setFilter(publishFilter, 'prerecord')">
-          <i class="sq-dot dl-dot-prerecord"></i>Ön Kayıt
-        </button>
-        <button type="button" role="tab" [class.is-active]="publishFilter() === 'record'" (click)="setFilter(publishFilter, 'record')">
-          <i class="sq-dot dl-dot-record"></i>Evrak Kayıt
-        </button>
-        <button type="button" role="tab" [class.is-active]="publishFilter() === 'done'" (click)="setFilter(publishFilter, 'done')">
-          <i class="sq-dot is-ok"></i>Yayınlandı
-        </button>
-        <button type="button" role="tab" [class.is-active]="publishFilter() === 'progress'" (click)="setFilter(publishFilter, 'progress')">
-          <i class="sq-dot is-wait"></i>Aktarımda
-        </button>
-        <button type="button" role="tab" [class.is-active]="publishFilter() === 'failed'" (click)="setFilter(publishFilter, 'failed')">
-          <i class="sq-dot is-err"></i>Aktarım Hatalı
-        </button>
+  <section class="sq-panel dl-list-panel">
+    <!-- Aşama / yayın durumuna göre süzgeç (şimdilik gizli; açmak için statusFilterVisible).
+         Sıralama sütun başlıklarından yapılır. -->
+    @if (statusFilterVisible) {
+      <div class="sq-listhead">
+        <label class="sq-sort dl-status-select" [class.is-set]="publishFilter() !== 'all'">
+          <span>Durum</span>
+          <select [ngModel]="publishFilter()" (ngModelChange)="setFilter(publishFilter, $event)" aria-label="Evrak durumu">
+            <option ngValue="all">Tümü</option>
+            <option ngValue="prerecord">Ön Kayıt</option>
+            <option ngValue="record">Evrak Kayıt</option>
+            <option ngValue="done">Yayınlandı</option>
+            <option ngValue="progress">Aktarımda</option>
+            <option ngValue="failed">Aktarım Hatalı</option>
+          </select>
+        </label>
       </div>
-      <label class="sq-sort">
-        <span>Sırala</span>
-        <select [ngModel]="sortPreset()" (ngModelChange)="setSortPreset($event)" aria-label="Sıralama">
-          @for (p of sortPresets; track p.value) {
-            <option [ngValue]="p.value">{{ p.label }}</option>
-          }
-          @if (sortPreset() === 'custom') {
-            <option ngValue="custom" disabled>Sütuna göre</option>
-          }
-        </select>
-      </label>
-    </div>
+    }
 
     <!-- Liste: yönetici için sade tablo. Her bilgi kendi sütununda; tek durum etiketi;
          ikincil işlemler (Süreç, Zimmet Geçmişi, Zimmetleme) satır sonundaki menüde. -->
@@ -303,7 +295,7 @@
         </div>
       } @else if (!filteredRows().length) {
         <div class="sq-empty">
-          <span class="sq-empty-icon"><span class="material-symbols-outlined">inbox</span></span>
+          <span class="sq-empty-icon"><span class="material-symbols-outlined">folder</span></span>
           <div class="sq-empty-title">{{ emptyText().title }}</div>
           <div class="sq-empty-desc">{{ emptyText().desc }}</div>
           @if (hasActiveFilters()) {
@@ -320,26 +312,23 @@
               <th scope="col" class="dl-col-no" [attr.aria-sort]="sortAria('no')">
                 <ng-container *ngTemplateOutlet="sortHead; context: { key: 'no', label: 'EVRAK NO' }" />
               </th>
-              <th scope="col" [attr.aria-sort]="sortAria('from')">
+              <th scope="col" class="dl-col-from" [attr.aria-sort]="sortAria('from')">
                 <ng-container *ngTemplateOutlet="sortHead; context: { key: 'from', label: 'NEREDEN' }" />
               </th>
               <th scope="col" class="dl-col-unit" [attr.aria-sort]="sortAria('to')">
                 <ng-container *ngTemplateOutlet="sortHead; context: { key: 'to', label: 'NEREYE' }" />
               </th>
-              <th scope="col" class="dl-col-urgency" [attr.aria-sort]="sortAria('urgency')">
-                <ng-container *ngTemplateOutlet="sortHead; context: { key: 'urgency', label: 'İVEDİLİK' }" />
-              </th>
               <th scope="col" class="dl-col-date" [attr.aria-sort]="sortAria('documentDate')">
                 <ng-container *ngTemplateOutlet="sortHead; context: { key: 'documentDate', label: 'BELGE TARİHİ' }" />
+              </th>
+              <th scope="col" class="dl-col-urgency" [attr.aria-sort]="sortAria('urgency')">
+                <ng-container *ngTemplateOutlet="sortHead; context: { key: 'urgency', label: 'İVEDİLİK' }" />
               </th>
               <th scope="col" class="dl-col-urgency" [attr.aria-sort]="sortAria('security')">
                 <ng-container *ngTemplateOutlet="sortHead; context: { key: 'security', label: 'GİZLİLİK' }" />
               </th>
               <th scope="col" class="dl-col-delivery" [attr.aria-sort]="sortAria('delivery')">
-                <ng-container *ngTemplateOutlet="sortHead; context: { key: 'delivery', label: 'TESLİM' }" />
-              </th>
-              <th scope="col" class="dl-col-status" [attr.aria-sort]="sortAria('status')">
-                <ng-container *ngTemplateOutlet="sortHead; context: { key: 'status', label: 'DURUM' }" />
+                <ng-container *ngTemplateOutlet="sortHead; context: { key: 'delivery', label: 'DURUM' }" />
               </th>
               <th scope="col" class="dl-col-actions"><span class="visually-hidden">İşlemler</span></th>
             </tr>
@@ -347,27 +336,26 @@
           <tbody>
             @for (item of pagedRows(); track item.id) {
               @let from = fromName(item);
-              @let st = statusView(item);
               @let urgencyTier = urgencyDegreeBadgeClassMap[item.urgencyDegree!] || 'degree-tier-1';
               <!-- Satıra tıklanınca Evrak Bilgileri açılır; düğmeler kendi işini yapar -->
               <tr [class.is-attention]="isAttention(item)" [attr.data-tier]="urgencyTier" (click)="openInfo(item)">
                 <td class="dl-col-no">
                   <div class="dl-no">{{ item.qrCode || '—' }}</div>
-                  <!-- Tür ve varsa orijinal belge no: "Yazı - 2026-123" -->
-                  @if (documentTypeLabels[item.documentTypeId] || item.orginalNo) {
-                    <div class="dl-sub" [title]="item.orginalNo ? 'Orijinal belge no: ' + item.orginalNo : ''">
-                      <span class="dl-type">{{ documentTypeLabels[item.documentTypeId] || '' }}</span>{{ documentTypeLabels[item.documentTypeId] && item.orginalNo ? ' - ' : '' }}<span class="dl-num dl-orig">{{ item.orginalNo || '' }}</span>
+                  <!-- Varsa orijinal belge no -->
+                  @if (item.orginalNo) {
+                    <div class="dl-sub" [title]="'Orijinal belge no: ' + item.orginalNo">
+                      <span class="dl-num dl-orig">{{ item.orginalNo }}</span>
                     </div>
                   }
                 </td>
                 <td class="dl-col-main">
-                  <div class="dl-from" [class.is-empty]="!from" [title]="from">{{ from || 'Kurum belirtilmemiş' }}</div>
-                  @if (subjectPreview(item.subject); as subject) {
-                    <div class="dl-sub dl-subject" [title]="item.subject">{{ subject }}</div>
-                  }
+                  <div class="dl-from" [class.is-empty]="!from" [title]="from">{{ clip(from) || 'Kurum belirtilmemiş' }}</div>
                 </td>
                 <td class="dl-col-unit">
-                  <span class="dl-text dl-to" [class.is-empty]="!toCell(item)" [title]="toTitle(item)">{{ toCell(item) || '—' }}</span>
+                  <span class="dl-text dl-to" [class.is-empty]="!toCell(item)" [title]="toTitle(item)">{{ clip(toCell(item)) || '—' }}</span>
+                </td>
+                <td class="dl-col-date">
+                  <span class="dl-text dl-num">{{ item.documentDate ? (item.documentDate | date:'dd.MM.yyyy') : '—' }}</span>
                 </td>
                 <td class="dl-col-urgency">
                   <!-- İvedilik: baş harfli renkli rozet (Gelen Evraklar listesindekiyle aynı);
@@ -377,40 +365,26 @@
                     {{ urgencyDegreeInitialMap[item.urgencyDegree!] || '-' }}
                   </span>
                 </td>
-                <td class="dl-col-date">
-                  <span class="dl-text dl-num">{{ item.documentDate ? (item.documentDate | date:'dd.MM.yyyy') : '—' }}</span>
-                </td>
                 <td class="dl-col-urgency">
-                  <!-- Gizlilik: ikonlu renkli rozet (Gelen Evraklar listesindekiyle aynı);
+                  <!-- Gizlilik: baş harfli renkli rozet (Gelen Evraklar listesindekiyle aynı);
                        adı üzerine gelince görünür -->
                   <span class="degree-badge-circle security-badge dl-security-badge {{ securityDegreeBadgeClassMap[item.securityDegree] || 'degree-tier-1' }}"
                     [title]="securityDegreeMap[item.securityDegree] || 'Gizlilik belirtilmemiş'">
-                    <span class="material-symbols-outlined">{{ securityDegreeIconMap[item.securityDegree] || 'help' }}</span>
+                    {{ securityDegreeInitialMap[item.securityDegree] || '-' }}
                   </span>
                 </td>
                 <td class="dl-col-delivery">
                   @let dv = deliveryView(item);
-                  <span class="dl-delivery" [attr.data-tone]="dv.tone">
-                    <i class="dl-delivery-dot"></i>{{ dv.label }}
-                  </span>
-                </td>
-                <td class="dl-col-status">
-                  <!-- Zarflar sayfasındaki durum rozetiyle aynı -->
-                  <span class="envelope-status-pill dl-status-pill {{ st.cls }}">
-                    <span class="envelope-status-icon">
-                      <span class="material-symbols-outlined">{{ st.icon }}</span>
-                    </span>
-                    <span class="envelope-status-text">{{ st.label }}</span>
-                  </span>
+                  <span class="dl-delivery" [attr.data-tone]="dv.tone">{{ dv.label }}</span>
                 </td>
                 <td class="dl-col-actions" (click)="$event.stopPropagation()">
                   <div class="dl-actions">
-                    <button type="button" class="dl-btn" title="Evrak Kayıt ekranında aç" (click)="goToDetail(item.id!)">
-                      Detay
+                    <button type="button" class="dl-btn" title="Evrakın PDF'ini görüntüle" (click)="openPdf(item)">
+                      Görüntüle
                     </button>
                     <button type="button" class="dl-icon-btn" title="Diğer işlemler" aria-haspopup="menu"
                       [class.is-open]="menu()?.id === item.id" (click)="toggleMenu(item, $event)">
-                      <span class="material-symbols-outlined">more_vert</span>
+                      <span class="material-symbols-outlined">more_horiz</span>
                     </button>
                   </div>
                 </td>
@@ -881,3 +855,50 @@
   [loading]="newUploadLoading()"
   (numberConfirmed)="confirmNewUpload($event)"
   (cancelled)="closeNewUpload()" />
+
+<!-- Görüntüle: evrakın PDF'i. showModal() ile tarayıcının üst katmanında açılır; Esc ve arka plana
+     tıklama kapatır. Evrak Kayıt ekranına buradan geçilebilir. -->
+<dialog #pdfDialog class="dl-pdf-dialog" aria-labelledby="dl-pdf-title"
+  (close)="closePdf()" (click)="onPdfDialogClick($event)">
+  @if (pdfPreview(); as pv) {
+    @let pvFrom = fromName(pv.item);
+    <div class="dl-pdf">
+      <div class="dl-pdf-head">
+        <span class="dl-pdf-icon" aria-hidden="true">
+          <span class="material-symbols-outlined">picture_as_pdf</span>
+        </span>
+        <div class="dl-pdf-title-wrap">
+          <div id="dl-pdf-title" class="dl-pdf-title">{{ pv.item.qrCode || 'Evrak' }}</div>
+          @if (pvFrom || pv.item.subject) {
+            <div class="dl-pdf-sub" [title]="(pvFrom || '') + (pv.item.subject ? ' · ' + pv.item.subject : '')">
+              {{ pvFrom }}{{ pvFrom && pv.item.subject ? ' · ' : '' }}{{ pv.item.subject }}
+            </div>
+          }
+        </div>
+        <button type="button" class="dl-btn dl-pdf-record" title="Evrakı Evrak Kayıt ekranında aç" (click)="openPdfInRecord()">
+          <span class="material-symbols-outlined">edit_document</span>
+          Evrak Kayıt'ta aç
+        </button>
+        <button type="button" class="dl-icon-btn" title="Kapat" aria-label="Kapat" (click)="closePdf()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="dl-pdf-body">
+        @if (pv.url) {
+          <iframe [src]="pv.url" title="Evrak önizlemesi"></iframe>
+        } @else if (pv.error) {
+          <div class="dl-pdf-state" role="alert">
+            <span class="material-symbols-outlined">description</span>
+            <div class="dl-pdf-state-title">Belge gösterilemiyor</div>
+            <div class="dl-pdf-state-sub">{{ pv.error }}</div>
+          </div>
+        } @else {
+          <div class="dl-pdf-state">
+            <div class="spinner-border dl-pdf-spinner" role="status"></div>
+            <div class="dl-pdf-state-sub">Belge yükleniyor…</div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</dialog>
