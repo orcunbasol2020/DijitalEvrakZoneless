@@ -5,6 +5,8 @@ export interface NavigationModel {
     roles?: string[];
     excludeRoles?: string[];
     category?: string;
+    /** false: menüde gösterilmez (sayfa ve rota yerinde kalır) */
+    visible?: boolean;
 }
 
 /**
@@ -94,13 +96,17 @@ export const navigations: NavigationModel[] = [
         title: "Havale (AI)",
         url: "/havale",
         icon: "neurology",
-        excludeRoles: LIMITED_ROLES
+        excludeRoles: LIMITED_ROLES,
+        // Şimdilik menüde gizli
+        visible: false
     },
     {
         title: "OCR Takip",
         url: "/ocrtakip",
         icon: "document_scanner",
-        roles: ["Gelen Evrak", "Yönetici"]
+        roles: ["Gelen Evrak", "Yönetici"],
+        // Şimdilik menüde gizli
+        visible: false
     },
     {
         title: "Dijitalleştirme Takip",
@@ -248,5 +254,23 @@ export const navigations: NavigationModel[] = [
         url: "/nota-raporlari",
         icon: "public",
         excludeRoles: LIMITED_ROLES
+    },
+
+    // Herkese açık (rol koşulu yok); önceden alt bilgideki (footer) bağlantılardı
+    {
+        category: "Yardım",
+        title: undefined,
+        url: undefined,
+        icon: undefined
+    },
+    {
+        title: "Destek",
+        url: "/support",
+        icon: "support_agent"
+    },
+    {
+        title: "Dokümanlar",
+        url: "/documents",
+        icon: "menu_book"
     }
 ];

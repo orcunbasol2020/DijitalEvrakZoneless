@@ -71,12 +71,19 @@
 
     <flexi-grid-column field="name" title="Kullanıcı" width="220px">
       <ng-template flexiGridCellTemplate let-item>
-        <div class="d-flex flex-column">
-          <!-- AD kullanıcı adı satırda yazılmaz, ad soyadın üzerine gelince görünür -->
-          <span class="fw-semibold" [title]="item.userName || ''">{{ item.name }} {{ item.surname }}</span>
-          @if (item.titleName) {
-            <span class="small us-title" [title]="item.titleName">{{ item.titleName }}</span>
-          }
+        <div class="us-user">
+          <span class="us-avatar" aria-hidden="true">
+            <app-user-photo [user]="item">
+              <span class="us-avatar-initials">{{ initials(item) }}</span>
+            </app-user-photo>
+          </span>
+          <div class="d-flex flex-column us-user-text">
+            <!-- AD kullanıcı adı satırda yazılmaz, ad soyadın üzerine gelince görünür -->
+            <span class="fw-semibold" [title]="item.userName || ''">{{ item.name }} {{ item.surname }}</span>
+            @if (item.titleName) {
+              <span class="small us-title" [title]="item.titleName">{{ item.titleName }}</span>
+            }
+          </div>
         </div>
       </ng-template>
     </flexi-grid-column>
@@ -124,14 +131,25 @@
       </ng-template>
     </flexi-grid-column>
 
-    <flexi-grid-column title="Roller" textAlign="center" width="70px" [filterable]="false" [sortable]="false" [hideOverflow]="false">
+    <flexi-grid-column title="İşlemler" textAlign="center" [width]="isAdmin ? '110px' : '70px'" [filterable]="false" [sortable]="false" [hideOverflow]="false">
       <ng-template flexiGridCellTemplate let-item>
-        <flexi-button
-          [routerLink]="['/','users','edit',item.id]"
-          btnIcon="manage_accounts"
-          btnColor="info"
-          title="Rolleri düzenle"
-          flexiTooltip="top" />
+        <div class="us-actions">
+          <flexi-button
+            [routerLink]="['/','users','edit',item.id]"
+            btnIcon="manage_accounts"
+            btnColor="info"
+            title="Rolleri düzenle"
+            flexiTooltip="top" />
+          <!-- Başkasının profil resmini yalnızca Yönetici değiştirir (backend de 403 ile engeller) -->
+          @if (isAdmin) {
+            <flexi-button
+              (click)="photoUser.set(item)"
+              btnIcon="photo_camera"
+              btnColor="secondary"
+              title="Profil resmi"
+              flexiTooltip="top" />
+          }
+        </div>
       </ng-template>
     </flexi-grid-column>
 
@@ -139,3 +157,8 @@
 </div>
 </section>
 </div>
+
+<!-- Yönetici: seçilen kullanıcının profil resmi -->
+@if (photoUser(); as u) {
+  <app-user-photo-editor [user]="u" [self]="u.id === currentUserId()" (closed)="photoUser.set(null)" />
+}

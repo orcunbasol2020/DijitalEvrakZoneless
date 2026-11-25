@@ -1,0 +1,95 @@
+<div class="modal-overlay" (click)="close()">
+  <div class="upe-modal" role="dialog" aria-modal="true" aria-labelledby="upeTitle" (click)="$event.stopPropagation()">
+    <div class="upe-head">
+      <span class="upe-head-icon">
+        <span class="material-symbols-outlined">photo_camera</span>
+      </span>
+      <div class="upe-head-text">
+        <h4 class="upe-title" id="upeTitle">Profil Resmi</h4>
+        <div class="upe-sub">{{ self() ? 'Kendi profil resminiz' : fullName() }}</div>
+      </div>
+      <button type="button" class="upe-close" title="Kapat" aria-label="Kapat" [disabled]="busy()" (click)="close()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <div class="upe-body">
+      @if (source(); as src) {
+        <!-- Kırpma: sürükle, tekerlek / kaydırıcı ile yakınlaştır; daire içi kaydedilir (kare olarak) -->
+        <div class="upe-stage" tabindex="0"
+          [style.width.px]="stage" [style.height.px]="stage"
+          aria-label="Resmi konumlandırın: ok tuşlarıyla kaydırın, artı ve eksi ile yakınlaştırın"
+          (pointerdown)="onPointerDown($event)"
+          (pointermove)="onPointerMove($event)"
+          (pointerup)="onPointerUp($event)"
+          (pointercancel)="onPointerUp($event)"
+          (wheel)="onWheel($event)"
+          (keydown)="onStageKey($event)">
+          <img [src]="src" alt="" draggable="false"
+            [style.width.px]="displayW()" [style.height.px]="displayH()" [style.transform]="transform()" />
+          <span class="upe-mask" aria-hidden="true"></span>
+        </div>
+
+        <label class="upe-zoom">
+          <span class="material-symbols-outlined" aria-hidden="true">zoom_out</span>
+          <input type="range" min="1" [max]="maxZoom" step="0.01" aria-label="Yakınlaştırma"
+            [value]="zoom()" (input)="setZoom(+$any($event.target).value)" />
+          <span class="material-symbols-outlined" aria-hidden="true">zoom_in</span>
+        </label>
+        <p class="upe-hint">Resmi sürükleyerek konumlandırın. Dairenin içi profil resmi olur.</p>
+      } @else {
+        <div class="upe-current">
+          <span class="upe-current-avatar">
+            <app-user-photo [user]="user()" [alt]="fullName()">
+              <span class="upe-initials">{{ initials() }}</span>
+            </app-user-photo>
+          </span>
+          <p class="upe-hint">
+            @if (hasPhoto()) {
+              Yeni bir resim seçerek değiştirebilir ya da kaldırabilirsiniz.
+            } @else {
+              Henüz profil resmi yok; yerine ad-soyad baş harfleri gösteriliyor.
+            }
+            JPEG, PNG ya da WebP seçebilirsiniz; resim kare kırpılıp küçültülerek kaydedilir.
+          </p>
+        </div>
+      }
+
+      <input #fileInput type="file" class="d-none" [accept]="accept" (change)="onFileChange($event)" />
+    </div>
+
+    <div class="upe-foot">
+      @if (source()) {
+        <button type="button" class="upe-btn upe-btn-ghost" [disabled]="busy()" (click)="cancelCrop()">Vazgeç</button>
+        <button type="button" class="upe-btn upe-btn-ghost" [disabled]="busy()" (click)="pickFile()">
+          <span class="material-symbols-outlined">image</span>
+          Başka resim
+        </button>
+        <button type="button" class="upe-btn upe-btn-primary" [disabled]="busy()" (click)="save()">
+          @if (saving()) {
+            <span class="spinner-border spinner-border-sm"></span>
+          } @else {
+            <span class="material-symbols-outlined">save</span>
+          }
+          Kaydet
+        </button>
+      } @else {
+        @if (hasPhoto()) {
+          <button type="button" class="upe-btn upe-btn-danger me-auto" [disabled]="busy()" (click)="remove()">
+            @if (saving()) {
+              <span class="spinner-border spinner-border-sm"></span>
+            } @else {
+              <span class="material-symbols-outlined">delete</span>
+            }
+            Resmi kaldır
+          </button>
+        }
+        <button type="button" class="upe-btn upe-btn-ghost" [disabled]="busy()" (click)="close()">Kapat</button>
+        <button type="button" class="upe-btn upe-btn-primary" [disabled]="busy()" (click)="pickFile()">
+          <span class="material-symbols-outlined">upload</span>
+          {{ hasPhoto() ? 'Resmi değiştir' : 'Resim seç' }}
+        </button>
+      }
+    </div>
+  </div>
+</div>

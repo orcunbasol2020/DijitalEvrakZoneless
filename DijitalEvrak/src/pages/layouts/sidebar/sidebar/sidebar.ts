@@ -6,7 +6,6 @@ import { filter } from 'rxjs';
 import { RoleService } from '../../../../services/role-service';
 import { SearchMenuPipe } from '../../../../pipes/search-menu-pipe';
 import { NavigationModel } from '../../../../navigation';
-import { Common } from '../../../../services/common';
 import { AllocationRequestService } from '../../../../services/allocationrequest';
 
 interface NavGroup {
@@ -32,7 +31,6 @@ interface MiniTooltip {
 export class Sidebar {
 
   private roleService = inject(RoleService);
-  private common = inject(Common);
   private router = inject(Router);
   private readonly allocationRequests = inject(AllocationRequestService);
   private readonly searchPipe = new SearchMenuPipe();
@@ -43,27 +41,14 @@ export class Sidebar {
   /** "Takip Sistemi" harf harf dağıtılarak "DİJİTAL EVRAK" başlığıyla aynı genişliğe yayılır. */
   readonly subtitleChars = 'Takip Sistemi'.split('');
 
+  /** Menüde ara kutusu; gizliyken search boş kalır, menü süzülmez */
+
+  readonly searchVisible = false;
+
   search = signal<string>("");
   readonly isSearching = computed(() => this.search().trim().length > 0);
 
   navigations = computed(() => this.roleService.getMenu());
-
-  readonly user = computed(() => this.common.user());
-  readonly userFullName = computed(() => `${this.user()?.name ?? ''} ${this.user()?.surname ?? ''}`.trim());
-  readonly userInitials = computed(() => {
-    const u = this.user();
-    const first = (u?.name ?? '').trim().charAt(0);
-    const last = (u?.surname ?? '').trim().charAt(0);
-    return `${first}${last}`.toLocaleUpperCase('tr') || '?';
-  });
-  readonly isAdmin = computed(() => this.roleService.has('Yönetici'));
-  readonly isBirimEvrakSorumlusu = computed(() => this.roleService.hasBirimEvrakRole());
-  readonly userRoleLabel = computed(() => {
-    if (this.isAdmin()) return 'Yönetici';
-    if (this.roleService.has('Birim Yöneticisi')) return 'Birim Yöneticisi';
-    if (this.isBirimEvrakSorumlusu()) return 'Birim Evrak Sorumlusu';
-    return this.roleService.roles[0] ?? '';
-  });
 
   /** Menü öğeleri kategori bazında gruplanır; arama varken filtre uygulanır. */
   readonly groups = computed<NavGroup[]>(() => {
@@ -203,9 +188,5 @@ export class Sidebar {
     this.miniTooltip.set(null);
   }
 
-  logout(): void {
-    this.common.logout();
-    this.router.navigateByUrl('/login');
-  }
 
 }

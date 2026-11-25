@@ -1,0 +1,286 @@
+/* .modal-overlay global (styles.css); pencere ve düğmeler zl-modal görünümüyle aynı */
+
+.upe-modal {
+    width: 380px;
+    max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 32px);
+    overflow: auto;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 18px 44px rgba(15, 23, 42, 0.2);
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+.upe-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 18px;
+    border-bottom: 1px solid #eef2f7;
+}
+
+.upe-head-icon {
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(14, 165, 233, 0.12);
+    color: #0284c7;
+}
+
+.upe-head-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.upe-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.upe-sub {
+    font-size: 12.5px;
+    color: #64748b;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.upe-close {
+    border: 0;
+    background: transparent;
+    color: #64748b;
+    border-radius: 8px;
+    padding: 4px;
+    display: flex;
+    cursor: pointer;
+}
+
+.upe-close:hover:not(:disabled) {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.upe-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 18px;
+}
+
+/* Kırpma alanı */
+.upe-stage {
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+    background: #0f172a;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.upe-stage:active {
+    cursor: grabbing;
+}
+
+.upe-stage:focus-visible {
+    outline: 3px solid rgba(14, 165, 233, 0.6);
+    outline-offset: 2px;
+}
+
+.upe-stage img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    max-width: none;
+    transform-origin: 0 0;
+    pointer-events: none;
+}
+
+/* Dairenin dışı karartılır (kaydedilen alan karedir, gösterimde daire) */
+.upe-mask {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    box-shadow: 0 0 0 999px rgba(15, 23, 42, 0.55);
+    outline: 2px solid rgba(255, 255, 255, 0.85);
+    outline-offset: -2px;
+    pointer-events: none;
+}
+
+.upe-zoom {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    max-width: 280px;
+    margin: 0;
+    color: #64748b;
+}
+
+.upe-zoom input {
+    flex: 1;
+    accent-color: #0284c7;
+}
+
+.upe-zoom .material-symbols-outlined {
+    font-size: 20px;
+}
+
+.upe-hint {
+    margin: 0;
+    font-size: 12.5px;
+    color: #64748b;
+    text-align: center;
+}
+
+/* Mevcut resim */
+.upe-current {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+}
+
+.upe-current-avatar {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #06b6d4, #0e7490);
+    box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.18);
+}
+
+.upe-initials {
+    color: #fff;
+    font-size: 44px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+/* Alt çubuk ve düğmeler */
+.upe-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 18px;
+    border-top: 1px solid #eef2f7;
+    background: #f8fafc;
+}
+
+.upe-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.upe-btn .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.upe-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.upe-btn-ghost {
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    color: #475569;
+}
+
+.upe-btn-ghost:hover:not(:disabled) {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.upe-btn-primary {
+    border: 0;
+    background: linear-gradient(135deg, #0284c7, #0ea5e9);
+    color: #fff;
+    font-weight: 700;
+    box-shadow: 0 6px 16px rgba(14, 165, 233, 0.3);
+}
+
+.upe-btn-primary:hover:not(:disabled) {
+    box-shadow: 0 10px 22px rgba(14, 165, 233, 0.36);
+}
+
+.upe-btn-danger {
+    border: 1px solid rgba(220, 38, 38, 0.3);
+    background: #fff;
+    color: #dc2626;
+}
+
+.upe-btn-danger:hover:not(:disabled) {
+    background: #fef2f2;
+}
+
+/* Koyu tema */
+:host-context([data-theme="dark"]) .upe-modal {
+    background: #1a2030;
+}
+
+:host-context([data-theme="dark"]) .upe-head,
+:host-context([data-theme="dark"]) .upe-foot {
+    border-color: rgba(148, 163, 184, 0.18);
+}
+
+:host-context([data-theme="dark"]) .upe-foot {
+    background: #151a27;
+}
+
+:host-context([data-theme="dark"]) .upe-title {
+    color: #e2e8f0;
+}
+
+:host-context([data-theme="dark"]) .upe-sub,
+:host-context([data-theme="dark"]) .upe-hint,
+:host-context([data-theme="dark"]) .upe-zoom,
+:host-context([data-theme="dark"]) .upe-close {
+    color: #94a3b8;
+}
+
+:host-context([data-theme="dark"]) .upe-close:hover:not(:disabled),
+:host-context([data-theme="dark"]) .upe-btn-ghost:hover:not(:disabled) {
+    background: rgba(148, 163, 184, 0.12);
+    color: #e2e8f0;
+}
+
+:host-context([data-theme="dark"]) .upe-btn-ghost {
+    background: transparent;
+    border-color: rgba(148, 163, 184, 0.3);
+    color: #cbd5e1;
+}
+
+:host-context([data-theme="dark"]) .upe-btn-danger {
+    background: transparent;
+    color: #f87171;
+}
+
+:host-context([data-theme="dark"]) .upe-btn-danger:hover:not(:disabled) {
+    background: rgba(248, 113, 113, 0.1);
+}
+
+:host-context([data-theme="dark"]) .upe-head-icon {
+    background: rgba(56, 189, 248, 0.15);
+    color: #7dd3fc;
+}

@@ -50,6 +50,18 @@ export function storeUser(user: StoredUser, method: LoginMethod, remember: boole
   sessionStorage.removeItem(SIGNED_OUT_KEY);
 }
 
+/** Oturumdaki kullanıcının bazı alanlarını (ör. photoVersion) yerinde günceller; oturum yoksa bir şey yapmaz. */
+export function patchStoredUser(patch: Partial<StoredUser>): void {
+  const storage = localStorage.getItem(USER_KEY) ? localStorage : sessionStorage.getItem(USER_KEY) ? sessionStorage : null;
+  const raw = storage?.getItem(USER_KEY);
+  if (!storage || !raw) return;
+  try {
+    storage.setItem(USER_KEY, JSON.stringify({ ...JSON.parse(raw), ...patch }));
+  } catch {
+    // Bozuk oturum readStoredUser'da temizlenir
+  }
+}
+
 export function clearStoredUser(): void {
   localStorage.removeItem(USER_KEY);
   sessionStorage.removeItem(USER_KEY);

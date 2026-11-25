@@ -120,6 +120,17 @@ export class RoleService {
     return this.hasAny(BIRIM_EVRAK_ROLES);
   }
 
+  /**
+   * Kullanıcının öne çıkan rolü (kullanıcı menüsünde "… Yetkisi" olarak gösterilir): Yönetici,
+   * Birim Yöneticisi, Birim Evrak Sorumlusu öncelikli; değilse ilk rolü. Rolü yoksa boş.
+   */
+  primaryRoleLabel(): string {
+    if (this.has('Yönetici')) return 'Yönetici';
+    if (this.has('Birim Yöneticisi')) return 'Birim Yöneticisi';
+    if (this.has('Birim Evrak Sorumlusu')) return 'Birim Evrak Sorumlusu';
+    return this.roles[0] ?? '';
+  }
+
   /** Havale (AI), parametre sayfaları ve Raporlar'ı açabilir mi; bkz. LIMITED_ROLES. */
   canViewLimitedPages(): boolean {
     return !this.hasAny(LIMITED_ROLES);
@@ -140,7 +151,8 @@ export class RoleService {
 
   getMenu(): NavigationModel[] {
     const visible = navigations.filter(nav => nav.category || (
-      (!nav.roles?.length || this.hasAny(nav.roles))
+      nav.visible !== false
+      && (!nav.roles?.length || this.hasAny(nav.roles))
       && !(nav.excludeRoles?.length && this.hasAny(nav.excludeRoles))
     ));
 

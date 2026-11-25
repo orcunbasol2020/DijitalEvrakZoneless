@@ -266,13 +266,9 @@
                     role="button" data-bs-toggle="dropdown"
                     aria-expanded="false">
                     <div class="avatar user-toggle-avatar">
-                        @if (userAvatar(); as avatar) {
-                            <img [src]="avatar" alt="User Avatar" />
-                        } @else {
-                            <span class="avatar-fallback">
-                                <span class="material-symbols-outlined">person</span>
-                            </span>
-                        }
+                        <app-user-photo [user]="user()" alt="Profil resmi">
+                            <span class="avatar-fallback avatar-initials">{{ userInitials() }}</span>
+                        </app-user-photo>
                     </div>
                     <div class="d-flex flex-column ps-2">
                         <span class="d-none d-md-inline user-toggle-name">{{user()?.name}} {{user()?.surname}}</span>
@@ -283,23 +279,27 @@
                 <ul class="dropdown-menu dropdown-menu-end shadow user-dropdown-menu"
                     aria-labelledby="userDropdown">
                     <li class="user-dropdown-header">
-                        <div class="user-dropdown-avatar">
-                            @if (userAvatar(); as avatar) {
-                                <img [src]="avatar" alt="User Avatar" />
-                            } @else {
-                                <span class="avatar-fallback">
-                                    <span class="material-symbols-outlined">person</span>
-                                </span>
-                            }
-                        </div>
+                        <button type="button" class="user-dropdown-avatar" title="Profil resmini değiştir"
+                            aria-label="Profil resmini değiştir" (click)="photoEditorOpen.set(true)">
+                            <app-user-photo [user]="user()" alt="Profil resmi">
+                                <span class="avatar-fallback avatar-initials">{{ userInitials() }}</span>
+                            </app-user-photo>
+                            <span class="user-dropdown-avatar-edit" aria-hidden="true">
+                                <span class="material-symbols-outlined">photo_camera</span>
+                            </span>
+                        </button>
                         <div class="user-dropdown-identity">
                             <span class="user-dropdown-name">{{user()?.name}} {{user()?.surname}}</span>
-                            @if (user()?.email) {
-                                <span class="user-dropdown-email" title="{{user()?.email}}">{{ user()?.email }}</span>
-                            }
                             <span class="user-dropdown-dept" title="{{user()?.departmentName}}">
                                 {{ user()?.departmentName }}
                             </span>
+                            <!-- E-posta yerine öne çıkan yetki (ör. "Yönetici Yetkisi"); e-posta üzerine gelince görünür -->
+                            @if (userRoleLabel(); as role) {
+                                <span class="user-dropdown-role" [title]="user()?.email || ''">
+                                    <span class="material-symbols-outlined" aria-hidden="true">{{ roleIcon(role) }}</span>
+                                    {{ role }} Yetkisi
+                                </span>
+                            }
                         </div>
                     </li>
                     @if (!roleService.hasBirimEvrakRole()) {
@@ -315,6 +315,17 @@
                             </a>
                         </li>
                     }
+                    <li>
+                        <button type="button" class="dropdown-item user-dropdown-item" (click)="photoEditorOpen.set(true)">
+                            <span class="user-dropdown-icon user-dropdown-icon-primary">
+                                <span class="material-symbols-outlined">photo_camera</span>
+                            </span>
+                            <span class="user-dropdown-item-text">
+                                <span class="user-dropdown-item-title">Profil Resmi</span>
+                                <span class="user-dropdown-item-sub">Resminizi yükleyin ya da değiştirin</span>
+                            </span>
+                        </button>
+                    </li>
                     <li>
                         <a class="dropdown-item user-dropdown-item" routerLink="/zimmetlerim" routerLinkActive="active">
                             <span class="user-dropdown-icon user-dropdown-icon-info">
@@ -374,35 +385,12 @@
     </div>
 </div>
 
-<footer class="fixed-footer">
-    <div class="footer-left">
-        <a routerLink="/" class="footer-brand" title="Kontrol Paneli">
-            <img class="footer-brand-mark" src="assets/images/dijital-evrak-mark-neon.png" width="690" height="530" alt="" />
-            <span class="footer-brand-text">
-                <span class="footer-brand-title">DİJİTAL <span class="footer-brand-title-accent">EVRAK</span></span>
-                <span class="footer-brand-subtitle" aria-label="Takip Sistemi"><span aria-hidden="true">T</span><span aria-hidden="true">A</span><span aria-hidden="true">K</span><span aria-hidden="true">İ</span><span aria-hidden="true">P</span><span aria-hidden="true"> </span><span aria-hidden="true">S</span><span aria-hidden="true">İ</span><span aria-hidden="true">S</span><span aria-hidden="true">T</span><span aria-hidden="true">E</span><span aria-hidden="true">M</span><span aria-hidden="true">İ</span></span>
-            </span>
-        </a>
-        <span class="footer-version" title="Uygulama sürümü">{{ appVersion }}</span>
-    </div>
-    <div class="footer-center">
-        <span class="footer-copy">&copy; 2026 T.C. Dışişleri Bakanlığı</span>
-        <span class="footer-dot" aria-hidden="true"></span>
-        <span class="footer-copy-muted">Tüm hakları saklıdır</span>
-    </div>
-    <div class="footer-right">
-        <a routerLink="/support" routerLinkActive="active" class="footer-link">
-            <span class="material-symbols-outlined">support_agent</span>
-            <span>Destek</span>
-        </a>
-        <span class="footer-divider" aria-hidden="true"></span>
-        <a routerLink="/documents" routerLinkActive="active" class="footer-link">
-            <span class="material-symbols-outlined">menu_book</span>
-            <span>Dokümanlar</span>
-        </a>
-    </div>
-</footer>
 
 <!-- Girişte tek hatırlatma popup'ı: zimmet onayları + birim teslim bekleyenler -->
 <app-login-reminder />
 <app-session-timeout />
+
+<!-- Kendi profil resmi (kullanıcı menüsünden) -->
+@if (photoEditorOpen() && user(); as me) {
+    <app-user-photo-editor [user]="me" [self]="true" (closed)="photoEditorOpen.set(false)" />
+}

@@ -9,6 +9,9 @@ import { Common } from '../../services/common';
 import { isRoleVisible, normalizeRoleName, roleIcon, RoleService } from '../../services/role-service';
 import { RoleModel } from './role/role';
 import { DepartmentId } from '../../models/ids';
+import { UserPhoto } from '../../components/user-photo/user-photo';
+import { UserPhotoEditor } from '../../components/user-photo-editor/user-photo-editor';
+import { getUserInitials } from '../../services/user-avatar';
 
 // Kullanıcılar kaynak sistemden (ComAuthorizationUser) gelir, bizde salt okunurdur; yalnızca roller atanır.
 export interface UserModel{
@@ -29,6 +32,8 @@ export interface UserModel{
   isDeleted: boolean;
   /** Kullanıcının etkin rolleri; yalnızca Users/GetAll doldurur (GetById'de null gelir). */
   roles?: UserRoleRef[] | null;
+  /** Profil resminin sürümü; null: resim yok (istek atılmaz, baş harfler gösterilir). Bkz. UserPhotoService */
+  photoVersion?: string | null;
 }
 
 export interface UserRoleRef {
@@ -60,7 +65,9 @@ export const initialUser:UserModel = {
     GenericModel,
     FlexiGridModule,
     RouterLink,
-    FormsModule
+    FormsModule,
+    UserPhoto,
+    UserPhotoEditor
   ],
   templateUrl: './users.html',
   // Roller sayfasıyla aynı kart başlığı: kart iskeleti (st-*) ve başlık araçları (zl-*) paylaşılır.
@@ -145,4 +152,14 @@ export default class Users {
   roleIcon(name: string): string {
     return roleIcon(name);
   }
+
+  initials(user: UserModel): string {
+    return getUserInitials(user);
+  }
+
+  /** Başkasının profil resmini yalnızca Yönetici değiştirebilir */
+  readonly isAdmin = this.#roleService.has('Yönetici');
+  readonly currentUserId = computed(() => this.#common.user()?.id ?? null);
+  /** Profil resmi penceresi açık olan kullanıcı */
+  readonly photoUser = signal<UserModel | null>(null);
 }

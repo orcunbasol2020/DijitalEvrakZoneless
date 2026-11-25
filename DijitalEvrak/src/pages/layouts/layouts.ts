@@ -9,9 +9,11 @@ import { Common } from '../../services/common';
 import { initialUser } from '../users/users';
 import { IncomingDocumentService } from '../../services/incomingdocument';
 import { Sidebar } from './sidebar/sidebar/sidebar';
-import { RoleService } from '../../services/role-service';
+import { RoleService, roleIcon } from '../../services/role-service';
 import { DocumentAllocation } from '../../services/documentallocation';
-import { getUserAvatar } from '../../services/user-avatar';
+import { getUserInitials } from '../../services/user-avatar';
+import { UserPhoto } from '../../components/user-photo/user-photo';
+import { UserPhotoEditor } from '../../components/user-photo-editor/user-photo-editor';
 import { AllocationRequestService } from '../../services/allocationrequest';
 import { LoginReminder } from './login-reminder/login-reminder';
 import { SessionTimeout } from './session-timeout/session-timeout';
@@ -20,7 +22,6 @@ import { NotificationModel, NotificationTypeEnum, NotificationTypeIcons, Notific
 import { isSentToPublish } from '../../models/publishstatus.model';
 
 import { DocumentSearchResult, DocumentSearchService } from '../../services/document-search';
-import { APP_VERSION } from '../../app-version';
 
 interface HighlightPart {
   text: string;
@@ -79,14 +80,15 @@ function highlightParts(text: string, words: string[]): HighlightPart[] {
     NgClass,
     DatePipe,
     LoginReminder,
-    SessionTimeout
+    SessionTimeout,
+    UserPhoto,
+    UserPhotoEditor
   ],
   templateUrl: './layouts.html',
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export default class Layouts {
-  readonly appVersion = APP_VERSION;
   readonly search = signal<string>("");
   readonly showSearchResults = signal<boolean>(false);
   readonly activeResultIndex = signal<number>(-1);
@@ -239,6 +241,10 @@ export default class Layouts {
   private readonly router = inject(Router);
   readonly roleService = inject(RoleService);
   readonly isAdmin = computed(() => this.roleService.has('Yönetici'));
+  /** Kullanıcı menüsünde e-posta yerine gösterilen yetki (ör. Yönetici). Roller signal değil (oturumdan okunur);
+   *  user() okunur ki oturum değişince yeniden hesaplansın. */
+  readonly userRoleLabel = computed(() => (this.user(), this.roleService.primaryRoleLabel()));
+  readonly roleIcon = roleIcon;
   readonly #allocationService = inject(DocumentAllocation);
   readonly transferCount = signal<number>(0);
 
@@ -351,7 +357,9 @@ export default class Layouts {
     }
   }
 
-  readonly userAvatar = computed(() => getUserAvatar(this.user()));
+  readonly userInitials = computed(() => getUserInitials(this.user()));
+  /** Kullanıcı menüsündeki "Profil Resmi": kendi resmini yükler / değiştirir / kaldırır */
+  readonly photoEditorOpen = signal(false);
 
 logout(): void {
   this.#common.logout();

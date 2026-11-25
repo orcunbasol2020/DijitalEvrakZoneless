@@ -253,3 +253,41 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+/* Kullanıcı sütunu: profil resmi (yoksa baş harfler) + ad soyad */
+.us-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.us-user-text {
+    min-width: 0;
+}
+
+.us-avatar {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #06b6d4, #0e7490);
+}
+
+.us-avatar-initials {
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    line-height: 1;
+}
+
+.us-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
